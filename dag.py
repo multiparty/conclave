@@ -1,4 +1,5 @@
 import copy
+import functools
 
 class Column():
 
@@ -14,6 +15,7 @@ class Column():
 
         return "column {}".format(str(self.collusionSet))
 
+
 class Relation():
 
     def __init__(self, name, columns):
@@ -21,16 +23,28 @@ class Relation():
         self.name = name
         self.columns = columns
 
-    def __str__(self):
 
-        colStr = ", ".join([str(col) for col in self.columns])
-        return "relation {}: ({})".format(self.name, colStr)
+    def rename(self, newName):
+
+        self.name = newName
+        for col in self.columns:
+            col.relName = newName
+
+    def isShared(self):
+
+        return len(self.getCombinedCollusionSet()) > 1
 
     # Returns the union of the collusion sets of all columns
     def getCombinedCollusionSet(self):
 
         colSets = [col.collusionSet for col in self.columns] 
-        return reduce(lambda setA, setB: setA.union(setB), colSets)
+        return functools.reduce(lambda setA, setB: setA.union(setB), colSets)
+
+    def __str__(self):
+
+        colStr = ", ".join([str(col) for col in self.columns])
+        return "relation {}: ({})".format(self.name, colStr)
+
 
 class Node():
 
@@ -62,6 +76,7 @@ class Node():
         
         return self.name
 
+
 class OpNode(Node):
 
     def __init__(self, name, inRels, outRel):
@@ -73,17 +88,29 @@ class OpNode(Node):
         # to cross party boundaries. Override this for operators
         # where this is not the case
         self.isLocal = False
+        self.isMPC = False
 
-    # side-effect on child
-    def addChild(self, child):
+    def requiresMPC(self):
 
-        super(OpNode, self).addChild(child)
-        child.inRels.append(self.outRel)
+        return self.outRel.isShared() and not self.isLocal
+
+    # This method pushes the given node between it
+    # and each of its children
+    def insertAfterSelf(self, node):
+
+        for child in self.children:
+            child.parents.remove(self)
+            node.addChild(child)
+
+        self.children = set()
+        self.addChild(node)
 
     def __str__(self):
         
         inRelStr = " ".join([str(rel) for rel in self.inRels])
-        return "{} inputs: [{}] output: {}".format(self.name, inRelStr, str(self.outRel))
+        suffix = "mpc" if self.isMPC else ""
+        return "{} inputs: [{}] output: {}".format(self.name + suffix, inRelStr, str(self.outRel))
+
 
 class Create(OpNode):
 
@@ -92,6 +119,7 @@ class Create(OpNode):
         super(Create, self).__init__("create", [], outRel)
         # Input can be done by parties locally
         self.isLocal = True
+
 
 class Aggregate(OpNode):
 
@@ -102,6 +130,7 @@ class Aggregate(OpNode):
         self.aggCol = aggCol
         self.aggregator = aggregator
 
+
 class Project(OpNode):
 
     def __init__(self, inRel, outRel, projector):
@@ -110,6 +139,7 @@ class Project(OpNode):
         # Projection can be done by parties locally
         self.isLocal = True    
 
+
 class Join(OpNode):
 
     def __init__(self, leftInRel, rightInRel, outRel, leftJoinCol, rightJoinCol):
@@ -117,6 +147,7 @@ class Join(OpNode):
         super(Join, self).__init__("join", [leftInRel, rightInRel], outRel)
         self.leftJoinCol = leftJoinCol
         self.rightJoinCol = rightJoinCol
+
 
 class Dag():
 
@@ -139,15 +170,62 @@ class Dag():
         for root in self.roots:
             self._dfsVisit(root, visitor, visited)
 
+        return visited
+
     def dfsPrint(self):
         
         self.dfsVisit(print)
+
+    def getAllNodes(self):
+
+        return self.dfsVisit(lambda node: node)
+
+    # Note: not optimized at all but we're dealing with very small
+    # graphs so performance shouldn't be a problem
+    # Side-effects on all input other than node
+    def _topSortVisit(self, node, marked, tempMarked, unmarked, ordered):
+
+        if node in tempMarked:
+            raise "Not a Dag!"
+
+        if node not in marked:
+            if node in unmarked:
+                unmarked.remove(node)
+            tempMarked.add(node)
+
+            for otherNode in node.children:
+                self._topSortVisit(
+                    otherNode, marked, tempMarked, unmarked, ordered)
+
+            marked.add(node)
+            unmarked.add(node)
+            tempMarked.remove(node)
+            ordered.insert(0, node)
+
+    def topSort(self):
+
+        unmarked = self.getAllNodes()
+        marked = set()
+        tempMarked = set()
+        ordered = []
+
+        while unmarked:
+
+            node = unmarked.pop()
+            self._topSortVisit(node, marked, tempMarked, unmarked, ordered)
+
+        return ordered
 
 class OpDag(Dag):
 
     def __init__(self, roots):
         
         super(OpDag, self).__init__(roots)
+
+
+def _mergeCollusionSets(left, right):
+
+    return left.union(right)
 
 def create(name, columns):
 
@@ -166,8 +244,9 @@ def aggregate(inputOpNode, outputName, keyColIdx, aggColIdx, aggregator):
     keyCol = copy.copy(inCols[keyColIdx])
     aggCol = copy.copy(inCols[aggColIdx])
     
-    # Create output relation--default column order is
-    # key column first followed by column that will be aggregated
+    # Create output relation. Default column order is
+    # key column first followed by column that will be 
+    # aggregated
     outRelCols = [keyCol, aggCol]
     outRel = Relation(outputName, outRelCols)
 
@@ -198,11 +277,35 @@ def project(inputOpNode, outputName, projector):
 
     return op
 
-def _mergeCollusionSets(left, right):
+# TODO: is a self-join a problem?
+def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
 
-    return left.union(right)
+    # This helper method takes in a relation, the key column of the join 
+    # and its index. 
+    # It returns a list of new columns with correctly merged collusion sets
+    # for the output relation (in the same order as they appear on the input
+    # relation but excluding the key column)
+    def _colsFromRel(rel, keyCol, keyColIdx):
 
-def join(leftInputNode, rightInputNode, leftColIdx, rightColIdx):
+        resultCols = []
+        for idx, col in enumerate(rel.columns):
+            # Exclude key column
+            if idx != keyColIdx:
+                # This is somewhat nuanced. The collusion set
+                # of col knows the values of the result but not
+                # the linkage of these values to the key column values.
+                # Thus we must take the union of the collusion set of
+                # col *and* the collusion set of the key column for the
+                # new column.
+                newColSet = _mergeCollusionSets(
+                    col.collusionSet, keyCol.collusionSet)
+
+                newCol = Column(
+                    outputName, col.typeStr, newColSet)
+                
+                resultCols.append(newCol)
+
+        return resultCols
 
     # Get input relation from input nodes
     leftInRel = leftInputNode.outRel
@@ -213,22 +316,92 @@ def join(leftInputNode, rightInputNode, leftColIdx, rightColIdx):
     rightCols = rightInRel.columns
 
     # Get columns we will join on
-    leftJoinCol = copy.copy(leftCols[leftColIdx])
-    rightJoinCol = copy.copy(rightCols[rightColIdx])
+    leftJoinCol = leftCols[leftColIdx]
+    rightJoinCol = rightCols[rightColIdx]
 
-    # Get the columns' merged collusion set
-    mergedCollusionSet = _mergeCollusionSets(leftJoinCol)
+    # Get the key columns' merged collusion set
+    keyCollusionSet = _mergeCollusionSets(
+        leftJoinCol.collusionSet, rightJoinCol.collusionSet)
+
+    # Create new key column
+    outKeyCol = Column(
+        outputName, leftJoinCol.typeStr, keyCollusionSet)
+
 
     # Define output relation columns.
-    # These will be the joined-on column followed
+    # These will be the key column followed
     # by all columns from left (other than join column)
     # and right (again excluding join column)
+    outRelCols = [outKeyCol] \
+               + _colsFromRel(leftInRel, outKeyCol, leftColIdx) \
+               + _colsFromRel(rightInRel, outKeyCol, rightColIdx)
 
-    # TODO: figure out what the collusion sets on the output 
-    # should be for all but the join column
-    # on one hand the original collusion set can reconstruct all
-    # the values of the result column, however they don't necessarily
-    # know the linkage
+    # Create output relation
+    outRel = Relation(outputName, outRelCols)
+
+    # Create join operator
+    op = Join(
+        leftInRel, 
+        rightInRel, 
+        outRel, 
+        leftJoinCol, 
+        rightJoinCol
+    )
+
+    # Add it as a child to both input nodes 
+    leftInputNode.addChild(op)
+    rightInputNode.addChild(op)
+
+    return op
+
+def pushDownMPC(sortedNodes):
+    
+    for node in sortedNodes:
+        # print("node:", node)
+        parents = node.parents
+
+        if len(parents) == 0:
+            # we are at a root node
+            if node.requiresMPC():
+                if isinstance(node, Aggregate):
+                    mpcAggNode = copy.deepcopy(node)
+                    mpcAggNode.outRel.rename(node.outRel.name + "_obl")
+                    mpcAggNode.isMPC = True
+                    mpcAggNode.children = set()
+                    mpcAggNode.parents = set()
+                    node.insertAfterSelf(mpcAggNode)
+                else:
+                    node.isMPC = True
+        elif len(parents) == 1:
+            # see if we can pull down any MPC ops
+            parent = next(iter(parents))
+            # print("parent:", parent)
+
+            if parent.isMPC:
+                if isinstance(parent, Aggregate):
+                    node.isMPC = True
+                else:
+                    node.isMPC = True
+            else:
+                if node.requiresMPC():
+                    if isinstance(node, Aggregate):
+                        mpcAggNode = copy.deepcopy(node)
+                        mpcAggNode.outRel.rename(node.outRel.name + "_obl")
+                        mpcAggNode.isMPC = True
+                        mpcAggNode.children = set()
+                        mpcAggNode.parents = set()
+                        node.insertAfterSelf(mpcAggNode)
+                    else:
+                        node.isMPC = True
+        else:
+            node.isMPC = True
+
+def rewriteDag(dag):
+
+    sortedNodes = dag.topSort()
+    pushDownMPC(sortedNodes)
+    result = dag.topSort()
+    print("\n".join([str(node) for node in result]))
 
 def simpleDagExample():
 
@@ -254,7 +427,7 @@ def simpleDagExample():
 def opDagEx1():
 
     # define inputs
-    colsInA = [("int", set([1])), ("int", set([2])), ("int", set([3]))]
+    colsInA = [("int", set([1, 2, 3])), ("int", set([1, 2, 3])), ("int", set([1, 2, 3]))]
     inA = create("inA", colsInA)
 
     # specify the workflow
@@ -262,14 +435,16 @@ def opDagEx1():
     projA = project(agg, "projA", None)
     projB = project(projA, "projB", None)
 
-    # create dag and output
+    # create dag with root nodes
     dag = OpDag(set([inA]))
-    dag.dfsPrint()
     
+    # compile to MPC
+    rewriteDag(dag)
+
 def opDagEx2():
 
     # define inputs
-    colsInA = [("int", set([1])), ("int", set([2])), ("int", set([3]))]
+    colsInA = [("int", set([1, 2])), ("int", set([1, 2])), ("int", set([1, 2]))]
     inA = create("inA", colsInA)
 
     # specify the workflow
@@ -279,9 +454,38 @@ def opDagEx2():
     aggB = aggregate(inA, "aggB", 1, 2, None)
     projB = project(aggB, "projB", None)
     
-    # create dag and output
+    # create dag with roots nodes
     dag = OpDag(set([inA]))
-    dag.dfsPrint()
+    
+    # compile to MPC
+    rewriteDag(dag)
+
+def opDagEx3():
+
+    # define inputs
+    colsInA = [("int", set([1])), ("int", set([1]))]
+    inA = create("inA", colsInA)
+
+    colsInB = [("int", set([2])), ("int", set([2]))]
+    inB = create("inB", colsInB)
+
+    # specify the workflow
+    aggA = aggregate(inA, "aggA", 0, 1, None)
+    projA = project(aggA, "projA", None)
+    
+    aggB = aggregate(inB, "aggB", 0, 1, None)
+    projB = project(aggB, "projB", None)
+    
+    joined = join(projA, projB, "joined", 0, 0)
+
+    projected = project(joined, "projected", None)
+    aggregated = aggregate(projected, "aggregated", 0, 1, None)
+
+    # create dag
+    dag = OpDag(set([inA, inB]))
+    
+    # compile to MPC
+    rewriteDag(dag)
 
 if __name__ == "__main__":
 
