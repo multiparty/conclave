@@ -5,15 +5,20 @@ class Column():
 
     # For now we are assuming that a column has exactly one
     # collusion set, however this will change in the future
-    def __init__(self, relName, typeStr, collusionSet):
+    def __init__(self, relName, idx, typeStr, collusionSet):
         
         self.relName = relName
+        self.idx = idx
         self.typeStr = typeStr
         self.collusionSet = collusionSet
 
+    def getName(self):
+
+        return self.relName + "_" + str(self.idx)
+
     def __str__(self):
 
-        return "column {}".format(str(self.collusionSet))
+        return self.getName()
 
 
 class Relation():
@@ -40,10 +45,18 @@ class Relation():
         colSets = [col.collusionSet for col in self.columns] 
         return functools.reduce(lambda setA, setB: setA.union(setB), colSets)
 
+    # Makes sure column indeces are same as the columns' positions
+    # in the list. Call this after inserting new columns or otherwise
+    # changing their order
+    def updateColumnIndeces(self):
+
+        for idx, col in enumerate(self.columns):
+            col.idx = idx
+
     def __str__(self):
 
         colStr = ", ".join([str(col) for col in self.columns])
-        return "relation {}: ({})".format(self.name, colStr)
+        return "{}([{}])".format(self.name, colStr)
 
 
 class Node():
@@ -151,9 +164,6 @@ class Aggregate(OpNode):
 
     def __init__(self, inRel, outRel, keyCol, aggCol, aggregator):
 
-        # TODO: we actually need column indeces. Probably put those in
-        # the Column class
-
         super(Aggregate, self).__init__("aggregation", [inRel], outRel)
         self.keyCol = keyCol
         self.aggCol = aggCol
@@ -186,6 +196,25 @@ class Project(OpNode):
                 self.inRels[0].name,
             )
 
+class Multiply(OpNode):
+
+    def __init__(self, inRel, outRel, operands):
+
+        super(Multiply, self).__init__("multiply", [inRel], outRel)
+        self.operands = operands
+
+    def __str__(self):
+
+        operandStr = "*".join([str(op) for op in self.operands])
+
+        return "{} = multiply{}({}, {})".format(
+                self.outRel.name,
+                "MPC" if self.isMPC else "",
+                self.inRels[0].name,
+                operandStr                    
+            )
+
+
 class Join(OpNode):
 
     def __init__(self, leftInRel, rightInRel, outRel, leftJoinCol, rightJoinCol):
@@ -202,6 +231,7 @@ class Join(OpNode):
                 self.inRels[0].name,
                 self.inRels[1].name
             )
+
 
 class Dag():
 
@@ -288,7 +318,8 @@ def _mergeCollusionSets(left, right):
 
 def create(name, columns):
 
-    columns = [Column(name, typeStr, collusionSet) for typeStr, collusionSet in columns]
+    columns = [Column(name, idx, typeStr, collusionSet) 
+        for idx, (typeStr, collusionSet) in enumerate(columns)]
     outRel = Relation(name, columns)
     op = Create(outRel)
     return op
@@ -330,6 +361,49 @@ def project(inputOpNode, outputName, projector):
 
     # Create our operator node
     op = Project(inRel, outRel, projector)
+    
+    # Add it as a child to input node 
+    inputOpNode.addChild(op)
+
+    return op
+
+def multiply(inputOpNode, outputName, operands):
+
+    # TODO: this doesn't belong here
+    def _collusionSetUnion(columns):
+
+        colSets = [col.collusionSet if hasattr(col, "collusionSet") else set() for col in columns] 
+        return functools.reduce(lambda setA, setB: setA.union(setB), colSets)
+
+    def _find(columns, colName):
+        return next(iter([col for col in columns if col.getName() == colName]))
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
+    
+    # Create result column. By default we add it to the
+    # output relation as the first column
+    # Its collusion set is the union of all operand collusion
+    # sets
+
+    # Replace all column names with corresponding columns.
+    # Constants will be replaced with empty sets 
+    # (indicating an empty collusion set for the next step)
+    operands = [_find(outRelCols, op) if isinstance(op, str) else op for op in operands]
+    resCollusionSet = _collusionSetUnion(operands)
+
+    resultColumn = Column(outputName, 0, "int", resCollusionSet)
+    outRelCols = outRelCols + [resultColumn]
+    
+    # Create output relation
+    outRel = Relation(outputName, outRelCols)
+    outRel.updateColumnIndeces()
+
+    # Create our operator node
+    op = Multiply(inRel, outRel, operands)
     
     # Add it as a child to input node 
     inputOpNode.addChild(op)
