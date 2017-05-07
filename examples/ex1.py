@@ -11,7 +11,7 @@ if __name__ == "__main__":
     inA = create("inA", colsInA)
 
     # specify the workflow
-    agg = aggregate(inA, "agg", 0, 1, None)
+    agg = aggregate(inA, "agg", "inA_0", "inA_1", "+")
     projA = project(agg, "projA", None)
     projB = project(projA, "projB", None)
 

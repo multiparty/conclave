@@ -1,5 +1,6 @@
 import copy
 import functools
+import utils
 
 class Column():
 
@@ -42,16 +43,21 @@ class Relation():
     # Returns the union of the collusion sets of all columns
     def getCombinedCollusionSet(self):
 
-        colSets = [col.collusionSet for col in self.columns] 
-        return functools.reduce(lambda setA, setB: setA.union(setB), colSets)
-
-    # Makes sure column indeces are same as the columns' positions
+        return utils.collusionSetUnion(self.columns)
+        
+    # Makes sure column indexes are same as the columns' positions
     # in the list. Call this after inserting new columns or otherwise
     # changing their order
-    def updateColumnIndeces(self):
+    def updateColumnIndexes(self):
 
         for idx, col in enumerate(self.columns):
             col.idx = idx
+
+    def updateColumns(self):
+
+        self.updateColumnIndexes()
+        for col in self.columns:
+            col.relName = self.name
 
     def __str__(self):
 
@@ -110,35 +116,9 @@ class OpNode(Node):
 
         return self.outRel.isShared() and not self.isLocal
 
-    # This method pushes the given node between it
-    # and each of its children
-    def insertAfterSelf(self, node):
-
-        # Need to insert new copy of node for each child.
-        for child in self.children:
-            child.parents.remove(self)
-            node.addChild(child)
-            child.inRels.remove(self.outRel)
-            child.inRels.append(node.outRel)
-
-        self.children = set()
-        self.addChild(node)
-        node.inRels = [self.outRel]
-
-    def swapSelfWith(self, other):
-
-        tempChildren = copy.copy(self.children)
-        tempParents = copy.copy(self.parents)
-
-        for otherParent in other.parents:
-            otherParent.children.remove(other)
-            otherParent.addChild(self)
-
-        for child in self.children:
-            child.parents.remove(self)
-
-        other.children = self.children
-        self.children
+    def updateOpSpecificCols(self):
+        # By default we don't need to do anything here
+        return
 
     def __str__(self):
         
@@ -157,7 +137,12 @@ class Create(OpNode):
 
     def __str__(self):
 
-        return "{} = create({})".format(self.outRel.name, str(self.outRel))
+        colTypeStr = ", ".join([col.typeStr for col in self.outRel.columns])
+
+        return "CREATE RELATION {} WITH COLUMNS ({}),".format(
+                self.outRel.name,
+                colTypeStr 
+            )
 
 
 class Aggregate(OpNode):
@@ -171,12 +156,20 @@ class Aggregate(OpNode):
         # We are interested in splitting aggregations
         self.canSplit = True
 
+    def updateOpSpecificCols(self):
+
+        self.keyCol = self.inRels[0].columns[self.keyCol.idx]
+        self.aggCol = self.inRels[0].columns[self.aggCol.idx]
+
     def __str__(self):
 
-        return "{} = aggregate{}({})".format(
-                self.outRel.name,
+        return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {},".format(
                 "MPC" if self.isMPC else "",
+                self.aggCol.getName(),
+                self.aggregator,
                 self.inRels[0].name,
+                self.keyCol.getName(),
+                self.outRel.name
             )
 
 class Project(OpNode):
@@ -198,20 +191,23 @@ class Project(OpNode):
 
 class Multiply(OpNode):
 
-    def __init__(self, inRel, outRel, operands):
+    def __init__(self, inRel, outRel, targetCol, operands):
 
         super(Multiply, self).__init__("multiply", [inRel], outRel)
         self.operands = operands
+        self.targetCol = targetCol
+        self.isLocal = True
 
     def __str__(self):
 
         operandStr = "*".join([str(op) for op in self.operands])
 
-        return "{} = multiply{}({}, {})".format(
+        return "{} = multiply{}({}, {} -> {})".format(
                 self.outRel.name,
                 "MPC" if self.isMPC else "",
                 self.inRels[0].name,
-                operandStr                    
+                operandStr,
+                str(self.targetCol)   
             )
 
 
@@ -324,21 +320,24 @@ def create(name, columns):
     op = Create(outRel)
     return op
 
-def aggregate(inputOpNode, outputName, keyColIdx, aggColIdx, aggregator):
+def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
-    # Get relevant columns and create copies
+    # Get relevant columns
     inCols = inRel.columns
-    keyCol = copy.copy(inCols[keyColIdx])
-    aggCol = copy.copy(inCols[aggColIdx])
+    keyCol = utils.find(inCols, keyColName)
+    aggCol = utils.find(inCols, aggColName)
     
     # Create output relation. Default column order is
     # key column first followed by column that will be 
-    # aggregated
-    outRelCols = [keyCol, aggCol]
+    # aggregated. Note that we want copies as these are
+    # copies on the output relation and changes to them
+    # shouldn't affect the original columns
+    outRelCols = [copy.deepcopy(keyCol), copy.deepcopy(aggCol)]
     outRel = Relation(outputName, outRelCols)
+    outRel.updateColumns()
 
     # Create our operator node
     op = Aggregate(inRel, outRel, keyCol, aggCol, aggregator)
@@ -358,6 +357,7 @@ def project(inputOpNode, outputName, projector):
     
     # Create output relation
     outRel = Relation(outputName, outRelCols)
+    outRel.updateColumns()
 
     # Create our operator node
     op = Project(inRel, outRel, projector)
@@ -367,16 +367,7 @@ def project(inputOpNode, outputName, projector):
 
     return op
 
-def multiply(inputOpNode, outputName, operands):
-
-    # TODO: this doesn't belong here
-    def _collusionSetUnion(columns):
-
-        colSets = [col.collusionSet if hasattr(col, "collusionSet") else set() for col in columns] 
-        return functools.reduce(lambda setA, setB: setA.union(setB), colSets)
-
-    def _find(columns, colName):
-        return next(iter([col for col in columns if col.getName() == colName]))
+def multiply(inputOpNode, outputName, targetColName, operands):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
@@ -392,18 +383,20 @@ def multiply(inputOpNode, outputName, operands):
     # Replace all column names with corresponding columns.
     # Constants will be replaced with empty sets 
     # (indicating an empty collusion set for the next step)
-    operands = [_find(outRelCols, op) if isinstance(op, str) else op for op in operands]
-    resCollusionSet = _collusionSetUnion(operands)
+    operands = [utils.find(outRelCols, op) if isinstance(op, str) else op for op in operands]
+    operands = copy.deepcopy(operands)
 
-    resultColumn = Column(outputName, 0, "int", resCollusionSet)
-    outRelCols = outRelCols + [resultColumn]
+    # Update target column collusion set
+    targetCollusionSet = utils.collusionSetUnion(operands)
+    targetColumn = utils.find(outRelCols, targetColName)
+    targetColumn.collusionSet = targetCollusionSet
     
     # Create output relation
     outRel = Relation(outputName, outRelCols)
-    outRel.updateColumnIndeces()
+    outRel.updateColumns()
 
     # Create our operator node
-    op = Multiply(inRel, outRel, operands)
+    op = Multiply(inRel, outRel, targetColumn, operands)
     
     # Add it as a child to input node 
     inputOpNode.addChild(op)
@@ -471,6 +464,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
 
     # Create output relation
     outRel = Relation(outputName, outRelCols)
+    outRel.updateColumns()
 
     # Create join operator
     op = Join(
@@ -509,6 +503,11 @@ def insertBetween(parent, child, other):
     parent.addChild(other)
     other.inRels = [parent.outRel]
 
+    print(other.inRels[0])
+    # We need to update agg and key cols
+    # on Aggregation nodes etc.
+    other.updateOpSpecificCols()
+
     # If parent is a leaf, we are done
     # otherwise we need to update the child
     # and add it as a child to other
@@ -522,6 +521,7 @@ def insertBetween(parent, child, other):
         # Insert child below other
         other.addChild(child)
         child.inRels.append(other.outRel)
+
 
 def opNodesCommute(nodeA, nodeB):
     
