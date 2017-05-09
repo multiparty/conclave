@@ -10,7 +10,8 @@ if __name__ == "__main__":
     inA = create("inA", colsInA)
 
     # specify the workflow
-    mul = multiply(inA, "mul", "inA_0", ["inA_0", "inA_1", 100])
+    squares = multiply(inA, "squares", "inA_1", ["inA_1", "inA_1"])
+    sos = aggregate(squares, "sos", "squares_0", "squares_1", "+")
     
     # create dag with root nodes
     dag = OpDag(set([inA]))

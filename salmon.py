@@ -200,15 +200,21 @@ class Multiply(OpNode):
 
     def __str__(self):
 
-        operandStr = "*".join([str(op) for op in self.operands])
+        operandStr = ", ".join([str(op) for op in self.operands])
 
-        return "{} = multiply{}({}, {} -> {})".format(
-                self.outRel.name,
-                "MPC" if self.isMPC else "",
-                self.inRels[0].name,
+        return "MUL [{}] FROM ({}) as {}".format(
                 operandStr,
-                str(self.targetCol)   
+                self.inRels[0].name,
+                self.outRel.name
             )
+
+        # return "{} = multiply{}({}, {} -> {})".format(
+        #         self.outRel.name,
+        #         "MPC" if self.isMPC else "",
+        #         self.inRels[0].name,
+        #         operandStr,
+        #         str(self.targetCol)   
+        #     )
 
 
 class Join(OpNode):
@@ -307,10 +313,6 @@ class OpDag(Dag):
         order = self.topSort()
         return "\n".join(str(node) for node in order)
 
-
-def _mergeCollusionSets(left, right):
-
-    return left.union(right)
 
 def create(name, columns):
 
@@ -423,7 +425,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
                 # Thus we must take the union of the collusion set of
                 # col *and* the collusion set of the key column for the
                 # new column.
-                newColSet = _mergeCollusionSets(
+                newColSet = utils.mergeCollusionSets(
                     col.collusionSet, keyCol.collusionSet)
 
                 newCol = Column(
@@ -446,7 +448,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
     rightJoinCol = rightCols[rightColIdx]
 
     # Get the key columns' merged collusion set
-    keyCollusionSet = _mergeCollusionSets(
+    keyCollusionSet = utils.mergeCollusionSets(
         leftJoinCol.collusionSet, rightJoinCol.collusionSet)
 
     # Create new key column
@@ -503,7 +505,6 @@ def insertBetween(parent, child, other):
     parent.addChild(other)
     other.inRels = [parent.outRel]
 
-    print(other.inRels[0])
     # We need to update agg and key cols
     # on Aggregation nodes etc.
     other.updateOpSpecificCols()
@@ -521,7 +522,6 @@ def insertBetween(parent, child, other):
         # Insert child below other
         other.addChild(child)
         child.inRels.append(other.outRel)
-
 
 def opNodesCommute(nodeA, nodeB):
     
