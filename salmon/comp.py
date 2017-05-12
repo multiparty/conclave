@@ -13,10 +13,14 @@ def opNodesCommute(nodeA, nodeB):
 
     return False
 
+# This is a bit hacky
 def getNewMpcNode(node, suffix):
 
+    assert(isinstance(node, dag.Aggregate))
     newNode = copy.deepcopy(node)
     newNode.outRel.rename(node.outRel.name + "_obl_" + suffix)
+    newNode.keyCol.idx = 0
+    newNode.aggCol.idx = 1
     newNode.isMPC = True
     newNode.children = set()
     newNode.parents = set()
@@ -31,7 +35,7 @@ def pushOpNodeDown(parent, node):
     grandParent = next(iter(parent.parents))
     
     # remove MPC aggregation between current node
-    # and grand parent
+    # and grandparent
     dag.removeBetween(grandParent, node, parent)
 
     # Need copy of node.children because we are 
@@ -104,6 +108,5 @@ def mpc(f):
     def wrap():
         beerProg = rewriteDag(dag.OpDag(f()))
         return beerProg
-        # return str(dag.OpDag(f()))
 
     return wrap

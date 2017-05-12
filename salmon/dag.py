@@ -55,6 +55,24 @@ class OpNode(Node):
         # By default we don't need to do anything here
         return
 
+    def replaceInRel(self, oldRel, newRel):
+
+        # Not dealing with self-joins etc.
+        assert(self.inRels.count(oldRel) == 1)
+        self.inRels = [newRel if rel == oldRel else rel for rel in self.inRels]
+        self.updateOpSpecificCols()
+
+    def replaceParent(self, oldParent, newParent):
+
+        self.parents.remove(oldParent)
+        self.parents.add(newParent)
+        self.replaceInRel(oldParent.outRel, newParent.outRel)
+
+    def replaceChild(self, oldChild, newChild):
+
+        self.children.remove(oldChild)
+        self.children.add(newChild)
+
 
 class Create(OpNode):
 
@@ -86,8 +104,6 @@ class Aggregate(OpNode):
         self.canSplit = True
 
     def updateOpSpecificCols(self):
-
-        print(self.inRels[0])
 
         self.keyCol = self.inRels[0].columns[self.keyCol.idx]
         self.aggCol = self.inRels[0].columns[self.aggCol.idx]
@@ -244,45 +260,31 @@ class OpDag(Dag):
         order = self.topSort()
         return ",\n".join(str(node) for node in order)
 
-
+    
 def removeBetween(parent, child, other):
 
     assert(len(other.children) < 2)
     assert(len(other.parents) < 2)
 
-    parent.children.remove(other)
-    other.inRels = []
+    child.replaceParent(other, parent)
+    parent.replaceChild(other, child)
+
     other.parents = set()
     other.children = set()
-
-    child.parents.remove(other)
-    child.inRels.remove(other.outRel)
-
-    parent.addChild(child)
-    child.inRels.append(parent.outRel)
+    other.inRels = []
 
 def insertBetween(parent, child, other):
+
+    assert(not other.children)
+    assert(not other.parents)
 
     # Insert other below parent
     parent.addChild(other)
     other.inRels = [parent.outRel]
-
-    # We need to update agg and key cols
-    # on Aggregation nodes etc.
     other.updateOpSpecificCols()
 
-    # If parent is a leaf, we are done
-    # otherwise we need to update the child
-    # and add it as a child to other
-
+    # Remove child from parent
     if child:
-        # Disconnect parent and child
-        parent.children.remove(child)
-        child.parents.remove(parent)
-        child.inRels.remove(parent.outRel)
-
-        # Insert child below other
+        child.replaceParent(parent, other)
         other.addChild(child)
-        child.inRels.append(other.outRel)
-        # TODO: double-check this goes here
-        child.updateOpSpecificCols()
+    

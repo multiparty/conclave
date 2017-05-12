@@ -103,10 +103,10 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
     # It returns a list of new columns with correctly merged collusion sets
     # for the output relation (in the same order as they appear on the input
     # relation but excluding the key column)
-    def _colsFromRel(rel, keyCol, keyColIdx):
+    def _colsFromRel(relation, keyCol, keyColIdx):
 
         resultCols = []
-        for idx, col in enumerate(rel.columns):
+        for idx, col in enumerate(relation.columns):
             # Exclude key column
             if idx != keyColIdx:
                 # This is somewhat nuanced. The collusion set
@@ -158,7 +158,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
     outRel.updateColumns()
 
     # Create join operator
-    op = Join(
+    op = dag.Join(
         leftInRel, 
         rightInRel, 
         outRel, 
