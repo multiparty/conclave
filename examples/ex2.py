@@ -1,6 +1,8 @@
-from salmon import *
+import salmon.lang as sal 
+from salmon.comp import mpc
 
-if __name__ == "__main__":
+@mpc
+def protocol():
 
     # define inputs
     colsInRel = [
@@ -8,17 +10,17 @@ if __name__ == "__main__":
         ("int", set([1, 2])), 
         ("int", set([1, 2]))
     ]
-    inRel = create("inRel", colsInRel)
+    inRel = sal.create("inRel", colsInRel)
 
     # specify the workflow
-    aggA = aggregate(inRel, "aggA", 0, 1, None)
-    projA = project(aggA, "projA", None)
+    aggA = sal.aggregate(inRel, "aggA", "inRel_0", "inRel_1", "+")
+    projA = sal.project(aggA, "projA", None)
     
-    aggB = aggregate(inRel, "aggB", 1, 2, None)
-    projB = project(aggB, "projB", None)
-    
-    # create dag with roots nodes
-    dag = OpDag(set([inRel]))
-    
-    # compile to MPC
-    rewriteDag(dag)
+    aggB = sal.aggregate(inRel, "aggB", "inRel_1", "inRel_2", "+")
+    projB = sal.project(aggB, "projB", None)
+
+    return set([inRel])
+
+if __name__ == "__main__":
+
+    print(protocol())
