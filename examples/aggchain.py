@@ -5,8 +5,8 @@ from salmon.comp import mpc
 def protocol():
     # define inputs
     colsInA = [
-        ("int", set([1, 2, 3])), 
-        ("int", set([1, 2, 3]))
+        ("INTEGER", set([1, 2, 3])), 
+        ("INTEGER", set([1, 2, 3]))
     ]
     inA = sal.create("inA", colsInA)
 

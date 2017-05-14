@@ -13,7 +13,7 @@ def opNodesCommute(nodeA, nodeB):
 
     return False
 
-# This is a bit hacky
+# TODO: This is hacky
 def getNewMpcNode(node, suffix):
 
     assert(isinstance(node, dag.Aggregate))
@@ -23,7 +23,7 @@ def getNewMpcNode(node, suffix):
     newNode.aggCol.idx = 1
     newNode.isMPC = True
     newNode.children = set()
-    newNode.parents = set()
+    newNode.makeOrphan()
     return newNode
 
 def pushOpNodeDown(parent, node):

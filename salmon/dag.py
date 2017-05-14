@@ -1,5 +1,7 @@
 from salmon import rel
 
+# TODO: introduce abstract methods
+
 class Node():
 
     def __init__(self, name):
@@ -8,23 +10,11 @@ class Node():
         self.children = set()
         self.parents = set()
 
-    # side-effect on child
-    def addChild(self, child):
-        
-        self.children.add(child)
-        child.parents.add(self)
-
-    # side-effect on parent
-    def addParent(self, parent):
-        
-        self.parents.add(parents)
-        parent.children.add(self)
-
     def debugStr(self):
         
         childrenStr = str([n.name for n in self.children])
         parentStr = str([n.name for n in self.parents]) 
-        return self.name + " children: " + childrenStr + " parents: " + parentStr 
+        return self.name + " children: " + childrenStr + " parents: " + parentStr
 
     def __str__(self):
         
@@ -33,10 +23,9 @@ class Node():
 
 class OpNode(Node):
 
-    def __init__(self, name, inRels, outRel):
+    def __init__(self, name, outRel):
         
         super(OpNode, self).__init__(name)
-        self.inRels = inRels
         self.outRel = outRel
         # By default we assume that the operator requires data
         # to cross party boundaries. Override this for operators
@@ -55,18 +44,10 @@ class OpNode(Node):
         # By default we don't need to do anything here
         return
 
-    def replaceInRel(self, oldRel, newRel):
-
-        # Not dealing with self-joins etc.
-        assert(self.inRels.count(oldRel) == 1)
-        self.inRels = [newRel if rel == oldRel else rel for rel in self.inRels]
-        self.updateOpSpecificCols()
-
     def replaceParent(self, oldParent, newParent):
 
         self.parents.remove(oldParent)
         self.parents.add(newParent)
-        self.replaceInRel(oldParent.outRel, newParent.outRel)
 
     def replaceChild(self, oldChild, newChild):
 
@@ -74,11 +55,68 @@ class OpNode(Node):
         self.children.add(newChild)
 
 
-class Create(OpNode):
+class UnaryOpNode(OpNode):
+
+    def __init__(self, name, outRel, parent):
+        
+        super(UnaryOpNode, self).__init__(name, outRel)
+        self.parent = parent
+        if self.parent:
+            self.parents.add(parent)
+    
+    def getInRel(self):
+
+        return self.parent.outRel
+
+    def makeOrphan(self):
+
+        self.parents = set()
+        self.parent = None
+
+    def replaceParent(self, oldParent, newParent):
+        super(UnaryOpNode, self).replaceParent(oldParent, newParent)
+        self.parent = newParent
+        
+
+class BinaryOpNode(OpNode):
+
+    def __init__(self, name, outRel, leftParent, rightParent):
+        
+        super(BinaryOpNode, self).__init__(name, outRel)
+        self.leftParent = leftParent
+        self.rightParent = rightParent
+        if self.leftParent:
+            self.parents.add(leftParent)
+        if self.rightParent:
+            self.parents.add(rightParent)
+    
+    def getLeftInRel(self):
+
+        return self.leftParent.outRel
+
+    def getRightInRel(self):
+
+        return self.rightParent.outRel
+
+    def makeOrphan(self):
+
+        self.parents = set()
+        self.leftParent = None
+        self.rightParent = None
+
+    def replaceParent(self, oldParent, newParent):
+        super(BinaryOpNode, self).replaceParent(oldParent, newParent)
+        if self.leftParent == oldParent:
+            self.leftParent = newParent
+        elif self.rightParent == oldParent:
+            self.rightParent = newParent
+    
+
+class Create(UnaryOpNode):
 
     def __init__(self, outRel):
 
-        super(Create, self).__init__("create", [], outRel)
+        super(Create, self).__init__("create", outRel, None)
         # Input can be done by parties locally
         self.isLocal = True
 
@@ -92,11 +130,11 @@ class Create(OpNode):
             )
 
 
-class Aggregate(OpNode):
+class Aggregate(UnaryOpNode):
 
-    def __init__(self, inRel, outRel, keyCol, aggCol, aggregator):
+    def __init__(self, outRel, parent, keyCol, aggCol, aggregator):
 
-        super(Aggregate, self).__init__("aggregation", [inRel], outRel)
+        super(Aggregate, self).__init__("aggregation", outRel, parent)
         self.keyCol = keyCol
         self.aggCol = aggCol
         self.aggregator = aggregator
@@ -105,8 +143,8 @@ class Aggregate(OpNode):
 
     def updateOpSpecificCols(self):
 
-        self.keyCol = self.inRels[0].columns[self.keyCol.idx]
-        self.aggCol = self.inRels[0].columns[self.aggCol.idx]
+        self.keyCol = self.getInRel().columns[self.keyCol.idx]
+        self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
     def __str__(self):
 
@@ -114,17 +152,17 @@ class Aggregate(OpNode):
                 "MPC" if self.isMPC else "",
                 self.aggCol.getName(),
                 self.aggregator,
-                self.inRels[0].name,
+                self.getInRel().name,
                 self.keyCol.getName(),
                 self.outRel.name
             )
 
-class Project(OpNode):
+class Project(UnaryOpNode):
 
-    def __init__(self, inRel, outRel, projector):
+    def __init__(self, outRel, parent, projector):
 
-        super(Project, self).__init__("project", [inRel], outRel)
-        # Projection can be done by parties locally
+        super(Project, self).__init__("project", outRel, parent)
+        # Projections can be done by parties locally
         self.isLocal = True
 
     def __str__(self):
@@ -132,16 +170,16 @@ class Project(OpNode):
         return "PROJECT{} [{}] FROM ({}) AS {}".format(
                 "MPC" if self.isMPC else "",
                 "dummy",
-                self.inRels[0].name,
+                self.getInRel().name,
                 self.outRel.name
             )
 
 
-class Multiply(OpNode):
+class Multiply(UnaryOpNode):
 
-    def __init__(self, inRel, outRel, targetCol, operands):
+    def __init__(self, outRel, parent, targetCol, operands):
 
-        super(Multiply, self).__init__("multiply", [inRel], outRel)
+        super(Multiply, self).__init__("multiply", outRel, parent)
         self.operands = operands
         self.targetCol = targetCol
         self.isLocal = True
@@ -152,25 +190,25 @@ class Multiply(OpNode):
 
         return "MUL [{}] FROM ({}) as {}".format(
                 operandStr,
-                self.inRels[0].name,
+                self.getInRel().name,
                 self.outRel.name
             )
 
 
-class Join(OpNode):
+class Join(BinaryOpNode):
 
-    def __init__(self, leftInRel, rightInRel, outRel, leftJoinCol, rightJoinCol):
+    def __init__(self, outRel, leftParent, rightParent, leftJoinCol, rightJoinCol):
 
-        super(Join, self).__init__("join", [leftInRel, rightInRel], outRel)
+        super(Join, self).__init__("join", outRel, leftParent, rightParent)
         self.leftJoinCol = leftJoinCol
         self.rightJoinCol = rightJoinCol
 
     def __str__(self):
 
         return "({}) JOIN{} ({}) ON {} AND {} AS {}".format(
-                self.inRels[0].name,
+                self.getLeftInRel().name,
                 "MPC" if self.isMPC else "",
-                self.inRels[1].name,
+                self.getRightInRel().name,
                 str(self.leftJoinCol),
                 str(self.rightJoinCol),
                 self.outRel.name
@@ -178,8 +216,8 @@ class Join(OpNode):
 
     def updateOpSpecificCols(self):
 
-        self.leftJoinCol = self.inRels[0].columns[self.leftJoinCol.idx]
-        self.rightJoinCol = self.inRels[1].columns[self.rightJoinCol.idx]
+        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
+        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
  
 
 class Dag():
@@ -265,26 +303,31 @@ def removeBetween(parent, child, other):
 
     assert(len(other.children) < 2)
     assert(len(other.parents) < 2)
+    # only dealing with unary nodes for now
+    assert(isinstance(other, UnaryOpNode))
 
     child.replaceParent(other, parent)
     parent.replaceChild(other, child)
 
-    other.parents = set()
+    other.makeOrphan()
     other.children = set()
-    other.inRels = []
 
 def insertBetween(parent, child, other):
 
     assert(not other.children)
     assert(not other.parents)
+    # only dealing with unary nodes for now
+    assert(isinstance(other, UnaryOpNode))
 
     # Insert other below parent
-    parent.addChild(other)
-    other.inRels = [parent.outRel]
+    other.parents.add(parent)
+    other.parent = parent
+    parent.children.add(other)
     other.updateOpSpecificCols()
 
     # Remove child from parent
     if child:
         child.replaceParent(parent, other)
-        other.addChild(child)
+        child.updateOpSpecificCols()
+        other.children.add(child)
     

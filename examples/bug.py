@@ -13,7 +13,7 @@ def protocol():
     # specify the workflow
     projA = sal.project(inA, "projA", None)
     projB = sal.project(inA, "projB", None)
-    joined = sal.join(projA, projB, "joined", 0, 0)
+    joined = sal.join(projA, projB, "joined", "projA_0", "projB_0")
     agg = sal.aggregate(joined, "agg", "joined_0", "joined_1", "+")
     proj = sal.project(agg, "proj", None)
 

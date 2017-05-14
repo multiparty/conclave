@@ -31,10 +31,10 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Aggregate(inRel, outRel, keyCol, aggCol, aggregator)
+    op = dag.Aggregate(outRel, inputOpNode, keyCol, aggCol, aggregator)
     
     # Add it as a child to input node 
-    inputOpNode.addChild(op)
+    inputOpNode.children.add(op)
 
     return op
 
@@ -51,10 +51,10 @@ def project(inputOpNode, outputName, projector):
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Project(inRel, outRel, projector)
+    op = dag.Project(outRel, inputOpNode, projector)
     
     # Add it as a child to input node 
-    inputOpNode.addChild(op)
+    inputOpNode.children.add(op)
 
     return op
 
@@ -87,15 +87,15 @@ def multiply(inputOpNode, outputName, targetColName, operands):
     outRel.updateColumns()
 
     # Create our operator node
-    op = Multiply(inRel, outRel, targetColumn, operands)
+    op = dag.Multiply(outRel, inputOpNode, targetColumn, operands)
     
     # Add it as a child to input node 
-    inputOpNode.addChild(op)
+    inputOpNode.children.add(op)
 
     return op
 
 # TODO: is a self-join a problem?
-def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
+def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # TODO: technically this should take in a start index as well
     # This helper method takes in a relation, the key column of the join 
@@ -134,8 +134,8 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
     rightCols = rightInRel.columns
 
     # Get columns we will join on
-    leftJoinCol = leftCols[leftColIdx]
-    rightJoinCol = rightCols[rightColIdx]
+    leftJoinCol = utils.find(leftCols, leftColName)
+    rightJoinCol = utils.find(rightCols, rightColName)
 
     # Get the key columns' merged collusion set
     keyCollusionSet = utils.mergeCollusionSets(
@@ -150,8 +150,8 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
     # by all columns from left (other than join column)
     # and right (again excluding join column)
     outRelCols = [outKeyCol] \
-               + _colsFromRel(leftInRel, outKeyCol, leftColIdx) \
-               + _colsFromRel(rightInRel, outKeyCol, rightColIdx)
+               + _colsFromRel(leftInRel, outKeyCol, leftJoinCol.idx) \
+               + _colsFromRel(rightInRel, outKeyCol, rightJoinCol.idx)
 
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols)
@@ -159,15 +159,15 @@ def join(leftInputNode, rightInputNode, outputName, leftColIdx, rightColIdx):
 
     # Create join operator
     op = dag.Join(
-        leftInRel, 
-        rightInRel, 
-        outRel, 
+        outRel,
+        leftInputNode,
+        rightInputNode,
         leftJoinCol, 
         rightJoinCol
     )
 
     # Add it as a child to both input nodes 
-    leftInputNode.addChild(op)
-    rightInputNode.addChild(op)
+    leftInputNode.children.add(op)
+    rightInputNode.children.add(op)
 
     return op
