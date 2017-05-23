@@ -15,6 +15,13 @@ class Column():
 
         return self.relName + "_" + str(self.idx)
 
+    # Update collusion sets. For now this will just overwrite
+    # the existing collusion set. This behavior will change 
+    # once a column has multiple collusion sets
+    def updateCollSetWith(self, collusionSet):
+
+        self.collusionSet = collusionSet
+
     def __str__(self):
 
         return self.getName()

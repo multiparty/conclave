@@ -94,13 +94,29 @@ def pushDownMPC(sortedNodes):
                     else:
                         node.isMPC = True
 
-        elif len(parents) == 2:
-            node.isMPC = True
+        elif len(parents) >= 2:
+            node.isMPC = node.requiresMPC()
+        
+
+def pushUpMPC(revSortedNodes):
+
+    for node in revSortedNodes:
+        
+        # Apply operator-specific rules to pass collusion
+        # groups from the output relation of an op-node to
+        # its inputs
+        node.backPropCollSets()
+
+        # Update the node's MPC mode which might have changed
+        # as a result of the collusion set propagation
+        node.updateMPC()
 
 def rewriteDag(dag):
 
     sortedNodes = dag.topSort()
     pushDownMPC(sortedNodes)
+    # ironic?
+    # pushUpMPC(sortedNodes[::-1])
     return str(dag)
 
 def mpc(f):

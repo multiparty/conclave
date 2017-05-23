@@ -1,6 +1,6 @@
 from salmon import rel
 
-# TODO: introduce abstract methods
+# TODO: abstract methods
 
 class Node():
 
@@ -35,14 +35,39 @@ class OpNode(Node):
         # Indicates whether we want to split this operation
         # into local step and mpc step. By default we don't
         self.canSplit = False
+        
+    # By default operations are not reversible, i.e., given
+    # the output of the operation we cannot learn the input
+    # Note: for now we are only considering in an entire relation
+    # is reversible as opposed column level reversibility
+    def isReversible(self):
+
+        return False
 
     def requiresMPC(self):
 
-        return self.outRel.isShared() and not self.isLocal
+        return True
 
     def updateOpSpecificCols(self):
         # By default we don't need to do anything here
         return
+
+    # For certain operators, we can propagate all collusion
+    # sets from the output relation to the operator's input
+    # relations (for example some projections).
+    # Operators where that is the case can override this 
+    # method with the appropriate propagation rules.
+    def backPropCollSets(self):
+        
+        return
+
+    def updateMPC(self):
+
+        return
+
+    def makeOrphan(self):
+
+        self.parents = set()
 
     def replaceParent(self, oldParent, newParent):
 
@@ -68,12 +93,21 @@ class UnaryOpNode(OpNode):
 
         return self.parent.outRel
 
+    def requiresMPC(self):
+
+        return self.getInRel().isShared() and not self.isLocal
+
+    def updateMPC(self):
+
+        self.isMPC = self.getInRel().isShared()
+
     def makeOrphan(self):
 
-        self.parents = set()
+        super(UnaryOpNode, self).makeOrphan()
         self.parent = None
 
     def replaceParent(self, oldParent, newParent):
+
         super(UnaryOpNode, self).replaceParent(oldParent, newParent)
         self.parent = newParent
         
@@ -98,19 +132,55 @@ class BinaryOpNode(OpNode):
 
         return self.rightParent.outRel
 
+    def requiresMPC(self):
+
+        leftShared = self.getLeftInRel().isShared()
+        rightShared = self.getRightInRel().isShared()  
+        return (leftShared or rightShared) and not self.isLocal
+
+    def updateMPC(self):
+
+        self.isMPC = self.getLeftInRel().isShared()\
+                  or self.getLeftInRel().isShared() 
+
     def makeOrphan(self):
 
-        self.parents = set()
+        super(UnaryOpNode, self).makeOrphan()
         self.leftParent = None
         self.rightParent = None
 
     def replaceParent(self, oldParent, newParent):
+
         super(BinaryOpNode, self).replaceParent(oldParent, newParent)
         if self.leftParent == oldParent:
             self.leftParent = newParent
         elif self.rightParent == oldParent:
             self.rightParent = newParent
     
+
+class NaryOpNode(OpNode):
+
+    def __init__(self, name, outRel, parents):
+        
+        super(NaryOpNode, self).__init__(name, outRel)
+        self.parents = parents
+
+    def getInRels(self):
+
+        # Returning a set here to emphasize that the order of 
+        # the returned relations is meaningless (since the parent-set
+        # where we're getting the relations from isn't ordered.)
+        # If we want operators with multiple input relations where
+        # the order matters, we do implement it as a separate class 
+        return set([parent.outRel for parent in self.parents])
+
+    def requiresMPC(self):
+
+        # TODO: fix this (for the other classes as well)
+        assert(False)
+        anyShared = any([inRel.isShared() for inRel in self.getInRels()])
+        return anyShared and not self.isLocal
+
 
 class Create(UnaryOpNode):
 
@@ -120,6 +190,14 @@ class Create(UnaryOpNode):
         # Input can be done by parties locally
         self.isLocal = True
 
+    def requiresMPC(self):
+
+        return False
+
+    def updateMPC(self):
+
+        return
+
     def __str__(self):
 
         colTypeStr = ", ".join([col.typeStr for col in self.outRel.columns])
@@ -127,6 +205,53 @@ class Create(UnaryOpNode):
         return "CREATE RELATION {} WITH COLUMNS ({})".format(
                 self.outRel.name,
                 colTypeStr 
+            )
+
+
+class Store(UnaryOpNode):
+
+    def __init__(self, outRel, parent):
+
+        super(Store, self).__init__("store", outRel, parent)
+
+    def isReversible(self):
+
+        return True
+
+    def backPropCollSets(self):
+
+        inRelCols = self.getInRel().columns
+        # TODO: oversimplifying here
+        for col in inRelCols:
+            col.updateCollSetWith(
+                self.outRel.getCombinedCollusionSet())
+
+    def __str__(self):
+
+        return "STORE RELATION {} INTO {} AS {}".format(
+                self.getInRel().name,
+                self.outRel.getCombinedCollusionSet(),
+                self.outRel.name             
+            )
+
+class Concat(NaryOpNode):
+
+    def __init__(self, outRel, parents):
+
+        super(Concat, self).__init__("concat", outRel, parents)
+
+    def isReversible(self):
+
+        return True
+
+    def __str__(self):
+
+        inRelStr = ", ".join([inRel.name for inRel in self.getInRels()])
+
+        return "CONCAT{} [{}] AS {}".format(
+                "MPC" if self.isMPC else "",
+                inRelStr,
+                self.outRel.name
             )
 
 
@@ -157,19 +282,28 @@ class Aggregate(UnaryOpNode):
                 self.outRel.name
             )
 
+
 class Project(UnaryOpNode):
 
-    def __init__(self, outRel, parent, projector):
+    def __init__(self, outRel, parent, selectedCols):
 
         super(Project, self).__init__("project", outRel, parent)
         # Projections can be done by parties locally
         self.isLocal = True
+        self.selectedCols = selectedCols
+
+    def updateOpSpecificCols(self):
+
+        tempCols = self.getInRel().columns
+        self.selectedCols = [tempCols[col.idx] for col in tempCols]
 
     def __str__(self):
 
+        selectedColsStr = ", ".join([str(col) for col in self.selectedCols])
+
         return "PROJECT{} [{}] FROM ({}) AS {}".format(
                 "MPC" if self.isMPC else "",
-                "dummy",
+                selectedColsStr,
                 self.getInRel().name,
                 self.outRel.name
             )
@@ -184,11 +318,31 @@ class Multiply(UnaryOpNode):
         self.targetCol = targetCol
         self.isLocal = True
 
+    def updateOpSpecificCols(self):
+
+        tempCols = self.getInRel().columns
+        self.operands = [tempCols[col.idx] if isinstance(col, rel.Column) else col for col in tempCols]
+
+    def isReversible(self):
+
+        # A multiplication is reversible unless one of the operands is 0
+        return all([op != 0 for op in self.operands])
+
+    def backPropCollSets(self):
+
+        if self.isReversible():
+            inRelCols = self.getInRel().columns
+            # TODO: oversimplifying here
+            for col in inRelCols:
+                col.updateCollSetWith(
+                    self.outRel.getCombinedCollusionSet())
+
     def __str__(self):
 
         operandStr = ", ".join([str(op) for op in self.operands])
 
-        return "MUL [{}] FROM ({}) as {}".format(
+        return "MUL{} [{}] FROM ({}) as {}".format(
+                "MPC" if self.isMPC else "",
                 operandStr,
                 self.getInRel().name,
                 self.outRel.name
