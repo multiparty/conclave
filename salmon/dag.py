@@ -36,10 +36,19 @@ class OpNode(Node):
         # into local step and mpc step. By default we don't
         self.canSplit = False
         
+    # Indicates whether a node is at the boundary of MPC
+    # that is if nodes above it are local (there are operators
+    # such as aggregations that override this method since 
+    # other rules apply there)
+    def isBoundary(self):
+
+        return self.isMPC and not any([par.isMPC for par in self.parents]) 
+
+
     # By default operations are not reversible, i.e., given
     # the output of the operation we cannot learn the input
-    # Note: for now we are only considering in an entire relation
-    # is reversible as opposed column level reversibility
+    # Note: for now we are only considering whether an entire relation
+    # is reversible as opposed to column level reversibility
     def isReversible(self):
 
         return False
@@ -134,6 +143,8 @@ class BinaryOpNode(OpNode):
 
     def requiresMPC(self):
 
+        # TODO: fix
+        assert(False)
         leftShared = self.getLeftInRel().isShared()
         rightShared = self.getRightInRel().isShared()  
         return (leftShared or rightShared) and not self.isLocal
@@ -176,10 +187,9 @@ class NaryOpNode(OpNode):
 
     def requiresMPC(self):
 
-        # TODO: fix this (for the other classes as well)
-        assert(False)
-        anyShared = any([inRel.isShared() for inRel in self.getInRels()])
-        return anyShared and not self.isLocal
+        inCollSets = [inRel.getCombinedCollusionSet() for inRel in self.getInRels()] 
+        inRelsShared = len(set().union(*inCollSets)) > 1
+        return inRelsShared and not self.isLocal
 
 
 class Create(UnaryOpNode):

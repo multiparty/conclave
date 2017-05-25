@@ -15,18 +15,24 @@ def protocol():
         ("INTEGER", set([2]))
     ]
     in2 = sal.create("in2", colsIn2)
+    colsIn3 = [
+        ("INTEGER", set([2])), 
+        ("INTEGER", set([2]))
+    ]
+    in3 = sal.create("in3", colsIn3)
 
     # combine parties' inputs into one relation
-    rel = sal.concat([in1, in2], "rel")
+    rel = sal.concat(set([in1, in2, in3]), "rel")
 
     # specify the workflow
-    # agg = sal.aggregate(inA, "agg", "inA_0", "inA_1", "+")
-    # projA = sal.project(agg, "projA", ["agg_0", "agg_1"])
-    # projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-    opened = sal.collect(rel, "opened", 1)
+    projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
+    projB = sal.project(rel, "projB", ["rel_0", "rel_1"])
+
+    opened = sal.collect(projA, "opened", 1)
+    opened = sal.collect(projB, "opened", 1)
 
     # return root nodes
-    return set([in1, in2])
+    return set([in1, in2, in3])
 
 if __name__ == "__main__":
 

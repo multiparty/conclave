@@ -26,27 +26,26 @@ def getNewMpcNode(node, suffix):
     newNode.makeOrphan()
     return newNode
 
-def pushOpNodeDown(parent, node):
+def pushOpNodeDown(topNode, bottomNode):
 
-    # the only nodes we push down are aggregation nodes
-    # we have created and so we know that these are single
-    # parent nodes
-    assert(len(parent.parents) == 1)
-    grandParent = next(iter(parent.parents))
-    
-    # remove MPC aggregation between current node
-    # and grandparent
-    dag.removeBetween(grandParent, node, parent)
+    # only dealing with one grandchild case for now
+    assert(len(bottomNode.children) == 1)
+    child = next(iter(bottomNode.children))
 
-    # Need copy of node.children because we are 
-    # updating node.children inside the loop
-    tempChildren = copy.copy(node.children)
+    # remove bottom node between the bottom node's child
+    # and the top node
+    dag.removeBetween(topNode, child, bottomNode)
 
-    if not tempChildren:
-        dag.insertBetween(node, None, parent)
-    
-    for idx, child in enumerate(tempChildren):
-        dag.insertBetween(node, child, getNewMpcNode(parent, str(idx)))
+    # we need all parents of the parent node
+    grandParents = copy.copy(topNode.parents)
+
+    # we will insert the removed bottom node between
+    # each parent of the top node and the top node
+    for idx, grandParent in enumerate(grandParents):
+
+        toInsert = copy.deepcopy(bottomNode)
+        toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
+        dag.insertBetween(grandParent, topNode, toInsert)
 
 def splitNode(node):
 
@@ -60,43 +59,68 @@ def splitNode(node):
     # We insert an mpc-agg node per child
     for idx, child in enumerate(tempChildren):
         dag.insertBetween(node, child, getNewMpcNode(node, str(idx)))
+        
+def forkNode(node):
+
+    for child in node.children:
+        # TODO
+        pass
 
 def pushDownMPC(sortedNodes):
-    
-    for node in sortedNodes:
-        parents = node.parents
 
-        if len(parents) == 1:
-            # see if we can pull down any MPC ops
-            parent = next(iter(parents))
+    def visitUnaryDefault(node):
 
-            if parent.isMPC:
-                # The parent node is in MPC mode which means
-                # that it is either an MPC aggregation we can try
-                # and push down or another op in which case we must
-                # switch to mpc mode for the current node
-
-                # TODO: this is not entirely correct!
-                # we need to check if all nodes *above* the parent
-                # are local 
-                if opNodesCommute(parent, node):
-                    pushOpNodeDown(parent, node)
-                else:
-                    node.isMPC = True
+        parent = next(iter(node.parents))
+        if parent.isMPC:
+            # check if we have an MPC parent we can try
+            # and pull down
+            if isinstance(parent, dag.Concat) and parent.isBoundary():
+                pushOpNodeDown(parent, node)
             else:
-                # We are still in local mode. If the current node
-                # does not require MPC, there's nothing to do, otherwise
-                # we need to check if we can split the operation 
-                if node.requiresMPC():
-                    
-                    if node.canSplit:
-                        splitNode(node)
-                    else:
-                        node.isMPC = True
+                node.isMPC = True
+        else:
+            pass
 
-        elif len(parents) >= 2:
-            node.isMPC = node.requiresMPC()
+    def visitConcat(node):
+
+        if node.requiresMPC():
+            if len(node.children) > 1:
+                forkNode(node)
+            node.isMPC = True
         
+    for node in sortedNodes:
+
+        if isinstance(node, dag.Aggregate):
+
+            node.isMPC = node.requiresMPC()
+
+        elif isinstance(node, dag.Project):
+
+            visitUnaryDefault(node)
+
+        elif isinstance(node, dag.Multiply):
+
+            visitUnaryDefault(node)
+        
+        elif isinstance(node, dag.Join):
+
+            node.isMPC = node.requiresMPC()
+
+        elif isinstance(node, dag.Concat):
+
+            node.isMPC = node.requiresMPC()
+
+        elif isinstance(node, dag.Store):
+
+            continue
+        
+        elif isinstance(node, dag.Create):
+        
+            continue
+
+        else:
+
+            assert(False)
 
 def pushUpMPC(revSortedNodes):
 

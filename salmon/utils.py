@@ -10,5 +10,5 @@ def collusionSetUnion(columns):
     return functools.reduce(lambda setA, setB: mergeCollusionSets(setA, setB), colSets)
 
 def find(columns, colName):
-	
+    
     return next(iter([col for col in columns if col.getName() == colName]))
