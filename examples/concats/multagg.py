@@ -21,10 +21,12 @@ def protocol():
 
     # specify the workflow
     projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
+    aggA = sal.aggregate(projA, "aggA", "projA_0", "projA_1", "+")
     projB = sal.project(rel, "projB", ["rel_0", "rel_1"])
+    aggB = sal.aggregate(projB, "aggB", "projB_0", "projB_1", "+")
 
-    opened = sal.collect(projA, "opened", 1)
-    opened = sal.collect(projB, "opened", 1)
+    openedA = sal.collect(aggA, "openedA", 1)
+    openedB = sal.collect(aggB, "openedB", 1)
 
     # return root nodes
     return set([in1, in2])

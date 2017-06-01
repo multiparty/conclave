@@ -2,30 +2,6 @@ import copy
 import salmon.utils as utils
 import salmon.dag as dag
 
-def opNodesCommute(nodeA, nodeB):
-    
-    # This is incomplete. We are only interested in Aggregations
-    # in relation to other operations for now
-
-    if isinstance(nodeA, dag.Aggregate):
-        if isinstance(nodeB, dag.Project):
-            return True
-
-    return False
-
-# TODO: This is hacky
-def getNewMpcNode(node, suffix):
-
-    assert(isinstance(node, dag.Aggregate))
-    newNode = copy.deepcopy(node)
-    newNode.outRel.rename(node.outRel.name + "_obl_" + suffix)
-    newNode.keyCol.idx = 0
-    newNode.aggCol.idx = 1
-    newNode.isMPC = True
-    newNode.children = set()
-    newNode.makeOrphan()
-    return newNode
-
 def pushOpNodeDown(topNode, bottomNode):
 
     # only dealing with one grandchild case for now
@@ -42,38 +18,55 @@ def pushOpNodeDown(topNode, bottomNode):
     # we will insert the removed bottom node between
     # each parent of the top node and the top node
     for idx, grandParent in enumerate(grandParents):
-
         toInsert = copy.deepcopy(bottomNode)
         toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
+        toInsert.parents = set()
+        toInsert.children = set()
         dag.insertBetween(grandParent, topNode, toInsert)
 
 def splitNode(node):
 
-    # Need copy of node.children because we are 
-    # updating node.children inside the loop
-    tempChildren = copy.copy(node.children)
-    
-    if not tempChildren:
-        dag.insertBetween(node, None, getNewMpcNode(node, "0"))
+    # Only dealing with single child case for now
+    assert(len(node.children) == 1)
+    clone = copy.deepcopy(node)
+    clone.outRel.rename(node.outRel.name + "_obl")
+    clone.parents = set()
+    clone.children = set()
+    clone.isMPC = True
+    child = next(iter(node.children))
+    dag.insertBetween(node, child, clone)
 
-    # We insert an mpc-agg node per child
-    for idx, child in enumerate(tempChildren):
-        dag.insertBetween(node, child, getNewMpcNode(node, str(idx)))
-        
 def forkNode(node):
 
-    for child in node.children:
-        # TODO
-        pass
+    # we can skip the first child
+    childIt = enumerate(copy.copy(node.children))
+    next(childIt)
+    # clone node for each of the remaining children
+    for idx, child in childIt:
+        # create clone and rename output relation to
+        # avoid identical relation names for different nodes
+        clone = copy.deepcopy(node)
+        clone.outRel.rename(node.outRel.name + "_" + str(idx))
+        clone.parents = copy.copy(node.parents)
+        clone.children = set([child])
+        for parent in clone.parents:
+            parent.children.add(clone)
+        node.children.remove(child)
+        # make cloned node the child's new parent
+        child.replaceParent(node, clone)
+        child.updateOpSpecificCols()
 
-def pushDownMPC(sortedNodes):
+def pushDownMPC(sortedNodes, graph=None):
+
+    def visitDefault(node):
+
+        node.isMPC = node.requiresMPC()
 
     def visitUnaryDefault(node):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            # check if we have an MPC parent we can try
-            # and pull down
+            # if we have an MPC parent we can try and pull it down
             if isinstance(parent, dag.Concat) and parent.isBoundary():
                 pushOpNodeDown(parent, node)
             else:
@@ -84,15 +77,30 @@ def pushDownMPC(sortedNodes):
     def visitConcat(node):
 
         if node.requiresMPC():
-            if len(node.children) > 1:
-                forkNode(node)
             node.isMPC = True
-        
+            if len(node.children) > 1 and node.isBoundary():
+                forkNode(node)
+    
+    def visitAggregate(node):
+
+        parent = next(iter(node.parents))
+        if parent.isMPC:
+            # if we have an MPC parent we can try and pull it down
+            if isinstance(parent, dag.Concat) and parent.isBoundary():
+                splitNode(node)
+                pushOpNodeDown(parent, node)
+            else:
+                node.isMPC = True
+        else:
+            pass    
+
     for node in sortedNodes:
+
+        print("Visiting", node.outRel.name)
 
         if isinstance(node, dag.Aggregate):
 
-            node.isMPC = node.requiresMPC()
+            visitAggregate(node)
 
         elif isinstance(node, dag.Project):
 
@@ -108,7 +116,7 @@ def pushDownMPC(sortedNodes):
 
         elif isinstance(node, dag.Concat):
 
-            node.isMPC = node.requiresMPC()
+            visitConcat(node)
 
         elif isinstance(node, dag.Store):
 
@@ -122,18 +130,10 @@ def pushDownMPC(sortedNodes):
 
             assert(False)
 
-def pushUpMPC(revSortedNodes):
-
-    for node in revSortedNodes:
-        
-        # Apply operator-specific rules to pass collusion
-        # groups from the output relation of an op-node to
-        # its inputs
-        node.backPropCollSets()
-
-        # Update the node's MPC mode which might have changed
-        # as a result of the collusion set propagation
-        node.updateMPC()
+        if graph:
+            print("################")
+            print(str(graph))
+            print("################")
 
 def rewriteDag(dag):
 

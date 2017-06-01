@@ -6,7 +6,7 @@ def protocol():
 
     # define inputs
     colsIn1 = [
-        ("INTEGER", set([1])), 
+        ("INTEGER", set([1])),
         ("INTEGER", set([1]))
     ]
     in1 = sal.create("in1", colsIn1)
@@ -21,10 +21,10 @@ def protocol():
 
     # specify the workflow
     projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
-    projB = sal.project(rel, "projB", ["rel_0", "rel_1"])
+    projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
+    agg = sal.aggregate(projB, "agg", "projB_0", "projB_1", "+")
 
-    opened = sal.collect(projA, "opened", 1)
-    opened = sal.collect(projB, "opened", 1)
+    opened = sal.collect(agg, "opened", 1)
 
     # return root nodes
     return set([in1, in2])

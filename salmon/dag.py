@@ -471,6 +471,7 @@ def removeBetween(parent, child, other):
     assert(isinstance(other, UnaryOpNode))
 
     child.replaceParent(other, parent)
+    child.updateOpSpecificCols()
     parent.replaceChild(other, child)
 
     other.makeOrphan()
@@ -478,6 +479,7 @@ def removeBetween(parent, child, other):
 
 def insertBetween(parent, child, other):
 
+    # called with grandParent, topNode, toInsert
     assert(not other.children)
     assert(not other.parents)
     # only dealing with unary nodes for now
@@ -492,6 +494,8 @@ def insertBetween(parent, child, other):
     # Remove child from parent
     if child:
         child.replaceParent(parent, other)
+        if child in parent.children:
+            parent.children.remove(child)
         child.updateOpSpecificCols()
         other.children.add(child)
     
