@@ -141,7 +141,7 @@ def rewriteDag(dag):
     pushDownMPC(sortedNodes)
     # ironic?
     # pushUpMPC(sortedNodes[::-1])
-    return str(dag)
+    return dag
 
 def mpc(f):
 
