@@ -5,7 +5,7 @@ class Column():
     # For now we are assuming that a column has exactly one
     # collusion set, however this will change in the future
     def __init__(self, relName, idx, typeStr, collusionSet):
-        
+
         self.relName = relName
         self.idx = idx
         self.typeStr = typeStr
@@ -16,7 +16,7 @@ class Column():
         return self.relName + "_" + str(self.idx)
 
     # Update collusion sets. For now this will just overwrite
-    # the existing collusion set. This behavior will change 
+    # the existing collusion set. This behavior will change
     # once a column has multiple collusion sets
     def updateCollSetWith(self, collusionSet):
 
@@ -30,7 +30,7 @@ class Column():
 class Relation():
 
     def __init__(self, name, columns):
-        
+
         self.name = name
         self.columns = columns
 
@@ -49,7 +49,7 @@ class Relation():
     def getCombinedCollusionSet(self):
 
         return utils.collusionSetUnion(self.columns)
-        
+
     # Makes sure column indexes are same as the columns' positions
     # in the list. Call this after inserting new columns or otherwise
     # changing their order
@@ -68,4 +68,3 @@ class Relation():
 
         colStr = ", ".join([str(col) for col in self.columns])
         return "{}([{}])".format(self.name, colStr)
-

@@ -5,26 +5,26 @@ from salmon import rel
 class Node():
 
     def __init__(self, name):
-        
+
         self.name = name
         self.children = set()
         self.parents = set()
 
     def debugStr(self):
-        
+
         childrenStr = str([n.name for n in self.children])
-        parentStr = str([n.name for n in self.parents]) 
+        parentStr = str([n.name for n in self.parents])
         return self.name + " children: " + childrenStr + " parents: " + parentStr
 
     def __str__(self):
-        
+
         return self.name
 
 
 class OpNode(Node):
 
     def __init__(self, name, outRel):
-        
+
         super(OpNode, self).__init__(name)
         self.outRel = outRel
         # By default we assume that the operator requires data
@@ -35,14 +35,14 @@ class OpNode(Node):
         # Indicates whether we want to split this operation
         # into local step and mpc step. By default we don't
         self.canSplit = False
-        
+
     # Indicates whether a node is at the boundary of MPC
     # that is if nodes above it are local (there are operators
-    # such as aggregations that override this method since 
+    # such as aggregations that override this method since
     # other rules apply there)
     def isBoundary(self):
 
-        return self.isMPC and not any([par.isMPC for par in self.parents]) 
+        return self.isMPC and not any([par.isMPC for par in self.parents])
 
 
     # By default operations are not reversible, i.e., given
@@ -64,10 +64,10 @@ class OpNode(Node):
     # For certain operators, we can propagate all collusion
     # sets from the output relation to the operator's input
     # relations (for example some projections).
-    # Operators where that is the case can override this 
+    # Operators where that is the case can override this
     # method with the appropriate propagation rules.
     def backPropCollSets(self):
-        
+
         return
 
     def updateMPC(self):
@@ -92,12 +92,12 @@ class OpNode(Node):
 class UnaryOpNode(OpNode):
 
     def __init__(self, name, outRel, parent):
-        
+
         super(UnaryOpNode, self).__init__(name, outRel)
         self.parent = parent
         if self.parent:
             self.parents.add(parent)
-    
+
     def getInRel(self):
 
         return self.parent.outRel
@@ -119,12 +119,12 @@ class UnaryOpNode(OpNode):
 
         super(UnaryOpNode, self).replaceParent(oldParent, newParent)
         self.parent = newParent
-        
+
 
 class BinaryOpNode(OpNode):
 
     def __init__(self, name, outRel, leftParent, rightParent):
-        
+
         super(BinaryOpNode, self).__init__(name, outRel)
         self.leftParent = leftParent
         self.rightParent = rightParent
@@ -132,7 +132,7 @@ class BinaryOpNode(OpNode):
             self.parents.add(leftParent)
         if self.rightParent:
             self.parents.add(rightParent)
-    
+
     def getLeftInRel(self):
 
         return self.leftParent.outRel
@@ -146,13 +146,13 @@ class BinaryOpNode(OpNode):
         # TODO: fix
         assert(False)
         leftShared = self.getLeftInRel().isShared()
-        rightShared = self.getRightInRel().isShared()  
+        rightShared = self.getRightInRel().isShared()
         return (leftShared or rightShared) and not self.isLocal
 
     def updateMPC(self):
 
         self.isMPC = self.getLeftInRel().isShared()\
-                  or self.getLeftInRel().isShared() 
+                  or self.getLeftInRel().isShared()
 
     def makeOrphan(self):
 
@@ -167,27 +167,27 @@ class BinaryOpNode(OpNode):
             self.leftParent = newParent
         elif self.rightParent == oldParent:
             self.rightParent = newParent
-    
+
 
 class NaryOpNode(OpNode):
 
     def __init__(self, name, outRel, parents):
-        
+
         super(NaryOpNode, self).__init__(name, outRel)
         self.parents = parents
 
     def getInRels(self):
 
-        # Returning a set here to emphasize that the order of 
+        # Returning a set here to emphasize that the order of
         # the returned relations is meaningless (since the parent-set
         # where we're getting the relations from isn't ordered.)
         # If we want operators with multiple input relations where
-        # the order matters, we do implement it as a separate class 
+        # the order matters, we do implement it as a separate class
         return set([parent.outRel for parent in self.parents])
 
     def requiresMPC(self):
 
-        inCollSets = [inRel.getCombinedCollusionSet() for inRel in self.getInRels()] 
+        inCollSets = [inRel.getCombinedCollusionSet() for inRel in self.getInRels()]
         inRelsShared = len(set().union(*inCollSets)) > 1
         return inRelsShared and not self.isLocal
 
@@ -214,7 +214,7 @@ class Create(UnaryOpNode):
 
         return "CREATE RELATION {} WITH COLUMNS ({})".format(
                 self.outRel.name,
-                colTypeStr 
+                colTypeStr
             )
 
 
@@ -241,7 +241,7 @@ class Store(UnaryOpNode):
         return "STORE RELATION {} INTO {} AS {}".format(
                 self.getInRel().name,
                 self.outRel.getCombinedCollusionSet(),
-                self.outRel.name             
+                self.outRel.name
             )
 
 class Concat(NaryOpNode):
@@ -382,12 +382,12 @@ class Join(BinaryOpNode):
 
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
- 
+
 
 class Dag():
 
     def __init__(self, roots):
-        
+
         self.roots = roots
 
     def _dfsVisit(self, node, visitor, visited):
@@ -399,7 +399,7 @@ class Dag():
                 self._dfsVisit(child, visitor, visited)
 
     def dfsVisit(self, visitor):
-        
+
         visited = set()
 
         for root in self.roots:
@@ -408,7 +408,7 @@ class Dag():
         return visited
 
     def dfsPrint(self):
-        
+
         self.dfsVisit(print)
 
     def getAllNodes(self):
@@ -454,7 +454,7 @@ class Dag():
 class OpDag(Dag):
 
     def __init__(self, roots):
-        
+
         super(OpDag, self).__init__(roots)
 
     def __str__(self):
@@ -462,7 +462,7 @@ class OpDag(Dag):
         order = self.topSort()
         return ",\n".join(str(node) for node in order)
 
-    
+
 def removeBetween(parent, child, other):
 
     assert(len(other.children) < 2)
@@ -498,4 +498,4 @@ def insertBetween(parent, child, other):
             parent.children.remove(child)
         child.updateOpSpecificCols()
         other.children.add(child)
-    
+

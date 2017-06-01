@@ -80,7 +80,7 @@ def pushDownMPC(sortedNodes, graph=None):
             node.isMPC = True
             if len(node.children) > 1 and node.isBoundary():
                 forkNode(node)
-    
+
     def visitAggregate(node):
 
         parent = next(iter(node.parents))
@@ -92,7 +92,7 @@ def pushDownMPC(sortedNodes, graph=None):
             else:
                 node.isMPC = True
         else:
-            pass    
+            pass
 
     for node in sortedNodes:
 
@@ -109,7 +109,7 @@ def pushDownMPC(sortedNodes, graph=None):
         elif isinstance(node, dag.Multiply):
 
             visitUnaryDefault(node)
-        
+
         elif isinstance(node, dag.Join):
 
             node.isMPC = node.requiresMPC()
@@ -121,9 +121,9 @@ def pushDownMPC(sortedNodes, graph=None):
         elif isinstance(node, dag.Store):
 
             continue
-        
+
         elif isinstance(node, dag.Create):
-        
+
             continue
 
         else:
