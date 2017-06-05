@@ -7,36 +7,6 @@ class SparkCodeGen(CodeGen):
         super(SparkCodeGen, self).__init__(dag)
         self.template_directory = template_directory
 
-    def generate(self, job_name, output_directory):
-        op_code = ""
-
-        # topological traversal
-        nodes = self.dag.topSort()
-        # for each op
-        for node in nodes:
-            if isinstance(node, Aggregate):
-                op_code += self._generateAggregate(node)
-            elif isinstance(node, Concat):
-                op_code += self._generateConcat(node)
-            elif isinstance(node, Create):
-                op_code += self._generateCreate(node)
-            elif isinstance(node, Join):
-                op_code += self._generateJoin(node)
-            elif isinstance(node, Project):
-                op_code += self._generateProject(node)
-            elif isinstance(node, Store):
-                op_code += self._generateStore(node)
-            else:
-                print("encountered unknown operator type", repr(node))
-        #  stick templ into top-level template
-
-        # expand top-level job template
-        code = self._generateJob(job_name, op_code)
-
-        # write code to a file
-        outfile = open("{}/{}.py".format(output_directory, job_name), 'w')
-        outfile.write(code)
-
     def _generateJob(self, job_name, op_code):
 
         template = open("{}/job.tmpl".format(self.template_directory), 'r').read()
@@ -77,3 +47,8 @@ class SparkCodeGen(CodeGen):
                }
 
         return pystache.render(template, data)
+
+    def _writeCode(self, code, output_directory, job_name):
+        # write code to a file
+        outfile = open("{}/{}.py".format(output_directory, job_name), 'w')
+        outfile.write(code)

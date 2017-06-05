@@ -1,3 +1,6 @@
+from salmon.dag import *
+import os
+
 class CodeGen:
 
     # initialize code generator for DAG passed
@@ -5,5 +8,34 @@ class CodeGen:
         self.dag = dag
 
     # generate code for the DAG stored
-    def generate(self):
+    def generate(self, job_name, output_directory):
+        op_code = ""
+
+        # topological traversal
+        nodes = self.dag.topSort()
+        # for each op
+        for node in nodes:
+            if isinstance(node, Aggregate):
+                op_code += self._generateAggregate(node)
+            elif isinstance(node, Concat):
+                op_code += self._generateConcat(node)
+            elif isinstance(node, Create):
+                op_code += self._generateCreate(node)
+            elif isinstance(node, Join):
+                op_code += self._generateJoin(node)
+            elif isinstance(node, Project):
+                op_code += self._generateProject(node)
+            elif isinstance(node, Store):
+                op_code += self._generateStore(node)
+            else:
+                print("encountered unknown operator type", repr(node))
+        # expand top-level job template
+        code = self._generateJob(job_name, op_code)
+
+        # store the code in type-specific files
+        self._writeCode(code, output_directory, job_name)
+
+    def _writeCode(self, code, output_directory, job_name):
+
+        # overridden in subclasses
         pass
