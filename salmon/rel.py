@@ -29,11 +29,11 @@ class Column():
 
 class Relation():
 
-    def __init__(self, name, columns):
+    def __init__(self, name, columns, storedWith):
 
         self.name = name
         self.columns = columns
-
+        self.storedWith = storedWith
 
     def rename(self, newName):
 
@@ -43,7 +43,7 @@ class Relation():
 
     def isShared(self):
 
-        return len(self.getCombinedCollusionSet()) > 1
+        return len(self.storedWith) > 1
 
     # Returns the union of the collusion sets of all columns
     def getCombinedCollusionSet(self):

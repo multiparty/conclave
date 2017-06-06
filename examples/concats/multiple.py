@@ -9,12 +9,12 @@ def protocol():
         ("INTEGER", set([1])), 
         ("INTEGER", set([1]))
     ]
-    in1 = sal.create("in1", colsIn1)
+    in1 = sal.create("in1", colsIn1, set([1]))
     colsIn2 = [
         ("INTEGER", set([2])), 
         ("INTEGER", set([2]))
     ]
-    in2 = sal.create("in2", colsIn2)
+    in2 = sal.create("in2", colsIn2, set([2]))
     
     # combine parties' inputs into one relation
     rel = sal.concat(set([in1, in2]), "rel")

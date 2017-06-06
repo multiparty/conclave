@@ -70,10 +70,6 @@ class OpNode(Node):
 
         return
 
-    def updateMPC(self):
-
-        return
-
     def makeOrphan(self):
 
         self.parents = set()
@@ -105,10 +101,6 @@ class UnaryOpNode(OpNode):
     def requiresMPC(self):
 
         return self.getInRel().isShared() and not self.isLocal
-
-    def updateMPC(self):
-
-        self.isMPC = self.getInRel().isShared()
 
     def makeOrphan(self):
 
@@ -143,16 +135,10 @@ class BinaryOpNode(OpNode):
 
     def requiresMPC(self):
 
-        # TODO: fix
-        assert(False)
-        leftShared = self.getLeftInRel().isShared()
-        rightShared = self.getRightInRel().isShared()
-        return (leftShared or rightShared) and not self.isLocal
-
-    def updateMPC(self):
-
-        self.isMPC = self.getLeftInRel().isShared()\
-                  or self.getLeftInRel().isShared()
+        leftStoredWith = self.getLeftInRel().storedWith
+        rightStoredWith = self.getRightInRel().storedWith
+        combined = leftStoredWith.union(rightStoredWith)
+        return (len(combined) > 1) and not self.isLocal
 
     def makeOrphan(self):
 
@@ -180,14 +166,14 @@ class NaryOpNode(OpNode):
 
         # Returning a set here to emphasize that the order of
         # the returned relations is meaningless (since the parent-set
-        # where we're getting the relations from isn't ordered.)
+        # where we're getting the relations from isn't ordered)
         # If we want operators with multiple input relations where
         # the order matters, we do implement it as a separate class
         return set([parent.outRel for parent in self.parents])
 
     def requiresMPC(self):
 
-        inCollSets = [inRel.getCombinedCollusionSet() for inRel in self.getInRels()]
+        inCollSets = [inRel.storedWith for inRel in self.getInRels()]
         inRelsShared = len(set().union(*inCollSets)) > 1
         return inRelsShared and not self.isLocal
 
@@ -203,10 +189,6 @@ class Create(UnaryOpNode):
     def requiresMPC(self):
 
         return False
-
-    def updateMPC(self):
-
-        return
 
     def __str__(self):
 
@@ -234,13 +216,13 @@ class Store(UnaryOpNode):
         # TODO: oversimplifying here
         for col in inRelCols:
             col.updateCollSetWith(
-                self.outRel.getCombinedCollusionSet())
+                self.outRel.storedWith)
 
     def __str__(self):
 
         return "STORE RELATION {} INTO {} AS {}".format(
                 self.getInRel().name,
-                self.outRel.getCombinedCollusionSet(),
+                self.outRel.storedWith,
                 self.outRel.name
             )
 
@@ -273,7 +255,7 @@ class Aggregate(UnaryOpNode):
         self.keyCol = keyCol
         self.aggCol = aggCol
         self.aggregator = aggregator
-        # We are interested in splitting aggregations
+        # We want to split aggregations
         self.canSplit = True
 
     def updateOpSpecificCols(self):
@@ -345,7 +327,7 @@ class Multiply(UnaryOpNode):
             # TODO: oversimplifying here
             for col in inRelCols:
                 col.updateCollSetWith(
-                    self.outRel.getCombinedCollusionSet())
+                    self.outRel.storedWith)
 
     def __str__(self):
 

@@ -56,6 +56,10 @@ def forkNode(node):
         child.replaceParent(node, clone)
         child.updateOpSpecificCols()
 
+def propagateCollSets(sortedNodes):
+
+    pass
+
 def pushDownMPC(sortedNodes, graph=None):
 
     def visitDefault(node):
@@ -85,7 +89,6 @@ def pushDownMPC(sortedNodes, graph=None):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            # if we have an MPC parent we can try and pull it down
             if isinstance(parent, dag.Concat) and parent.isBoundary():
                 splitNode(node)
                 pushOpNodeDown(parent, node)

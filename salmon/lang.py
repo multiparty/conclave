@@ -3,11 +3,11 @@ from salmon import rel
 from salmon import dag
 import salmon.utils as utils
 
-def create(name, columns):
+def create(name, columns, storedWith):
 
     columns = [rel.Column(name, idx, typeStr, collusionSet) 
         for idx, (typeStr, collusionSet) in enumerate(columns)]
-    outRel = rel.Relation(name, columns)
+    outRel = rel.Relation(name, columns, storedWith)
     op = dag.Create(outRel)
     return op
 
@@ -27,7 +27,7 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
     outRelCols = [copy.deepcopy(keyCol), copy.deepcopy(aggCol)]
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
@@ -51,7 +51,7 @@ def project(inputOpNode, outputName, selectedColNames):
     outRelCols = copy.deepcopy(selectedCols)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
@@ -85,7 +85,7 @@ def multiply(inputOpNode, outputName, targetColName, operands):
     targetColumn.collusionSet = targetCollusionSet
     
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
@@ -155,8 +155,12 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
                + _colsFromRel(leftInRel, outKeyCol, leftJoinCol.idx) \
                + _colsFromRel(rightInRel, outKeyCol, rightJoinCol.idx)
 
+    # The result of the join will be stored with the union
+    # of the parties storing left and right
+    outStoredWith = leftInRel.storedWith.union(rightInRel.storedWith)
+
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, outStoredWith)
     outRel.updateColumns()
 
     # Create join operator
@@ -204,8 +208,13 @@ def concat(inputOpNodes, outputName):
         columnsAtIndex = [inRel.columns[idx] for inRel in inRels]
         col.collusionSet = utils.collusionSetUnion(columnsAtIndex)
 
+    # The result of the concat will be stored with the union
+    # of the parties storing the input relations
+    inStoredWith = [inRel.storedWith for inRel in inRels]
+    outStoredWith = set().union(*inStoredWith)
+
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, outStoredWith)
     outRel.updateColumns()
 
     # Create our operator node
@@ -230,7 +239,7 @@ def collect(inputOpNode, outputName, targetParty):
         outRelCol.updateCollSetWith(set([targetParty]))
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols)
+    outRel = rel.Relation(outputName, outRelCols, set([targetParty]))
     outRel.updateColumns()
 
     # Create our operator node
