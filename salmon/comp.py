@@ -1,6 +1,6 @@
 import copy
 import salmon.utils as utils
-import salmon.dag as dag
+import salmon.dag as saldag
 
 def pushOpNodeDown(topNode, bottomNode):
 
@@ -10,7 +10,7 @@ def pushOpNodeDown(topNode, bottomNode):
 
     # remove bottom node between the bottom node's child
     # and the top node
-    dag.removeBetween(topNode, child, bottomNode)
+    saldag.removeBetween(topNode, child, bottomNode)
 
     # we need all parents of the parent node
     grandParents = copy.copy(topNode.parents)
@@ -22,7 +22,7 @@ def pushOpNodeDown(topNode, bottomNode):
         toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
         toInsert.parents = set()
         toInsert.children = set()
-        dag.insertBetween(grandParent, topNode, toInsert)
+        saldag.insertBetween(grandParent, topNode, toInsert)
 
 def splitNode(node):
 
@@ -34,7 +34,7 @@ def splitNode(node):
     clone.children = set()
     clone.isMPC = True
     child = next(iter(node.children))
-    dag.insertBetween(node, child, clone)
+    saldag.insertBetween(node, child, clone)
 
 def forkNode(node):
 
@@ -60,36 +60,66 @@ def propagateCollSets(sortedNodes):
 
     pass
 
-def pushDownMPC(sortedNodes, graph=None):
+class DagRewriter:
 
-    def visitDefault(node):
+    def __init__(self):
+
+        # If true we visit topological ordering of dag in reverse
+        self.reverse = False
+
+    def rewrite(self, dag):
+
+        ordered = dag.topSort()
+        if self.reverse:
+            ordered = ordered[::-1]
+
+        for node in ordered:
+            print(type(self).__name__, "rewriting", node.outRel.name)
+            if isinstance(node, saldag.Aggregate):
+                self._rewriteAggregate(node)
+            elif isinstance(node, saldag.Project):
+                self._rewriteProject(node)
+            elif isinstance(node, saldag.Multiply):
+                self._rewriteMultiply(node)
+            elif isinstance(node, saldag.Join):
+                self._rewriteJoin(node)
+            elif isinstance(node, saldag.Concat):
+                self._rewriteConcat(node)
+            elif isinstance(node, saldag.Store):
+                self._rewriteStore(node)
+            elif isinstance(node, saldag.Create):
+                self._rewriteCreate(node)
+            else:
+                msg = "Unknown class " + type(node).__name__
+                raise Exception(msg)
+
+class MPCPushDown(DagRewriter):
+
+    def __init__(self):
+
+        super(MPCPushDown, self).__init__()
+
+    def _rewriteDefault(self, node):
 
         node.isMPC = node.requiresMPC()
 
-    def visitUnaryDefault(node):
+    def _rewriteUnaryDefault(self, node):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
             # if we have an MPC parent we can try and pull it down
-            if isinstance(parent, dag.Concat) and parent.isBoundary():
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 pushOpNodeDown(parent, node)
             else:
                 node.isMPC = True
         else:
             pass
 
-    def visitConcat(node):
-
-        if node.requiresMPC():
-            node.isMPC = True
-            if len(node.children) > 1 and node.isBoundary():
-                forkNode(node)
-
-    def visitAggregate(node):
+    def _rewriteAggregate(self, node):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            if isinstance(parent, dag.Concat) and parent.isBoundary():
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 splitNode(node)
                 pushOpNodeDown(parent, node)
             else:
@@ -97,59 +127,104 @@ def pushDownMPC(sortedNodes, graph=None):
         else:
             pass
 
-    for node in sortedNodes:
+    def _rewriteProject(self, node):
 
-        print("Visiting", node.outRel.name)
+        self._rewriteUnaryDefault(node)
 
-        if isinstance(node, dag.Aggregate):
+    def _rewriteMultiply(self, node):
 
-            visitAggregate(node)
+        self._rewriteUnaryDefault(node)
 
-        elif isinstance(node, dag.Project):
+    def _rewriteJoin(self, node):
 
-            visitUnaryDefault(node)
+        self._rewriteDefault(node)
 
-        elif isinstance(node, dag.Multiply):
+    def _rewriteConcat(self, node):
 
-            visitUnaryDefault(node)
+        if node.requiresMPC():
+            node.isMPC = True
+            if len(node.children) > 1 and node.isBoundary():
+                forkNode(node)
 
-        elif isinstance(node, dag.Join):
+    def _rewriteStore(self, node):
 
-            node.isMPC = node.requiresMPC()
+        pass
 
-        elif isinstance(node, dag.Concat):
+    def _rewriteCreate(self, node):
 
-            visitConcat(node)
+        pass
 
-        elif isinstance(node, dag.Store):
+class MPCPushUp(DagRewriter):
 
-            continue
+    def __init__(self):
 
-        elif isinstance(node, dag.Create):
+        super(MPCPushUp, self).__init__()
+        self.reverse = True
 
-            continue
+    def _rewriteUnaryDefault(self, node):
 
-        else:
+        if node.isReversible() and node.isLowerBoundary():
+            print("Reversing", node.outRel.name)
+            node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
+            node.isMPC = False
 
-            assert(False)
+    def _rewriteAggregate(self, node):
 
-        if graph:
-            print("################")
-            print(str(graph))
-            print("################")
+        pass
+
+    def _rewriteProject(self, node):
+
+        self._rewriteUnaryDefault(node)
+
+    def _rewriteMultiply(self, node):
+
+        self._rewriteUnaryDefault(node)
+
+    def _rewriteJoin(self, node):
+
+        pass
+
+    def _rewriteConcat(self, node):
+
+    	# concats are always reversible so we just need to know
+    	# if we're dealing with a boundary node
+        if node.isLowerBoundary():
+
+        	outStoredWith = node.outRel.storedWith
+        	inRels = node.getInRels()
+        	for inRel in inRels:
+        		inRel.storedWith = copy.copy(outStoredWith)
+        	node.isMPC = False
+
+    def _rewriteStore(self, node):
+
+        assert(not node.isMPC)
+        node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
+
+    def _rewriteCreate(self, node):
+
+        pass
 
 def rewriteDag(dag):
 
-    sortedNodes = dag.topSort()
-    pushDownMPC(sortedNodes)
+    MPCPushDown().rewrite(dag)
     # ironic?
-    # pushUpMPC(sortedNodes[::-1])
+    # MPCPushUp().rewrite(dag)
     return dag
+
+def scotch(f):
+
+	from salmon.codegen import scotch
+
+	def wrap():
+		scotch.ScotchCodeGen(f()).generate(None, None)
+
+	return wrap
 
 def mpc(f):
 
     def wrap():
-        beerProg = rewriteDag(dag.OpDag(f()))
-        return beerProg
+        dag = rewriteDag(saldag.OpDag(f()))
+        return dag
 
     return wrap

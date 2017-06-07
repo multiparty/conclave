@@ -1,6 +1,7 @@
 import salmon.lang as sal 
-from salmon.comp import mpc
+from salmon.comp import mpc, scotch
 
+@scotch
 @mpc
 def protocol():
 
@@ -31,4 +32,4 @@ def protocol():
 
 if __name__ == "__main__":
 
-    print(protocol())
+    protocol()

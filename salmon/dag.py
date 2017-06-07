@@ -32,18 +32,22 @@ class OpNode(Node):
         # where this is not the case
         self.isLocal = False
         self.isMPC = False
-        # Indicates whether we want to split this operation
-        # into local step and mpc step. By default we don't
-        self.canSplit = False
-
+        
     # Indicates whether a node is at the boundary of MPC
-    # that is if nodes above it are local (there are operators
+    # i.e. if nodes above it are local (there are operators
     # such as aggregations that override this method since
     # other rules apply there)
     def isBoundary(self):
+        # TODO: could this be (self.isUpperBoundary() or self.isLowerBoundary())?
+        return self.isUpperBoundary()
+
+    def isUpperBoundary(self):
 
         return self.isMPC and not any([par.isMPC for par in self.parents])
 
+    def isLowerBoundary(self):
+
+        return self.isMPC and not any([child.isMPC for child in self.children])
 
     # By default operations are not reversible, i.e., given
     # the output of the operation we cannot learn the input
@@ -210,13 +214,13 @@ class Store(UnaryOpNode):
 
         return True
 
-    def backPropCollSets(self):
+    # def backPropCollSets(self):
 
-        inRelCols = self.getInRel().columns
-        # TODO: oversimplifying here
-        for col in inRelCols:
-            col.updateCollSetWith(
-                self.outRel.storedWith)
+    #     inRelCols = self.getInRel().columns
+    #     # TODO: oversimplifying here
+    #     for col in inRelCols:
+    #         col.updateCollSetWith(
+    #             self.outRel.storedWith)
 
     def __str__(self):
 
@@ -255,11 +259,10 @@ class Aggregate(UnaryOpNode):
         self.keyCol = keyCol
         self.aggCol = aggCol
         self.aggregator = aggregator
-        # We want to split aggregations
-        self.canSplit = True
 
     def updateOpSpecificCols(self):
 
+        # TODO: do we need to copy here?
         self.keyCol = self.getInRel().columns[self.keyCol.idx]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
@@ -283,6 +286,13 @@ class Project(UnaryOpNode):
         # Projections can be done by parties locally
         self.isLocal = True
         self.selectedCols = selectedCols
+
+    def isReversible(self):
+
+        # slightly oversimplified but basically if we have 
+        # re-ordered the input columns without dropping any 
+        # then this is reversible
+        return len(self.selectedCols) == len(self.getInRel().columns)
 
     def updateOpSpecificCols(self):
 
@@ -320,14 +330,14 @@ class Multiply(UnaryOpNode):
         # A multiplication is reversible unless one of the operands is 0
         return all([op != 0 for op in self.operands])
 
-    def backPropCollSets(self):
+    # def backPropCollSets(self):
 
-        if self.isReversible():
-            inRelCols = self.getInRel().columns
-            # TODO: oversimplifying here
-            for col in inRelCols:
-                col.updateCollSetWith(
-                    self.outRel.storedWith)
+    #     if self.isReversible():
+    #         inRelCols = self.getInRel().columns
+    #         # TODO: oversimplifying here
+    #         for col in inRelCols:
+    #             col.updateCollSetWith(
+    #                 self.outRel.storedWith)
 
     def __str__(self):
 
