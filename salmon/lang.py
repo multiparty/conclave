@@ -226,6 +226,8 @@ def concat(inputOpNodes, outputName):
 
     return op
 
+# TODO: explicit Store node might be redundant. Think about just
+# updating storedWith on the output relation of inputOpNode
 def collect(inputOpNode, outputName, targetParty):
 
     # Get input relation from input node

@@ -1,6 +1,5 @@
 from salmon import rel
-
-# TODO: abstract methods
+import copy
 
 class Node():
 
@@ -62,7 +61,11 @@ class OpNode(Node):
         return True
 
     def updateOpSpecificCols(self):
-        # By default we don't need to do anything here
+
+        return
+
+    def updateStoredWith(self):
+
         return
 
     # For certain operators, we can propagate all collusion
@@ -101,6 +104,10 @@ class UnaryOpNode(OpNode):
     def getInRel(self):
 
         return self.parent.outRel
+
+    def updateStoredWith(self):
+
+        self.outRel.storedWith = copy.copy(self.getInRel().storedWith)
 
     def requiresMPC(self):
 

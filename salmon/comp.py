@@ -23,6 +23,7 @@ def pushOpNodeDown(topNode, bottomNode):
         toInsert.parents = set()
         toInsert.children = set()
         saldag.insertBetween(grandParent, topNode, toInsert)
+        toInsert.updateStoredWith() 
 
 def splitNode(node):
 
@@ -55,10 +56,6 @@ def forkNode(node):
         # make cloned node the child's new parent
         child.replaceParent(node, clone)
         child.updateOpSpecificCols()
-
-def propagateCollSets(sortedNodes):
-
-    pass
 
 class DagRewriter:
 
@@ -164,7 +161,6 @@ class MPCPushUp(DagRewriter):
     def _rewriteUnaryDefault(self, node):
 
         if node.isReversible() and node.isLowerBoundary():
-            print("Reversing", node.outRel.name)
             node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
             node.isMPC = False
 
@@ -209,7 +205,7 @@ def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
     # ironic?
-    # MPCPushUp().rewrite(dag)
+    MPCPushUp().rewrite(dag)
     return dag
 
 def scotch(f):

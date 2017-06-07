@@ -1,6 +1,7 @@
 import salmon.lang as sal 
-from salmon.comp import mpc
+from salmon.comp import mpc, scotch
 
+@scotch
 @mpc
 def protocol():
 
@@ -22,6 +23,7 @@ def protocol():
     # specify the workflow
     projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
     aggA = sal.aggregate(projA, "aggA", "projA_0", "projA_1", "+")
+    
     projB = sal.project(rel, "projB", ["rel_0", "rel_1"])
     aggB = sal.aggregate(projB, "aggB", "projB_0", "projB_1", "+")
 
@@ -33,4 +35,4 @@ def protocol():
 
 if __name__ == "__main__":
 
-    print(protocol())
+    protocol()
