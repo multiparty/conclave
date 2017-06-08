@@ -13,7 +13,7 @@ def pushOpNodeDown(topNode, bottomNode):
     saldag.removeBetween(topNode, child, bottomNode)
 
     # we need all parents of the parent node
-    grandParents = copy.copy(topNode.parents)
+    grandParents = copy.copy(topNode.getSortedParents())
 
     # we will insert the removed bottom node between
     # each parent of the top node and the top node
@@ -40,7 +40,7 @@ def splitNode(node):
 def forkNode(node):
 
     # we can skip the first child
-    childIt = enumerate(copy.copy(node.children))
+    childIt = enumerate(copy.copy(node.getSortedChildren()))
     next(childIt)
     # clone node for each of the remaining children
     for idx, child in childIt:
@@ -49,6 +49,7 @@ def forkNode(node):
         clone = copy.deepcopy(node)
         clone.outRel.rename(node.outRel.name + "_" + str(idx))
         clone.parents = copy.copy(node.parents)
+        assert(False)
         clone.children = set([child])
         for parent in clone.parents:
             parent.children.add(clone)
@@ -213,7 +214,8 @@ def scotch(f):
 	from salmon.codegen import scotch
 
 	def wrap():
-		scotch.ScotchCodeGen(f()).generate(None, None)
+		code = scotch.ScotchCodeGen(f())._generate(None, None)
+		return code
 
 	return wrap
 

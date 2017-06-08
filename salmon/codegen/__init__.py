@@ -9,6 +9,12 @@ class CodeGen:
 
     # generate code for the DAG stored
     def generate(self, job_name, output_directory):
+        code = self._generate(job_name, output_directory)
+        # store the code in type-specific files
+        self._writeCode(code, output_directory, job_name)
+
+    # generate code for the DAG stored
+    def _generate(self, job_name, output_directory):
         op_code = ""
 
         # topological traversal
@@ -29,11 +35,9 @@ class CodeGen:
                 op_code += self._generateStore(node)
             else:
                 print("encountered unknown operator type", repr(node))
-        # expand top-level job template
-        code = self._generateJob(job_name, op_code)
-
-        # store the code in type-specific files
-        self._writeCode(code, output_directory, job_name)
+        
+        # expand top-level job template and return code
+        return self._generateJob(job_name, op_code)
 
     def _writeCode(self, code, output_directory, job_name):
 

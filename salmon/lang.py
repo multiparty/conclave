@@ -180,13 +180,6 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
 def concat(inputOpNodes, outputName):
 
-    # Make sure we are dealing with a set, now a list
-    # Assert instead of conversion to emphasize that
-    # the order of the parents cannot be counted on 
-    # and that including the same parent multiple times
-    # is currently not supported
-    assert(isinstance(inputOpNodes, set))
-
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
     assert(len(inputOpNodes) >= 2)

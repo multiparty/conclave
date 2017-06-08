@@ -91,6 +91,14 @@ class OpNode(Node):
         self.children.remove(oldChild)
         self.children.add(newChild)
 
+    def getSortedChildren(self):
+
+        return sorted(list(self.children), key=lambda x: x.outRel.name)
+
+    def getSortedParents(self):
+
+        return sorted(list(self.parents), key=lambda x: x.outRel.name)
+
 
 class UnaryOpNode(OpNode):
 
@@ -221,14 +229,6 @@ class Store(UnaryOpNode):
 
         return True
 
-    # def backPropCollSets(self):
-
-    #     inRelCols = self.getInRel().columns
-    #     # TODO: oversimplifying here
-    #     for col in inRelCols:
-    #         col.updateCollSetWith(
-    #             self.outRel.storedWith)
-
     def __str__(self):
 
         return "STORE RELATION {} INTO {} AS {}".format(
@@ -241,11 +241,26 @@ class Concat(NaryOpNode):
 
     def __init__(self, outRel, parents):
 
-        super(Concat, self).__init__("concat", outRel, parents)
+        parentSet = set(parents)
+        # sanity check for now
+        assert(len(parents) == len(parentSet))
+        super(Concat, self).__init__("concat", outRel, parentSet)
+        self.ordered = parents
 
     def isReversible(self):
 
         return True
+
+    def inRels(self):
+
+        return [parent.outRel for parent in self.ordered]
+
+    def replaceParent(self, oldParent, newParent):
+
+        super(Concat, self).replaceParent(oldParent, newParent)
+        # this will throw if oldParent not in list
+        idx = self.ordered.index(oldParent)
+        self.ordered[idx] = newParent
 
     def __str__(self):
 
@@ -417,7 +432,7 @@ class Dag():
     # Note: not optimized at all but we're dealing with very small
     # graphs so performance shouldn't be a problem
     # Side-effects on all inputs other than node
-    def _topSortVisit(self, node, marked, tempMarked, unmarked, ordered):
+    def _topSortVisit(self, node, marked, tempMarked, unmarked, ordered, deterministic=True):
 
         if node in tempMarked:
             raise "Not a Dag!"
@@ -427,18 +442,28 @@ class Dag():
                 unmarked.remove(node)
             tempMarked.add(node)
 
-            for otherNode in node.children:
+            children = node.children
+            if deterministic:
+                children = sorted(list(children), key=lambda x: x.outRel.name)
+            for otherNode in children:
                 self._topSortVisit(
                     otherNode, marked, tempMarked, unmarked, ordered)
 
             marked.add(node)
-            unmarked.add(node)
+            if deterministic:
+                unmarked.append(node)
+            else:
+                unmarked.add(node)            
             tempMarked.remove(node)
             ordered.insert(0, node)
 
-    def topSort(self):
+    # TODO: the deterministic flag is a hack, come up with something more
+    # elegant
+    def topSort(self, deterministic=True):
 
         unmarked = self.getAllNodes()
+        if deterministic:
+            unmarked = sorted(list(unmarked), key=lambda x: x.outRel.name)
         marked = set()
         tempMarked = set()
         ordered = []
