@@ -219,28 +219,9 @@ def concat(inputOpNodes, outputName):
 
     return op
 
-# TODO: explicit Store node might be redundant. Think about just
-# updating storedWith on the output relation of inputOpNode
-def collect(inputOpNode, outputName, targetParty):
+def collect(inputOpNode, targetParty):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
-
-    # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
-
-    # Update collusion sets
-    for outRelCol in outRelCols:
-        outRelCol.updateCollSetWith(set([targetParty]))
-
-    # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, set([targetParty]))
-    outRel.updateColumns()
-
-    # Create our operator node
-    op = dag.Store(outRel, inputOpNode)
+    inRel.storedWith = set([targetParty])
     
-    # Add it as a child to input node 
-    inputOpNode.children.add(op)
-
-    return op

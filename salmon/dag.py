@@ -15,6 +15,14 @@ class Node():
         parentStr = str([n.name for n in self.parents])
         return self.name + " children: " + childrenStr + " parents: " + parentStr
 
+    def isLeaf(self):
+
+        return len(self.children) == 0
+
+    def isRoot(self):
+
+        return len(self.parents) == 0
+
     def __str__(self):
 
         return self.name
@@ -68,15 +76,6 @@ class OpNode(Node):
 
         return
 
-    # For certain operators, we can propagate all collusion
-    # sets from the output relation to the operator's input
-    # relations (for example some projections).
-    # Operators where that is the case can override this
-    # method with the appropriate propagation rules.
-    def backPropCollSets(self):
-
-        return
-
     def makeOrphan(self):
 
         self.parents = set()
@@ -99,6 +98,12 @@ class OpNode(Node):
 
         return sorted(list(self.parents), key=lambda x: x.outRel.name)
 
+    def __str__(self):
+
+        return "{}->{}".format(
+            super(OpNode, self).__str__(), 
+            self.outRel.name
+        )
 
 class UnaryOpNode(OpNode):
 
@@ -209,15 +214,6 @@ class Create(UnaryOpNode):
 
         return False
 
-    def __str__(self):
-
-        colTypeStr = ", ".join([col.typeStr for col in self.outRel.columns])
-
-        return "CREATE RELATION {} WITH COLUMNS ({})".format(
-                self.outRel.name,
-                colTypeStr
-            )
-
 
 class Store(UnaryOpNode):
 
@@ -229,13 +225,6 @@ class Store(UnaryOpNode):
 
         return True
 
-    def __str__(self):
-
-        return "STORE RELATION {} INTO {} AS {}".format(
-                self.getInRel().name,
-                self.outRel.storedWith,
-                self.outRel.name
-            )
 
 class Concat(NaryOpNode):
 
@@ -262,16 +251,6 @@ class Concat(NaryOpNode):
         idx = self.ordered.index(oldParent)
         self.ordered[idx] = newParent
 
-    def __str__(self):
-
-        inRelStr = ", ".join([inRel.name for inRel in self.getInRels()])
-
-        return "CONCAT{} [{}] AS {}".format(
-                "MPC" if self.isMPC else "",
-                inRelStr,
-                self.outRel.name
-            )
-
 
 class Aggregate(UnaryOpNode):
 
@@ -287,17 +266,6 @@ class Aggregate(UnaryOpNode):
         # TODO: do we need to copy here?
         self.keyCol = self.getInRel().columns[self.keyCol.idx]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
-
-    def __str__(self):
-
-        return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}".format(
-                "MPC" if self.isMPC else "",
-                self.aggCol.getName(),
-                self.aggregator,
-                self.getInRel().name,
-                self.keyCol.getName(),
-                self.outRel.name
-            )
 
 
 class Project(UnaryOpNode):
@@ -321,17 +289,6 @@ class Project(UnaryOpNode):
         tempCols = self.getInRel().columns
         self.selectedCols = [tempCols[col.idx] for col in tempCols]
 
-    def __str__(self):
-
-        selectedColsStr = ", ".join([str(col) for col in self.selectedCols])
-
-        return "PROJECT{} [{}] FROM ({}) AS {}".format(
-                "MPC" if self.isMPC else "",
-                selectedColsStr,
-                self.getInRel().name,
-                self.outRel.name
-            )
-
 
 class Multiply(UnaryOpNode):
 
@@ -352,51 +309,34 @@ class Multiply(UnaryOpNode):
         # A multiplication is reversible unless one of the operands is 0
         return all([op != 0 for op in self.operands])
 
-    # def backPropCollSets(self):
-
-    #     if self.isReversible():
-    #         inRelCols = self.getInRel().columns
-    #         # TODO: oversimplifying here
-    #         for col in inRelCols:
-    #             col.updateCollSetWith(
-    #                 self.outRel.storedWith)
-
-    def __str__(self):
-
-        operandStr = ", ".join([str(op) for op in self.operands])
-
-        return "MUL{} [{}] FROM ({}) as {}".format(
-                "MPC" if self.isMPC else "",
-                operandStr,
-                self.getInRel().name,
-                self.outRel.name
-            )
-
-
 class Join(BinaryOpNode):
 
-    def __init__(self, outRel, leftParent, rightParent, leftJoinCol, rightJoinCol):
+    def __init__(self, outRel, leftParent, 
+        rightParent, leftJoinCol, rightJoinCol):
 
         super(Join, self).__init__("join", outRel, leftParent, rightParent)
         self.leftJoinCol = leftJoinCol
         self.rightJoinCol = rightJoinCol
-
-    def __str__(self):
-
-        return "({}) JOIN{} ({}) ON {} AND {} AS {}".format(
-                self.getLeftInRel().name,
-                "MPC" if self.isMPC else "",
-                self.getRightInRel().name,
-                str(self.leftJoinCol),
-                str(self.rightJoinCol),
-                self.outRel.name
-            )
 
     def updateOpSpecificCols(self):
 
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
 
+class RevealJoin(Join):
+
+    def __init__(self, outRel, leftParent, rightParent, 
+        leftJoinCol, rightJoinCol, revealedParent, recepient):
+
+        super(RevealJoin, self).__init__("revealJoin", outRel, leftParent, 
+            rightParent, leftJoinCol, rightJoinCol)
+        self.revealedParent = revealedParent
+        self.recepient = recepient
+        
+    def updateOpSpecificCols(self):
+
+        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
+        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
 
 class Dag():
 
@@ -432,7 +372,8 @@ class Dag():
     # Note: not optimized at all but we're dealing with very small
     # graphs so performance shouldn't be a problem
     # Side-effects on all inputs other than node
-    def _topSortVisit(self, node, marked, tempMarked, unmarked, ordered, deterministic=True):
+    def _topSortVisit(self, node, marked, tempMarked, 
+        unmarked, ordered, deterministic=True):
 
         if node in tempMarked:
             raise "Not a Dag!"
@@ -494,9 +435,12 @@ def removeBetween(parent, child, other):
     # only dealing with unary nodes for now
     assert(isinstance(other, UnaryOpNode))
 
-    child.replaceParent(other, parent)
-    child.updateOpSpecificCols()
-    parent.replaceChild(other, child)
+    if child:
+        child.replaceParent(other, parent)
+        child.updateOpSpecificCols()
+        parent.replaceChild(other, child)
+    else:
+        parent.children.remove(other)
 
     other.makeOrphan()
     other.children = set()
@@ -522,4 +466,3 @@ def insertBetween(parent, child, other):
             parent.children.remove(child)
         child.updateOpSpecificCols()
         other.children.add(child)
-

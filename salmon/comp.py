@@ -6,8 +6,8 @@ import warnings
 def pushOpNodeDown(topNode, bottomNode):
 
     # only dealing with one grandchild case for now
-    assert(len(bottomNode.children) == 1)
-    child = next(iter(bottomNode.children))
+    assert(len(bottomNode.children) <= 1)
+    child = next(iter(bottomNode.children), None)
 
     # remove bottom node between the bottom node's child
     # and the top node
@@ -29,13 +29,13 @@ def pushOpNodeDown(topNode, bottomNode):
 def splitNode(node):
 
     # Only dealing with single child case for now
-    assert(len(node.children) == 1)
+    assert(len(node.children) <= 1)
     clone = copy.deepcopy(node)
     clone.outRel.rename(node.outRel.name + "_obl")
     clone.parents = set()
     clone.children = set()
     clone.isMPC = True
-    child = next(iter(node.children))
+    child = next(iter(node.children), None)
     saldag.insertBetween(node, child, clone)
 
 def forkNode(node):
@@ -108,7 +108,10 @@ class MPCPushDown(DagRewriter):
         parent = next(iter(node.parents))
         if parent.isMPC:
             # if we have an MPC parent we can try and pull it down
-            if isinstance(parent, saldag.Concat) and parent.isBoundary():
+            # the leaf condition is to avoid issues with storedWith
+            # getting overwritten
+            # TODO: think of a better way to handle the leaf node case
+            if isinstance(parent, saldag.Concat) and parent.isBoundary() and not node.isLeaf():
                 pushOpNodeDown(parent, node)
             else:
                 node.isMPC = True
@@ -163,7 +166,8 @@ class MPCPushUp(DagRewriter):
 
     def _rewriteUnaryDefault(self, node):
 
-        if node.isReversible() and node.isLowerBoundary():
+        par = next(iter(node.parents))
+        if node.isReversible() and node.isLowerBoundary() and not par.isRoot():
             node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
             node.isMPC = False
 
@@ -181,24 +185,32 @@ class MPCPushUp(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        pass
+        if node.isLowerBoundary():    
+            leftStoredWith = node.getLeftInRel().storedWith
+            rightStoredWith = node.getRightInRel().storedWith
+            outStoredWith = node.outRel.storedWith
+            if outStoredWith == leftStoredWith:
+                # sanity check
+                assert outStoredWith != rightStoredWith
+                print("join opt!")
+            elif outStoredWith == rightStoredWith:
+                print("join opt!")
 
     def _rewriteConcat(self, node):
 
-    	# concats are always reversible so we just need to know
-    	# if we're dealing with a boundary node
+        # concats are always reversible so we just need to know
+        # if we're dealing with a boundary node
         if node.isLowerBoundary():
 
-        	outStoredWith = node.outRel.storedWith
-        	inRels = node.getInRels()
-        	for inRel in inRels:
-        		inRel.storedWith = copy.copy(outStoredWith)
-        	node.isMPC = False
+            outStoredWith = node.outRel.storedWith
+            for par in node.parents:
+                if not par.isRoot():
+                    par.outRel.storedWith = copy.copy(outStoredWith)
+            node.isMPC = False
 
     def _rewriteStore(self, node):
 
-        assert(not node.isMPC)
-        node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
+        pass
 
     def _rewriteCreate(self, node):
 
@@ -213,13 +225,13 @@ def rewriteDag(dag):
 
 def scotch(f):
 
-	from salmon.codegen import scotch
+    from salmon.codegen import scotch
 
-	def wrap():
-		code = scotch.ScotchCodeGen(f())._generate(None, None)
-		return code
+    def wrap():
+        code = scotch.ScotchCodeGen(f())._generate(None, None)
+        return code
 
-	return wrap
+    return wrap
 
 def mpc(f):
 
