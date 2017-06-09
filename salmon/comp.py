@@ -1,6 +1,7 @@
 import copy
 import salmon.utils as utils
 import salmon.dag as saldag
+import warnings
 
 def pushOpNodeDown(topNode, bottomNode):
 
@@ -49,7 +50,8 @@ def forkNode(node):
         clone = copy.deepcopy(node)
         clone.outRel.rename(node.outRel.name + "_" + str(idx))
         clone.parents = copy.copy(node.parents)
-        assert(False)
+        warnings.warn("hacky forkNode")
+        clone.ordered = copy.copy(node.ordered)
         clone.children = set([child])
         for parent in clone.parents:
             parent.children.add(clone)

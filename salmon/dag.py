@@ -251,7 +251,7 @@ class Concat(NaryOpNode):
 
         return True
 
-    def inRels(self):
+    def getInRels(self):
 
         return [parent.outRel for parent in self.ordered]
 
