@@ -1,7 +1,8 @@
 data = sc.parallelize({{{ZIPPED_COLS}}})
-    agg_data = data.aggregateByKey(0, \
-    lambda acc, val: acc + val, \
-    lambda acc1, acc2: acc1 + acc2) \
+
+agg_data = data.aggregateByKey([0], \
+    lambda acc, val: list(numpy.add(acc,val)), \
+    lambda acc1, acc2: list(numpy.add(acc1, acc2))) \
     .collect()
 
 {{{RELATION_NAME}}}.keyCol = [a for a,b in agg_data]

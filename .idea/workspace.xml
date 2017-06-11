@@ -2,14 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a96222a6-1a71-4ae2-b885-0baadbffa0ae" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_count.tmpl" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_max.tmpl" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_mean.tmpl" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_min.tmpl" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salmon/codegen/spark.py" afterPath="$PROJECT_DIR$/salmon/codegen/spark.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/examples/test_codegen.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salmon/codegen/__init__.py" afterPath="$PROJECT_DIR$/salmon/codegen/__init__.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl" afterPath="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -39,8 +35,8 @@
       <file leaf-file-name="dag.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/salmon/dag.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-3195">
-              <caret line="28" column="0" lean-forward="false" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
+            <state relative-caret-position="1871">
+              <caret line="325" column="23" lean-forward="true" selection-start-line="325" selection-start-column="23" selection-end-line="325" selection-end-column="23" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -48,32 +44,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="job.tmpl" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="rel.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/salmon/rel.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="lang.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/salmon/lang.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2164">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
+            <state relative-caret-position="0">
+              <caret line="21" column="43" lean-forward="true" selection-start-line="21" selection-start-column="43" selection-end-line="21" selection-end-column="43" />
+              <folding>
+                <element signature="e#0#11#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -81,7 +59,7 @@
       <file leaf-file-name="spark.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/salmon/codegen/spark.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="356">
+            <state relative-caret-position="251">
               <caret line="34" column="0" lean-forward="true" selection-start-line="34" selection-start-column="0" selection-end-line="34" selection-end-column="0" />
               <folding>
                 <element signature="e#0#34#0" expanded="true" />
@@ -90,18 +68,32 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="agg_sum.tmpl" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl">
+      <file leaf-file-name="codegen.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/examples/codegen.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="8" column="42" lean-forward="true" selection-start-line="8" selection-start-column="42" selection-end-line="8" selection-end-column="42" />
-              <folding />
+            <state relative-caret-position="75">
+              <caret line="8" column="4" lean-forward="true" selection-start-line="8" selection-start-column="4" selection-end-line="12" selection-end-column="5" />
+              <folding>
+                <element signature="e#0#25#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="agg_mean.tmpl" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_mean.tmpl">
+      <file leaf-file-name="test_codegen.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/examples/test_codegen.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="146">
+              <caret line="14" column="26" lean-forward="true" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+              <folding>
+                <element signature="e#0#25#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="agg_sum.tmpl" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="135">
               <caret line="9" column="42" lean-forward="false" selection-start-line="9" selection-start-column="42" selection-end-line="9" selection-end-column="42" />
@@ -120,6 +112,16 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="agg_min.tmpl" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_min.tmpl">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="75">
+              <caret line="5" column="22" lean-forward="true" selection-start-line="5" selection-start-column="22" selection-end-line="5" selection-end-column="22" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="agg_max.tmpl" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_max.tmpl">
           <provider selected="true" editor-type-id="text-editor">
@@ -130,11 +132,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="agg_min.tmpl" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_min.tmpl">
+      <file leaf-file-name="agg_mean.tmpl" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_mean.tmpl">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="5" selection-end-column="42" />
+            <state relative-caret-position="135">
+              <caret line="9" column="42" lean-forward="true" selection-start-line="9" selection-start-column="42" selection-end-line="9" selection-end-column="42" />
               <folding />
             </state>
           </provider>
@@ -162,16 +164,17 @@
       <list>
         <option value="$PROJECT_DIR$/salmon/top_sort.py" />
         <option value="$PROJECT_DIR$/salmon/node_methods.py" />
-        <option value="$PROJECT_DIR$/salmon/codegen/__init__.py" />
         <option value="$PROJECT_DIR$/salmon/pyspark_testing.py" />
-        <option value="$PROJECT_DIR$/salmon/dag.py" />
         <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl" />
-        <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl" />
         <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_count.tmpl" />
         <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_min.tmpl" />
         <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_max.tmpl" />
         <option value="$PROJECT_DIR$/salmon/codegen/spark.py" />
         <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_mean.tmpl" />
+        <option value="$PROJECT_DIR$/salmon/codegen/__init__.py" />
+        <option value="$PROJECT_DIR$/salmon/dag.py" />
+        <option value="$PROJECT_DIR$/examples/test_codegen.py" />
+        <option value="$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl" />
       </list>
     </option>
   </component>
@@ -934,12 +937,12 @@
       <workItem from="1496278800999" duration="602000" />
       <workItem from="1496682629923" duration="3111000" />
       <workItem from="1496949263707" duration="1883000" />
-      <workItem from="1497128430503" duration="3692000" />
+      <workItem from="1497128430503" duration="11191000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="12677000" />
+    <option name="totallyTimeSpent" value="20176000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1213" height="709" extended-state="0" />
@@ -1041,7 +1044,7 @@
         <state relative-caret-position="300">
           <caret line="21" column="5" lean-forward="false" selection-start-line="21" selection-start-column="5" selection-end-line="21" selection-end-column="5" />
           <folding>
-            <element signature="e#0#24#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1087,7 +1090,7 @@
         <state relative-caret-position="300">
           <caret line="21" column="5" lean-forward="false" selection-start-line="21" selection-start-column="5" selection-end-line="21" selection-end-column="5" />
           <folding>
-            <element signature="e#0#24#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1174,13 +1177,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/salmon/top_sort.py" />
-    <entry file="file://$PROJECT_DIR$/salmon/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/examples/sos.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -1202,22 +1198,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/comp.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/salmon/node_methods.py" />
-    <entry file="file://$PROJECT_DIR$/salmon/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/salmon/codegen/malte_question" />
     <entry file="file://$PROJECT_DIR$/salmon/from salmon.dag import *" />
     <entry file="file://$PROJECT_DIR$/salmon/test.py" />
@@ -1225,34 +1206,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/codegen/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="244">
-          <caret line="27" column="5" lean-forward="false" selection-start-line="27" selection-start-column="5" selection-end-line="27" selection-end-column="5" />
-          <folding>
-            <element signature="e#0#24#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/examples/codegen.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="21" column="23" lean-forward="false" selection-start-line="21" selection-start-column="23" selection-end-line="21" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#25#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -1265,7 +1218,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/rel.py">
+    <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/create.tmpl">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
@@ -1273,21 +1226,111 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/lang.py">
+    <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/job.tmpl">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2164">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/codegen/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="41">
+          <caret line="17" column="0" lean-forward="true" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/comp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3334">
+          <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/rel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-420">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/examples/test_codegen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="146">
+          <caret line="14" column="26" lean-forward="true" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+          <folding>
+            <element signature="e#0#25#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/codegen/spark.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="251">
+          <caret line="34" column="0" lean-forward="true" selection-start-line="34" selection-start-column="0" selection-end-line="34" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#34#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/salmon/dag.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-3195">
-          <caret line="28" column="0" lean-forward="false" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
+        <state relative-caret-position="1871">
+          <caret line="325" column="23" lean-forward="true" selection-start-line="325" selection-start-column="23" selection-end-line="325" selection-end-column="23" />
           <folding>
             <element signature="e#0#22#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/lang.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="21" column="43" lean-forward="true" selection-start-line="21" selection-start-column="43" selection-end-line="21" selection-end-column="43" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/examples/codegen.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="8" column="4" lean-forward="true" selection-start-line="8" selection-start-column="4" selection-end-line="12" selection-end-column="5" />
+          <folding>
+            <element signature="e#0#25#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" column="42" lean-forward="false" selection-start-line="9" selection-start-column="42" selection-end-line="9" selection-end-column="42" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1299,29 +1342,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_sum.tmpl">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="42" lean-forward="true" selection-start-line="8" selection-start-column="42" selection-end-line="8" selection-end-column="42" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_min.tmpl">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="5" selection-end-column="42" />
+        <state relative-caret-position="75">
+          <caret line="5" column="22" lean-forward="true" selection-start-line="5" selection-start-column="22" selection-end-line="5" selection-end-column="22" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/salmon/codegen/spark.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="356">
-          <caret line="34" column="0" lean-forward="true" selection-start-line="34" selection-start-column="0" selection-end-line="34" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#34#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1336,7 +1361,7 @@
     <entry file="file://$PROJECT_DIR$/salmon/codegen/templates/spark/agg_mean.tmpl">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="135">
-          <caret line="9" column="42" lean-forward="false" selection-start-line="9" selection-start-column="42" selection-end-line="9" selection-end-column="42" />
+          <caret line="9" column="42" lean-forward="true" selection-start-line="9" selection-start-column="42" selection-end-line="9" selection-end-column="42" />
           <folding />
         </state>
       </provider>

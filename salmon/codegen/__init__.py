@@ -1,5 +1,4 @@
 from salmon.dag import *
-import os
 
 class CodeGen:
 
