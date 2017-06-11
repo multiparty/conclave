@@ -323,6 +323,11 @@ class Join(BinaryOpNode):
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
 
+# This join optimization applies when the result of a join
+# and one of its inputs is known to the same party P. Instead
+# of performing a complete oblivious join, all the rows
+# of the other input relation can be revealed to party P, 
+# provided that their key column a key in P's input. 
 class RevealJoin(Join):
 
     def __init__(self, outRel, leftParent, rightParent, 
