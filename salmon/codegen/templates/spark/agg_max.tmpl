@@ -1,0 +1,6 @@
+data = sc.parallelize({{{ZIPPED_COLS}}})
+agg_data = data.reduceByKey(max).collect()
+
+{{{RELATION_NAME}}}.keyCol = [a for a,b in agg_data]
+{{{RELATION_NAME}}}.aggCol = [b for a,b in agg_data]
+{{{RELATION_NAME}}}.updateOpSpecificCols()
