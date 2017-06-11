@@ -17,7 +17,21 @@ class SparkCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generateAggregate(self, agg_op):
-        return ""
+
+        keyCol, aggCol, aggregator = \
+            agg_op.keyCol, agg_op.aggCol, agg_op.aggregator
+        zipped = zip(keyCol, aggCol)
+
+        agg_type = 'agg_' + aggregator
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
+
+        data = {
+            'ZIPPED_COLS': zipped,
+            'RELATION_NAME': agg_op.getInRel().name
+        }
+
+        return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
         return ""
