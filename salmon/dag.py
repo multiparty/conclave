@@ -326,13 +326,21 @@ class Join(BinaryOpNode):
 class RevealJoin(Join):
 
     def __init__(self, outRel, leftParent, rightParent, 
-        leftJoinCol, rightJoinCol, revealedParent, recepient):
+        leftJoinCol, rightJoinCol, revealedInRel, recepient):
 
-        super(RevealJoin, self).__init__("revealJoin", outRel, leftParent, 
+        super(RevealJoin, self).__init__(outRel, leftParent, 
             rightParent, leftJoinCol, rightJoinCol)
-        self.revealedParent = revealedParent
+        self.name = "revealJoin"
+        self.revealedInRel = revealedInRel
         self.recepient = recepient
+        self.isMPC = True
         
+    @classmethod
+    def fromJoin(cls, joinOp, revealedInRel, recepient):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+            joinOp.leftJoinCol, joinOp.rightJoinCol, revealedInRel, recepient)
+        return obj
+
     def updateOpSpecificCols(self):
 
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
@@ -426,7 +434,6 @@ class OpDag(Dag):
 
         order = self.topSort()
         return ",\n".join(str(node) for node in order)
-
 
 def removeBetween(parent, child, other):
 

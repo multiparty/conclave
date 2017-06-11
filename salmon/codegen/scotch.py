@@ -59,6 +59,19 @@ class ScotchCodeGen(CodeGen):
                 join_op.outRel.storedWith
             )
 
+    def _generateRevealJoin(self, reveal_join_op):
+
+        return "({} {}) REVEALJOIN ({} {}) ON {} AND {} AS {} {}\n".format(
+                reveal_join_op.getLeftInRel().name,
+                reveal_join_op.getLeftInRel().storedWith,
+                reveal_join_op.getRightInRel().name,
+                reveal_join_op.getRightInRel().storedWith,
+                str(reveal_join_op.leftJoinCol),
+                str(reveal_join_op.rightJoinCol),
+                reveal_join_op.outRel.name,
+                reveal_join_op.outRel.storedWith
+            )
+
     def _generateProject(self, project_op):
 
         selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])

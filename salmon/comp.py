@@ -189,12 +189,21 @@ class MPCPushUp(DagRewriter):
             leftStoredWith = node.getLeftInRel().storedWith
             rightStoredWith = node.getRightInRel().storedWith
             outStoredWith = node.outRel.storedWith
+
+            revealJoinOp = None
             if outStoredWith == leftStoredWith:
                 # sanity check
                 assert outStoredWith != rightStoredWith
-                print("join opt!")
+                revealJoinOp = saldag.RevealJoin.fromJoin(
+                    node, node.getLeftInRel(), outStoredWith)
             elif outStoredWith == rightStoredWith:
-                print("join opt!")
+                revealJoinOp = saldag.RevealJoin.fromJoin(
+                    node, node.getLeftInRel(), outStoredWith)
+                
+            if revealJoinOp:
+                parents = revealJoinOp.parents
+                for par in parents:
+                    par.replaceChild(node, revealJoinOp)
 
     def _rewriteConcat(self, node):
 

@@ -27,6 +27,8 @@ class CodeGen:
                 op_code += self._generateConcat(node)
             elif isinstance(node, Create):
                 op_code += self._generateCreate(node)
+            elif isinstance(node, RevealJoin):
+                op_code += self._generateRevealJoin(node)
             elif isinstance(node, Join):
                 op_code += self._generateJoin(node)
             elif isinstance(node, Project):
