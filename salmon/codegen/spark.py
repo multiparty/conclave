@@ -34,7 +34,19 @@ class SparkCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
-        return ""
+
+        inRels = concat_op.getInRels()
+        cols = [inrel.columns for inrel in inRels]
+        zipped = zip(*[col for col in cols])
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
+
+        data = {
+            'ZIPPED_COLS': zipped,
+            'RELATION_NAME': concat_op.outRel.name
+        }
+
+        return pystache.render(template, data)
 
     def _generateCreate(self, create_op):
 

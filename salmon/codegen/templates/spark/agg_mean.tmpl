@@ -3,7 +3,7 @@ data = sc.parallelize({{{ZIPPED_COLS}}})
 agg_data = data \
     .mapValues(lambda v: (v, 1)) \
     .reduceByKey(lambda a,b: (list(numpy.add(a[0], b[0])), a[1] + b[1])) \
-    .mapValues(lambda v: numpy.divide(v[0], v[1])) \
+    .mapValues(lambda v: list(numpy.divide(v[0], v[1]))) \
     .collect()
 
 {{{RELATION_NAME}}}.keyCol = [a for a,b in agg_data]
