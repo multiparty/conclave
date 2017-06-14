@@ -5,6 +5,5 @@ agg_data = data.aggregateByKey([0], \
     lambda acc1, acc2: list(numpy.add(acc1, acc2))) \
     .collect()
 
-{{{RELATION_NAME}}}.keyCol = [a for a,b in agg_data]
-{{{RELATION_NAME}}}.aggCol = [b for a,b in agg_data]
-{{{RELATION_NAME}}}.updateOpSpecificCols()
+updateKeyCol = [a for a,b in agg_data]
+updateAggCol = [b for a,b in agg_data]

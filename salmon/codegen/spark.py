@@ -28,7 +28,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'ZIPPED_COLS': zipped,
-            'RELATION_NAME': agg_op.getInRel().name
+            'INREL': agg_op.getInRel().name,
+            'OUTREL': agg_op.outRel.name
         }
 
         return pystache.render(template, data)
