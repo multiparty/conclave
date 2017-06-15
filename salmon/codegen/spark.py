@@ -2,6 +2,10 @@ from salmon.codegen import CodeGen
 from salmon.dag import *
 import os, pystache
 
+def op_to_sum(op):
+    if op == "+":
+        return "sum"
+
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(dag)
@@ -20,14 +24,14 @@ class SparkCodeGen(CodeGen):
 
         keyCol, aggCol, aggregator = \
             agg_op.keyCol, agg_op.aggCol, agg_op.aggregator
-        zipped = zip(keyCol, aggCol)
+        zipped = [keyCol, aggCol]
 
-        agg_type = 'agg_' + aggregator
+        agg_type = 'agg_' + op_to_sum(aggregator)
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'ZIPPED_COLS': zipped,
+            'ZIPPED_COLS': [c.idx for c in zipped],
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
         }
