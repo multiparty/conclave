@@ -50,6 +50,8 @@ def project(inputOpNode, outputName, selectedColNames):
 
     # Find all columns by name
     selectedCols = [utils.find(inRel.columns, colName) for colName in selectedColNames]
+    for selectedCol in selectedCols:
+        selectedCol.collSets = set()
     outRelCols = copy.deepcopy(selectedCols)
 
     # Create output relation
@@ -72,20 +74,14 @@ def multiply(inputOpNode, outputName, targetColName, operands):
     # Get relevant columns and create copies
     outRelCols = copy.deepcopy(inRel.columns)
     
-    # Create result column. By default we add it to the
-    # output relation as the first column
-    # Its collusion set is the union of all operand collusion
-    # sets
-
     # Replace all column names with corresponding columns.
     operands = [utils.find(outRelCols, op) if isinstance(op, str) else op for op in operands]
     operands = copy.deepcopy(operands)
+    for operand in operands:
+        operand.collSets = set()
+    targetColumn = copy.deepcopy(utils.find(outRelCols, targetColName))
+    targetColumn.collSets = set()
 
-    # Update target column collusion set
-    targetCollusionSet = utils.collusionSetUnion(operands)
-    targetColumn = utils.find(outRelCols, targetColName)
-    targetColumn.collusionSet = targetCollusionSet
-    
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()

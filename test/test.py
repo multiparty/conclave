@@ -2,7 +2,7 @@ import salmon.lang as sal
 from salmon.comp import mpc, scotch
 from salmon.utils import *
 
-def testConcat():
+def testSingleConcat():
 
     @scotch
     @mpc
@@ -102,7 +102,7 @@ def testSingleProj():
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
-        proj = sal.project(rel, "agg", "rel_0", "rel_1", "+")
+        proj = sal.project(rel, "proj", ["rel_0", "rel_1"])
 
         sal.collect(proj, 1)
 
@@ -110,11 +110,9 @@ def testSingleProj():
         return set([in1, in2])
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-AGG [in1_1] FROM (+ in1([in1_0 {1}, in1_1 {1}]) {1}) GROUP BY [in1_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-AGG [in2_1] FROM (+ in2([in2_0 {2}, in2_1 {2}]) {2}) GROUP BY [in2_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-CONCATMPC [agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}, agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
-AGGMPC [rel_1] FROM (+ rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+PROJECT [rel_0, rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS proj([proj_0 {1,2}, proj_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -609,17 +607,8 @@ CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEG
 
 if __name__ == "__main__":
 
-    testConcat()
+    testSingleConcat()
     testSingleAgg()
+    testSingleProj()
     testRevealJoinOpt()
     testHybridJoinOpt()
-    # testAgg()
-    # testAggProj()
-    # testInternalAgg()
-    # testJoin()
-    # testJoinConcat()
-    # testJoinConcat2()
-    # testMultAgg()
-    # testMultiple()
-    # testSingle()
-    # testRevealJoinOpt()

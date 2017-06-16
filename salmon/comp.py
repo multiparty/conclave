@@ -231,10 +231,6 @@ class CollSetPropDown(DagRewriter):
 
         super(CollSetPropDown, self).__init__()
 
-    def _rewriteUnaryDefault(self, node):
-        
-        pass
-
     def _rewriteAggregate(self, node):
         
         inCols = node.getInRel().columns
@@ -250,41 +246,22 @@ class CollSetPropDown(DagRewriter):
 
     def _rewriteProject(self, node):
 
-        pass
+        inCols = node.getInRel().columns
+        selectedCols = node.selectedCols
+
+        for selectedCol, outCol in zip(selectedCols, node.outRel.columns):
+            inCol = utils.find(inCols, selectedCol.getName())
+            outCol.collSets = copy.deepcopy(inCol.collSets)
 
     def _rewriteMultiply(self, node):
 
+        # Update target column collusion set
+        # targetCollusionSet = utils.collusionSetUnion(operands)
+        # targetColumn = utils.find(outRelCols, targetColName)
+        # targetColumn.collusionSet = targetCollusionSet
         pass
 
     def _rewriteJoin(self, node):
-
-        # TODO: technically this should take in a start index as well
-        # This helper method takes in a relation, the key column of the join 
-        # and its index. 
-        # It returns a list of new columns with correctly merged collusion sets
-        # for the output relation (in the same order as they appear on the input
-        # relation but excluding the key column)
-        def _colsFromRel(relation, keyCol, keyColIdx):
-
-            resultCols = []
-            for idx, col in enumerate(relation.columns):
-                # Exclude key column
-                if idx != keyColIdx:
-                    # This is somewhat nuanced. The collusion set
-                    # of col knows the values of the result but not
-                    # the linkage of these values to the key column values.
-                    # Thus we must take the union of the collusion set of
-                    # col *and* the collusion set of the key column for the
-                    # new column.
-                    newColSet = utils.mergeCollusionSets(
-                        col.collusionSet, keyCol.collusionSet)
-
-                    newCol = rel.Column(
-                        outputName, idx, col.typeStr, newColSet)
-                    
-                    resultCols.append(newCol)
-
-            return resultCols
 
         leftInRel = node.getLeftInRel()
         rightInRel = node.getRightInRel()
