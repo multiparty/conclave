@@ -1,8 +1,9 @@
-data = sc.parallelize({{{ZIPPED_COLS}}})
+col_ids = set(int(c) for c in {{{COL_IDS}}})
 
-concat_data = data \
-    .map(lambda l: sum(l, [])) \
-    .collect()
+cols = {{{INREL}}} \
+    .filter(lambda x: x[1] in col_ids) \
+    .map(lambda x: x[0])
 
-{{{RELATION_NAME}}}.columns = concat_data
-{{{RELATION_NAME}}}.updateColumns()
+{{{OUTREL}}} = data \
+    .map(lambda l: sum(l, []))
+

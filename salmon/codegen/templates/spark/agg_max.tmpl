@@ -1,5 +1,25 @@
-data = sc.parallelize({{{ZIPPED_COLS}}})
-agg_data = data.reduceByKey(max).collect()
+# assume rows of hdfs file are indexed by col id's
+k_id = int({{{KEYCOL_ID}}})
+a_id = int({{{AGGCOL_ID}}})
 
-updateKeyCol = [a for a,b in agg_data]
-updateAggCol = [b for a,b in agg_data]
+# get relevant cols by id
+cols = {{{INREL}}} \
+    .filter(lambda x: x[1] == k_id) or x[1] == a_id) \
+    .map(lambda x: x[0])
+
+# separate rdd into target cols
+keyCol = cols \
+    .filter(lambda x: x[1] = k_id) \
+    .map(lambda x: x[0])
+
+aggCol = cols \
+    .filter(lambda x: x[1] = a_id) \
+    .map(lambda x: x[0])
+
+data = keyCol.zip(aggCol)
+
+{{{OUTREL}}} = data.reduceByKey(max)
+
+# transformed keyCol and aggCol
+{{{OUTREL}}}_{{{KEYCOL_ID}}} = {{{OUTREL}}}.keys()
+{{{OUTREL}}}_{{{AGGCOL_ID}}} = {{{OUTREL}}}.values()
