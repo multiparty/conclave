@@ -225,11 +225,91 @@ class MPCPushUp(DagRewriter):
 
         pass
 
+class CollSetPropDown(DagRewriter):
+
+    def __init__(self):
+
+        super(CollSetPropDown, self).__init__()
+
+    def _rewriteAggregate(self, node):
+        
+        inCols = node.getInRel().columns
+
+        # TODO: this seems awkward. re-think keyCol, aggCol etc.
+        inKeyCol = utils.find(inCols, node.keyCol.getName())
+        outKeyCol = node.outRel.columns[0]
+        outKeyCol.collSets |= copy.deepcopy(inKeyCol.collSets)
+
+        inAggCol = utils.find(inCols, node.aggCol.getName())
+        outAggCol = node.outRel.columns[1]
+        outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
+
+    def _rewriteProject(self, node):
+
+        inCols = node.getInRel().columns
+        selectedCols = node.selectedCols
+
+        for selectedCol, outCol in zip(selectedCols, node.outRel.columns):
+            inCol = utils.find(inCols, selectedCol.getName())
+            outCol.collSets = copy.deepcopy(inCol.collSets)
+
+    def _rewriteMultiply(self, node):
+
+        # Update target column collusion set
+        # targetCollusionSet = utils.collusionSetUnion(operands)
+        # targetColumn = utils.find(outRelCols, targetColName)
+        # targetColumn.collusionSet = targetCollusionSet
+        pass
+
+    def _rewriteJoin(self, node):
+
+        leftInRel = node.getLeftInRel()
+        rightInRel = node.getRightInRel()
+
+        leftJoinCol = utils.find(leftInRel.columns, node.leftJoinCol.getName())
+        rightJoinCol = utils.find(rightInRel.columns, node.rightJoinCol.getName())
+
+        outJoinCol = node.outRel.columns[0]
+        keyColCollSets = utils.mergeCollSets(leftJoinCol.collSets, rightJoinCol.collSets)
+        outJoinCol.collSets = keyColCollSets
+
+        absIdx = 1
+        for inCol in leftInRel.columns:
+            if inCol != leftJoinCol:
+                node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                    keyColCollSets, inCol.collSets) 
+                absIdx += 1
+
+        for inCol in rightInRel.columns:
+            if inCol != rightJoinCol:
+                node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                    keyColCollSets, inCol.collSets) 
+                absIdx += 1
+
+    def _rewriteConcat(self, node):
+
+        # Copy over columns from existing relation 
+        outRelCols = node.outRel.columns
+        
+        # Combine per-column collusion sets
+        for idx, col in enumerate(outRelCols):
+            columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
+            col.collSets = utils.collSetsFromColumns(columnsAtIdx)
+
+    def _rewriteStore(self, node):
+        
+        pass
+
+    def _rewriteCreate(self, node):
+        
+        pass
+
 def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
     # ironic?
     MPCPushUp().rewrite(dag)
+    CollSetPropDown().rewrite(dag)
     return dag
 
 def scotch(f):
