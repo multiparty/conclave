@@ -5,6 +5,7 @@ from salmon.dag import *
 class ScotchCodeGen(CodeGen):
     
     def __init__(self, dag):
+
         super(ScotchCodeGen, self).__init__(dag)
 
     def _generateJob(self, job_name, op_code):
@@ -13,87 +14,59 @@ class ScotchCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        return "AGG{} [{}, {}] FROM ({} {}) GROUP BY [{}] AS {} {}\n".format(
+        return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
                 "MPC" if agg_op.isMPC else "",
                 agg_op.aggCol.getName(),
                 agg_op.aggregator,
-                agg_op.getInRel().name,
-                agg_op.getInRel().storedWith,
+                agg_op.getInRel().dbgStr(),
                 agg_op.keyCol.getName(),
-                agg_op.outRel.name,
-                agg_op.outRel.storedWith
+                agg_op.outRel.dbgStr()
             )
 
     def _generateConcat(self, concat_op):
 
-        inRelStr = ", ".join([" ".join([inRel.name, str(inRel.storedWith)]) for inRel in concat_op.getInRels()])
-
-        return "CONCAT{} [{}] AS {} {}\n".format(
+        inRelStr = ", ".join([inRel.dbgStr() for inRel in concat_op.getInRels()])
+        return "CONCAT{} [{}] AS {}\n".format(
                 "MPC" if concat_op.isMPC else "",
                 inRelStr,
-                concat_op.outRel.name,
-                concat_op.outRel.storedWith
+                concat_op.outRel.dbgStr()
             )
 
     def _generateCreate(self, create_op):
 
         colTypeStr = ", ".join([col.typeStr for col in create_op.outRel.columns])
-
-        return "CREATE RELATION {} {} WITH COLUMNS ({})\n".format(
-                create_op.outRel.name,
-                create_op.outRel.storedWith,
+        return "CREATE RELATION {} WITH COLUMNS ({})\n".format(
+                create_op.outRel.dbgStr(),
                 colTypeStr
             )
 
     def _generateJoin(self, join_op):
 
-        return "({} {}) JOIN{} ({} {}) ON {} AND {} AS {} {}\n".format(
-                join_op.getLeftInRel().name,
-                join_op.getLeftInRel().storedWith,
+        return "({}) JOIN{} ({}) ON {} AND {} AS {}\n".format(
+                join_op.getLeftInRel().dbgStr(),
                 "MPC" if join_op.isMPC else "",
-                join_op.getRightInRel().name,
-                join_op.getRightInRel().storedWith,
+                join_op.getRightInRel().dbgStr(),
                 str(join_op.leftJoinCol),
                 str(join_op.rightJoinCol),
-                join_op.outRel.name,
-                join_op.outRel.storedWith
+                join_op.outRel.dbgStr()
             )
 
     def _generateRevealJoin(self, reveal_join_op):
 
-        return "({} {}) REVEALJOIN ({} {}) ON {} AND {} AS {} {}\n".format(
-                reveal_join_op.getLeftInRel().name,
-                reveal_join_op.getLeftInRel().storedWith,
-                reveal_join_op.getRightInRel().name,
-                reveal_join_op.getRightInRel().storedWith,
+        return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
+                reveal_join_op.getLeftInRel().dbgStr(),
+                reveal_join_op.getRightInRel().dbgStr(),
                 str(reveal_join_op.leftJoinCol),
                 str(reveal_join_op.rightJoinCol),
-                reveal_join_op.outRel.name,
-                reveal_join_op.outRel.storedWith
+                reveal_join_op.outRel.dbgStr()
             )
 
     def _generateProject(self, project_op):
 
         selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
-
-        return "PROJECT{} [{}] FROM ({} {}) AS {} {}\n".format(
+        return "PROJECT{} [{}] FROM ({}) AS {}\n".format(
                 "MPC" if project_op.isMPC else "",
                 selectedColsStr,
-                project_op.getInRel().name,
-                project_op.getInRel().storedWith,
-                project_op.outRel.name,
-                project_op.outRel.storedWith
+                project_op.getInRel().dbgStr(),
+                project_op.outRel.dbgStr()
             )
-
-    def _generateStore(self, store_op):
-
-        return "STORE RELATION {} {} INTO {} AS {}\n".format(
-                store_op.getInRel().name,
-                store_op.getInRel().storedWith,
-                store_op.outRel.getCombinedCollusionSet(),
-                store_op.outRel.name
-            )
-
-    def _writeCode(self, code, output_directory, job_name):
-        # print out code
-        print(code)

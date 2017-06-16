@@ -16,11 +16,13 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
-    # Get relevant columns
+    # Get relevant columns and reset their collusion sets
     inCols = inRel.columns
     keyCol = utils.find(inCols, keyColName)
+    keyCol.collSets = set()
     aggCol = utils.find(inCols, aggColName)
-    
+    aggCol.collSets = set()
+
     # Create output relation. Default column order is
     # key column first followed by column that will be 
     # aggregated. Note that we want copies as these are
@@ -111,18 +113,8 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
         for idx, col in enumerate(relation.columns):
             # Exclude key column
             if idx != keyColIdx:
-                # This is somewhat nuanced. The collusion set
-                # of col knows the values of the result but not
-                # the linkage of these values to the key column values.
-                # Thus we must take the union of the collusion set of
-                # col *and* the collusion set of the key column for the
-                # new column.
-                newColSet = utils.mergeCollusionSets(
-                    col.collusionSet, keyCol.collusionSet)
-
                 newCol = rel.Column(
-                    outputName, idx, col.typeStr, newColSet)
-                
+                    outputName, idx, col.typeStr, {})
                 resultCols.append(newCol)
 
         return resultCols
@@ -139,13 +131,13 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     leftJoinCol = utils.find(leftCols, leftColName)
     rightJoinCol = utils.find(rightCols, rightColName)
 
-    # Get the key columns' merged collusion set
-    keyCollusionSet = utils.mergeCollusionSets(
-        leftJoinCol.collusionSet, rightJoinCol.collusionSet)
+    # # Get the key columns' merged collusion set
+    # keyCollusionSet = utils.mergeCollusionSets(
+    #     leftJoinCol.collusionSet, rightJoinCol.collusionSet)
 
     # Create new key column
     outKeyCol = rel.Column(
-        outputName, 0, leftJoinCol.typeStr, keyCollusionSet)
+        outputName, 0, leftJoinCol.typeStr, {})
 
     # Define output relation columns.
     # These will be the key column followed
@@ -194,12 +186,9 @@ def concat(inputOpNodes, outputName):
     assert(relSizesEqual)
 
     # Copy over columns from existing relation 
-    outRelCols = copy.deepcopy(inRels[0].columns)
-    
-    # Combine per-column collusion sets
-    for idx, col in enumerate(outRelCols):
-        columnsAtIndex = [inRel.columns[idx] for inRel in inRels]
-        col.collusionSet = utils.collusionSetUnion(columnsAtIndex)
+    outRelCols = copy.deepcopy(inRels[0].columns)    
+    for col in outRelCols:
+        col.collSets = set()
 
     # The result of the concat will be stored with the union
     # of the parties storing the input relations

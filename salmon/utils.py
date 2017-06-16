@@ -1,14 +1,22 @@
 import functools
 
-def mergeCollusionSets(left, right):
+def mergeCollSets(left, right):
 
-    return left.union(right)
+    res = set()
+    for leftCollSet in left:
+        for rightCollSet in right:
+            res.add(leftCollSet | rightCollSet)
+    return res
 
-def collusionSetUnion(columns):
+def collSetsFromColumns(columns):
 
-    colSets = [col.collusionSet if hasattr(col, "collusionSet") else set() for col in columns] 
-    return functools.reduce(lambda setA, setB: mergeCollusionSets(setA, setB), colSets)
+    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns] 
+    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)    
 
 def find(columns, colName):
     
     return next(iter([col for col in columns if col.getName() == colName]))
+
+def defCol(tpy, *collSets):
+
+    return (tpy, set([frozenset(collSet) for collSet in collSets]))
