@@ -1,1 +1,5 @@
-{{RELATION_NAME}} = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
+inrel = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
+
+{{{RELATION_NAME}}} = inrel \
+    .map(lambda line: line.split(","))
+
