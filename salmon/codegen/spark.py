@@ -42,8 +42,8 @@ class SparkCodeGen(CodeGen):
 
     def _generateConcat(self, concat_op):
 
-        inRels = concat_op.getInRels()
-        cols = [inrel.columns for inrel in inRels]
+        in_rels = concat_op.getInRels()
+        cols = [inrel.columns for inrel in in_rels]
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
@@ -58,6 +58,7 @@ class SparkCodeGen(CodeGen):
     def _generateCreate(self, create_op):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
+
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp"  # XXX(malte): make configurable
