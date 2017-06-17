@@ -69,7 +69,18 @@ class SparkCodeGen(CodeGen):
         return ""
 
     def _generateProject(self, project_op):
-        return ""
+
+        inRel = project_op.getInRel()
+        cols = inRel.columns
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
+
+        data = {
+            'COL_IDS': [c.idx for c in cols],
+            'INREL': project_op.getInRel().name,
+            'OUTREL': project_op.outRel.name
+        }
+        return pystache.render(template, data)
 
     def _generateStore(self, store_op):
 
