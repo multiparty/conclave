@@ -70,3 +70,14 @@ class ScotchCodeGen(CodeGen):
                 project_op.getInRel().dbgStr(),
                 project_op.outRel.dbgStr()
             )
+
+    def _generateMultiply(self, multiply_op):
+
+        operandColStr = " * ".join([str(col) for col in multiply_op.operands])
+        return "MULTIPLY{} [{} -> {}] FROM ({}) AS {}\n".format(
+                "MPC" if multiply_op.isMPC else "",
+                str(multiply_op.targetCol),
+                operandColStr,
+                multiply_op.getInRel().dbgStr(),
+                multiply_op.outRel.dbgStr()
+            )

@@ -110,7 +110,6 @@ class MPCPushDown(DagRewriter):
             # if we have an MPC parent we can try and pull it down
             # the leaf condition is to avoid issues with storedWith
             # getting overwritten
-            # TODO: think of a better way to handle the leaf node case
             if isinstance(parent, saldag.Concat) and parent.isBoundary() and not node.isLeaf():
                 pushOpNodeDown(parent, node)
             else:
@@ -233,14 +232,11 @@ class CollSetPropDown(DagRewriter):
 
     def _rewriteAggregate(self, node):
         
-        inCols = node.getInRel().columns
-
-        # TODO: this seems awkward. re-think keyCol, aggCol etc.
-        inKeyCol = utils.find(inCols, node.keyCol.getName())
+        inKeyCol = node.keyCol
         outKeyCol = node.outRel.columns[0]
         outKeyCol.collSets |= copy.deepcopy(inKeyCol.collSets)
 
-        inAggCol = utils.find(inCols, node.aggCol.getName())
+        inAggCol = node.aggCol
         outAggCol = node.outRel.columns[1]
         outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
 
@@ -249,25 +245,32 @@ class CollSetPropDown(DagRewriter):
         inCols = node.getInRel().columns
         selectedCols = node.selectedCols
 
-        for selectedCol, outCol in zip(selectedCols, node.outRel.columns):
-            inCol = utils.find(inCols, selectedCol.getName())
-            outCol.collSets = copy.deepcopy(inCol.collSets)
+        for inCol, outCol in zip(selectedCols, node.outRel.columns):
+            outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteMultiply(self, node):
+        
+        outRelCols = node.outRel.columns
+        operands = node.operands
+        targetCol = node.targetCol
 
         # Update target column collusion set
-        # targetCollusionSet = utils.collusionSetUnion(operands)
-        # targetColumn = utils.find(outRelCols, targetColName)
-        # targetColumn.collusionSet = targetCollusionSet
-        pass
+        targetColOut = outRelCols[targetCol.idx]
+        targetColOut.collSets |= utils.collSetsFromColumns(operands)
+
+        # The other columns weren't modified so the collusion sets
+        # simply carry over
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
+            if inCol != targetCol:
+	            outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteJoin(self, node):
 
         leftInRel = node.getLeftInRel()
         rightInRel = node.getRightInRel()
 
-        leftJoinCol = utils.find(leftInRel.columns, node.leftJoinCol.getName())
-        rightJoinCol = utils.find(rightInRel.columns, node.rightJoinCol.getName())
+        leftJoinCol = node.leftJoinCol
+        rightJoinCol = node.rightJoinCol
 
         outJoinCol = node.outRel.columns[0]
         keyColCollSets = utils.mergeCollSets(leftJoinCol.collSets, rightJoinCol.collSets)

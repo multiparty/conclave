@@ -32,6 +32,8 @@ class CodeGen:
                 op_code += self._generateJoin(node)
             elif isinstance(node, Project):
                 op_code += self._generateProject(node)
+            elif isinstance(node, Multiply):
+                op_code += self._generateMultiply(node)
             elif isinstance(node, Store):
                 op_code += self._generateStore(node)
             else:

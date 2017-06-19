@@ -117,6 +117,128 @@ PROJECT [rel_0, rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS proj([proj_
     actual = protocol()
     assert expected == actual, actual
 
+def testSingleMult():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2], "rel")
+
+        # specify the workflow
+        mult = sal.multiply(rel, "mult", "rel_0", ["rel_0", 1])
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2])
+
+    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+MULTIPLY [rel_0 -> rel_0 * 1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
+def testMultByZero():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2], "rel")
+
+        # specify the workflow
+        mult = sal.multiply(rel, "mult", "rel_0", ["rel_0", 0])
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2])
+
+    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CONCATMPC [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+MULTIPLYMPC [rel_0 -> rel_0 * 0] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
+def testConcatPushdown():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        colsIn3 = [
+            defCol("INTEGER", [3]),
+            defCol("INTEGER", [3])
+        ]
+        in3 = sal.create("in3", colsIn3, set([3]))
+
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2, in3], "rel")
+        proj = sal.project(rel, "proj", ["rel_0", "rel_1"])
+        agg = sal.aggregate(proj, "agg", "proj_0", "proj_1", "+")
+
+        sal.collect(agg, 1)
+
+        # return root nodes
+        return set([in1, in2, in3])
+
+    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [in1_0, in1_1] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) AS proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}
+AGG [proj_0_1, +] FROM (proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}) GROUP BY [proj_0_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
+PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}
+AGG [proj_1_1, +] FROM (proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}) GROUP BY [proj_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
+PROJECT [in3_0, in3_1] FROM (in3([in3_0 {3}, in3_1 {3}]) {3}) AS proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}
+AGG [proj_2_1, +] FROM (proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}) GROUP BY [proj_2_0] AS agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3}
+CONCATMPC [agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}, agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}, agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}
+AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
 def testAgg():
 
     @scotch
@@ -610,5 +732,8 @@ if __name__ == "__main__":
     testSingleConcat()
     testSingleAgg()
     testSingleProj()
+    testSingleMult()
+    testMultByZero()
+    testConcatPushdown()
     testRevealJoinOpt()
     testHybridJoinOpt()

@@ -75,11 +75,11 @@ def multiply(inputOpNode, outputName, targetColName, operands):
     outRelCols = copy.deepcopy(inRel.columns)
     
     # Replace all column names with corresponding columns.
-    operands = [utils.find(outRelCols, op) if isinstance(op, str) else op for op in operands]
-    operands = copy.deepcopy(operands)
+    operands = [utils.find(inRel.columns, op) if isinstance(op, str) else op for op in operands]
     for operand in operands:
-        operand.collSets = set()
-    targetColumn = copy.deepcopy(utils.find(outRelCols, targetColName))
+        if hasattr(operand, "collSets"):
+            operand.collSets = set()
+    targetColumn = utils.find(inRel.columns, targetColName)
     targetColumn.collSets = set()
 
     # Create output relation

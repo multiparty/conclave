@@ -1,8 +1,13 @@
 import functools
+import copy
 
 def mergeCollSets(left, right):
 
     res = set()
+    if not left:
+    	return copy.copy(right)
+    elif not right:
+    	return copy.copy(left)
     for leftCollSet in left:
         for rightCollSet in right:
             res.add(leftCollSet | rightCollSet)

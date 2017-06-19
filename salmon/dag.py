@@ -280,7 +280,7 @@ class Project(UnaryOpNode):
     def isReversible(self):
 
         # slightly oversimplified but basically if we have 
-        # re-ordered the input columns without dropping any 
+        # re-ordered the input columns without dropping any cols
         # then this is reversible
         return len(self.selectedCols) == len(self.getInRel().columns)
 
@@ -299,15 +299,16 @@ class Multiply(UnaryOpNode):
         self.targetCol = targetCol
         self.isLocal = True
 
+    def isReversible(self):
+
+        # A multiplication is reversible unless one of the operands is 0
+        return all([op != 0 for op in self.operands])
+
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
         self.operands = [tempCols[col.idx] if isinstance(col, rel.Column) else col for col in tempCols]
 
-    def isReversible(self):
-
-        # A multiplication is reversible unless one of the operands is 0
-        return all([op != 0 for op in self.operands])
 
 class Join(BinaryOpNode):
 
