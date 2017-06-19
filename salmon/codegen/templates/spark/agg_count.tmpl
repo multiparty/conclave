@@ -11,6 +11,16 @@ aggCol = {{{INREL}}} \
     .filter(lambda x: x[1] == a_id) \
     .flatMap(lambda x: x[0])
 
-{{{OUTREL}}} = keyCol \
-    .countByKey() \
-    .items()
+agg = keyCol \
+    .map(lambda x: (x, 1)) \
+    .aggregateByKey(0,
+        lambda acc, val: acc + val,
+        lambda acc1, acc2: acc1 + acc2)
+
+keys = agg.keys()
+vals = agg.values()
+
+{{{OUTREL}}} = keys \
+    .union(vals) \
+    .glom() \
+    .zipWithIndex()

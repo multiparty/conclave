@@ -13,9 +13,10 @@ aggCol = {{{INREL}}} \
 
 data = keyCol.zip(aggCol)
 
-agg = data.aggregateByKey(0, \
-    lambda acc, val: acc + val, \
-    lambda acc1, acc2: acc1 + acc2)
+agg = data \
+    .aggregateByKey(0, \
+        lambda acc, val: acc + val, \
+        lambda acc1, acc2: acc1 + acc2)
 
 keys = agg.keys()
 vals = agg.values()
@@ -25,3 +26,6 @@ vals = agg.values()
     .union(vals) \
     .glom() \
     .zipWithIndex()
+
+
+
