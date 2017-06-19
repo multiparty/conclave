@@ -1,12 +1,6 @@
 in_f = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
 
-all_cols = in_f \
+{{{RELATION_NAME}}} = in_f \
     .map(lambda line: line.split(',')) \
     .map(lambda x: [int(y) for y in x[0].split()]) \
     .zipWithIndex()
-
-
-
-
-
-

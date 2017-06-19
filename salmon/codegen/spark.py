@@ -85,9 +85,6 @@ class SparkCodeGen(CodeGen):
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
-                'INTEGER_IDS': col_types[0],
-                'STRING_IDS': col_types[1],
-                'FLOAT_IDS': col_types[2]
                }
 
         return pystache.render(template, data)
