@@ -4,6 +4,16 @@ col_ids = set(int(c) for c in {{{COL_IDS}}})
     .filter(lambda x: x[1] in col_ids) \
     .flatMap(lambda x: x[0])
 
-# TODO: still need to zip resulting column with an idx of 0
+cols = all_cols \
+    .filter(lambda x: x[1] in col_ids) \
+    .map(lambda x: (0, [y for y in x[0]])) \
+    .aggregateByKey([], \
+        lambda acc, val: acc + val, \
+        lambda acc1, acc2: acc1 + acc2)
 
+idx = cols.keys()
+col = cols.values()
+
+# outrel stored as (column_info, col_id) tuple
+{{{OUTREL}}} = col.zip(idx)
 
