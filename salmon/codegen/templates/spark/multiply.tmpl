@@ -5,8 +5,9 @@ op_cols = {{{INREL}}} \
     .filter(lambda x: x[1] in operand_ids) \
     .map(lambda x: x[0])
 
-t_col = all_cols \
-    .filter(lambda x: x[1] == targetcol) \
+# collect so that it can be multiplied by each column in op_cols
+t_col = {{{INREL}}} \
+    .filter(lambda x: x[1] == target_id) \
     .map(lambda x: x[0]) \
     .collect()
 

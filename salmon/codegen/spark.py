@@ -106,11 +106,13 @@ class SparkCodeGen(CodeGen):
 
     def _generateMultiply(self, mult_op):
 
+        op_cols = mult_op.operands
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
         data = {
-            'OPERAND_IDS': [c.idx for c in cols],
+            'OPERAND_IDS': [c.idx for c in op_cols],
+            'TARGET_ID': mult_op.targetCol.idx,
             'INREL': mult_op.getInRel().name,
             'OUTREL': mult_op.outRel.name
         }
