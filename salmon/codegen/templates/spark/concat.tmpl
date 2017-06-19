@@ -1,10 +1,6 @@
 col_ids = set(int(c) for c in {{{COL_IDS}}})
 
-{{{OUTREL}}} = {{{INREL}}} \
-    .filter(lambda x: x[1] in col_ids) \
-    .flatMap(lambda x: x[0])
-
-cols = all_cols \
+cols = {{{INREL}}} \
     .filter(lambda x: x[1] in col_ids) \
     .map(lambda x: (0, [y for y in x[0]])) \
     .aggregateByKey([], \

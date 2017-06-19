@@ -80,8 +80,6 @@ class SparkCodeGen(CodeGen):
 
         cols = create_op.outRel.columns
 
-        col_types = split_datatypes(cols)
-
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
@@ -104,6 +102,19 @@ class SparkCodeGen(CodeGen):
             'INREL': project_op.getInRel().name,
             'OUTREL': project_op.outRel.name
         }
+        return pystache.render(template, data)
+
+    def _generateMultiply(self, mult_op):
+
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
+
+        data = {
+            'OPERAND_IDS': [c.idx for c in cols],
+            'INREL': mult_op.getInRel().name,
+            'OUTREL': mult_op.outRel.name
+        }
+
         return pystache.render(template, data)
 
     def _generateStore(self, store_op):

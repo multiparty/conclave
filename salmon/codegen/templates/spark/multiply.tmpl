@@ -1,0 +1,16 @@
+operand_ids = set(int(c) for c in {{{OPERAND_IDS}}})
+target_id = int({{{TARGET_ID}}})
+
+op_cols = {{{INREL}}} \
+    .filter(lambda x: x[1] in operand_ids) \
+    .map(lambda x: x[0])
+
+t_col = all_cols \
+    .filter(lambda x: x[1] == targetcol) \
+    .map(lambda x: x[0]) \
+    .collect()
+
+{{{OUTREL}}} = op_cols \
+    .map(lambda x: numpy.multiply(x, t_col).tolist()[0]) \
+    .zipWithIndex()
+
