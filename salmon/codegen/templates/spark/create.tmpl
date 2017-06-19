@@ -1,6 +1,11 @@
 in_f = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
 
+# convert rows in csv file to columns
 {{{RELATION_NAME}}} = in_f \
     .map(lambda line: line.split(',')) \
     .map(lambda x: [int(y) for y in x[0].split()]) \
+    .flatMap(lambda x: [(i, x[i]) for i in range(len(x))]) \
+    .groupByKey() \
+    .mapValues(list) \
+    .values() \
     .zipWithIndex()
