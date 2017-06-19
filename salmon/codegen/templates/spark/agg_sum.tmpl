@@ -13,14 +13,15 @@ aggCol = {{{INREL}}} \
 
 data = keyCol.zip(aggCol)
 
-{{{OUTREL}}} = data.aggregateByKey(0, \
+agg = data.aggregateByKey(0, \
     lambda acc, val: acc + val, \
     lambda acc1, acc2: acc1 + acc2)
 
-# these should correspond to selectedCols in a Project node
-{{{OUTREL}}}_{{{KEYCOL_ID}}} = {{{OUTREL}}}.keys()
-{{{OUTREL}}}_{{{AGGCOL_ID}}} = {{{OUTREL}}}.values()
+keys = agg.keys()
+vals = agg.values()
 
-
-
-
+# store outrel with col ids
+{{{OUTREL}}} = keys \
+    .union(vals) \
+    .glom() \
+    .zipWithIndex()

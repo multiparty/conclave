@@ -13,13 +13,15 @@ aggCol = {{{INREL}}} \
 
 data = keyCol.zip(aggCol)
 
-{{{OUTREL}}} = data \
+agged = data \
     .mapValues(lambda v: (v, 1)) \
-    .reduceByKey(lambda a,b: (list(numpy.add(a[0], b[0])), a[1] + b[1])) \
-    .mapValues(lambda v: list(numpy.divide(v[0], v[1])))
+    .reduceByKey(lambda a,b: (a[0]+b[0], a[1]+b[1])) \
+    .mapValues(lambda v: v[0]/v[1])
 
-# transformed keyCol and aggCol
-{{{OUTREL}}}_{{{KEYCOL_ID}}} = {{{OUTREL}}}.keys()
-{{{OUTREL}}}_{{{AGGCOL_ID}}} = {{{OUTREL}}}.values()
+keys = agged.keys()
+vals = agged.values()
 
-
+{{{OUTREL}}} = keys \
+    .union(vals) \
+    .glom() \
+    .zipWithIndex()

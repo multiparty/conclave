@@ -4,4 +4,6 @@ col_ids = set(int(c) for c in {{{COL_IDS}}})
     .filter(lambda x: x[1] in col_ids) \
     .flatMap(lambda x: x[0])
 
+# TODO: still need to zip resulting column with an idx of 0
+
 

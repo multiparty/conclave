@@ -7,6 +7,25 @@ def op_to_sum(op):
     if op == "+":
         return "sum"
 
+
+def split_datatypes(cols):
+    integers = []
+    strings = []
+    floats = []
+
+    for i in range(len(cols)):
+        if cols[i].typeStr == "INTEGER":
+            integers.append(i)
+        elif cols[i].typeStr == "STRING":
+            strings.append(i)
+        elif cols[i].typeStr == "FLOAT":
+            floats.append(i)
+        else:
+            print("Unknown datatype: {0}".format(cols[i].typeStr))
+
+    return [integers, strings, floats]
+
+
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(dag)
@@ -59,9 +78,16 @@ class SparkCodeGen(CodeGen):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
 
+        cols = create_op.outRel.columns
+
+        col_types = split_datatypes(cols)
+
         data = {
                 'RELATION_NAME': create_op.outRel.name,
-                'INPUT_PATH': "/tmp"  # XXX(malte): make configurable
+                'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
+                'INTEGER_IDS': col_types[0],
+                'STRING_IDS': col_types[1],
+                'FLOAT_IDS': col_types[2]
                }
 
         return pystache.render(template, data)

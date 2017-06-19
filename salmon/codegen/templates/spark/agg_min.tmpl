@@ -13,8 +13,13 @@ aggCol = {{{INREL}}} \
 
 data = keyCol.zip(aggCol)
 
-{{{OUTREL}}} = data.reduceByKey(min)
+agged = data \
+    .reduceByKey(min)
 
-# transformed keyCol and aggCol
-{{{OUTREL}}}_{{{KEYCOL_ID}}} = {{{OUTREL}}}.keys()
-{{{OUTREL}}}_{{{AGGCOL_ID}}} = {{{OUTREL}}}.values()
+keys = agged.keys()
+vals = agged.values()
+
+{{{OUTREL}}} = keys \
+    .union(vals) \
+    .glom() \
+    .zipWithIndex()
