@@ -1,7 +1,6 @@
 col_ids = set(int(c) for c in {{{COL_IDS}}})
 
-{{{OUTREL}}} = {{{INREL}}} \
+cols = {{{INREL}}} \
     .filter(lambda x: x[1] in col_ids) \
-    .flatMap(lambda x: x[0])
-
+    .map(lambda x: x[0])
 

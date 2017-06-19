@@ -312,8 +312,8 @@ class Multiply(UnaryOpNode):
 
 class Join(BinaryOpNode):
 
-    def __init__(self, outRel, leftParent, 
-        rightParent, leftJoinCol, rightJoinCol):
+    def __init__(self, outRel, leftParent,
+                 rightParent, leftJoinCol, rightJoinCol):
 
         super(Join, self).__init__("join", outRel, leftParent, rightParent)
         self.leftJoinCol = leftJoinCol

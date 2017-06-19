@@ -2,6 +2,7 @@ from salmon.codegen import CodeGen
 from salmon.dag import *
 import os, pystache
 
+
 def op_to_sum(op):
     if op == "+":
         return "sum"
@@ -24,31 +25,32 @@ class SparkCodeGen(CodeGen):
 
         keyCol, aggCol, aggregator = \
             agg_op.keyCol, agg_op.aggCol, agg_op.aggregator
-        zipped = [keyCol, aggCol]
 
         agg_type = 'agg_' + op_to_sum(aggregator)
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'ZIPPED_COLS': [c.idx for c in zipped],
+            'KEYCOL_ID': keyCol.idx,
+            'AGGCOL_ID': aggCol.idx,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
+
         }
 
         return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
 
-        inRels = concat_op.getInRels()
-        cols = [inrel.columns for inrel in inRels]
-        zipped = zip(*[col for col in cols])
+        in_rels = concat_op.getInRels()
+        cols = [inrel.columns for inrel in in_rels]
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'ZIPPED_COLS': zipped,
-            'RELATION_NAME': concat_op.outRel.name
+            'COL_IDS': [c.idx for c in cols],
+            'INREL': concat_op.getInRel().name,
+            'OUTREL': concat_op.outRel.name
         }
 
         return pystache.render(template, data)
@@ -56,6 +58,7 @@ class SparkCodeGen(CodeGen):
     def _generateCreate(self, create_op):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
+
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp"  # XXX(malte): make configurable
@@ -67,7 +70,18 @@ class SparkCodeGen(CodeGen):
         return ""
 
     def _generateProject(self, project_op):
-        return ""
+
+        inRel = project_op.getInRel()
+        cols = inRel.columns
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
+
+        data = {
+            'COL_IDS': [c.idx for c in cols],
+            'INREL': project_op.getInRel().name,
+            'OUTREL': project_op.outRel.name
+        }
+        return pystache.render(template, data)
 
     def _generateStore(self, store_op):
 
