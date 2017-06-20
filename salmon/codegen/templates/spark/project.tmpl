@@ -1,7 +1,5 @@
-col_ids = set(int(c) for c in {{{COL_IDS}}})
+col_ids = {{{COL_IDS}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
-    .filter(lambda x: x[1] in col_ids) \
-    .map(lambda x: x[0]) \
-    .zipWithIndex()
+    .map(lambda x: [x[i] for i in col_ids])
 

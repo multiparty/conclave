@@ -2,25 +2,7 @@
 k_id = int({{{KEYCOL_ID}}})
 a_id = int({{{AGGCOL_ID}}})
 
-# get relevant cols by id
-keyCol = {{{INREL}}} \
-    .filter(lambda x: x[1] == k_id) \
-    .flatMap(lambda x: x[0])
-
-aggCol = {{{INREL}}} \
-    .filter(lambda x: x[1] == a_id) \
-    .flatMap(lambda x: x[0])
-
-data = keyCol.zip(aggCol)
-
-agged = data \
+{{{OUTREL}}} = {{{INREL}}} \
+    .map(lambda x: (x[k_id], x[a_id])) \
     .reduceByKey(max)
-
-keys = agged.keys()
-vals = agged.values()
-
-{{{OUTREL}}} = keys \
-    .union(vals) \
-    .glom() \
-    .zipWithIndex()
 

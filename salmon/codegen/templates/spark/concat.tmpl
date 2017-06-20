@@ -1,15 +1,7 @@
-col_ids = set(int(c) for c in {{{COL_IDS}}})
+col_ids = {{{COL_IDS}}}
 
-cols = {{{INREL}}} \
-    .filter(lambda x: x[1] in col_ids) \
-    .map(lambda x: (0, [y for y in x[0]])) \
-    .aggregateByKey([], \
-        lambda acc, val: acc + val, \
-        lambda acc1, acc2: acc1 + acc2)
+{{{OUTREL}}} = {{{INREL}}} \
+    .flatMap(lambda x: [x[i] for i in col_ids])
 
-idx = cols.keys()
-col = cols.values()
 
-# outrel stored as (column_info, col_id) tuple
-{{{OUTREL}}} = col.zip(idx)
 
