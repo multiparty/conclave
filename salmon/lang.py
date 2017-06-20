@@ -209,4 +209,5 @@ def collect(inputOpNode, targetParty):
     # Get input relation from input node
     inRel = inputOpNode.outRel
     inRel.storedWith = set([targetParty])
+
     
