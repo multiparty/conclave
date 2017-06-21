@@ -1,7 +1,11 @@
-col_ids = {{{COL_IDS}}}
+in_cols = {{{INRELS}}}
 
-{{{OUTREL}}} = {{{INREL}}} \
-    .flatMap(lambda x: [x[i] for i in col_ids])
+f = []
+for rel in in_rels:
+    f.append(rel.zipWithIndex())
 
-
-
+{{{OUTREL}}} = sc.union(f) \
+    .groupBy(lambda x:x[1]) \
+    .values() \
+    .map(lambda x: [y[0] for y in x]) \
+    .map(lambda x: (numpy.array(x).flatten().tolist()))

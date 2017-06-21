@@ -3,3 +3,4 @@ in_f = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
 {{{RELATION_NAME}}} = in_f \
     .map(lambda line: line.split(',')) \
     .map(lambda x: [int(y) for y in x])
+

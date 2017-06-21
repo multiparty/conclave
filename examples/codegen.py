@@ -17,8 +17,8 @@ def protocol():
     agg = sal.aggregate(inA, "agg", "inA_0", "inA_1", "+")
     projA = sal.project(agg, "projA", ["agg_0", "agg_1"])
     projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-    # mult = sal.multiply(projB, "mult", "projB_0", "projB_1")
-    opened = sal.collect(projB, 1)
+    mult = sal.multiply(projB, "mult", "projB_0", ["projB_1"])
+    opened = sal.collect(mult, 1)
 
     # return root nodes
     return set([inA])
