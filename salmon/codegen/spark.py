@@ -86,7 +86,23 @@ class SparkCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generateJoin(self, join_op):
-        return ""
+
+        leftInRel = join_op.leftParent
+        rightInRel = join_op.rightParent
+
+        leftJoinCol, rightJoinCol = join_op.leftJoinCol, join_op.rightJoinCol
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
+
+        data = {
+            'LEFT_PARENT': leftInRel.name,
+            'RIGHT_PARENT': rightInRel.name,
+            'LEFT_COL': leftJoinCol,
+            'RIGHT_COL': rightJoinCol,
+            'OUTREL': join_op.outRel.name
+        }
+
+        return pystache.render(template, data)
 
     def _generateProject(self, project_op):
 

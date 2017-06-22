@@ -1,0 +1,18 @@
+lCol = {{{LEFT_COL}}}
+rCol = {{{RIGHT_COL}}}
+
+l = {{{LEFT_PARENT}}} \
+    .map(lambda x: ([x[i] for i in lCol], \
+        [x[i] for i in range(len(x)) if i not in set(lCol)]))
+
+r = {{{RIGHT_PARENT}}} \
+    .map(lambda x: ([x[i] for i in rCol], \
+        [x[i] for i in range(len(x)) if i not in set(rCol)]))
+
+z = l.zip(r)
+
+{{{OUTREL}}} = z \
+    .map(lambda x: [x[0], x[1]]) \
+    .map(lambda x: (x[0][0], x[0][1], x[1][1]) if x[0][0] == x[1][0] else []) \
+    .map(lambda x: (numpy.array(x).flatten().tolist())) \
+    .filter(lambda x: x != [])
