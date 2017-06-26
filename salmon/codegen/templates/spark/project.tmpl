@@ -1,5 +1,6 @@
 col_ids = {{{COL_IDS}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: [x[i] for i in col_ids])
+    .map(lambda x: [x[i] for i in col_ids]) \
+    .cache()
 

@@ -5,5 +5,6 @@ a_id = int({{{AGGCOL_ID}}})
     .map(lambda x: (x[k_id], x[a_id])) \
     .aggregateByKey(0, \
         lambda acc, val: acc + val, \
-        lambda acc1, acc2: acc1 + acc2)
+        lambda acc1, acc2: acc1 + acc2) \
+    .cache()
 

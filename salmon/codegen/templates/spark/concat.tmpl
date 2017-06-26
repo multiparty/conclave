@@ -8,4 +8,5 @@ for rel in in_rels:
     .groupBy(lambda x:x[1]) \
     .values() \
     .map(lambda x: [y[0] for y in x]) \
-    .map(lambda x: (numpy.array(x).flatten().tolist()))
+    .map(lambda x: (numpy.array(x).flatten().tolist())) \
+    .cache()

@@ -5,4 +5,5 @@ a_id = int({{{AGGCOL_ID}}})
     .map(lambda x: (x[k_id], x[a_id])) \
     .mapValues(lambda v: (v, 1)) \
     .reduceByKey(lambda a,b: (a[0]+b[0], a[1]+b[1])) \
-    .mapValues(lambda v: v[0]/v[1])
+    .mapValues(lambda v: v[0]/v[1]) \
+    .cache()
