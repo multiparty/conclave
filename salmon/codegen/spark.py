@@ -42,19 +42,17 @@ class SparkCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        keyCol, aggCol, aggregator = \
-            agg_op.keyCol, agg_op.aggCol, agg_op.aggregator
+        aggregator = agg_op.aggregator
 
         agg_type = 'agg_' + op_to_sum(aggregator)
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL_ID': keyCol.idx,
-            'AGGCOL_ID': aggCol.idx,
+            'KEYCOL': agg_op.keyCol.idx,
+            'AGGCOL': agg_op.aggCol.idx,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
-
         }
 
         return pystache.render(template, data)
@@ -76,8 +74,6 @@ class SparkCodeGen(CodeGen):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
 
-        cols = create_op.outRel.columns
-
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
@@ -87,18 +83,19 @@ class SparkCodeGen(CodeGen):
 
     def _generateJoin(self, join_op):
 
-        leftInRel = join_op.leftParent
-        rightInRel = join_op.rightParent
+        leftName = join_op.getLeftInRel().name
+        rightName = join_op.getRightInRel().name
 
+        # might change class vars to 'leftJoincols', etc in future
         leftJoinCol, rightJoinCol = join_op.leftJoinCol, join_op.rightJoinCol
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
 
         data = {
-            'LEFT_PARENT': leftInRel.name,
-            'RIGHT_PARENT': rightInRel.name,
-            'LEFT_COL': leftJoinCol,
-            'RIGHT_COL': rightJoinCol,
+            'LEFT_PARENT': leftName,
+            'RIGHT_PARENT': rightName,
+            'LEFT_COL': leftJoinCol.idx,
+            'RIGHT_COL': rightJoinCol.idx,
             'OUTREL': join_op.outRel.name
         }
 
@@ -106,8 +103,7 @@ class SparkCodeGen(CodeGen):
 
     def _generateProject(self, project_op):
 
-        inRel = project_op.getInRel()
-        cols = inRel.columns
+        cols = project_op.selectedCols
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
 
