@@ -1,7 +1,7 @@
-operand_ids = {{{OPERAND_IDS}}}
+operand_ids = set({{{OPERAND_IDS}}})
 target_id = {{{TARGET_ID}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: [x[target_id]*x[i] for i in operand_ids]) \
+    .map(lambda x: [x[target_id]*x[i] if i in operand_ids else x[i] for i in range(len(x))]) \
     .cache()
 
