@@ -16,6 +16,7 @@ z = l.zip(r)
 {{{OUTREL}}} = z \
     .map(lambda x: [x[0], x[1]]) \
     .map(lambda x: (x[0][0], x[0][1], x[1][1]) if x[0][0] == x[1][0] else []) \
-    .map(lambda x: (numpy.array(x).flatten().tolist())) \
     .filter(lambda x: x != []) \
+    .map(lambda x: (numpy.array(x))) \
+    .map(lambda x: numpy.hstack(x).tolist()) \
     .cache()
