@@ -3,6 +3,7 @@ import salmon.utils as utils
 import salmon.dag as saldag
 import warnings
 
+
 def pushOpNodeDown(topNode, bottomNode):
 
     # only dealing with one grandchild case for now
@@ -24,7 +25,8 @@ def pushOpNodeDown(topNode, bottomNode):
         toInsert.parents = set()
         toInsert.children = set()
         saldag.insertBetween(grandParent, topNode, toInsert)
-        toInsert.updateStoredWith() 
+        toInsert.updateStoredWith()
+
 
 def splitNode(node):
 
@@ -37,6 +39,7 @@ def splitNode(node):
     clone.isMPC = True
     child = next(iter(node.children), None)
     saldag.insertBetween(node, child, clone)
+
 
 def forkNode(node):
 
@@ -59,6 +62,7 @@ def forkNode(node):
         # make cloned node the child's new parent
         child.replaceParent(node, clone)
         child.updateOpSpecificCols()
+
 
 class DagRewriter:
 
@@ -92,6 +96,7 @@ class DagRewriter:
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
+
 
 class MPCPushDown(DagRewriter):
 
@@ -156,6 +161,7 @@ class MPCPushDown(DagRewriter):
 
         pass
 
+
 class MPCPushUp(DagRewriter):
 
     def __init__(self):
@@ -184,7 +190,7 @@ class MPCPushUp(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        if node.isLowerBoundary():    
+        if node.isLowerBoundary():
             leftStoredWith = node.getLeftInRel().storedWith
             rightStoredWith = node.getRightInRel().storedWith
             outStoredWith = node.outRel.storedWith
@@ -198,7 +204,7 @@ class MPCPushUp(DagRewriter):
             elif outStoredWith == rightStoredWith:
                 revealJoinOp = saldag.RevealJoin.fromJoin(
                     node, node.getLeftInRel(), outStoredWith)
-                
+
             if revealJoinOp:
                 parents = revealJoinOp.parents
                 for par in parents:
@@ -224,6 +230,7 @@ class MPCPushUp(DagRewriter):
 
         pass
 
+
 class CollSetPropDown(DagRewriter):
 
     def __init__(self):
@@ -231,7 +238,7 @@ class CollSetPropDown(DagRewriter):
         super(CollSetPropDown, self).__init__()
 
     def _rewriteAggregate(self, node):
-        
+
         inKeyCol = node.keyCol
         outKeyCol = node.outRel.columns[0]
         outKeyCol.collSets |= copy.deepcopy(inKeyCol.collSets)
@@ -249,7 +256,7 @@ class CollSetPropDown(DagRewriter):
             outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteMultiply(self, node):
-        
+
         outRelCols = node.outRel.columns
         operands = node.operands
         targetCol = node.targetCol
@@ -262,7 +269,7 @@ class CollSetPropDown(DagRewriter):
         # simply carry over
         for inCol, outCol in zip(node.getInRel().columns, outRelCols):
             if inCol != targetCol:
-	            outCol.collSets |= copy.deepcopy(inCol.collSets)
+                outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteJoin(self, node):
 
@@ -273,39 +280,125 @@ class CollSetPropDown(DagRewriter):
         rightJoinCol = node.rightJoinCol
 
         outJoinCol = node.outRel.columns[0]
-        keyColCollSets = utils.mergeCollSets(leftJoinCol.collSets, rightJoinCol.collSets)
+        keyColCollSets = utils.mergeCollSets(
+            leftJoinCol.collSets, rightJoinCol.collSets)
         outJoinCol.collSets = keyColCollSets
 
         absIdx = 1
         for inCol in leftInRel.columns:
             if inCol != leftJoinCol:
                 node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                    keyColCollSets, inCol.collSets) 
+                    keyColCollSets, inCol.collSets)
                 absIdx += 1
 
         for inCol in rightInRel.columns:
             if inCol != rightJoinCol:
                 node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                    keyColCollSets, inCol.collSets) 
+                    keyColCollSets, inCol.collSets)
                 absIdx += 1
 
     def _rewriteConcat(self, node):
 
-        # Copy over columns from existing relation 
+        # Copy over columns from existing relation
         outRelCols = node.outRel.columns
-        
+
         # Combine per-column collusion sets
         for idx, col in enumerate(outRelCols):
             columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
             col.collSets = utils.collSetsFromColumns(columnsAtIdx)
 
     def _rewriteStore(self, node):
-        
+
         pass
 
     def _rewriteCreate(self, node):
-        
+
         pass
+
+
+class CollSetPropUp(DagRewriter):
+
+    def __init__(self):
+
+        super(CollSetPropUp, self).__init__()
+        self.reverse = True
+
+    def _rewriteAggregate(self, node):
+
+        pass
+
+    def _rewriteProject(self, node):
+
+        pass
+
+    def _rewriteMultiply(self, node):
+
+        pass
+
+    def _rewriteJoin(self, node):
+
+        pass
+
+    def _rewriteConcat(self, node):
+
+        pass
+
+    def _rewriteStore(self, node):
+
+        pass
+
+    def _rewriteCreate(self, node):
+
+        pass
+
+
+class HybridJoinOpt(DagRewriter):
+
+    def __init__(self):
+
+        super(HybridJoinOpt, self).__init__()
+        self.reverse = False
+
+    def _rewriteAggregate(self, node):
+
+        pass
+
+    def _rewriteProject(self, node):
+
+        pass
+
+    def _rewriteMultiply(self, node):
+
+        pass
+
+    def _rewriteJoin(self, node):
+
+        outRel = node.outRel
+        keyColIdx = 0
+        # oversimplifying here. what if there are multiple singleton collSets?
+        singletonCollSets = filter(
+            lambda s: len(s) == 1,
+            outRel.columns[keyColIdx].collSets)
+        singletonCollSets = sorted(list(singletonCollSets))
+        if singletonCollSets:
+            trustedParty = next(iter(singletonCollSets[0]))
+            hybridJoinOp = saldag.HybridJoin.fromJoin(node, trustedParty)    
+            parents = hybridJoinOp.parents
+            for par in parents:
+                par.replaceChild(node, hybridJoinOp)
+
+    def _rewriteConcat(self, node):
+
+        pass
+
+    def _rewriteStore(self, node):
+
+        pass
+
+    def _rewriteCreate(self, node):
+
+        pass
+
 
 def rewriteDag(dag):
 
@@ -313,7 +406,9 @@ def rewriteDag(dag):
     # ironic?
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
+    HybridJoinOpt().rewrite(dag)
     return dag
+
 
 def scotch(f):
 
@@ -324,6 +419,7 @@ def scotch(f):
         return code
 
     return wrap
+
 
 def mpc(f):
 

@@ -1,6 +1,7 @@
-import salmon.lang as sal 
+import salmon.lang as sal
 from salmon.comp import mpc, scotch
 from salmon.utils import *
+
 
 def testSingleConcat():
 
@@ -41,6 +42,7 @@ CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}, in3([i
     actual = protocol()
     assert expected == actual, actual
 
+
 def testSingleAgg():
 
     @scotch
@@ -54,11 +56,11 @@ def testSingleAgg():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2]),
             defCol("INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -80,6 +82,7 @@ AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0]
     actual = protocol()
     assert expected == actual, actual
 
+
 def testSingleProj():
 
     @scotch
@@ -93,11 +96,11 @@ def testSingleProj():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2]),
             defCol("INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -117,6 +120,7 @@ PROJECT [rel_0, rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS proj([proj_
     actual = protocol()
     assert expected == actual, actual
 
+
 def testSingleMult():
 
     @scotch
@@ -130,11 +134,11 @@ def testSingleMult():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2]),
             defCol("INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -154,6 +158,7 @@ MULTIPLY [rel_0 -> rel_0 * 1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult
     actual = protocol()
     assert expected == actual, actual
 
+
 def testMultByZero():
 
     @scotch
@@ -167,11 +172,11 @@ def testMultByZero():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]), 
+            defCol("INTEGER", [2]),
             defCol("INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -190,6 +195,7 @@ MULTIPLYMPC [rel_0 -> rel_0 * 0] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) A
 """
     actual = protocol()
     assert expected == actual, actual
+
 
 def testConcatPushdown():
 
@@ -239,6 +245,7 @@ AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}) GROUP BY 
     actual = protocol()
     assert expected == actual, actual
 
+
 def testAgg():
 
     @scotch
@@ -252,11 +259,11 @@ def testAgg():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -284,6 +291,7 @@ AGGMPC [rel_1, +] FROM (rel {1, 2}) GROUP BY [rel_0] AS agg_obl {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testAggProj():
 
     @scotch
@@ -297,11 +305,11 @@ def testAggProj():
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -331,6 +339,7 @@ PROJECT [agg_obl_0, agg_obl_1] FROM (agg_obl {1}) AS projC {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testInternalAgg():
 
     @scotch
@@ -338,12 +347,12 @@ def testInternalAgg():
     def protocol():
         # define inputs
         colsInA = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         inA = sal.create("inA", colsInA, set([1]))
         colsInB = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         inB = sal.create("inB", colsInB, set([2]))
@@ -370,6 +379,7 @@ PROJECT [agg_0, agg_1] FROM (agg {1}) AS proj {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testJoin():
 
     @scotch
@@ -377,7 +387,7 @@ def testJoin():
     def protocol():
         # define inputs
         colsInA = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         inA = sal.create("inA", colsInA, set([1]))
@@ -391,10 +401,10 @@ def testJoin():
         # specify the workflow
         aggA = sal.aggregate(inA, "aggA", "inA_0", "inA_1", "+")
         projA = sal.project(aggA, "projA", ["aggA_0", "aggA_1"])
-        
+
         aggB = sal.aggregate(inB, "aggB", "inB_0", "inB_1", "+")
         projB = sal.project(aggB, "projB", ["aggB_0", "aggB_1"])
-        
+
         joined = sal.join(projA, projB, "joined", "projA_0", "projB_0")
 
         proj = sal.project(joined, "proj", ["joined_0", "joined_1"])
@@ -419,6 +429,7 @@ AGGMPC [proj_1, +] FROM (proj {1, 2}) GROUP BY [proj_0] AS agg {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testJoinConcat():
 
     @scotch
@@ -426,7 +437,7 @@ def testJoinConcat():
     def protocol():
         # define inputs
         colsInA = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         inA = sal.create("inA", colsInA, set([1]))
@@ -447,10 +458,10 @@ def testJoinConcat():
         # specify the workflow
         aggA = sal.aggregate(inA, "aggA", "inA_0", "inA_1", "+")
         projA = sal.project(aggA, "projA", ["aggA_0", "aggA_1"])
-        
+
         aggB = sal.aggregate(inB, "aggB", "inB_0", "inB_1", "+")
         projB = sal.project(aggB, "projB", ["aggB_0", "aggB_1"])
-        
+
         joined = sal.join(projA, projB, "joined", "projA_0", "projB_0")
         comb = sal.concat([inC, joined], "comb")
         sal.collect(comb, 3)
@@ -471,6 +482,7 @@ CONCAT [inC {3}, joined {3}] AS comb {3}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testJoinConcat2():
 
     @scotch
@@ -478,7 +490,7 @@ def testJoinConcat2():
     def protocol():
         # define inputs
         colsInA = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         inA = sal.create("inA", colsInA, set([2]))
@@ -499,10 +511,10 @@ def testJoinConcat2():
         # specify the workflow
         aggA = sal.aggregate(inA, "aggA", "inA_0", "inA_1", "+")
         projA = sal.project(aggA, "projA", ["aggA_0", "aggA_1"])
-        
+
         aggB = sal.aggregate(inB, "aggB", "inB_0", "inB_1", "+")
         projB = sal.project(aggB, "projB", ["aggB_0", "aggB_1"])
-        
+
         joined = sal.join(projA, projB, "joined", "projA_0", "projB_0")
         comb = sal.concat([inC, joined], "comb")
         agg = sal.aggregate(comb, "agg", "comb_1", "comb_2", "+")
@@ -525,6 +537,7 @@ AGGMPC [comb_2, +] FROM (comb {1, 2, 3}) GROUP BY [comb_1] AS agg {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testMultAgg():
 
     @scotch
@@ -533,23 +546,23 @@ def testMultAgg():
 
         # define inputs
         colsIn1 = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
         projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
         aggA = sal.aggregate(projA, "aggA", "projA_0", "projA_1", "+")
-        
+
         projB = sal.project(rel, "projB", ["rel_0", "rel_1"])
         aggB = sal.aggregate(projB, "aggB", "projB_0", "projB_1", "+")
 
@@ -577,6 +590,7 @@ AGGMPC [rel_1_1, +] FROM (rel_1 {1, 2}) GROUP BY [rel_1_0] AS aggB_obl {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testMultiple():
 
     @scotch
@@ -585,16 +599,16 @@ def testMultiple():
 
         # define inputs
         colsIn1 = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        
+
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2], "rel")
 
@@ -618,6 +632,7 @@ PROJECT [rel_1_0, rel_1_1] FROM (rel_1 {1}) AS projB {1}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testSingle():
 
     @scotch
@@ -626,17 +641,17 @@ def testSingle():
 
         # define inputs
         colsIn1 = [
-            ("INTEGER", set([1])), 
+            ("INTEGER", set([1])),
             ("INTEGER", set([1]))
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])), 
+            ("INTEGER", set([2])),
             ("INTEGER", set([2]))
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
         colsIn3 = [
-            ("INTEGER", set([3])), 
+            ("INTEGER", set([3])),
             ("INTEGER", set([3]))
         ]
         in3 = sal.create("in3", colsIn3, set([3]))
@@ -664,6 +679,7 @@ PROJECT [rel_0, rel_1] FROM (rel {1}) AS projB {1}
 """
     actual = protocol()
     assert expected == actual, actual
+
 
 def testRevealJoinOpt():
 
@@ -696,7 +712,45 @@ CREATE RELATION inB([inB_0 {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
     actual = protocol()
     assert expected == actual, actual
 
+
 def testHybridJoinOpt():
+
+    @scotch
+    @mpc
+    def protocol():
+        # define inputs
+        colsInA = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1]),
+        ]
+        inA = sal.create("inA", colsInA, set([1]))
+
+        colsInB = [
+            defCol("INTEGER", [1], [2]),
+            defCol("INTEGER", [2])
+        ]
+        inB = sal.create("inB", colsInB, set([2]))
+
+        joined = sal.join(inA, inB, "joined", "inA_0", "inB_0")
+        # need the agg to prevent joined from being converted to a RevealJoin
+        agg = sal.aggregate(joined, "agg", "joined_0", "joined_1", "+")
+
+        sal.collect(agg, 1)
+        # create dag
+        return set([inA, inB])
+
+    expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+(inA([inA_0 {1}, inA_1 {1}]) {1}) HYBRIDJOIN (inB([inB_0 {1} {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}
+AGGMPC [joined_1, +] FROM (joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}) GROUP BY [joined_0] AS agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
+
+def testHybridAndRevealJoinOpt():
+    # Note: for now I'm assuming that we can simply overwrite
+    # a reveal join with a hybrid join
 
     @scotch
     @mpc
@@ -722,7 +776,7 @@ def testHybridJoinOpt():
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-(inA([inA_0 {1}, inA_1 {1}]) {1}) REVEALJOIN (inB([inB_0 {1} {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
+(inA([inA_0 {1}, inA_1 {1}]) {1}) HYBRIDJOIN (inB([inB_0 {1} {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -737,3 +791,4 @@ if __name__ == "__main__":
     testConcatPushdown()
     testRevealJoinOpt()
     testHybridJoinOpt()
+    testHybridAndRevealJoinOpt()

@@ -1,6 +1,7 @@
 from salmon import rel
 import copy
 
+
 class Node():
 
     def __init__(self, name):
@@ -39,13 +40,14 @@ class OpNode(Node):
         # where this is not the case
         self.isLocal = False
         self.isMPC = False
-        
+
     # Indicates whether a node is at the boundary of MPC
     # i.e. if nodes above it are local (there are operators
     # such as aggregations that override this method since
     # other rules apply there)
     def isBoundary(self):
-        # TODO: could this be (self.isUpperBoundary() or self.isLowerBoundary())?
+        # TODO: could this be (self.isUpperBoundary() or
+        # self.isLowerBoundary())?
         return self.isUpperBoundary()
 
     def isUpperBoundary(self):
@@ -101,9 +103,10 @@ class OpNode(Node):
     def __str__(self):
 
         return "{}->{}".format(
-            super(OpNode, self).__str__(), 
+            super(OpNode, self).__str__(),
             self.outRel.name
         )
+
 
 class UnaryOpNode(OpNode):
 
@@ -279,7 +282,7 @@ class Project(UnaryOpNode):
 
     def isReversible(self):
 
-        # slightly oversimplified but basically if we have 
+        # slightly oversimplified but basically if we have
         # re-ordered the input columns without dropping any cols
         # then this is reversible
         return len(self.selectedCols) == len(self.getInRel().columns)
@@ -307,7 +310,8 @@ class Multiply(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
-        self.operands = [tempCols[col.idx] if isinstance(col, rel.Column) else col for col in tempCols]
+        self.operands = [tempCols[col.idx] if isinstance(
+            col, rel.Column) else col for col in tempCols]
 
 
 class Join(BinaryOpNode):
@@ -324,33 +328,71 @@ class Join(BinaryOpNode):
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
 
-# This join optimization applies when the result of a join
-# and one of its inputs is known to the same party P. Instead
-# of performing a complete oblivious join, all the rows
-# of the other input relation can be revealed to party P, 
-# provided that their key column a key in P's input. 
+
 class RevealJoin(Join):
+    """Join Optimization
 
-    def __init__(self, outRel, leftParent, rightParent, 
-        leftJoinCol, rightJoinCol, revealedInRel, recepient):
+    applies when the result of a join
+    and one of its inputs is known to the same party P. Instead
+    of performing a complete oblivious join, all the rows
+    of the other input relation can be revealed to party P,
+    provided that their key column a key in P's input.
+    """
 
-        super(RevealJoin, self).__init__(outRel, leftParent, 
-            rightParent, leftJoinCol, rightJoinCol)
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCol, rightJoinCol, revealedInRel, recepient):
+
+        super(RevealJoin, self).__init__(outRel, leftParent,
+                                         rightParent, leftJoinCol, rightJoinCol)
         self.name = "revealJoin"
         self.revealedInRel = revealedInRel
         self.recepient = recepient
         self.isMPC = True
-        
+
     @classmethod
     def fromJoin(cls, joinOp, revealedInRel, recepient):
         obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
-            joinOp.leftJoinCol, joinOp.rightJoinCol, revealedInRel, recepient)
+                  joinOp.leftJoinCol, joinOp.rightJoinCol, revealedInRel, recepient)
         return obj
 
     def updateOpSpecificCols(self):
 
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
+
+class HybridMultiPartyJoin(Join):
+    # TODO
+    pass
+
+class HybridJoin(Join):
+    """Join Optimization
+
+    applies when there exists a singleton collusion set on both
+    input key columns, meaning that said party can learn all values
+    in both key columns
+    """
+
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCol, rightJoinCol, trustedParty):
+
+        super(HybridJoin, self).__init__(outRel, leftParent,
+                                         rightParent, leftJoinCol, rightJoinCol)
+        self.name = "hybridJoin"
+        self.trustedParty = trustedParty
+        self.isMPC = True
+
+    @classmethod
+    def fromJoin(cls, joinOp, trustedParty):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+                  joinOp.leftJoinCol, joinOp.rightJoinCol, trustedParty)
+        obj.children = joinOp.children
+        return obj
+
+    def updateOpSpecificCols(self):
+
+        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
+        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
+
 
 class Dag():
 
@@ -386,8 +428,8 @@ class Dag():
     # Note: not optimized at all but we're dealing with very small
     # graphs so performance shouldn't be a problem
     # Side-effects on all inputs other than node
-    def _topSortVisit(self, node, marked, tempMarked, 
-        unmarked, ordered, deterministic=True):
+    def _topSortVisit(self, node, marked, tempMarked,
+                      unmarked, ordered, deterministic=True):
 
         if node in tempMarked:
             raise "Not a Dag!"
@@ -408,7 +450,7 @@ class Dag():
             if deterministic:
                 unmarked.append(node)
             else:
-                unmarked.add(node)            
+                unmarked.add(node)
             tempMarked.remove(node)
             ordered.insert(0, node)
 
@@ -430,6 +472,7 @@ class Dag():
 
         return ordered
 
+
 class OpDag(Dag):
 
     def __init__(self, roots):
@@ -440,6 +483,7 @@ class OpDag(Dag):
 
         order = self.topSort()
         return ",\n".join(str(node) for node in order)
+
 
 def removeBetween(parent, child, other):
 
@@ -457,6 +501,7 @@ def removeBetween(parent, child, other):
 
     other.makeOrphan()
     other.children = set()
+
 
 def insertBetween(parent, child, other):
 
