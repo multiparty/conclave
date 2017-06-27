@@ -182,7 +182,7 @@ def concat(inputOpNodes, outputName):
     assert(relSizesEqual)
 
     # Copy over columns from existing relation 
-    outRelCols = copy.deepcopy(inRels[0].columns)    
+    outRelCols = copy.deepcopy(inRels[0].columns)
     for col in outRelCols:
         col.collSets = set()
 
