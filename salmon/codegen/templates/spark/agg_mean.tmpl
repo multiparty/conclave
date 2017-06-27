@@ -1,25 +1,9 @@
-# assume rows of hdfs file are indexed by col id's
 k_id = int({{{KEYCOL_ID}}})
 a_id = int({{{AGGCOL_ID}}})
 
-# get relevant cols by id
-keyCol = {{{INREL}}} \
-    .filter(lambda x: x[1] == k_id) \
-    .flatMap(lambda x: x[0])
-
-aggCol = {{{INREL}}} \
-    .filter(lambda x: x[1] == a_id) \
-    .flatMap(lambda x: x[0])
-
-data = keyCol.zip(aggCol)
-
-{{{OUTREL}}} = data \
+{{{OUTREL}}} = {{{INREL}}} \
+    .map(lambda x: (x[k_id], x[a_id])) \
     .mapValues(lambda v: (v, 1)) \
-    .reduceByKey(lambda a,b: (list(numpy.add(a[0], b[0])), a[1] + b[1])) \
-    .mapValues(lambda v: list(numpy.divide(v[0], v[1])))
-
-# transformed keyCol and aggCol
-{{{OUTREL}}}_{{{KEYCOL_ID}}} = {{{OUTREL}}}.keys()
-{{{OUTREL}}}_{{{AGGCOL_ID}}} = {{{OUTREL}}}.values()
-
-
+    .reduceByKey(lambda a,b: (a[0]+b[0], a[1]+b[1])) \
+    .mapValues(lambda v: v[0]/v[1]) \
+    .cache()

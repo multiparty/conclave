@@ -1,6 +1,6 @@
-col_ids = set(int(c) for c in {{{COL_IDS}}})
+col_ids = {{{COL_IDS}}}
 
-cols = {{{INREL}}} \
-    .filter(lambda x: x[1] in col_ids) \
-    .map(lambda x: x[0])
+{{{OUTREL}}} = {{{INREL}}} \
+    .map(lambda x: [x[i] for i in col_ids]) \
+    .cache()
 

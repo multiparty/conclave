@@ -7,6 +7,25 @@ def op_to_sum(op):
     if op == "+":
         return "sum"
 
+
+def split_datatypes(cols):
+    integers = []
+    strings = []
+    floats = []
+
+    for i in range(len(cols)):
+        if cols[i].typeStr == "INTEGER":
+            integers.append(i)
+        elif cols[i].typeStr == "STRING":
+            strings.append(i)
+        elif cols[i].typeStr == "FLOAT":
+            floats.append(i)
+        else:
+            print("Unknown datatype: {0}".format(cols[i].typeStr))
+
+    return [integers, strings, floats]
+
+
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(dag)
@@ -23,19 +42,17 @@ class SparkCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        keyCol, aggCol, aggregator = \
-            agg_op.keyCol, agg_op.aggCol, agg_op.aggregator
+        aggregator = agg_op.aggregator
 
         agg_type = 'agg_' + op_to_sum(aggregator)
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL_ID': keyCol.idx,
-            'AGGCOL_ID': aggCol.idx,
+            'KEYCOL': agg_op.keyCol.idx,
+            'AGGCOL': agg_op.aggCol.idx,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
-
         }
 
         return pystache.render(template, data)
@@ -43,13 +60,11 @@ class SparkCodeGen(CodeGen):
     def _generateConcat(self, concat_op):
 
         in_rels = concat_op.getInRels()
-        cols = [inrel.columns for inrel in in_rels]
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'COL_IDS': [c.idx for c in cols],
-            'INREL': concat_op.getInRel().name,
+            'INRELS': [rel.name for rel in in_rels],
             'OUTREL': concat_op.outRel.name
         }
 
@@ -61,18 +76,34 @@ class SparkCodeGen(CodeGen):
 
         data = {
                 'RELATION_NAME': create_op.outRel.name,
-                'INPUT_PATH': "/tmp"  # XXX(malte): make configurable
+                'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
                }
 
         return pystache.render(template, data)
 
     def _generateJoin(self, join_op):
-        return ""
+
+        leftName = join_op.getLeftInRel().name
+        rightName = join_op.getRightInRel().name
+
+        # might change class vars to 'leftJoincols', etc in future
+        leftJoinCol, rightJoinCol = join_op.leftJoinCol, join_op.rightJoinCol
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
+
+        data = {
+            'LEFT_PARENT': leftName,
+            'RIGHT_PARENT': rightName,
+            'LEFT_COL': leftJoinCol.idx,
+            'RIGHT_COL': rightJoinCol.idx,
+            'OUTREL': join_op.outRel.name
+        }
+
+        return pystache.render(template, data)
 
     def _generateProject(self, project_op):
 
-        inRel = project_op.getInRel()
-        cols = inRel.columns
+        cols = project_op.selectedCols
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
 
@@ -81,6 +112,21 @@ class SparkCodeGen(CodeGen):
             'INREL': project_op.getInRel().name,
             'OUTREL': project_op.outRel.name
         }
+        return pystache.render(template, data)
+
+    def _generateMultiply(self, mult_op):
+
+        op_cols = mult_op.operands
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
+
+        data = {
+            'OPERAND_IDS': [c.idx for c in op_cols],
+            'TARGET_ID': mult_op.targetCol.idx,
+            'INREL': mult_op.getInRel().name,
+            'OUTREL': mult_op.outRel.name
+        }
+
         return pystache.render(template, data)
 
     def _generateStore(self, store_op):
