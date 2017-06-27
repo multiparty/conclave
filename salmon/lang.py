@@ -177,7 +177,6 @@ def concat(inputOpNodes, outputName):
 
     # Ensure that all input relations have same
     # number of columns
-
     relLens = [len(inRel.columns) for inRel in inRels]
     relSizesEqual = len(set(relLens)) == 1
     assert(relSizesEqual)

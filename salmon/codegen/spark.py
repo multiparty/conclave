@@ -64,7 +64,7 @@ class SparkCodeGen(CodeGen):
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'INRELS': [rel.name for rel in in_rels],
+            'INRELS': [rel.name for rel in concat_op.getInRels()],
             'OUTREL': concat_op.outRel.name
         }
 

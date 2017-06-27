@@ -16,18 +16,14 @@ def protocol():
     ]
     inA = sal.create("inA", colsInA, set([1]))
 
-    projA = sal.project(inA, "projA", ["inA_0", "inA_1"])
-    projB = sal.project(inA, "projB", ["inA_2"])
     multA = sal.multiply(inA, "multA", "inA_3", ["inA_4", "inA_5"])
-    opened = sal.collect(multA, 1)
-    concatA = sal.concat([projB, multA], "concatA")
-    '''
-    joinA = sal.join("projA", "concatA", "joinA", "projA_0", "concatA_0")
-    aggA = sal.aggregate(joinA, "aggA", "joinA_0", "joinA_1", "+")
-    aggB = sal.aggregate(joinA, "aggB", "joinA_3", "joinA_4", "+")
+    projA = sal.project(multA, "projA", ["multA_0", "multA_1"])
+    projB = sal.project(multA, "projB", ["multA_2", "multA_3"])
+    projC = sal.project(multA, "projC", ["multA_4", "multA_5"])
+    concatA = sal.concat([projA, projB], "concatA")
+    concatB = sal.concat([projB, projC], "concatB")
+    joinA = sal.join(concatA, concatB, "joinA", "concatA_0", "concatB_0")
     opened = sal.collect(joinA, 1)
-    '''
-
 
     # return root nodes
     return set([inA])
@@ -37,6 +33,6 @@ if __name__ == "__main__":
     dag = protocol()
 
     cg = spark.SparkCodeGen(dag)
-    cg.generate("jointest", "/tmp")
+    cg.generate("jointest1", "/tmp")
 
     print("Spark code generated in /tmp/jointest.py")
