@@ -1,18 +1,19 @@
 import salmon.lang as sal
 from salmon.comp import mpc
 from salmon.codegen import spark
+from salmon.utils import *
 
 @mpc
 def protocol():
 
     # define inputs
     colsInA = [
-        ("INTEGER", set([1, 2, 3, 4, 5, 6])),
-        ("INTEGER", set([1, 2, 3, 4, 5, 6])),
-        ("INTEGER", set([1, 2, 3, 4, 5, 6])),
-        ("INTEGER", set([1, 2, 3, 4, 5, 6])),
-        ("INTEGER", set([1, 2, 3, 4, 5, 6])),
-        ("INTEGER", set([1, 2, 3, 4, 5, 6]))
+        defCol("INTEGER", [1]),
+        defCol("INTEGER", [1]),
+        defCol("INTEGER", [1]),
+        defCol("INTEGER", [1]),
+        defCol("INTEGER", [1]),
+        defCol("INTEGER", [1])
     ]
     inA = sal.create("inA", colsInA, set([1]))
 

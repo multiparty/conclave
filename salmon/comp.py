@@ -153,10 +153,6 @@ class MPCPushDown(DagRewriter):
             if len(node.children) > 1 and node.isBoundary():
                 forkNode(node)
 
-    def _rewriteStore(self, node):
-
-        pass
-
     def _rewriteCreate(self, node):
 
         pass
@@ -221,10 +217,6 @@ class MPCPushUp(DagRewriter):
                 if not par.isRoot():
                     par.outRel.storedWith = copy.copy(outStoredWith)
             node.isMPC = False
-
-    def _rewriteStore(self, node):
-
-        pass
 
     def _rewriteCreate(self, node):
 
@@ -307,10 +299,6 @@ class CollSetPropDown(DagRewriter):
             columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
             col.collSets = utils.collSetsFromColumns(columnsAtIdx)
 
-    def _rewriteStore(self, node):
-
-        pass
-
     def _rewriteCreate(self, node):
 
         pass
@@ -343,10 +331,6 @@ class CollSetPropUp(DagRewriter):
 
         pass
 
-    def _rewriteStore(self, node):
-
-        pass
-
     def _rewriteCreate(self, node):
 
         pass
@@ -357,7 +341,6 @@ class HybridJoinOpt(DagRewriter):
     def __init__(self):
 
         super(HybridJoinOpt, self).__init__()
-        self.reverse = False
 
     def _rewriteAggregate(self, node):
 
@@ -373,25 +356,22 @@ class HybridJoinOpt(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        outRel = node.outRel
-        keyColIdx = 0
-        # oversimplifying here. what if there are multiple singleton collSets?
-        singletonCollSets = filter(
-            lambda s: len(s) == 1,
-            outRel.columns[keyColIdx].collSets)
-        singletonCollSets = sorted(list(singletonCollSets))
-        if singletonCollSets:
-            trustedParty = next(iter(singletonCollSets[0]))
-            hybridJoinOp = saldag.HybridJoin.fromJoin(node, trustedParty)    
-            parents = hybridJoinOp.parents
-            for par in parents:
-                par.replaceChild(node, hybridJoinOp)
+        if node.isMPC:
+            outRel = node.outRel
+            keyColIdx = 0
+            # oversimplifying here. what if there are multiple singleton collSets?
+            singletonCollSets = filter(
+                lambda s: len(s) == 1,
+                outRel.columns[keyColIdx].collSets)
+            singletonCollSets = sorted(list(singletonCollSets))
+            if singletonCollSets:
+                trustedParty = next(iter(singletonCollSets[0]))
+                hybridJoinOp = saldag.HybridJoin.fromJoin(node, trustedParty)
+                parents = hybridJoinOp.parents
+                for par in parents:
+                    par.replaceChild(node, hybridJoinOp)
 
     def _rewriteConcat(self, node):
-
-        pass
-
-    def _rewriteStore(self, node):
 
         pass
 
@@ -400,6 +380,84 @@ class HybridJoinOpt(DagRewriter):
         pass
 
 
+class InsertStoreOps(DagRewriter):
+
+    def __init__(self):
+
+        super(InsertStoreOps, self).__init__()
+
+    def _rewriteDefaultUnary(self, node):
+
+        # TODO: it's not correct to insert one store op
+        # between node and all its children. rather there should
+        # be one store op per group of children with the same
+        # storedWith sets
+        warnings.warn("hacky insert store ops")
+        inStoredWith = node.getInRel().storedWith
+        outStoredWith = node.outRel.storedWith
+        if inStoredWith != outStoredWith:
+            # input is stored with one set of parties
+            # but output must be stored with another so we
+            # need a store operation
+            outRel = copy.deepcopy(node.outRel)
+            outRel.rename(outRel.name + "_store")
+            # reset storedWith on parent so input matches output
+            node.outRel.storedWith = copy.copy(inStoredWith)
+
+            # create and insert store node
+            storeOp = saldag.Store(outRel, None)
+            saldag.insertBetweenChildren(node, storeOp)
+
+    def _rewriteAggregate(self, node):
+
+        self._rewriteDefaultUnary(node)
+
+    def _rewriteProject(self, node):
+
+        self._rewriteDefaultUnary(node)
+
+    def _rewriteMultiply(self, node):
+
+        self._rewriteDefaultUnary(node)
+
+    def _rewriteJoin(self, node):
+
+        # TODO: doesn't really belong here
+        if isinstance(node, saldag.RevealJoin):
+            return
+
+        outStoredWith = node.outRel.storedWith
+        orderedPars = [node.leftParent, node.rightParent]
+        for parent in orderedPars:
+            parStoredWith = parent.outRel.storedWith
+            if parStoredWith != outStoredWith:
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_store")
+                outRel.storedWith = copy.copy(outStoredWith)
+                # create and insert store node
+                storeOp = saldag.Store(outRel, None)
+                saldag.insertBetween(parent, node, storeOp)
+
+    def _rewriteConcat(self, node):
+
+        assert(not node.isLowerBoundary())
+        
+        outStoredWith = node.outRel.storedWith
+        orderedPars = node.getSortedParents()
+        for parent in orderedPars:
+            parStoredWith = parent.outRel.storedWith
+            if parStoredWith != outStoredWith:
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_store")
+                outRel.storedWith = copy.copy(outStoredWith)
+                # create and insert store node
+                storeOp = saldag.Store(outRel, None)
+                saldag.insertBetween(parent, node, storeOp)
+        
+    def _rewriteCreate(self, node):
+
+        pass
+
 def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
@@ -407,6 +465,7 @@ def rewriteDag(dag):
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
     HybridJoinOpt().rewrite(dag)
+    InsertStoreOps().rewrite(dag)
     return dag
 
 

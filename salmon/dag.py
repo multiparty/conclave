@@ -121,13 +121,13 @@ class UnaryOpNode(OpNode):
 
         return self.parent.outRel
 
-    def updateStoredWith(self):
-
-        self.outRel.storedWith = copy.copy(self.getInRel().storedWith)
-
     def requiresMPC(self):
 
         return self.getInRel().isShared() and not self.isLocal
+
+    def updateStoredWith(self):
+
+        self.outRel.storedWith = copy.copy(self.getInRel().storedWith)
 
     def makeOrphan(self):
 
@@ -360,9 +360,11 @@ class RevealJoin(Join):
         self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
         self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
 
+
 class HybridMultiPartyJoin(Join):
     # TODO
     pass
+
 
 class HybridJoin(Join):
     """Join Optimization
@@ -501,6 +503,27 @@ def removeBetween(parent, child, other):
 
     other.makeOrphan()
     other.children = set()
+
+
+def insertBetweenChildren(parent, other):
+
+    assert(not other.children)
+    assert(not other.parents)
+    # only dealing with unary nodes for now
+    assert(isinstance(other, UnaryOpNode))
+
+    other.parent = parent
+    other.parents.add(parent)
+
+    children = parent.children
+    for child in children:
+        child.replaceParent(parent, other)
+        if child in parent.children:
+            parent.children.remove(child)
+        child.updateOpSpecificCols()
+        other.children.add(child)
+
+    parent.children.add(other)
 
 
 def insertBetween(parent, child, other):

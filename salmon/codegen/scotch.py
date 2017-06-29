@@ -96,3 +96,10 @@ class ScotchCodeGen(CodeGen):
             multiply_op.getInRel().dbgStr(),
             multiply_op.outRel.dbgStr()
         )
+
+    def _generateStore(self, store_op):
+
+        return "STORE {} INTO {}\n".format(
+            store_op.getInRel().dbgStr(),
+            store_op.outRel.dbgStr()
+        )

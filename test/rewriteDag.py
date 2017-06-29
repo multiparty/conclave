@@ -36,8 +36,10 @@ def testSingleConcat():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
 CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}, in3([in3_0 {3}, in3_1 {3}]) {3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1}
+STORE in3([in3_0 {3}, in3_1 {3}]) {3} INTO in3_store([in3_store_0 {3}, in3_store_1 {3}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}, in3_store([in3_store_0 {3}, in3_store_1 {3}]) {1}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -74,10 +76,13 @@ def testSingleAgg():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 AGG [in1_1, +] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) GROUP BY [in1_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
+STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 AGG [in2_1, +] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) GROUP BY [in2_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-CONCATMPC [agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}, agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
-AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1}
+STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}
+CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2}
+STORE agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -114,7 +119,8 @@ def testSingleProj():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
 PROJECT [rel_0, rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS proj([proj_0 {1,2}, proj_1 {1,2}]) {1}
 """
     actual = protocol()
@@ -152,7 +158,8 @@ def testSingleMult():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
 MULTIPLY [rel_0 -> rel_0 * 1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
 """
     actual = protocol()
@@ -189,9 +196,12 @@ def testMultByZero():
         return set([in1, in2])
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+STORE in1([in1_0 {1}, in1_1 {1}]) {1} INTO in1_store([in1_store_0 {1}, in1_store_1 {1}]) {1, 2}
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CONCATMPC [in1([in1_0 {1}, in1_1 {1}]) {1}, in2([in2_0 {2}, in2_1 {2}]) {2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
-MULTIPLYMPC [rel_0 -> rel_0 * 0] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
+STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1, 2}
+CONCATMPC [in1_store([in1_store_0 {1}, in1_store_1 {1}]) {1, 2}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+MULTIPLYMPC [rel_0 -> rel_0 * 0] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1, 2}
+STORE mult([mult_0 {1,2}, mult_1 {1,2}]) {1, 2} INTO mult_store([mult_store_0 {1,2}, mult_store_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -235,12 +245,16 @@ CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [in1_0, in1_1] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) AS proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}
 AGG [proj_0_1, +] FROM (proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}) GROUP BY [proj_0_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
+STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2, 3}
 PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}
 AGG [proj_1_1, +] FROM (proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}) GROUP BY [proj_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
+STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2, 3}
 PROJECT [in3_0, in3_1] FROM (in3([in3_0 {3}, in3_1 {3}]) {3}) AS proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}
 AGG [proj_2_1, +] FROM (proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}) GROUP BY [proj_2_0] AS agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3}
-CONCATMPC [agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}, agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}, agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}
-AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1}
+STORE agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3} INTO agg_2_store([agg_2_store_0 {3}, agg_2_store_1 {3}]) {1, 2, 3}
+CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2, 3}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2, 3}, agg_2_store([agg_2_store_0 {3}, agg_2_store_1 {3}]) {1, 2, 3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}
+AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1, 2, 3}
+STORE agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1, 2, 3} INTO agg_obl_store([agg_obl_store_0 {1,2,3}, agg_obl_store_1 {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -740,9 +754,12 @@ def testHybridJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-(inA([inA_0 {1}, inA_1 {1}]) {1}) HYBRIDJOIN (inB([inB_0 {1} {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}
-AGGMPC [joined_1, +] FROM (joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}) GROUP BY [joined_0] AS agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1}
+STORE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}
+(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) HYBRIDJOIN (inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}
+AGGMPC [joined_1, +] FROM (joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}) GROUP BY [joined_0] AS agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2}
+STORE agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2} INTO agg_store([agg_store_0 {1,2} {1}, agg_store_1 {1,2} {1}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
