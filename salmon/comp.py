@@ -543,6 +543,29 @@ def rewriteDag(dag):
     return dag
 
 
+def pruneDag(dag, party):
+    # given party and dag, remove all op nodes from dag that party
+    # is not involved in
+    ordered = dag.topSort()
+    for node in ordered:
+        parents = node.parents
+        inputStoredWith = set().union(*[par.outRel.storedWith for par in parents])
+        inInput = party in inputStoredWith
+        inOutput = party in node.outRel.storedWith
+        if not (inInput or inOutput):
+            # prune
+            parents = node.parents
+            children = node.children
+            if node.isRoot():
+                dag.roots.remove(node)
+                dag.roots |= children
+                for child in children:
+                    child.parents.remove(node)
+            else:
+                pass
+    return dag
+
+
 def scotch(f):
 
     from salmon.codegen import scotch
@@ -554,10 +577,20 @@ def scotch(f):
     return wrap
 
 
-def mpc(f):
-
-    def wrap():
-        dag = rewriteDag(saldag.OpDag(f()))
-        return dag
-
-    return wrap
+def mpc(*args):
+    def _mpc(f):
+        def wrapper(*args, **kwargs):
+            dag = rewriteDag(saldag.OpDag(f()))
+            if party:
+                dag = pruneDag(dag, party)
+            return dag
+        return wrapper
+    if len(args) == 1 and callable(args[0]):
+        # No arguments, this is the decorator
+        # Set default values for the arguments
+        party = None
+        return _mpc(args[0])
+    else:
+        # This is just returning the decorator
+        party = args[0]
+        return _mpc
