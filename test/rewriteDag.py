@@ -720,8 +720,10 @@ def testRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-(inA([inA_0 {1}, inA_1 {1}]) {1}) REVEALJOIN (inB([inB_0 {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1}
+STORE inB([inB_0 {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {2}, inB_store_1 {2}]) {1, 2}
+(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) REVEALJOIN (inB_store([inB_store_0 {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -766,8 +768,8 @@ STORE agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2} INTO agg_store([agg_store_0
 
 
 def testHybridAndRevealJoinOpt():
-    # Note: for now I'm assuming that we can simply overwrite
-    # a reveal join with a hybrid join
+    # Note: for now I'm assuming that we don't overwrite a reveal join
+    # with a hybrid join
 
     @scotch
     @mpc
@@ -792,8 +794,10 @@ def testHybridAndRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-(inA([inA_0 {1}, inA_1 {1}]) {1}) HYBRIDJOIN (inB([inB_0 {1} {2}, inB_1 {2}]) {2}) ON inA_0 AND inB_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
+STORE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}
+(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) REVEALJOIN (inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual

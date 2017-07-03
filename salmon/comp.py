@@ -85,6 +85,10 @@ class DagRewriter:
                 self._rewriteProject(node)
             elif isinstance(node, saldag.Multiply):
                 self._rewriteMultiply(node)
+            elif isinstance(node, saldag.RevealJoin):
+                self._rewriteRevealJoin(node)
+            elif isinstance(node, saldag.HybridJoin):
+                self._rewriteHybridJoin(node)
             elif isinstance(node, saldag.Join):
                 self._rewriteJoin(node)
             elif isinstance(node, saldag.Concat):
@@ -142,6 +146,14 @@ class MPCPushDown(DagRewriter):
 
         self._rewriteUnaryDefault(node)
 
+    def _rewriteRevealJoin(self, node):
+
+        raise Exception("RevealJoin encountered during MPCPushDown")
+
+    def _rewriteHybridJoin(self, node):
+
+        raise Exception("HybridJoin encountered during MPCPushDown")
+
     def _rewriteJoin(self, node):
 
         self._rewriteDefault(node)
@@ -184,6 +196,14 @@ class MPCPushUp(DagRewriter):
 
         self._rewriteUnaryDefault(node)
 
+    def _rewriteRevealJoin(self, node):
+
+        raise Exception("RevealJoin encountered during MPCPushUp")
+
+    def _rewriteHybridJoin(self, node):
+
+        raise Exception("HybridJoin encountered during MPCPushUp")
+
     def _rewriteJoin(self, node):
 
         if node.isLowerBoundary():
@@ -201,6 +221,7 @@ class MPCPushUp(DagRewriter):
                 revealJoinOp = saldag.RevealJoin.fromJoin(
                     node, node.getLeftInRel(), outStoredWith)
 
+            # TODO: update storedWith on revealJoin
             if revealJoinOp:
                 parents = revealJoinOp.parents
                 for par in parents:
@@ -263,6 +284,14 @@ class CollSetPropDown(DagRewriter):
             if inCol != targetCol:
                 outCol.collSets |= copy.deepcopy(inCol.collSets)
 
+    def _rewriteRevealJoin(self, node):
+
+        self._rewriteJoin(node)
+
+    def _rewriteHybridJoin(self, node):
+
+        raise Exception("HybridJoin encountered during CollSetPropDown")
+
     def _rewriteJoin(self, node):
 
         leftInRel = node.getLeftInRel()
@@ -323,6 +352,14 @@ class CollSetPropUp(DagRewriter):
 
         pass
 
+    def _rewriteRevealJoin(self, node):
+
+        pass
+
+    def _rewriteHybridJoin(self, node):
+
+        pass
+
     def _rewriteJoin(self, node):
 
         pass
@@ -354,12 +391,22 @@ class HybridJoinOpt(DagRewriter):
 
         pass
 
+    def _rewriteRevealJoin(self, node):
+
+        # TODO
+        pass
+
+    def _rewriteHybridJoin(self, node):
+
+        raise Exception("HybridJoin encountered during HybridJoinOpt")
+
     def _rewriteJoin(self, node):
 
         if node.isMPC:
             outRel = node.outRel
             keyColIdx = 0
-            # oversimplifying here. what if there are multiple singleton collSets?
+            # oversimplifying here. what if there are multiple singleton
+            # collSets?
             singletonCollSets = filter(
                 lambda s: len(s) == 1,
                 outRel.columns[keyColIdx].collSets)
@@ -381,6 +428,7 @@ class HybridJoinOpt(DagRewriter):
 
 
 class InsertStoreOps(DagRewriter):
+    # TODO: this class is messy
 
     def __init__(self):
 
@@ -388,25 +436,27 @@ class InsertStoreOps(DagRewriter):
 
     def _rewriteDefaultUnary(self, node):
 
-        # TODO: it's not correct to insert one store op
-        # between node and all its children. rather there should
-        # be one store op per group of children with the same
-        # storedWith sets
+        # TODO: can there be a case when children have different
+        # storedWith sets?
         warnings.warn("hacky insert store ops")
         inStoredWith = node.getInRel().storedWith
         outStoredWith = node.outRel.storedWith
         if inStoredWith != outStoredWith:
-            # input is stored with one set of parties
-            # but output must be stored with another so we
-            # need a store operation
-            outRel = copy.deepcopy(node.outRel)
-            outRel.rename(outRel.name + "_store")
-            # reset storedWith on parent so input matches output
-            node.outRel.storedWith = copy.copy(inStoredWith)
+            if (node.isLowerBoundary()):
+                # input is stored with one set of parties
+                # but output must be stored with another so we
+                # need a store operation
+                outRel = copy.deepcopy(node.outRel)
+                outRel.rename(outRel.name + "_store")
+                # reset storedWith on parent so input matches output
+                node.outRel.storedWith = copy.copy(inStoredWith)
 
-            # create and insert store node
-            storeOp = saldag.Store(outRel, None)
-            saldag.insertBetweenChildren(node, storeOp)
+                # create and insert store node
+                storeOp = saldag.Store(outRel, None)
+                saldag.insertBetweenChildren(node, storeOp)
+            else:
+                raise Exception(
+                    "different storedWith on non-lower-boundary unary op", node)
 
     def _rewriteAggregate(self, node):
 
@@ -420,28 +470,51 @@ class InsertStoreOps(DagRewriter):
 
         self._rewriteDefaultUnary(node)
 
-    def _rewriteJoin(self, node):
+    def _rewriteRevealJoin(self, node):
 
-        # TODO: doesn't really belong here
-        if isinstance(node, saldag.RevealJoin):
-            return
+        # TODO: should use storedWith for this, not upperBoundary
+        if node.isUpperBoundary():
+            # need to secret-share before reveal join in
+            # upper boundary case
+            leftStoredWith = node.getLeftInRel().storedWith
+            rightStoredWith = node.getRightInRel().storedWith
+            combinedStoreWith = leftStoredWith | rightStoredWith
+            orderedPars = node.getSortedParents()
+            for parent in orderedPars:
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_store")
+                outRel.storedWith = copy.copy(combinedStoreWith)
+                # create and insert store node
+                storeOp = saldag.Store(outRel, None)
+                saldag.insertBetween(parent, node, storeOp)
+
+    def _rewriteHybridJoin(self, node):
+
+        self._rewriteJoin(node)
+
+    def _rewriteJoin(self, node):
 
         outStoredWith = node.outRel.storedWith
         orderedPars = [node.leftParent, node.rightParent]
         for parent in orderedPars:
             parStoredWith = parent.outRel.storedWith
             if parStoredWith != outStoredWith:
-                outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_store")
-                outRel.storedWith = copy.copy(outStoredWith)
-                # create and insert store node
-                storeOp = saldag.Store(outRel, None)
-                saldag.insertBetween(parent, node, storeOp)
+                if (node.isUpperBoundary()):
+                    # Entering mpc mode so need to secret-share before op
+                    outRel = copy.deepcopy(parent.outRel)
+                    outRel.rename(outRel.name + "_store")
+                    outRel.storedWith = copy.copy(outStoredWith)
+                    # create and insert store node
+                    storeOp = saldag.Store(outRel, None)
+                    saldag.insertBetween(parent, node, storeOp)
+                else:
+                    raise Exception(
+                        "different storedWith on non-upper-boundary join", node.dbgStr())
 
     def _rewriteConcat(self, node):
 
         assert(not node.isLowerBoundary())
-        
+
         outStoredWith = node.outRel.storedWith
         orderedPars = node.getSortedParents()
         for parent in orderedPars:
@@ -453,10 +526,11 @@ class InsertStoreOps(DagRewriter):
                 # create and insert store node
                 storeOp = saldag.Store(outRel, None)
                 saldag.insertBetween(parent, node, storeOp)
-        
+
     def _rewriteCreate(self, node):
 
         pass
+
 
 def rewriteDag(dag):
 
