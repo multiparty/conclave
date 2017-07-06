@@ -1,6 +1,11 @@
+int_cols = set({{{INT_COLS}}})
+float_cols = set({{{FLOAT_COLS}}})
+
 in_f = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
 
 {{{RELATION_NAME}}} = in_f \
     .map(lambda line: line.split(',')) \
-    .map(lambda x: [int(y) for y in x])
-
+    .map(lambda x: [int(x[i]) if i in int_cols \
+        else float(x[i]) if i in float_cols \
+        else x[i] for i in range(len(x))]) \
+    .cache()

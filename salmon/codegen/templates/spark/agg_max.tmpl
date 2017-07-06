@@ -5,4 +5,3 @@ a_id = int({{{AGGCOL_ID}}})
     .map(lambda x: (x[k_id], x[a_id])) \
     .reduceByKey(max) \
     .cache()
-

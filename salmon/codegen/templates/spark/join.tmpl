@@ -11,4 +11,7 @@ r = {{{RIGHT_PARENT}}} \
 
 {{{OUTREL}}} = l \
     .join(r) \
-    .map(lambda x: numpy.hstack([elem for tupl in x for elem in tupl]).tolist())
+    .map(lambda x: numpy.hstack( \
+        [elem for tupl in x for elem in numpy.array(tupl, dtype='O')]) \
+        .tolist()) \
+    .cache()
