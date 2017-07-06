@@ -515,7 +515,7 @@ def insertBetweenChildren(parent, other):
     other.parent = parent
     other.parents.add(parent)
 
-    children = parent.children
+    children = copy.copy(parent.children)
     for child in children:
         child.replaceParent(parent, other)
         if child in parent.children:

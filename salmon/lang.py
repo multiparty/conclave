@@ -50,9 +50,10 @@ def project(inputOpNode, outputName, selectedColNames):
 
     # Find all columns by name
     selectedCols = [utils.find(inRel.columns, colName) for colName in selectedColNames]
-    for selectedCol in selectedCols:
-        selectedCol.collSets = set()
+
     outRelCols = copy.deepcopy(selectedCols)
+    for col in outRelCols:
+        col.collSets = set()
 
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
@@ -110,7 +111,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
             # Exclude key column
             if idx != keyColIdx:
                 newCol = rel.Column(
-                    outputName, idx, col.typeStr, {})
+                    outputName, idx, col.typeStr, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -133,7 +134,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # Create new key column
     outKeyCol = rel.Column(
-        outputName, 0, leftJoinCol.typeStr, {})
+        outputName, 0, leftJoinCol.typeStr, set())
 
     # Define output relation columns.
     # These will be the key column followed
