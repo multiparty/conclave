@@ -276,6 +276,7 @@ class CollSetPropDown(DagRewriter):
 
         # Update target column collusion set
         targetColOut = outRelCols[targetCol.idx]
+        
         targetColOut.collSets |= utils.collSetsFromColumns(operands)
 
         # The other columns weren't modified so the collusion sets
@@ -549,7 +550,8 @@ def pruneDag(dag, party):
     ordered = dag.topSort()
     for node in ordered:
         parents = node.parents
-        inputStoredWith = set().union(*[par.outRel.storedWith for par in parents])
+        inputStoredWith = set().union(
+            *[par.outRel.storedWith for par in parents])
         inInput = party in inputStoredWith
         inOutput = party in node.outRel.storedWith
         if not (inInput or inOutput):
@@ -561,8 +563,16 @@ def pruneDag(dag, party):
                 dag.roots |= children
                 for child in children:
                     child.parents.remove(node)
+            elif node.isLeaf():
+                for parent in parents:
+                    parent.children.remove(node)
             else:
-                pass
+                if (len(parents) > 1 or len(children) > 1):
+                    raise NotImplementedError()
+                else:
+                    parent = next(iter(parents))
+                    child = next(iter(children))
+                    saldag.removeBetween(parent, child, node)
     return dag
 
 

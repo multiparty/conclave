@@ -314,13 +314,13 @@ def testAggProj():
 
         # define inputs
         colsIn1 = [
-            ("INTEGER", set([1])),
-            ("INTEGER", set([1]))
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            ("INTEGER", set([2])),
-            ("INTEGER", set([2]))
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
 
@@ -338,17 +338,20 @@ def testAggProj():
         # return root nodes
         return set([in1, in2])
 
-    expected = """CREATE RELATION in1 {1} WITH COLUMNS (INTEGER, INTEGER)
-CREATE RELATION in2 {2} WITH COLUMNS (INTEGER, INTEGER)
-PROJECT [in1_0, in1_1] FROM (in1 {1}) AS projA_0 {1}
-PROJECT [in2_0, in2_1] FROM (in2 {2}) AS projA_1 {2}
-PROJECT [projA_0_0, projA_0_1] FROM (projA_0 {1}) AS projB_0 {1}
-AGG [projB_0_1, +] FROM (projB_0 {1}) GROUP BY [projB_0_0] AS agg_0 {1}
-PROJECT [projA_1_0, projA_1_1] FROM (projA_1 {2}) AS projB_1 {2}
-AGG [projB_1_1, +] FROM (projB_1 {2}) GROUP BY [projB_1_0] AS agg_1 {2}
-CONCATMPC [agg_0 {1}, agg_1 {2}] AS rel {1, 2}
-AGGMPC [rel_1, +] FROM (rel {1, 2}) GROUP BY [rel_0] AS agg_obl {1}
-PROJECT [agg_obl_0, agg_obl_1] FROM (agg_obl {1}) AS projC {1}
+    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [in1_0, in1_1] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) AS projA_0([projA_0_0 {1}, projA_0_1 {1}]) {1}
+PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}
+PROJECT [projA_0_0, projA_0_1] FROM (projA_0([projA_0_0 {1}, projA_0_1 {1}]) {1}) AS projB_0([projB_0_0 {1}, projB_0_1 {1}]) {1}
+AGG [projB_0_1, +] FROM (projB_0([projB_0_0 {1}, projB_0_1 {1}]) {1}) GROUP BY [projB_0_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
+STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}
+PROJECT [projA_1_0, projA_1_1] FROM (projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}) AS projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}
+AGG [projB_1_1, +] FROM (projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}) GROUP BY [projB_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
+STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}
+CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2}
+STORE agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}
+PROJECT [agg_obl_store_0, agg_obl_store_1] FROM (agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}) AS projC([projC_0 {1,2}, projC_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -802,6 +805,40 @@ STORE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {1} {2}, i
     actual = protocol()
     assert expected == actual, actual
 
+def testJoin():
+
+    @scotch
+    @mpc
+    def protocol():
+        colsInA = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1]),
+        ]
+        inA = sal.create("inA", colsInA, set([1]))
+        colsInB = [
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
+        ]
+        inB = sal.create("inB", colsInB, set([2]))
+        projB = sal.project(inB, "projB", ["inB_0", "inB_1"])
+
+        joined = sal.join(inA, projB, "joined", "inA_0", "projB_0")
+        mult = sal.multiply(joined, "mult", "joined_0", ["joined_0", 0])
+        sal.collect(mult, 1)
+        return set([inA, inB])
+
+    expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
+CREATE RELATION inB([inB_0 {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [inB_0, inB_1] FROM (inB([inB_0 {2}, inB_1 {2}]) {2}) AS projB([projB_0 {2}, projB_1 {2}]) {2}
+STORE projB([projB_0 {2}, projB_1 {2}]) {2} INTO projB_store([projB_store_0 {2}, projB_store_1 {2}]) {1, 2}
+(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) JOINMPC (projB_store([projB_store_0 {2}, projB_store_1 {2}]) {1, 2}) ON inA_store_0 AND projB_store_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1, 2}
+MULTIPLYMPC [joined_0 -> joined_0 * 0] FROM (joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}, mult_2 {1,2}]) {1, 2}
+STORE mult([mult_0 {1,2}, mult_1 {1,2}, mult_2 {1,2}]) {1, 2} INTO mult_store([mult_store_0 {1,2}, mult_store_1 {1,2}, mult_store_2 {1,2}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
 if __name__ == "__main__":
 
     testSingleConcat()
@@ -809,7 +846,9 @@ if __name__ == "__main__":
     testSingleProj()
     testSingleMult()
     testMultByZero()
+    testAggProj()
     testConcatPushdown()
     testRevealJoinOpt()
     testHybridJoinOpt()
     testHybridAndRevealJoinOpt()
+    testJoin()
