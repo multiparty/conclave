@@ -276,7 +276,7 @@ class CollSetPropDown(DagRewriter):
 
         # Update target column collusion set
         targetColOut = outRelCols[targetCol.idx]
-        
+
         targetColOut.collSets |= utils.collSetsFromColumns(operands)
 
         # The other columns weren't modified so the collusion sets
@@ -586,6 +586,15 @@ def scotch(f):
 
     return wrap
 
+def sharemind(f):
+
+    from salmon.codegen import sharemind
+
+    def wrap():
+        code = sharemind.SharemindCodeGen(f())._generate(None, None)
+        return code
+
+    return wrap
 
 def mpc(*args):
     def _mpc(f):
@@ -604,3 +613,9 @@ def mpc(*args):
         # This is just returning the decorator
         party = args[0]
         return _mpc
+
+def dagonly(f):
+
+    def wrap():
+        return saldag.OpDag(f())
+    return wrap

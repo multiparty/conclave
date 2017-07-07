@@ -3,13 +3,15 @@ from salmon import rel
 from salmon import dag
 import salmon.utils as utils
 
+
 def create(name, columns, storedWith):
 
-    columns = [rel.Column(name, idx, typeStr, collusionSet) 
-        for idx, (typeStr, collusionSet) in enumerate(columns)]
+    columns = [rel.Column(name, idx, typeStr, collusionSet)
+               for idx, (typeStr, collusionSet) in enumerate(columns)]
     outRel = rel.Relation(name, columns, storedWith)
     op = dag.Create(outRel)
     return op
+
 
 def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
 
@@ -24,7 +26,7 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     aggCol.collSets = set()
 
     # Create output relation. Default column order is
-    # key column first followed by column that will be 
+    # key column first followed by column that will be
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
@@ -34,11 +36,12 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
 
     # Create our operator node
     op = dag.Aggregate(outRel, inputOpNode, keyCol, aggCol, aggregator)
-    
-    # Add it as a child to input node 
+
+    # Add it as a child to input node
     inputOpNode.children.add(op)
 
     return op
+
 
 def project(inputOpNode, outputName, selectedColNames):
 
@@ -49,7 +52,8 @@ def project(inputOpNode, outputName, selectedColNames):
     outRelCols = copy.deepcopy(inRel.columns)
 
     # Find all columns by name
-    selectedCols = [utils.find(inRel.columns, colName) for colName in selectedColNames]
+    selectedCols = [utils.find(inRel.columns, colName)
+                    for colName in selectedColNames]
 
     outRelCols = copy.deepcopy(selectedCols)
     for col in outRelCols:
@@ -61,11 +65,12 @@ def project(inputOpNode, outputName, selectedColNames):
 
     # Create our operator node
     op = dag.Project(outRel, inputOpNode, selectedCols)
-    
-    # Add it as a child to input node 
+
+    # Add it as a child to input node
     inputOpNode.children.add(op)
 
     return op
+
 
 def multiply(inputOpNode, outputName, targetColName, operands):
 
@@ -74,9 +79,10 @@ def multiply(inputOpNode, outputName, targetColName, operands):
 
     # Get relevant columns and create copies
     outRelCols = copy.deepcopy(inRel.columns)
-    
+
     # Replace all column names with corresponding columns.
-    operands = [utils.find(inRel.columns, op) if isinstance(op, str) else op for op in operands]
+    operands = [utils.find(inRel.columns, op) if isinstance(
+        op, str) else op for op in operands]
     for operand in operands:
         if hasattr(operand, "collSets"):
             operand.collSets = set()
@@ -89,18 +95,20 @@ def multiply(inputOpNode, outputName, targetColName, operands):
 
     # Create our operator node
     op = dag.Multiply(outRel, inputOpNode, targetColumn, operands)
-    
-    # Add it as a child to input node 
+
+    # Add it as a child to input node
     inputOpNode.children.add(op)
 
     return op
 
 # TODO: is a self-join a problem?
+
+
 def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # TODO: technically this should take in a start index as well
-    # This helper method takes in a relation, the key column of the join 
-    # and its index. 
+    # This helper method takes in a relation, the key column of the join
+    # and its index.
     # It returns a list of new columns with correctly merged collusion sets
     # for the output relation (in the same order as they appear on the input
     # relation but excluding the key column)
@@ -141,8 +149,8 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     # by all columns from left (other than join column)
     # and right (again excluding join column)
     outRelCols = [outKeyCol] \
-               + _colsFromRel(leftInRel, outKeyCol, leftJoinCol.idx) \
-               + _colsFromRel(rightInRel, outKeyCol, rightJoinCol.idx)
+        + _colsFromRel(leftInRel, outKeyCol, leftJoinCol.idx) \
+        + _colsFromRel(rightInRel, outKeyCol, rightJoinCol.idx)
 
     # The result of the join will be stored with the union
     # of the parties storing left and right
@@ -157,15 +165,16 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
         outRel,
         leftInputNode,
         rightInputNode,
-        leftJoinCol, 
+        leftJoinCol,
         rightJoinCol
     )
 
-    # Add it as a child to both input nodes 
+    # Add it as a child to both input nodes
     leftInputNode.children.add(op)
     rightInputNode.children.add(op)
 
     return op
+
 
 def concat(inputOpNodes, outputName):
 
@@ -182,7 +191,7 @@ def concat(inputOpNodes, outputName):
     relSizesEqual = len(set(relLens)) == 1
     assert(relSizesEqual)
 
-    # Copy over columns from existing relation 
+    # Copy over columns from existing relation
     outRelCols = copy.deepcopy(inRels[0].columns)
     for col in outRelCols:
         col.collSets = set()
@@ -198,12 +207,13 @@ def concat(inputOpNodes, outputName):
 
     # Create our operator node
     op = dag.Concat(outRel, inputOpNodes)
-    
-    # Add it as a child to each input node 
+
+    # Add it as a child to each input node
     for inputOpNode in inputOpNodes:
         inputOpNode.children.add(op)
 
     return op
+
 
 def collect(inputOpNode, targetParty):
 
@@ -211,4 +221,13 @@ def collect(inputOpNode, targetParty):
     inRel = inputOpNode.outRel
     inRel.storedWith = set([targetParty])
 
-    
+
+def _store(inputOpNode, outputName, targetParties):
+
+    # Not part of the public API! Only used to simplify codegen testing
+    outRel = copy.deepcopy(inputOpNode.outRel)
+    outRel.storedWith = targetParties
+    outRel.rename(outputName)
+    storeOp = dag.Store(outRel, inputOpNode)
+    inputOpNode.children.add(storeOp)
+    return storeOp
