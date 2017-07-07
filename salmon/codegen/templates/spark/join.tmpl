@@ -1,14 +1,6 @@
 lCol = [{{{LEFT_COL}}}]
 rCol = [{{{RIGHT_COL}}}]
 
-{{{OUTREL}}} = l \
-    .join(r) \
-    .filter(lambda x: x[1][0][0] == x[1][1][0]) \
-    .values() \
-    .map(lambda x: [elem for tupl in x for elem in tupl]) \
-    .map(lambda x: numpy.hstack(numpy.array(x)).tolist()) \
-    .cache()
-
 l = {{{LEFT_PARENT}}} \
     .map(lambda x: (tuple([x[i] for i in lCol]), \
         [x[i] for i in range(len(x)) if i not in set(lCol)]))
@@ -19,4 +11,7 @@ r = {{{RIGHT_PARENT}}} \
 
 {{{OUTREL}}} = l \
     .join(r) \
-    .map(lambda x: numpy.hstack([elem for tupl in x for elem in tupl]).tolist()) 
+    .map(lambda x: numpy.hstack( \
+        [elem for tupl in x for elem in numpy.array(tupl, dtype='O')]) \
+        .tolist()) \
+    .cache()
