@@ -1,6 +1,15 @@
-operand_ids = set({{{OPERAND_IDS}}})
+scalar = {{{SCALAR}}}
+operand = {{{OPERAND}}}
 target_id = {{{TARGET_ID}}}
 
-{{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: [x[target_id]*x[i] if i in operand_ids else x[i] for i in range(len(x))]) \
-    .cache()
+if not scalar:
+    {{{OUTREL}}} = {{{INREL}}} \
+        .map(lambda x: [x[operand]*x[i] if i == target_id \
+            else x[i] for i in range(len(x))]) \
+        .cache()
+else:
+    {{{OUTREL}}} = {{{INREL}}} \
+        .map(lambda x: [operand*x[i] if i == target_id \
+            else x[i] for i in range(len(x))]) \
+        .cache()
+

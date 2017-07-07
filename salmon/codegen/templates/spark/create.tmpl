@@ -9,3 +9,4 @@ in_f = sc.textFile("{{{INPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
         else float(x[i]) if i in float_cols \
         else x[i] for i in range(len(x))]) \
     .cache()
+
