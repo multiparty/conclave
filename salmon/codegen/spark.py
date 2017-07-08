@@ -59,8 +59,6 @@ class SparkCodeGen(CodeGen):
 
     def _generateConcat(self, concat_op):
 
-        in_rels = concat_op.getInRels()
-
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
@@ -90,7 +88,8 @@ class SparkCodeGen(CodeGen):
         leftName = join_op.getLeftInRel().name
         rightName = join_op.getRightInRel().name
 
-        # might change class vars to 'leftJoincols', etc in future
+        # spark code supports multiple join cols, only need to modify
+        # data variables in the future for multiple join cols
         leftJoinCol, rightJoinCol = join_op.leftJoinCol, join_op.rightJoinCol
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
@@ -122,10 +121,18 @@ class SparkCodeGen(CodeGen):
 
         op_cols = mult_op.operands
 
+        scalar = False
+        if isinstance(op_cols[1], int):
+            scalar = True
+            operand = op_cols[1]
+        else:
+            operand = op_cols[1].idx
+
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
         data = {
-            'OPERAND_IDS': [c.idx for c in op_cols],
+            'OPERAND': operand,
+            'SCALAR': scalar,
             'TARGET_ID': mult_op.targetCol.idx,
             'INREL': mult_op.getInRel().name,
             'OUTREL': mult_op.outRel.name
