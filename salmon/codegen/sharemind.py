@@ -30,6 +30,8 @@ class SharemindCodeGen(CodeGen):
         nodes = self.dag.topSort()
         # for each op
         for node in nodes:
+            if isinstance(node, Aggregate):
+                prot_op_code += self._generateAggregate(node)
             if isinstance(node, Store):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
@@ -62,7 +64,16 @@ class SharemindCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        pass
+        template = open(
+            "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": agg_op.outRel.name,
+            "IN_REL_NAME": agg_op.getInRel().name,
+            "KEY_COL_IDX": agg_op.keyCol.idx,
+            "AGG_COL_IDX": agg_op.aggCol.idx
+        }
+        return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
 
@@ -93,6 +104,7 @@ class SharemindCodeGen(CodeGen):
         pass
 
     def _generateStore(self, store_op):
+        # TODO: there can be two different stores, input and output
 
         def _toSchema(store_op):
 
