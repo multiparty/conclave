@@ -1,12 +1,15 @@
 from salmon.codegen import CodeGen
 from salmon.dag import *
+import os
+import pystache
 
 
 class SharemindCodeGen(CodeGen):
 
-    def __init__(self, dag):
+    def __init__(self, dag, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         super(SharemindCodeGen, self).__init__(dag)
+        self.template_directory = template_directory
 
     def _generate(self, job_name, output_directory):
         # generate code for the DAG stored. overwriting
@@ -86,14 +89,47 @@ class SharemindCodeGen(CodeGen):
 
         def _toSchema(store_op):
 
-            return "foo"
+            inRel = store_op.getInRel()
+            inCols = inRel.columns
+            outRel = store_op.outRel
+            outCols = outRel.columns
+            colDefs = []
+            colDefTemplate = open(
+                "{0}/colDef.tmpl".format(self.template_directory), 'r').read()
+            for inCol, outCol in zip(inCols, outCols):
+                colData = {
+                    'IN_NAME': inCol.getName(),
+                    'OUT_NAME': outCol.getName(),
+                    'TYPE': "uint32"  # hard-coded for now
+                }
+                colDefs.append(pystache.render(colDefTemplate, colData))
+            colDefStr = "\n".join(colDefs)
+            relDefTemplate = open(
+                "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
+            relData = {
+                "NAME": outRel.name,
+                "COL_DEFS": colDefStr
+            }
+            relDefStr = pystache.render(relDefTemplate, relData)
+            return relDefStr
 
         def _toCSVImp(store_op):
 
-            return "bar"
+            template = open(
+                "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "IN_NAME": store_op.getInRel().name
+            }
+            return pystache.render(template, data)
 
         def _toProtocol(store_op):
 
-            return "baz"
+            template = open(
+                "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "NAME": store_op.outRel.name,
+                "TYPE": "uint32"
+            }
+            return pystache.render(template, data)
 
         return store_op.getInRel().name, _toSchema(store_op), _toCSVImp(store_op), _toProtocol(store_op)
