@@ -21,7 +21,9 @@ def testStore():
         return set([in1])
 
     actual = protocol()
-    print(actual)
+    print(actual["schemas"])
+    print(actual["input"])
+    print(actual["protocol"])
 
 if __name__ == "__main__":
 

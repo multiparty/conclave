@@ -1,0 +1,82 @@
+import shared3p;
+import shared3p_table_database;
+import shared3p_matrix;
+import stdlib;
+import matrix;
+import shared3p_sort;
+import shared3p_random;
+import table_database;
+
+// declare domain
+domain pd_shared3p shared3p;
+
+// relational operators and helper functions that don't come with vanilla sharemind
+template <domain D : shared3p>
+D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
+    uint nrows = shape(rows)[0];
+    uint ncols = 2;
+
+    D uint32 [[2]] input(nrows, ncols);
+    input[:,0] = rows[:,keyCol];
+    input[:,1] = rows[:,valCol];
+
+    D uint32 [[2]] sorted = sort(input, (uint)0);
+
+    // TODO: vectorize to improve performance
+    for (uint r = 0; r < nrows - 1; r+=1) {
+        D uint32[[1]] left = sorted[r,:];
+        D uint32[[1]] right = sorted[r + 1,:];
+
+        D uint32 eqFlag = (uint32)(left[0] == right[0]);
+        D uint32 leftVal = left[1];
+        D uint32 rightVal = right[1];
+        sorted[r, 1] = leftVal * (1 - eqFlag);
+        sorted[r + 1,1] = rightVal + leftVal * (eqFlag);
+    }
+
+    D uint32[[1]] zeroValFlags = (uint32)(sorted[:,1] != 0);
+    D uint32 [[2]] result(nrows,ncols + 1);
+    result[:,0] = sorted[:,0];
+    result[:,1] = sorted[:,1];
+    result[:,2] = zeroValFlags[:];
+    D uint32 [[2]] shuffled = shuffleRows(result);
+
+    uint32 [[1]] keepFlags = declassify(shuffled[:,2]);
+    uint numResultRows = 0;
+    for (uint r = 0; r < nrows; r+=1) {
+        if (keepFlags[r] == 1) {
+            numResultRows++;
+        }
+    }
+    D uint32 [[2]] finalResult(numResultRows,ncols);
+    uint resIdx = 0;
+    for (uint r = 0; r < nrows; r+=1) {
+        if (keepFlags[r] == 1) {
+            finalResult[resIdx,0] = shuffled[r,0];
+            finalResult[resIdx,1] = shuffled[r,1];
+            resIdx++;
+        }
+    }
+    return finalResult;
+}
+
+pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
+    uint ncols = tdbGetColumnCount(ds, tbl);
+    uint nrows = tdbGetRowCount(ds, tbl);
+
+    pd_shared3p uint32 [[2]] mat(nrows, ncols);
+
+    for (uint c = 0; c < ncols; ++c) {
+        pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
+        for (uint r = 0; r < nrows; ++r) {
+            mat[r, c] = col[r];
+        }
+    }
+
+    return mat;
+}
+
+// the actual mpc-protocol 
+void main() {
+{{{PROTOCOL_CODE}}}
+}

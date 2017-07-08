@@ -41,10 +41,17 @@ class SharemindCodeGen(CodeGen):
             else:
                 print("encountered unknown operator type", repr(node))
 
+        topLevelProtTemplate = open(
+            "{0}/protocol.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "PROTOCOL_CODE": prot_op_code
+        }
+        expandedProtCode = pystache.render(topLevelProtTemplate, data)
+
         op_code = {
             "schemas": schemas,
-            "input_op_code": input_op_code,
-            "prot_op_code": prot_op_code
+            "input": input_op_code,
+            "protocol": expandedProtCode
         }
         # expand top-level job template and return code
         return self._generateJob(job_name, op_code)
