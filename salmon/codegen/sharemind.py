@@ -84,29 +84,29 @@ class SharemindCodeGen(CodeGen):
 
         # Sharemind only allows us to concatenate two relations
         # so we need to chain calls repeatedly for more
-        inRelsIt = iter(inRels)
-        concatDefTemplate = open(
-                "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
-        concatDefData = {
-            "TYPE": "uint32",
-            "OUT_REL_NAME": concat_op.outRel.name,
-            "LEFT_REL_NAME": next(inRelsIt).name,
-            "RIGHT_REL_NAME": next(inRelsIt).name
-        }
-        concatDefStr = pystache.render(concatDefTemplate, concatDefData)
-        concatInsts = [concatDefStr]
-        
-        concatMoreTemplate = open(
-                "{0}/concatMore.tmpl".format(self.template_directory), 'r').read()
-        for inRel in inRelsIt:
-            concatMoreData = {
-                "OUT_REL_NAME": concat_op.outRel.name,
-                "NEXT_REL_NAME": inRel.name                
-            }
-            concatMoreStr = pystache.render(concatMoreTemplate, concatMoreData)
-            concatInsts.append(concatMoreStr)
+        catTemplate = open(
+            "{0}/catExpr.tmpl".format(self.template_directory), 'r').read()
 
-        return "".join(concatInsts)
+        cats = catTemplate
+        for inRel in inRels[:-2]:
+            data = {
+                "LEFT_REL": inRel.name,
+                "RIGHT_REL": catTemplate
+            }
+            cats = pystache.render(cats, data)
+        outer = open(
+            "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "OUT_REL": concat_op.outRel.name,
+            "TYPE": "uint32",
+            "CATS": cats
+        }
+        outer = pystache.render(outer, data)
+        data = {
+            "LEFT_REL": inRels[-2].name,
+            "RIGHT_REL": inRels[-1].name
+        }
+        return pystache.render(outer, data)
 
     def _generateCreate(self, create_op):
 
