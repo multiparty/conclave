@@ -48,8 +48,69 @@ def testAgg():
     print(actual["input"])
     print(actual["protocol"])
 
+def testConcatTwo():
+
+    @sharemind
+    @dagonly
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        rel = sal.concat([in1, in2], "rel")
+
+        # return root nodes
+        return set([in1, in2])
+
+    actual = protocol()
+    print(actual["schemas"])
+    print(actual["input"])
+    print(actual["protocol"])
+
+def testConcatMore():
+
+    @sharemind
+    @dagonly
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        colsIn3 = [
+            defCol("INTEGER", [3]),
+            defCol("INTEGER", [3])
+        ]
+        in3 = sal.create("in3", colsIn3, set([3]))
+        
+        rel = sal.concat([in1, in2, in3], "rel")
+
+        # return root nodes
+        return set([in1, in2, in3])
+
+    actual = protocol()
+    print(actual["schemas"])
+    print(actual["input"])
+    print(actual["protocol"])
+
 if __name__ == "__main__":
 
-    testStore()
-    testAgg()
-    
+    # testStore()
+    # testAgg()
+    testConcatTwo()
+    testConcatMore()

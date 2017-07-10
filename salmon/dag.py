@@ -434,7 +434,7 @@ class Dag():
                       unmarked, ordered, deterministic=True):
 
         if node in tempMarked:
-            raise "Not a Dag!"
+            raise Exception("Not a Dag!")
 
         if node not in marked:
             if node in unmarked:

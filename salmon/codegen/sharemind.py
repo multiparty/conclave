@@ -32,6 +32,8 @@ class SharemindCodeGen(CodeGen):
         for node in nodes:
             if isinstance(node, Aggregate):
                 prot_op_code += self._generateAggregate(node)
+            if isinstance(node, Concat):
+                prot_op_code += self._generateConcat(node)
             if isinstance(node, Store):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
@@ -77,11 +79,38 @@ class SharemindCodeGen(CodeGen):
 
     def _generateConcat(self, concat_op):
 
-        pass
+        inRels = concat_op.getInRels()
+        assert len(inRels) > 1
+
+        # Sharemind only allows us to concatenate two relations
+        # so we need to chain calls repeatedly for more
+        inRelsIt = iter(inRels)
+        concatDefTemplate = open(
+                "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
+        concatDefData = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": concat_op.outRel.name,
+            "LEFT_REL_NAME": next(inRelsIt).name,
+            "RIGHT_REL_NAME": next(inRelsIt).name
+        }
+        concatDefStr = pystache.render(concatDefTemplate, concatDefData)
+        concatInsts = [concatDefStr]
+        
+        concatMoreTemplate = open(
+                "{0}/concatMore.tmpl".format(self.template_directory), 'r').read()
+        for inRel in inRelsIt:
+            concatMoreData = {
+                "OUT_REL_NAME": concat_op.outRel.name,
+                "NEXT_REL_NAME": inRel.name                
+            }
+            concatMoreStr = pystache.render(concatMoreTemplate, concatMoreData)
+            concatInsts.append(concatMoreStr)
+
+        return "".join(concatInsts)
 
     def _generateCreate(self, create_op):
 
-        pass
+        raise Exception("Create operator encountered during Sharemind codegen")
 
     def _generateJoin(self, join_op):
 
