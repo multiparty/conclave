@@ -60,6 +60,17 @@ D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     return finalResult;
 }
 
+template <domain D : shared3p>
+D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
+    uint nrows = shape(rows)[0];
+    uint ncols = size(selectedCols);
+    D uint32 [[2]] projected(nrows, ncols);
+    for (uint c = 0; c < ncols; ++c) {
+        projected[:, c] = rows[:, selectedCols[c]];
+    }
+    return projected;
+}
+
 pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
     uint ncols = tdbGetColumnCount(ds, tbl);
     uint nrows = tdbGetRowCount(ds, tbl);
