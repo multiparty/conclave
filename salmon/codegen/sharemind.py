@@ -34,6 +34,8 @@ class SharemindCodeGen(CodeGen):
                 prot_op_code += self._generateAggregate(node)
             if isinstance(node, Concat):
                 prot_op_code += self._generateConcat(node)
+            if isinstance(node, Join):
+                prot_op_code += self._generateJoin(node)
             if isinstance(node, Store):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
@@ -69,7 +71,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "TYPE": "uint32",
+            "TYPE": "xor_uint32",
             "OUT_REL_NAME": agg_op.outRel.name,
             "IN_REL_NAME": agg_op.getInRel().name,
             "KEY_COL_IDX": agg_op.keyCol.idx,
@@ -98,7 +100,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
         data = {
             "OUT_REL": concat_op.outRel.name,
-            "TYPE": "uint32",
+            "TYPE": "xor_uint32",
             "CATS": cats
         }
         outer = pystache.render(outer, data)
@@ -114,7 +116,17 @@ class SharemindCodeGen(CodeGen):
 
     def _generateJoin(self, join_op):
 
-        pass
+        template = open(
+            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "TYPE": "xor_uint32",
+            "OUT_REL": join_op.outRel.name,
+            "LEFT_IN_REL": join_op.getLeftInRel().name,
+            "LEFT_KEY_COL": join_op.leftJoinCol.idx,
+            "RIGHT_IN_REL": join_op.getRightInRel().name,
+            "RIGHT_KEY_COL": join_op.rightJoinCol.idx
+        }
+        return pystache.render(template, data)
 
     def _generateRevealJoin(self, reveal_join_op):
 
@@ -148,7 +160,7 @@ class SharemindCodeGen(CodeGen):
                 colData = {
                     'IN_NAME': inCol.getName(),
                     'OUT_NAME': outCol.getName(),
-                    'TYPE': "uint32"  # hard-coded for now
+                    'TYPE': "xor_uint32"  # hard-coded for now
                 }
                 colDefs.append(pystache.render(colDefTemplate, colData))
             colDefStr = "\n".join(colDefs)
@@ -176,7 +188,7 @@ class SharemindCodeGen(CodeGen):
                 "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
             data = {
                 "NAME": store_op.outRel.name,
-                "TYPE": "uint32"
+                "TYPE": "xor_uint32"
             }
             return pystache.render(template, data)
 
