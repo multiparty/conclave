@@ -15,7 +15,7 @@ def testStore():
             defCol("INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        out = sal._store(in1, "out", set([1, 2, 3]))
+        out = sal._close(in1, "out", set([1, 2, 3]))
 
         # return root nodes
         return set([in1])

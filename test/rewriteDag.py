@@ -36,10 +36,10 @@ def testSingleConcat():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
+CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}
 CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
-STORE in3([in3_0 {3}, in3_1 {3}]) {3} INTO in3_store([in3_store_0 {3}, in3_store_1 {3}]) {1}
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}, in3_store([in3_store_0 {3}, in3_store_1 {3}]) {1}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1}
+CLOSE in3([in3_0 {3}, in3_1 {3}]) {3} INTO in3_close([in3_close_0 {3}, in3_close_1 {3}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}, in3_close([in3_close_0 {3}, in3_close_1 {3}]) {1}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -76,13 +76,13 @@ def testSingleAgg():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 AGG [in1_1, +] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) GROUP BY [in1_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
-STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}
+CLOSE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 AGG [in2_1, +] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) GROUP BY [in2_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}
-CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+CLOSE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}
+CONCATMPC [agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}, agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
 AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2}
-STORE agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}
+OPEN agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_open([agg_obl_open_0 {1,2}, agg_obl_open_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -119,8 +119,8 @@ def testSingleProj():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
 PROJECT [rel_0, rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS proj([proj_0 {1,2}, proj_1 {1,2}]) {1}
 """
     actual = protocol()
@@ -158,8 +158,8 @@ def testSingleMult():
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
 MULTIPLY [rel_0 -> rel_0 * 1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
 """
     actual = protocol()
@@ -196,12 +196,12 @@ def testMultByZero():
         return set([in1, in2])
 
     expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-STORE in1([in1_0 {1}, in1_1 {1}]) {1} INTO in1_store([in1_store_0 {1}, in1_store_1 {1}]) {1, 2}
+CLOSE in1([in1_0 {1}, in1_1 {1}]) {1} INTO in1_close([in1_close_0 {1}, in1_close_1 {1}]) {1, 2}
 CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1, 2}
-CONCATMPC [in1_store([in1_store_0 {1}, in1_store_1 {1}]) {1, 2}, in2_store([in2_store_0 {2}, in2_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1, 2}
+CONCATMPC [in1_close([in1_close_0 {1}, in1_close_1 {1}]) {1, 2}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
 MULTIPLYMPC [rel_0 -> rel_0 * 0] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1, 2}
-STORE mult([mult_0 {1,2}, mult_1 {1,2}]) {1, 2} INTO mult_store([mult_store_0 {1,2}, mult_store_1 {1,2}]) {1}
+OPEN mult([mult_0 {1,2}, mult_1 {1,2}]) {1, 2} INTO mult_open([mult_open_0 {1,2}, mult_open_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -245,16 +245,16 @@ CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [in1_0, in1_1] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) AS proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}
 AGG [proj_0_1, +] FROM (proj_0([proj_0_0 {1}, proj_0_1 {1}]) {1}) GROUP BY [proj_0_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
-STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2, 3}
+CLOSE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2, 3}
 PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}
 AGG [proj_1_1, +] FROM (proj_1([proj_1_0 {2}, proj_1_1 {2}]) {2}) GROUP BY [proj_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2, 3}
+CLOSE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2, 3}
 PROJECT [in3_0, in3_1] FROM (in3([in3_0 {3}, in3_1 {3}]) {3}) AS proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}
 AGG [proj_2_1, +] FROM (proj_2([proj_2_0 {3}, proj_2_1 {3}]) {3}) GROUP BY [proj_2_0] AS agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3}
-STORE agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3} INTO agg_2_store([agg_2_store_0 {3}, agg_2_store_1 {3}]) {1, 2, 3}
-CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2, 3}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2, 3}, agg_2_store([agg_2_store_0 {3}, agg_2_store_1 {3}]) {1, 2, 3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}
+CLOSE agg_2([agg_2_0 {3}, agg_2_1 {3}]) {3} INTO agg_2_close([agg_2_close_0 {3}, agg_2_close_1 {3}]) {1, 2, 3}
+CONCATMPC [agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2, 3}, agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2, 3}, agg_2_close([agg_2_close_0 {3}, agg_2_close_1 {3}]) {1, 2, 3}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}
 AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1, 2, 3}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1, 2, 3}
-STORE agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1, 2, 3} INTO agg_obl_store([agg_obl_store_0 {1,2,3}, agg_obl_store_1 {1,2,3}]) {1}
+OPEN agg_obl([agg_obl_0 {1,2,3}, agg_obl_1 {1,2,3}]) {1, 2, 3} INTO agg_obl_open([agg_obl_open_0 {1,2,3}, agg_obl_open_1 {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -344,14 +344,14 @@ PROJECT [in1_0, in1_1] FROM (in1([in1_0 {1}, in1_1 {1}]) {1}) AS projA_0([projA_
 PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}
 PROJECT [projA_0_0, projA_0_1] FROM (projA_0([projA_0_0 {1}, projA_0_1 {1}]) {1}) AS projB_0([projB_0_0 {1}, projB_0_1 {1}]) {1}
 AGG [projB_0_1, +] FROM (projB_0([projB_0_0 {1}, projB_0_1 {1}]) {1}) GROUP BY [projB_0_0] AS agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1}
-STORE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}
+CLOSE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}
 PROJECT [projA_1_0, projA_1_1] FROM (projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}) AS projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}
 AGG [projB_1_1, +] FROM (projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}) GROUP BY [projB_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-STORE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}
-CONCATMPC [agg_0_store([agg_0_store_0 {1}, agg_0_store_1 {1}]) {1, 2}, agg_1_store([agg_1_store_0 {2}, agg_1_store_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
+CLOSE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}
+CONCATMPC [agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}, agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
 AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2}
-STORE agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}
-PROJECT [agg_obl_store_0, agg_obl_store_1] FROM (agg_obl_store([agg_obl_store_0 {1,2}, agg_obl_store_1 {1,2}]) {1}) AS projC([projC_0 {1,2}, projC_1 {1,2}]) {1}
+OPEN agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_open([agg_obl_open_0 {1,2}, agg_obl_open_1 {1,2}]) {1}
+PROJECT [agg_obl_open_0, agg_obl_open_1] FROM (agg_obl_open([agg_obl_open_0 {1,2}, agg_obl_open_1 {1,2}]) {1}) AS projC([projC_0 {1,2}, projC_1 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -723,10 +723,10 @@ def testRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
+CLOSE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE inB([inB_0 {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {2}, inB_store_1 {2}]) {1, 2}
-(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) REVEALJOIN (inB_store([inB_store_0 {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1}
+CLOSE inB([inB_0 {2}, inB_1 {2}]) {2} INTO inB_close([inB_close_0 {2}, inB_close_1 {2}]) {1, 2}
+(inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}) REVEALJOIN (inB_close([inB_close_0 {2}, inB_close_1 {2}]) {1, 2}) ON inA_close_0 AND inB_close_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -759,12 +759,12 @@ def testHybridJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
+CLOSE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}
-(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) HYBRIDJOIN (inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}
+CLOSE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_close([inB_close_0 {1} {2}, inB_close_1 {2}]) {1, 2}
+(inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}) HYBRIDJOIN (inB_close([inB_close_0 {1} {2}, inB_close_1 {2}]) {1, 2}) ON inA_close_0 AND inB_close_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}
 AGGMPC [joined_1, +] FROM (joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1, 2}) GROUP BY [joined_0] AS agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2}
-STORE agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2} INTO agg_store([agg_store_0 {1,2} {1}, agg_store_1 {1,2} {1}]) {1}
+OPEN agg([agg_0 {1,2} {1}, agg_1 {1,2} {1}]) {1, 2} INTO agg_open([agg_open_0 {1,2} {1}, agg_open_1 {1,2} {1}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -797,10 +797,10 @@ def testHybridAndRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
+CLOSE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {1} {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-STORE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}
-(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) REVEALJOIN (inB_store([inB_store_0 {1} {2}, inB_store_1 {2}]) {1, 2}) ON inA_store_0 AND inB_store_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
+CLOSE inB([inB_0 {1} {2}, inB_1 {2}]) {2} INTO inB_close([inB_close_0 {1} {2}, inB_close_1 {2}]) {1, 2}
+(inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}) REVEALJOIN (inB_close([inB_close_0 {1} {2}, inB_close_1 {2}]) {1, 2}) ON inA_close_0 AND inB_close_0 AS joined([joined_0 {1,2} {1}, joined_1 {1,2} {1}, joined_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -828,13 +828,13 @@ def testJoin():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([inA_0 {1}, inA_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-STORE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}
+CLOSE inA([inA_0 {1}, inA_1 {1}]) {1} INTO inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}
 CREATE RELATION inB([inB_0 {2}, inB_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [inB_0, inB_1] FROM (inB([inB_0 {2}, inB_1 {2}]) {2}) AS projB([projB_0 {2}, projB_1 {2}]) {2}
-STORE projB([projB_0 {2}, projB_1 {2}]) {2} INTO projB_store([projB_store_0 {2}, projB_store_1 {2}]) {1, 2}
-(inA_store([inA_store_0 {1}, inA_store_1 {1}]) {1, 2}) JOINMPC (projB_store([projB_store_0 {2}, projB_store_1 {2}]) {1, 2}) ON inA_store_0 AND projB_store_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1, 2}
+CLOSE projB([projB_0 {2}, projB_1 {2}]) {2} INTO projB_close([projB_close_0 {2}, projB_close_1 {2}]) {1, 2}
+(inA_close([inA_close_0 {1}, inA_close_1 {1}]) {1, 2}) JOINMPC (projB_close([projB_close_0 {2}, projB_close_1 {2}]) {1, 2}) ON inA_close_0 AND projB_close_0 AS joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1, 2}
 MULTIPLYMPC [joined_0 -> joined_0 * 0] FROM (joined([joined_0 {1,2}, joined_1 {1,2}, joined_2 {1,2}]) {1, 2}) AS mult([mult_0 {1,2}, mult_1 {1,2}, mult_2 {1,2}]) {1, 2}
-STORE mult([mult_0 {1,2}, mult_1 {1,2}, mult_2 {1,2}]) {1, 2} INTO mult_store([mult_store_0 {1,2}, mult_store_1 {1,2}, mult_store_2 {1,2}]) {1}
+OPEN mult([mult_0 {1,2}, mult_1 {1,2}, mult_2 {1,2}]) {1, 2} INTO mult_open([mult_open_0 {1,2}, mult_open_1 {1,2}, mult_open_2 {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual

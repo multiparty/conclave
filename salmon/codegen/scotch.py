@@ -1,10 +1,9 @@
 from salmon.codegen import CodeGen
 from salmon.dag import *
 
-# Basically BEER but with additional debugging information (scotch tape?)
-
 
 class ScotchCodeGen(CodeGen):
+    # Basically BEER but with additional debugging information (scotch tape?)
 
     def __init__(self, dag):
 
@@ -97,9 +96,16 @@ class ScotchCodeGen(CodeGen):
             multiply_op.outRel.dbgStr()
         )
 
-    def _generateStore(self, store_op):
+    def _generateClose(self, close_op):
 
-        return "STORE {} INTO {}\n".format(
-            store_op.getInRel().dbgStr(),
-            store_op.outRel.dbgStr()
+        return "CLOSE {} INTO {}\n".format(
+            close_op.getInRel().dbgStr(),
+            close_op.outRel.dbgStr()
+        )
+
+    def _generateOpen(self, open_op):
+
+        return "OPEN {} INTO {}\n".format(
+            open_op.getInRel().dbgStr(),
+            open_op.outRel.dbgStr()
         )

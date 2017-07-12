@@ -229,6 +229,37 @@ class Store(UnaryOpNode):
         return True
 
 
+class Open(UnaryOpNode):
+
+    def __init__(self, outRel, parent):
+
+        super(Open, self).__init__("open", outRel, parent)
+
+    def isReversible(self):
+
+        return True
+
+
+class Close(UnaryOpNode):
+
+    def __init__(self, outRel, parent):
+
+        super(Close, self).__init__("close", outRel, parent)
+
+    def isReversible(self):
+
+        return True
+
+class Send(UnaryOpNode):
+
+    def __init__(self, outRel, parent):
+
+        super(Send, self).__init__("send", outRel, parent)
+
+    def isReversible(self):
+
+        return True
+
 class Concat(NaryOpNode):
 
     def __init__(self, outRel, parents):
@@ -305,7 +336,27 @@ class Multiply(UnaryOpNode):
     def isReversible(self):
 
         # A multiplication is reversible unless one of the operands is 0
+        # TODO: is this true?
         return all([op != 0 for op in self.operands])
+
+    def updateOpSpecificCols(self):
+
+        tempCols = self.getInRel().columns
+        self.operands = [tempCols[col.idx] if isinstance(
+            col, rel.Column) else col for col in tempCols]
+
+class Divide(UnaryOpNode):
+
+    def __init__(self, outRel, parent, targetCol, operands):
+
+        super(Divide, self).__init__("divide", outRel, parent)
+        self.operands = operands
+        self.targetCol = targetCol
+        self.isLocal = True
+
+    def isReversible(self):
+
+        return True
 
     def updateOpSpecificCols(self):
 

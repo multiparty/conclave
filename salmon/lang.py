@@ -222,12 +222,12 @@ def collect(inputOpNode, targetParty):
     inRel.storedWith = set([targetParty])
 
 
-def _store(inputOpNode, outputName, targetParties):
+def _close(inputOpNode, outputName, targetParties):
 
     # Not part of the public API! Only used to simplify codegen testing
     outRel = copy.deepcopy(inputOpNode.outRel)
     outRel.storedWith = targetParties
     outRel.rename(outputName)
-    storeOp = dag.Store(outRel, inputOpNode)
+    storeOp = dag.Close(outRel, inputOpNode)
     inputOpNode.children.add(storeOp)
     return storeOp

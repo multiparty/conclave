@@ -12,6 +12,9 @@ class SharemindCodeGen(CodeGen):
         self.template_directory = template_directory
 
     def _generate(self, job_name, output_directory):
+        # TODO: think of a way to extend CodeGen._generate
+        # instead of entirely rewriting it
+
         # generate code for the DAG stored. overwriting
         # method since we have multiple code objects being
         # create, instead of one
@@ -38,10 +41,10 @@ class SharemindCodeGen(CodeGen):
                 prot_op_code += self._generateJoin(node)
             if isinstance(node, Project):
                 prot_op_code += self._generateProject(node)
-            if isinstance(node, Store):
+            if isinstance(node, Close):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
-                schemaName, schema, in_code, prot_code = self._generateStore(
+                schemaName, schema, in_code, prot_code = self._generateClose(
                     node)
                 schemas[schemaName] = schema
                 input_op_code += in_code
@@ -156,8 +159,7 @@ class SharemindCodeGen(CodeGen):
 
         pass
 
-    def _generateStore(self, store_op):
-        # TODO: there can be two different stores, input and output
+    def _generateClose(self, store_op):
 
         def _toSchema(store_op):
 

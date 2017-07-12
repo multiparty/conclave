@@ -93,8 +93,10 @@ class DagRewriter:
                 self._rewriteJoin(node)
             elif isinstance(node, saldag.Concat):
                 self._rewriteConcat(node)
-            elif isinstance(node, saldag.Store):
-                self._rewriteStore(node)
+            elif isinstance(node, saldag.Close):
+                self._rewriteClose(node)
+            elif isinstance(node, saldag.Open):
+                self._rewriteOpen(node)
             elif isinstance(node, saldag.Create):
                 self._rewriteCreate(node)
             else:
@@ -428,12 +430,12 @@ class HybridJoinOpt(DagRewriter):
         pass
 
 
-class InsertStoreOps(DagRewriter):
+class InsertOpenAndCloseOps(DagRewriter):
     # TODO: this class is messy
 
     def __init__(self):
 
-        super(InsertStoreOps, self).__init__()
+        super(InsertOpenAndCloseOps, self).__init__()
 
     def _rewriteDefaultUnary(self, node):
 
@@ -448,12 +450,12 @@ class InsertStoreOps(DagRewriter):
                 # but output must be stored with another so we
                 # need a store operation
                 outRel = copy.deepcopy(node.outRel)
-                outRel.rename(outRel.name + "_store")
+                outRel.rename(outRel.name + "_open")
                 # reset storedWith on parent so input matches output
                 node.outRel.storedWith = copy.copy(inStoredWith)
 
                 # create and insert store node
-                storeOp = saldag.Store(outRel, None)
+                storeOp = saldag.Open(outRel, None)
                 saldag.insertBetweenChildren(node, storeOp)
             else:
                 raise Exception(
@@ -483,10 +485,10 @@ class InsertStoreOps(DagRewriter):
             orderedPars = node.getSortedParents()
             for parent in orderedPars:
                 outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_store")
+                outRel.rename(outRel.name + "_close")
                 outRel.storedWith = copy.copy(combinedStoreWith)
                 # create and insert store node
-                storeOp = saldag.Store(outRel, None)
+                storeOp = saldag.Close(outRel, None)
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteHybridJoin(self, node):
@@ -503,10 +505,10 @@ class InsertStoreOps(DagRewriter):
                 if (node.isUpperBoundary()):
                     # Entering mpc mode so need to secret-share before op
                     outRel = copy.deepcopy(parent.outRel)
-                    outRel.rename(outRel.name + "_store")
+                    outRel.rename(outRel.name + "_close")
                     outRel.storedWith = copy.copy(outStoredWith)
                     # create and insert store node
-                    storeOp = saldag.Store(outRel, None)
+                    storeOp = saldag.Close(outRel, None)
                     saldag.insertBetween(parent, node, storeOp)
                 else:
                     raise Exception(
@@ -522,10 +524,10 @@ class InsertStoreOps(DagRewriter):
             parStoredWith = parent.outRel.storedWith
             if parStoredWith != outStoredWith:
                 outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_store")
+                outRel.rename(outRel.name + "_close")
                 outRel.storedWith = copy.copy(outStoredWith)
-                # create and insert store node
-                storeOp = saldag.Store(outRel, None)
+                # create and insert close node
+                storeOp = saldag.Close(outRel, None)
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteCreate(self, node):
@@ -540,7 +542,7 @@ def rewriteDag(dag):
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
     HybridJoinOpt().rewrite(dag)
-    InsertStoreOps().rewrite(dag)
+    InsertOpenAndCloseOps().rewrite(dag)
     return dag
 
 

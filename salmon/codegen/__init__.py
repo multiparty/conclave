@@ -26,18 +26,20 @@ class CodeGen:
                 op_code += self._generateConcat(node)
             elif isinstance(node, Create):
                 op_code += self._generateCreate(node)
+            elif isinstance(node, Close):
+                op_code += self._generateClose(node)
             elif isinstance(node, RevealJoin):
                 op_code += self._generateRevealJoin(node)
             elif isinstance(node, HybridJoin):
                 op_code += self._generateHybridJoin(node)
             elif isinstance(node, Join):
                 op_code += self._generateJoin(node)
+            elif isinstance(node, Open):
+                op_code += self._generateOpen(node)
             elif isinstance(node, Project):
                 op_code += self._generateProject(node)
             elif isinstance(node, Multiply):
                 op_code += self._generateMultiply(node)
-            elif isinstance(node, Store):
-                op_code += self._generateStore(node)
             else:
                 print("encountered unknown operator type", repr(node))
         
