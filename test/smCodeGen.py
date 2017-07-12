@@ -134,6 +134,25 @@ def testJoin():
     actual = protocol()
     print(actual["protocol"])
 
+
+def testProj():
+
+    @sharemind
+    @dagonly
+    def protocol():
+
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        proj = sal.project(in1, "proj", ["in1_1", "in1_0"])
+
+        return set([in1])
+
+    actual = protocol()
+    print(actual["protocol"])
+
 if __name__ == "__main__":
 
     testStore()
@@ -141,3 +160,4 @@ if __name__ == "__main__":
     testConcatTwo()
     testConcatMore()
     testJoin()
+    testProj()

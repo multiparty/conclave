@@ -36,6 +36,8 @@ class SharemindCodeGen(CodeGen):
                 prot_op_code += self._generateConcat(node)
             if isinstance(node, Join):
                 prot_op_code += self._generateJoin(node)
+            if isinstance(node, Project):
+                prot_op_code += self._generateProject(node)
             if isinstance(node, Store):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
@@ -84,7 +86,7 @@ class SharemindCodeGen(CodeGen):
         inRels = concat_op.getInRels()
         assert len(inRels) > 1
 
-        # Sharemind only allows us to concatenate two relations
+        # Sharemind only allows us to concatenate two relations at a time
         # so we need to chain calls repeatedly for more
         catTemplate = open(
             "{0}/catExpr.tmpl".format(self.template_directory), 'r').read()
@@ -138,7 +140,17 @@ class SharemindCodeGen(CodeGen):
 
     def _generateProject(self, project_op):
 
-        pass
+        template = open(
+            "{0}/project.tmpl".format(self.template_directory), 'r').read()
+        selectedCols = project_op.selectedCols
+        selectedColStr = ",".join([str(col.idx) for col in selectedCols])
+        data = {
+            "TYPE": "xor_uint32",
+            "OUT_REL": project_op.outRel.name,
+            "IN_REL": project_op.getInRel().name,
+            "SELECTED_COLS": "{" + selectedColStr + "}" # hacking array brackets
+        }
+        return pystache.render(template, data)
 
     def _generateMultiply(self, multiply_op):
 
