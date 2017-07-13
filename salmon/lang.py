@@ -228,6 +228,17 @@ def _close(inputOpNode, outputName, targetParties):
     outRel = copy.deepcopy(inputOpNode.outRel)
     outRel.storedWith = targetParties
     outRel.rename(outputName)
-    storeOp = dag.Close(outRel, inputOpNode)
-    inputOpNode.children.add(storeOp)
-    return storeOp
+    closeOp = dag.Close(outRel, inputOpNode)
+    inputOpNode.children.add(closeOp)
+    return closeOp
+
+
+def _open(inputOpNode, outputName, targetParties):
+
+    # Not part of the public API! Only used to simplify codegen testing
+    outRel = copy.deepcopy(inputOpNode.outRel)
+    outRel.storedWith = targetParties
+    outRel.rename(outputName)
+    openOp = dag.Open(outRel, inputOpNode)
+    inputOpNode.children.add(openOp)
+    return openOp

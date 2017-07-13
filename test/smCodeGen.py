@@ -3,7 +3,7 @@ from salmon.comp import dagonly, sharemind
 from salmon.utils import *
 
 
-def testStore():
+def testClose():
 
     @sharemind
     @dagonly
@@ -153,11 +153,30 @@ def testProj():
     actual = protocol()
     print(actual["protocol"])
 
+def testOpen():
+
+    @sharemind
+    @dagonly
+    def protocol():
+
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        opened = sal._open(in1, "opened", set([1]))
+
+        return set([in1])
+
+    actual = protocol()
+    print(actual["protocol"])
+
 if __name__ == "__main__":
 
-    testStore()
+    testClose()
     testAgg()
     testConcatTwo()
     testConcatMore()
     testJoin()
     testProj()
+    testOpen()

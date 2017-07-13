@@ -5,6 +5,12 @@ import pystache
 
 
 class SharemindCodeGen(CodeGen):
+    # General problem with Sharemind codegen:
+    # Sharemind provides the abstraction of a cluster.
+    # One party submits the job to the miners instead
+    # of the miners each executing the code. In addition
+    # the code is returned to one party only (the party
+    # that submitted the code to begin with)
 
     def __init__(self, dag, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
@@ -24,45 +30,53 @@ class SharemindCodeGen(CodeGen):
         schemas = {}
         # the code the parties will run to secret-share their
         # inputs with the miners
-        input_op_code = ""
+        input_code = ""
         # the code the miners will run after the data has been
         # secret shared
-        prot_op_code = ""
+        miner_code = ""
+        # code to submit the job and receive the output
+        # (currently assumes there is only one output party)
+        controller_code = ""
 
         # topological traversal
         nodes = self.dag.topSort()
         # for each op
         for node in nodes:
             if isinstance(node, Aggregate):
-                prot_op_code += self._generateAggregate(node)
-            if isinstance(node, Concat):
-                prot_op_code += self._generateConcat(node)
-            if isinstance(node, Join):
-                prot_op_code += self._generateJoin(node)
-            if isinstance(node, Project):
-                prot_op_code += self._generateProject(node)
-            if isinstance(node, Close):
+                miner_code += self._generateAggregate(node)
+            elif isinstance(node, Concat):
+                miner_code += self._generateConcat(node)
+            elif isinstance(node, Join):
+                miner_code += self._generateJoin(node)
+            elif isinstance(node, Open):
+                # open op needs adds miner code and controller code
+                # for receiving results
+                controller_open_code, miner_open_code = self._generateOpen(node)
+                controller_code += controller_open_code
+                miner_code += miner_open_code
+            elif isinstance(node, Project):
+                miner_code += self._generateProject(node)
+            elif isinstance(node, Close):
                 # the store operation adds to the input task since we
                 # need to secret share, as well as to the protocol task
                 schemaName, schema, in_code, prot_code = self._generateClose(
                     node)
                 schemas[schemaName] = schema
-                input_op_code += in_code
-                prot_op_code += prot_code
+                input_code += in_code
+                miner_code += prot_code
             else:
                 print("encountered unknown operator type", repr(node))
 
         topLevelProtTemplate = open(
             "{0}/protocol.tmpl".format(self.template_directory), 'r').read()
-        data = {
-            "PROTOCOL_CODE": prot_op_code
-        }
-        expandedProtCode = pystache.render(topLevelProtTemplate, data)
+        expandedMinerCode = pystache.render(
+            topLevelProtTemplate, {"PROTOCOL_CODE": miner_code})
 
         op_code = {
             "schemas": schemas,
-            "input": input_op_code,
-            "protocol": expandedProtCode
+            "input": input_code,
+            "protocol": expandedMinerCode,
+            "controller": controller_code
         }
         # expand top-level job template and return code
         return self._generateJob(job_name, op_code)
@@ -133,13 +147,23 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generateRevealJoin(self, reveal_join_op):
+    def _generateOpen(self, open_op):
 
-        pass
+        def _toMiner(open_op):
+            # miner portion of open op
+            template = open(
+                "{0}/publish.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "OUT_REL": open_op.outRel.name,
+                "IN_REL": open_op.getInRel().name,
+            }
+            return pystache.render(template, data)
 
-    def _generateHybridJoin(self, hybrid_join_op):
+        def _toController(open_op):
+            # TODO: controller portion of handling output
+            return ""
 
-        pass
+        return _toController(open_op), _toMiner(open_op)
 
     def _generateProject(self, project_op):
 
@@ -151,7 +175,8 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "xor_uint32",
             "OUT_REL": project_op.outRel.name,
             "IN_REL": project_op.getInRel().name,
-            "SELECTED_COLS": "{" + selectedColStr + "}" # hacking array brackets
+            # hacking array brackets
+            "SELECTED_COLS": "{" + selectedColStr + "}"
         }
         return pystache.render(template, data)
 
@@ -206,4 +231,10 @@ class SharemindCodeGen(CodeGen):
             }
             return pystache.render(template, data)
 
-        return store_op.getInRel().name, _toSchema(store_op), _toCSVImp(store_op), _toProtocol(store_op)
+        res = (
+            store_op.getInRel().name,
+            _toSchema(store_op),
+            _toCSVImp(store_op),
+            _toProtocol(store_op)
+        )
+        return res
