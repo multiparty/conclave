@@ -71,6 +71,21 @@ D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
     return projected;
 }
 
+template <domain D : shared3p>
+D uint32[[2]] multiply(D uint32[[2]] rows, uint targetColIdx, uint[[1]] colOperandIndeces, uint[[1]] scalarOperands) {
+    D uint32 [[2]] multiplied(nrows, ncols) = rows;
+    multiplied[:, targetColIdx] = (uint32) 1;
+    // note: below works because order of operands doesn't matter with multiplication
+    for (uint c = 0; c < size(colOperandIndeces); ++c) {
+        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * rows[:, colOperandIndeces[c]];
+    }
+    for (uint c = 0; c < size(scalarOperands); ++c) {
+        D uint32 scalar = (uint32) scalarOperands[c];
+        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * scalar;
+    }
+    return multiplied;
+}
+
 pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
     uint ncols = tdbGetColumnCount(ds, tbl);
     uint nrows = tdbGetRowCount(ds, tbl);
