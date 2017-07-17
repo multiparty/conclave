@@ -40,6 +40,8 @@ class CodeGen:
                 op_code += self._generateProject(node)
             elif isinstance(node, Multiply):
                 op_code += self._generateMultiply(node)
+            elif isinstance(node, Divide):
+                op_code += self._generateDivide(node)
             else:
                 print("encountered unknown operator type", repr(node))
         
