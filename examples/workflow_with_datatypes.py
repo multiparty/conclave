@@ -16,7 +16,6 @@ def protocol():
         defCol("FLOAT", [1])
     ]
     inA = sal.create("inA", colsInA, set([1]))
-
     multA = sal.multiply(inA, "multA", "inA_4", ["inA_4", "inA_5"])
     projA = sal.project(multA, "projA", ["multA_0", "multA_1"])
     projB = sal.project(multA, "projB", ["multA_2", "multA_3"])
@@ -26,7 +25,7 @@ def protocol():
     joinB = sal.join(projC, projD, "joinB", "projC_0", "projD_0")
     concatA = sal.concat([joinA, joinB], "concatA")
     multB = sal.multiply(concatA, "multB", "concatA_1", ["concatA_1", 10])
-    opened = sal.collect(concatA, 1)
+    opened = sal.collect(multB, 1)
 
     # return root nodes
     return set([inA])

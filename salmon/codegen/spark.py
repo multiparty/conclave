@@ -121,12 +121,12 @@ class SparkCodeGen(CodeGen):
 
         op_cols = mult_op.operands
 
-        scalar = False
-        if isinstance(op_cols[1], int):
+        if hasattr(op_cols[1], 'idx'):
+            scalar = False
+            operand = op_cols[1].idx
+        else:
             scalar = True
             operand = op_cols[1]
-        else:
-            operand = op_cols[1].idx
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
