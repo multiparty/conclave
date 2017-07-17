@@ -140,6 +140,30 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _generateDivide(self, div_op):
+
+        op_cols = div_op.operands
+
+        if hasattr(op_cols[1], 'idx'):
+            scalar = False
+            operand = op_cols[1].idx
+        else:
+            scalar = True
+            operand = op_cols[1]
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'divide'), 'r').read()
+
+        data = {
+            'OPERAND': operand,
+            'SCALAR': scalar,
+            'TARGET_ID': div_op.targetCol.idx,
+            'INREL': div_op.getInRel().name,
+            'OUTREL': div_op.outRel.name
+        }
+
+        return pystache.render(template, data)
+
+
     def _generateStore(self, store_op):
 
         template = open("{}/store.tmpl".format(self.template_directory), 'r').read()
