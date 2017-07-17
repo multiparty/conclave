@@ -72,6 +72,36 @@ def project(inputOpNode, outputName, selectedColNames):
     return op
 
 
+def divide(inputOpNode, outputName, targetColName, operands):
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    # Replace all column names with corresponding columns.
+    operands = [utils.find(inRel.columns, op) if isinstance(
+        op, str) else op for op in operands]
+    for operand in operands:
+        if hasattr(operand, "collSets"):
+            operand.collSets = set()
+    targetColumn = utils.find(inRel.columns, targetColName)
+    targetColumn.collSets = set()
+
+    # Create output relation
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    # Create our operator node
+    op = dag.Divide(outRel, inputOpNode, targetColumn, operands)
+
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
+
+
 def multiply(inputOpNode, outputName, targetColName, operands):
 
     # Get input relation from input node
@@ -101,9 +131,8 @@ def multiply(inputOpNode, outputName, targetColName, operands):
 
     return op
 
+
 # TODO: is a self-join a problem?
-
-
 def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # TODO: technically this should take in a start index as well
