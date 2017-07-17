@@ -1,7 +1,9 @@
 from salmon.codegen import CodeGen
 from salmon.dag import *
+from salmon.rel import *
 import os
 import pystache
+
 
 
 class SharemindCodeGen(CodeGen):
@@ -48,6 +50,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateConcat(node)
             elif isinstance(node, Join):
                 miner_code += self._generateJoin(node)
+            elif isinstance(node, Multiply):
+                miner_code += self._generateMultiply(node)
             elif isinstance(node, Open):
                 # open op needs adds miner code and controller code
                 # for receiving results
@@ -182,7 +186,25 @@ class SharemindCodeGen(CodeGen):
 
     def _generateMultiply(self, multiply_op):
 
-        pass
+        template = open(
+            "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
+        
+        operands = multiply_op.operands
+        col_op_indeces = [col.idx for col in filter(lambda col: isinstance(col, Column), operands)]
+        col_op_str = ",".join([str(col) for col in col_op_indeces])
+        scalar_ops = list(filter(lambda col: not isinstance(col, Column), operands))
+        scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
+
+        data = {
+            "TYPE": "xor_uint32",
+            "OUT_REL": multiply_op.outRel.name,
+            "IN_REL": multiply_op.getInRel().name,
+            "TARGET_COL": multiply_op.targetCol.idx,
+            # hacking array brackets
+            "COL_OP_INDECES": "{" + col_op_str + "}",
+            "SCALAR_OPS": "{" + scalar_ops_str + "}"
+        }
+        return pystache.render(template, data)
 
     def _generateClose(self, store_op):
 
@@ -217,6 +239,7 @@ class SharemindCodeGen(CodeGen):
             template = open(
                 "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
             data = {
+                "HDFS_ROOT": "root", # hard-coded for now
                 "IN_NAME": store_op.getInRel().name
             }
             return pystache.render(template, data)
