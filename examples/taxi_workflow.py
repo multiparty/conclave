@@ -50,6 +50,6 @@ if __name__ == "__main__":
     dag = protocol()
 
     cg = spark.SparkCodeGen(dag)
-    cg.generate("jointest1", "/tmp")
+    cg.generate("taxi", "/tmp")
 
-    print("Spark code generated in /tmp/jointest1.py")
+    print("Spark code generated in /tmp/taxi.py")
