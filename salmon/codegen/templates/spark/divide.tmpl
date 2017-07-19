@@ -1,14 +1,15 @@
+
 scalar = {{{SCALAR}}}
 operand = {{{OPERAND}}}
 target_id = {{{TARGET_ID}}}
 
 if not scalar:
     {{{OUTREL}}} = {{{INREL}}} \
-        .map(lambda x: [x[operand]/x[i] if i == target_id \
+        .map(lambda x: [x[i]/x[operand] if i == target_id \
             else x[i] for i in range(len(x))]) \
         .cache()
 else:
     {{{OUTREL}}} = {{{INREL}}} \
-        .map(lambda x: [operand/x[i] if i == target_id \
+        .map(lambda x: [x[i]/operand if i == target_id \
             else x[i] for i in range(len(x))]) \
         .cache()
