@@ -34,7 +34,7 @@ def protocol():
     divA = sal.divide(aggA, "divA", "aggA_1", ["aggA_1", 1000])
     multA = sal.multiply(divA, "multA", "divA_0", ["divA_0", 0])
     multB = sal.multiply(multA, "multB", "multA_1", ["multA_1", 100])
-    aggB = sal.aggregate(multA, "aggB", "multA_1", "multA_0", "+")
+    aggB = sal.aggregate(multA, "aggB", "multA_0", "multA_1", "+")
     joinA = sal.join(multB, aggB, "joinA", "multB_0", "aggB_0")
     divB = sal.divide(joinA, "divB", "joinA_1", ["joinA_1", "joinA_2"])
     multC = sal.multiply(divB, "multC", "divB_1", ["divB_1", "divB_1"])
