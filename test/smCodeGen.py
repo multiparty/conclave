@@ -189,6 +189,24 @@ def testMult():
     actual = protocol()
     print(actual["protocol"])
 
+def testDiv():
+
+    @sharemind
+    @dagonly
+    def protocol():
+
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        div = sal.divide(in1, "div", "in1_0", ["in1_0", "in1_1"])
+
+        return set([in1])
+
+    actual = protocol()
+    print(actual["protocol"])
+
 if __name__ == "__main__":
 
     testClose()
@@ -199,3 +217,4 @@ if __name__ == "__main__":
     testProj()
     testOpen()
     testMult()
+    testDiv()

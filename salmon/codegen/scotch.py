@@ -43,6 +43,17 @@ class ScotchCodeGen(CodeGen):
             colTypeStr
         )
 
+    def _generateDivide(self, divide_op):
+
+        operandColStr = " / ".join([str(col) for col in divide_op.operands])
+        return "DIVIDE{} [{} -> {}] FROM ({}) AS {}\n".format(
+            "MPC" if divide_op.isMPC else "",
+            str(divide_op.targetCol),
+            operandColStr,
+            divide_op.getInRel().dbgStr(),
+            divide_op.outRel.dbgStr()
+        )
+
     def _generateJoin(self, join_op):
 
         return "({}) JOIN{} ({}) ON {} AND {} AS {}\n".format(

@@ -48,6 +48,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateAggregate(node)
             elif isinstance(node, Concat):
                 miner_code += self._generateConcat(node)
+            elif isinstance(node, Divide):
+                miner_code += self._generateDivide(node)
             elif isinstance(node, Join):
                 miner_code += self._generateJoin(node)
             elif isinstance(node, Multiply):
@@ -136,6 +138,28 @@ class SharemindCodeGen(CodeGen):
     def _generateCreate(self, create_op):
 
         raise Exception("Create operator encountered during Sharemind codegen")
+
+    def _generateDivide(self, divide_op):
+
+        template = open(
+            "{0}/divide.tmpl".format(self.template_directory), 'r').read()
+        
+        operands = divide_op.operands
+        col_op_indeces = [col.idx for col in filter(lambda col: isinstance(col, Column), operands)]
+        col_op_str = ",".join([str(col) for col in col_op_indeces])
+        scalar_ops = list(filter(lambda col: not isinstance(col, Column), operands))
+        scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
+
+        data = {
+            "TYPE": "xor_uint32",
+            "OUT_REL": divide_op.outRel.name,
+            "IN_REL": divide_op.getInRel().name,
+            "TARGET_COL": divide_op.targetCol.idx,
+            # hacking array brackets
+            "COL_OP_INDECES": "{" + col_op_str + "}",
+            "SCALAR_OPS": "{" + scalar_ops_str + "}"
+        }
+        return pystache.render(template, data)
 
     def _generateJoin(self, join_op):
 
