@@ -49,8 +49,8 @@ class SparkCodeGen(CodeGen):
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL': agg_op.keyCol.idx,
-            'AGGCOL': agg_op.aggCol.idx,
+            'KEYCOL_ID': agg_op.keyCol.idx,
+            'AGGCOL_ID': agg_op.aggCol.idx,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
         }
@@ -121,9 +121,10 @@ class SparkCodeGen(CodeGen):
 
         op_cols = mult_op.operands
 
+        # assuming here that the target col will always be at index 0
         if hasattr(op_cols[1], 'idx'):
             scalar = False
-            operand = op_cols[1].idx
+            operand = op_cols[1]
         else:
             scalar = True
             operand = op_cols[1]
