@@ -60,6 +60,14 @@ class VizCodeGen(CodeGen):
                 colTypeStr)
             )
 
+    def _generateDivide(self, div_op):
+
+        return self._generateNode(
+                div_op.outRel.name,
+                "{{ {} | DIV }}".format(
+                div_op.outRel.name)
+            )
+
     def _generateJoin(self, join_op):
 
         return self._generateNode(

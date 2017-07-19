@@ -81,6 +81,8 @@ class DagRewriter:
             print(type(self).__name__, "rewriting", node.outRel.name)
             if isinstance(node, saldag.Aggregate):
                 self._rewriteAggregate(node)
+            elif isinstance(node, saldag.Divide):
+                self._rewriteDivide(node)
             elif isinstance(node, saldag.Project):
                 self._rewriteProject(node)
             elif isinstance(node, saldag.Multiply):
@@ -148,6 +150,10 @@ class MPCPushDown(DagRewriter):
 
         self._rewriteUnaryDefault(node)
 
+    def _rewriteDivide(self, node):
+
+        self._rewriteUnaryDefault(node)
+
     def _rewriteRevealJoin(self, node):
 
         raise Exception("RevealJoin encountered during MPCPushDown")
@@ -189,6 +195,10 @@ class MPCPushUp(DagRewriter):
     def _rewriteAggregate(self, node):
 
         pass
+
+    def _rewriteDivide(self, node):
+
+        self._rewriteUnaryDefault(node)
 
     def _rewriteProject(self, node):
 
@@ -261,6 +271,23 @@ class CollSetPropDown(DagRewriter):
         inAggCol = node.aggCol
         outAggCol = node.outRel.columns[1]
         outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
+
+    def _rewriteDivide(self, node):
+
+        outRelCols = node.outRel.columns
+        operands = node.operands
+        targetCol = node.targetCol
+
+        # Update target column collusion set
+        targetColOut = outRelCols[targetCol.idx]
+
+        targetColOut.collSets |= utils.collSetsFromColumns(operands)
+
+        # The other columns weren't modified so the collusion sets
+        # simply carry over
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
+            if inCol != targetCol:
+                outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteProject(self, node):
 
@@ -347,6 +374,10 @@ class CollSetPropUp(DagRewriter):
 
         pass
 
+    def _rewriteDivide(self, node):
+
+        pass
+
     def _rewriteProject(self, node):
 
         pass
@@ -387,6 +418,10 @@ class HybridJoinOpt(DagRewriter):
         pass
 
     def _rewriteProject(self, node):
+
+        pass
+
+    def _rewriteDivide(self, node):
 
         pass
 
@@ -462,6 +497,10 @@ class InsertOpenAndCloseOps(DagRewriter):
                     "different storedWith on non-lower-boundary unary op", node)
 
     def _rewriteAggregate(self, node):
+
+        self._rewriteDefaultUnary(node)
+
+    def _rewriteDivide(self, node):
 
         self._rewriteDefaultUnary(node)
 

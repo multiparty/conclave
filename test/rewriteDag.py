@@ -165,6 +165,43 @@ MULTIPLY [rel_0 -> rel_0 * 1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult
     actual = protocol()
     assert expected == actual, actual
 
+def testSingleDiv():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("INTEGER", [1]),
+            defCol("INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("INTEGER", [2]),
+            defCol("INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2], "rel")
+
+        # specify the workflow
+        mult = sal.divide(rel, "mult", "rel_0", ["rel_0", "rel_1"])
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2])
+
+    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}
+CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1}
+DIVIDE [rel_0 -> rel_0 / rel_1] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1}) AS mult([mult_0 {1,2}, mult_1 {1,2}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
 
 def testMultByZero():
 
@@ -845,6 +882,7 @@ if __name__ == "__main__":
     testSingleAgg()
     testSingleProj()
     testSingleMult()
+    testSingleDiv()
     testMultByZero()
     testAggProj()
     testConcatPushdown()

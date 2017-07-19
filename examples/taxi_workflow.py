@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import dagonly
-from salmon.codegen import spark
+from salmon.codegen import spark, viz
 from salmon.utils import *
 
 @dagonly
@@ -48,6 +48,9 @@ def protocol():
 if __name__ == "__main__":
 
     dag = protocol()
+
+    vg = viz.VizCodeGen(dag)
+    vg.generate("taxi", "/tmp")
 
     cg = spark.SparkCodeGen(dag)
     cg.generate("taxi", "/tmp")
