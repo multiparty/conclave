@@ -200,7 +200,7 @@ def testDiv():
             defCol("INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        div = sal.divide(in1, "div", "in1_0", ["in1_0", "in1_1"])
+        div = sal.divide(in1, "div", "in1_0", ["in1_0", "in1_1", 10])
 
         return set([in1])
 

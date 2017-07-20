@@ -144,20 +144,19 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
         
-        operands = divide_op.operands
-        col_op_indeces = [col.idx for col in filter(lambda col: isinstance(col, Column), operands)]
-        col_op_str = ",".join([str(col) for col in col_op_indeces])
-        scalar_ops = list(filter(lambda col: not isinstance(col, Column), operands))
-        scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
-
+        operands = [op.idx if isinstance(op, Column) else op for op in divide_op.operands]
+        operands_str = ",".join(str(op) for op in operands)
+        scalar_flags = [0 if isinstance(op, Column) else 1 for op in divide_op.operands]
+        scalar_flags_str = ",".join(str(op) for op in scalar_flags)
+        
         data = {
             "TYPE": "xor_uint32",
             "OUT_REL": divide_op.outRel.name,
             "IN_REL": divide_op.getInRel().name,
             "TARGET_COL": divide_op.targetCol.idx,
             # hacking array brackets
-            "COL_OP_INDECES": "{" + col_op_str + "}",
-            "SCALAR_OPS": "{" + scalar_ops_str + "}"
+            "OPERANDS": "{" + operands_str + "}",
+            "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
 
