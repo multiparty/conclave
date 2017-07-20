@@ -124,7 +124,7 @@ class SparkCodeGen(CodeGen):
         # assuming here that the target col will always be at index 0
         if hasattr(op_cols[1], 'idx'):
             scalar = False
-            operand = op_cols[1]
+            operand = op_cols[1].idx
         else:
             scalar = True
             operand = op_cols[1]
