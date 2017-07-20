@@ -86,6 +86,32 @@ D uint32[[2]] multiply(D uint32[[2]] rows, uint targetColIdx, uint[[1]] colOpera
     return multiplied;
 }
 
+template <domain D : shared3p>
+D uint32[[2]] divide(D uint32[[2]] rows, uint targetColIdx, uint[[1]] operands, uint[[1]] scalarFlags) {
+    D uint32 [[2]] divided = rows;
+    if (scalarFlags[0] == 0) {
+        // column operand
+        divided[:, targetColIdx] = rows[:, operands[0]];
+    }
+    else {
+        // scalar operand
+        D uint32 scalar = (uint32) operands[0];
+        divided[:, targetColIdx] = scalar;
+    }
+    for (uint c = 1; c < size(operands); ++c) {
+        if (scalarFlags[c] == 0) {
+            // column operand
+            divided[:, targetColIdx] = divided[:, targetColIdx] / rows[:, operands[c]];
+        }
+        else {
+            // scalar operand
+            D uint32 scalar = (uint32) operands[c];
+            divided[:, targetColIdx] = divided[:, targetColIdx] / scalar;
+        }
+    }
+    return divided;
+}
+
 pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
     uint ncols = tdbGetColumnCount(ds, tbl);
     uint nrows = tdbGetRowCount(ds, tbl);
