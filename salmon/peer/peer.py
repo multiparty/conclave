@@ -1,23 +1,22 @@
 import asyncio
+import functools
 import pickle
 import sys
 
 
-class DoneMsg():
+class IAMMsg():
 
-    def __init__(self, party_id, job_name):
-
-        self.party_id = party_id
-        self.job_name = job_name
-
-
-class PeerConfig():
-
-    def __init__(self, pid, parties):
+    def __init__(self, pid):
 
         self.pid = pid
-        self.parties = parties
-        self.host, self.port = self.parties[self.pid]
+
+
+class DoneMsg():
+
+    def __init__(self, pid, task_name):
+
+        self.pid = pid
+        self.task_name = task_name
 
 
 class SalmonProtocol(asyncio.Protocol):
@@ -44,9 +43,36 @@ class SalmonProtocol(asyncio.Protocol):
         try:
             msg = pickle.loads(line)
         except Exception as e:
-            raise e
-        finally:
-            return msg
+            print(e)
+        return msg
+
+    def _handle_iam_msg(self, iam_msg):
+
+        other_pid = iam_msg.pid
+        if other_pid not in self.peer.peer_connections:
+            raise Exception(
+                "Unknown peer attempting to register: " + str(other_pid))
+        conn = self.peer.peer_connections[other_pid]
+        if isinstance(conn, asyncio.Future):
+            conn.set_result((self.transport, self))
+        else:
+            raise Exception("Unexpected peer registration attempt")
+
+    def _handle_done_msg(self, done_msg):
+
+        if self.peer.dispatcher:
+            self.peer.dispatcher.receive_msg(done_msg)
+        else:
+            raise Exception("No dispatcher registered")
+
+    def handle_msg(self, msg):
+
+        if isinstance(msg, IAMMsg):
+            self._handle_iam_msg(msg)
+        elif isinstance(msg, DoneMsg):
+            self._handle_done_msg(msg)
+        else:
+            raise Exception("Weird message: " + str(msg))
 
     def handle_lines(self):
 
@@ -56,7 +82,7 @@ class SalmonProtocol(asyncio.Protocol):
             line, self.buffer = self.buffer.split(b"\n\n\n", 1)
             parsed = self.parse_line(line)
             if parsed:
-                self.peer.receive_msg(parsed)
+                self.handle_msg(parsed)
             else:
                 print("failed to parse line:", line)
 
@@ -79,26 +105,50 @@ class SalmonPeer():
 
     def connect_to_others(self):
 
-        # create future for each peer, run until those are complete
-        pids_to_connect = filter(lambda p: p < self.pid, self.parties.keys())
-        for other_pid in pids_to_connect:
-            other_host = self.parties[other_pid]["host"]
-            other_port = self.parties[other_pid]["port"]
-            # TODO: handle retrying
-            conn = loop.create_connection(
-                lambda: SalmonProtocol(self), other_host, other_port)
-            loop.run_until_complete(conn)
+        def _send_IAM(pid, conn):
 
-    def send_msg(self, peer_id, msg):
+            msg = IAMMsg(pid)
+            formatted = pickle.dumps(msg) + b"\n\n\n"
+            transport, protocol = conn.result()
+            transport.write(formatted)
 
-        pass
+        to_wait_on = []
+        for other_pid in self.parties.keys():
+            if other_pid < self.pid:
+                other_host = self.parties[other_pid]["host"]
+                other_port = self.parties[other_pid]["port"]
+                print("Will connect to {} at {}:{}".format(
+                    other_pid, other_host, other_port))
+                # create connection
+                conn = asyncio.ensure_future(self.loop.create_connection(
+                    lambda: SalmonProtocol(self), other_host, other_port))
+                self.peer_connections[other_pid] = conn
+                # once connection is ready, register own ID with other peer
+                conn.add_done_callback(functools.partial(_send_IAM, self.pid))
+                # TODO: figure out way to wait on message delivery
+                # instead of on connection
+                to_wait_on.append(conn)
+            elif other_pid > self.pid:
+                print("Will wait for {} to connect".format(other_pid))
+                # expect connection from other peer
+                connection_made = asyncio.Future()
+                self.peer_connections[other_pid] = connection_made
+                to_wait_on.append(connection_made)
+        self.loop.run_until_complete(asyncio.gather(
+            *to_wait_on))
+        # done connecting
+        # unwrap futures that hold ready connections
+        for pid in self.peer_connections:
+            completed_future = self.peer_connections[pid]
+            # the result is a (transport, protocol) tuple
+            # we only want the transport
+            self.peer_connections[pid] = completed_future.result()[0]
+        print(self.peer_connections)
 
-    def receive_msg(self, msg):
+    def send_msg(self, receiver, msg):
 
-        if self.dispatcher:
-            self.dispatcher.receive_msg(msg)
-        else:
-            raise Exception("No dispatcher registered.")
+        formatted = pickle.dumps(msg) + b"\n\n\n"
+        self.peer_connections[receiver].write(formatted)
 
 
 class SharemindDispatcher():
@@ -107,13 +157,14 @@ class SharemindDispatcher():
 
         self.loop = loop
         self.peer = peer
+        self.to_wait_on = {}
 
-    def dispatch(self, job):
+    def _dispatch_as_controller(self, job):
 
         # track which participants have completed data submission
-        self.to_wait_on = {}
-        for contributor in job.data_contributors:
-            self.to_wait_on[contributor] = asyncio.Future()
+        for input_party in job.input_parties:
+            if input_party != self.peer.pid:
+                self.to_wait_on[input_party] = asyncio.Future()
 
         # register self as current dispatcher with peer
         peer.dispatcher = self
@@ -124,25 +175,53 @@ class SharemindDispatcher():
 
         # submit job to miners, etc.
         print("proceed")
-        from time import sleep
-        sleep(5)
 
+
+    def _regular_dispatch(self, job):
+
+        # register self as current dispatcher with peer
+        peer.dispatcher = self
+
+        # mock work
+        import time
+        time.sleep(self.peer.pid * 2)
+
+        # notify controller that we're done
+        done_msg = DoneMsg(self.peer.pid, job.name + ".input")
+        self.peer.send_msg(job.controller, done_msg)
+
+        # wait on controller to confirm that the job has finished
+        self.to_wait_on = {job.controller: asyncio.Future()}
+        loop.run_until_complete(self.to_wait_on[job.controller])
+
+
+    def dispatch(self, job):
+
+        if self.peer.pid == job.controller:
+            self._dispatch_as_controller(job)
+        else:
+            self._regular_dispatch(job)
         # un-register with dispatcher
         peer.dispatcher = None
+        # not waiting on any peers
+        self.to_wait_on = {}
 
     def receive_msg(self, msg):
 
-        if msg in self.to_wait_on:
-            self.to_wait_on[msg].set_result(True)
+        done_peer = msg.pid
+        if done_peer in self.to_wait_on:
+            self.to_wait_on[done_peer].set_result(True)
         else:
             print("weird message", msg)
 
 
 class SharemindJob():
 
-    def __init__(self, data_contributors):
+    def __init__(self, name, controller, input_parties):
 
-        self.data_contributors = data_contributors
+        self.name = name
+        self.controller = controller
+        self.input_parties = input_parties
 
 
 def setup_peer(config):
@@ -163,11 +242,7 @@ config = {
 }
 loop, peer = setup_peer(config)
 peer.connect_to_others()
-print("done")
-# dispatcher = SharemindDispatcher(loop, peer)
+dispatcher = SharemindDispatcher(loop, peer)
 
-# job = SharemindJob({"1", "2", "3"})
-# dispatcher.dispatch(job)
-
-# another_job = SharemindJob({"1"})
-# dispatcher.dispatch(another_job)
+job = SharemindJob("sharemind-job", 1, {1, 2, 3})
+dispatcher.dispatch(job)
