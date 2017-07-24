@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import pickle
-import sys
 
 
 class IAMMsg():
@@ -145,83 +144,15 @@ class SalmonPeer():
             self.peer_connections[pid] = completed_future.result()[0]
         print(self.peer_connections)
 
-    def send_msg(self, receiver, msg):
+    def _send_msg(self, receiver, msg):
 
         formatted = pickle.dumps(msg) + b"\n\n\n"
         self.peer_connections[receiver].write(formatted)
 
+    def send_done_msg(self, receiver, task_name):
 
-class SharemindDispatcher():
-
-    def __init__(self, loop, peer):
-
-        self.loop = loop
-        self.peer = peer
-        self.to_wait_on = {}
-
-    def _dispatch_as_controller(self, job):
-
-        # track which participants have completed data submission
-        for input_party in job.input_parties:
-            if input_party != self.peer.pid:
-                self.to_wait_on[input_party] = asyncio.Future()
-
-        # register self as current dispatcher with peer
-        peer.dispatcher = self
-
-        # wait until other peers are done submitting
-        futures = self.to_wait_on.values()
-        loop.run_until_complete(asyncio.gather(*futures))
-
-        # submit job to miners, etc.
-        print("proceed")
-
-
-    def _regular_dispatch(self, job):
-
-        # register self as current dispatcher with peer
-        peer.dispatcher = self
-
-        # mock work
-        import time
-        time.sleep(self.peer.pid * 2)
-
-        # notify controller that we're done
-        done_msg = DoneMsg(self.peer.pid, job.name + ".input")
-        self.peer.send_msg(job.controller, done_msg)
-
-        # wait on controller to confirm that the job has finished
-        self.to_wait_on = {job.controller: asyncio.Future()}
-        loop.run_until_complete(self.to_wait_on[job.controller])
-
-
-    def dispatch(self, job):
-
-        if self.peer.pid == job.controller:
-            self._dispatch_as_controller(job)
-        else:
-            self._regular_dispatch(job)
-        # un-register with dispatcher
-        peer.dispatcher = None
-        # not waiting on any peers
-        self.to_wait_on = {}
-
-    def receive_msg(self, msg):
-
-        done_peer = msg.pid
-        if done_peer in self.to_wait_on:
-            self.to_wait_on[done_peer].set_result(True)
-        else:
-            print("weird message", msg)
-
-
-class SharemindJob():
-
-    def __init__(self, name, controller, input_parties):
-
-        self.name = name
-        self.controller = controller
-        self.input_parties = input_parties
+        done_msg = DoneMsg(self.pid, task_name)
+        self._send_msg(receiver, done_msg)
 
 
 def setup_peer(config):
@@ -229,20 +160,5 @@ def setup_peer(config):
     loop = asyncio.get_event_loop()
     peer = SalmonPeer(loop, config)
     loop.run_until_complete(peer.server)
-    return loop, peer
-
-pid = int(sys.argv[1])
-config = {
-    "pid": pid,
-    "parties": {
-        1: {"host": "localhost", "port": 9001},
-        2: {"host": "localhost", "port": 9002},
-        3: {"host": "localhost", "port": 9003}
-    }
-}
-loop, peer = setup_peer(config)
-peer.connect_to_others()
-dispatcher = SharemindDispatcher(loop, peer)
-
-job = SharemindJob("sharemind-job", 1, {1, 2, 3})
-dispatcher.dispatch(job)
+    peer.connect_to_others()
+    return peer
