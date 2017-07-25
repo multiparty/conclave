@@ -143,12 +143,12 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
-        
+
         operands = [op.idx if isinstance(op, Column) else op for op in divide_op.operands]
         operands_str = ",".join(str(op) for op in operands)
         scalar_flags = [0 if isinstance(op, Column) else 1 for op in divide_op.operands]
         scalar_flags_str = ",".join(str(op) for op in scalar_flags)
-        
+
         data = {
             "TYPE": "xor_uint32",
             "OUT_REL": divide_op.outRel.name,
@@ -211,7 +211,7 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
-        
+
         operands = multiply_op.operands
         col_op_indeces = [col.idx for col in filter(lambda col: isinstance(col, Column), operands)]
         col_op_str = ",".join([str(col) for col in col_op_indeces])
