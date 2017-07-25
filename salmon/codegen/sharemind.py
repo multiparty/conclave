@@ -48,6 +48,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateAggregate(node)
             elif isinstance(node, Concat):
                 miner_code += self._generateConcat(node)
+            elif isinstance(node, Create):
+                miner_code += self._generateCreate(node)
             elif isinstance(node, Divide):
                 miner_code += self._generateDivide(node)
             elif isinstance(node, Join):
