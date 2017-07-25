@@ -204,8 +204,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
 
-        operands = [op.idx if isinstance(
-            op, Column) else op for op in divide_op.operands]
+        operands = [op.idx if isinstance(op, Column) else op for op in divide_op.operands]
         operands_str = ",".join(str(op) for op in operands)
         scalar_flags = [0 if isinstance(
             op, Column) else 1 for op in divide_op.operands]
