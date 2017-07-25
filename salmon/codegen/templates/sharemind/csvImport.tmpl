@@ -1,2 +1,1 @@
-hadoop fs -get {{HDFS_ROOT}}/{{IN_NAME}} {{IN_NAME}}.csv
 CSVImporter --mode overwrite --csv {{IN_NAME}}.csv --model {{IN_NAME}}.xml --separator c --log {{IN_NAME}}.log

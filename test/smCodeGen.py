@@ -1,6 +1,7 @@
 import salmon.lang as sal
 from salmon.comp import dagonly, sharemind
 from salmon.utils import *
+from salmon.codegen.sharemind import SharemindCodeGen
 
 
 def testClose():
@@ -153,6 +154,7 @@ def testProj():
     actual = protocol()
     print(actual["protocol"])
 
+
 def testOpen():
 
     @sharemind
@@ -164,12 +166,13 @@ def testOpen():
             defCol("INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        opened = sal._open(in1, "opened", set([1]))
+        opened = sal._open(in1, "opened", 1)
 
         return set([in1])
 
     actual = protocol()
     print(actual["protocol"])
+
 
 def testMult():
 
@@ -188,6 +191,7 @@ def testMult():
 
     actual = protocol()
     print(actual["protocol"])
+
 
 def testDiv():
 
@@ -209,12 +213,13 @@ def testDiv():
 
 if __name__ == "__main__":
 
-    testClose()
-    testAgg()
-    testConcatTwo()
-    testConcatMore()
-    testJoin()
-    testProj()
-    testOpen()
-    testMult()
-    testDiv()
+    testSimple()
+    # testClose()
+    # testAgg()
+    # testConcatTwo()
+    # testConcatMore()
+    # testJoin()
+    # testProj()
+    # testOpen()
+    # testMult()
+    # testDiv()

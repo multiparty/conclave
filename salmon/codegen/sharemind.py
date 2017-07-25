@@ -5,44 +5,65 @@ import os
 import pystache
 
 
-
 class SharemindCodeGen(CodeGen):
-    # General problem with Sharemind codegen:
-    # Sharemind provides the abstraction of a cluster.
-    # One party submits the job to the miners instead
-    # of the miners each executing the code. In addition
-    # the code is returned to one party only (the party
-    # that submitted the code to begin with)
 
-    def __init__(self, dag, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
+    def __init__(self, dag, pid, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         super(SharemindCodeGen, self).__init__(dag)
         self.template_directory = template_directory
+        self.pid = pid
+
+    def generate(self, job_name, output_directory):
+
+        job, code = self._generate(job_name, output_directory)
+        # store the code in type-specific files
+        self._writeCode(code, output_directory, job_name)
+        # return job object
+        return job
 
     def _generate(self, job_name, output_directory):
-        # TODO: think of a way to extend CodeGen._generate
-        # instead of entirely rewriting it
 
-        # generate code for the DAG stored. overwriting
-        # method since we have multiple code objects being
-        # create, instead of one
-
-        # the data model definitions used by CSVImporter
-        # there will be one per store operation
-        schemas = {}
-        # the code the parties will run to secret-share their
-        # inputs with the miners
-        input_code = ""
-        # the code the miners will run after the data has been
-        # secret shared
-        miner_code = ""
-        # code to submit the job and receive the output
-        # (currently assumes there is only one output party)
-        controller_code = ""
-
-        # topological traversal
+        # nodes in topological order
         nodes = self.dag.topSort()
-        # for each op
+
+        # determine party that will act as the controller
+        controller_pid = self._get_controller_pid(nodes)
+        # determine all input parties
+        input_parties = self._get_input_parties(nodes)
+
+        # dict of all generated code
+        op_code = {}
+
+        # generate input code and schemas for input
+        if self.pid in input_parties:
+            # the data model definitions used by CSVImporter
+            # and the code the party will run to secret-share its
+            # inputs with the miners
+            schemas, input_code = self._generate_input_code(nodes)
+            op_code["schemas"] = schemas
+            op_code["input"] = input_code
+
+        # if we are the controller we need to generate miner
+        # code and controller code
+        if self.pid == controller_pid:
+            # the code the miners will run after the data has been
+            # secret shared
+            miner_code = self._generate_miner_code(nodes)
+            # code to submit the job and receive the output
+            # (currently assumes there is only one output party)
+            controller_code = self._generate_controller_code(nodes)
+            op_code["miner"] = miner_code
+            op_code["controller"] = controller_code
+
+        # sanity check
+        assert op_code
+
+        return op_code
+
+    def _generate_miner_code(self, nodes):
+
+        # the code that will run on the miners
+        miner_code = ""
         for node in nodes:
             if isinstance(node, Aggregate):
                 miner_code += self._generateAggregate(node)
@@ -55,39 +76,68 @@ class SharemindCodeGen(CodeGen):
             elif isinstance(node, Multiply):
                 miner_code += self._generateMultiply(node)
             elif isinstance(node, Open):
-                # open op needs adds miner code and controller code
-                # for receiving results
-                controller_open_code, miner_open_code = self._generateOpen(node)
-                controller_code += controller_open_code
-                miner_code += miner_open_code
+                miner_code += self._generateOpen(node)
             elif isinstance(node, Project):
                 miner_code += self._generateProject(node)
             elif isinstance(node, Close):
-                # the store operation adds to the input task since we
-                # need to secret share, as well as to the protocol task
-                schemaName, schema, in_code, prot_code = self._generateClose(
-                    node)
-                schemas[schemaName] = schema
-                input_code += in_code
-                miner_code += prot_code
+                miner_code += self._generateClose(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
-        topLevelProtTemplate = open(
+        # expand top-level protocol template
+        template = open(
             "{0}/protocol.tmpl".format(self.template_directory), 'r').read()
-        expandedMinerCode = pystache.render(
-            topLevelProtTemplate, {"PROTOCOL_CODE": miner_code})
+        return pystache.render(
+            template, {"PROTOCOL_CODE": miner_code})
 
-        op_code = {
-            "schemas": schemas,
-            "input": input_code,
-            "protocol": expandedMinerCode,
-            "controller": controller_code
-        }
-        # expand top-level job template and return code
-        return self._generateJob(job_name, op_code)
+    def _get_controller_pid(self, nodes):
 
-    def _generateJob(self, job_name, op_code):
+        # we need all open ops to get all output parties
+        open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
+        # union of all storedWiths gives us all output parties
+        output_parties = set().union(
+            *[op.outRel.storedWith for op in open_ops])
+        # only support one output party
+        assert(len(output_parties) == 1)
+        # that output party will be the controller
+        return next(iter(output_parties)) # pop
+
+    def _get_input_parties(self, nodes):
+
+        # we need all close ops to get all input parties
+        close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
+        # union of all storedWiths gives us all input parties
+        input_parties = set().union(
+            *[op.getInRel().storedWith for op in close_ops])
+        # want these in-order
+        return sorted(list(input_parties))
+
+    def _generate_input_code(self, nodes):
+
+        # all schemas of the relations this party will input
+        schemas = {}
+        # all CSVImports this party will perform
+        input_code = ""
+        # only need close ops to generate schemas
+        close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
+        # only need schemas for my close ops
+        my_close_ops = filter(
+            lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
+        for close_op in my_close_ops:
+            # generate schema and get its name
+            name, schema = self._generateSchema(close_op)
+            schemas[name] = schema
+            # generate csv import code
+            input_code += self._generateCSVImport(close_op)
+        # return schemas and input code
+        return schemas, input_code
+
+    def _generate_controller_code(self, nodes):
+
+        # TODO: only a stub
+        return "sm_compile_and_run.sh protocol.sc"
+
+    def _generateJob(self, job_name, output_parties, op_code):
 
         return op_code
 
@@ -101,6 +151,16 @@ class SharemindCodeGen(CodeGen):
             "IN_REL_NAME": agg_op.getInRel().name,
             "KEY_COL_IDX": agg_op.keyCol.idx,
             "AGG_COL_IDX": agg_op.aggCol.idx
+        }
+        return pystache.render(template, data)
+
+    def _generateClose(self, close_op):
+
+        template = open(
+            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "NAME": close_op.outRel.name,
+            "TYPE": "xor_uint32"
         }
         return pystache.render(template, data)
 
@@ -143,12 +203,14 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
-        
-        operands = [op.idx if isinstance(op, Column) else op for op in divide_op.operands]
+
+        operands = [op.idx if isinstance(
+            op, Column) else op for op in divide_op.operands]
         operands_str = ",".join(str(op) for op in operands)
-        scalar_flags = [0 if isinstance(op, Column) else 1 for op in divide_op.operands]
+        scalar_flags = [0 if isinstance(
+            op, Column) else 1 for op in divide_op.operands]
         scalar_flags_str = ",".join(str(op) for op in scalar_flags)
-        
+
         data = {
             "TYPE": "xor_uint32",
             "OUT_REL": divide_op.outRel.name,
@@ -176,21 +238,13 @@ class SharemindCodeGen(CodeGen):
 
     def _generateOpen(self, open_op):
 
-        def _toMiner(open_op):
-            # miner portion of open op
-            template = open(
-                "{0}/publish.tmpl".format(self.template_directory), 'r').read()
-            data = {
-                "OUT_REL": open_op.outRel.name,
-                "IN_REL": open_op.getInRel().name,
-            }
-            return pystache.render(template, data)
-
-        def _toController(open_op):
-            # TODO: controller portion of handling output
-            return ""
-
-        return _toController(open_op), _toMiner(open_op)
+        template = open(
+            "{0}/publish.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "OUT_REL": open_op.outRel.name,
+            "IN_REL": open_op.getInRel().name,
+        }
+        return pystache.render(template, data)
 
     def _generateProject(self, project_op):
 
@@ -211,11 +265,13 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
-        
+
         operands = multiply_op.operands
-        col_op_indeces = [col.idx for col in filter(lambda col: isinstance(col, Column), operands)]
+        col_op_indeces = [col.idx for col in filter(
+            lambda col: isinstance(col, Column), operands)]
         col_op_str = ",".join([str(col) for col in col_op_indeces])
-        scalar_ops = list(filter(lambda col: not isinstance(col, Column), operands))
+        scalar_ops = list(
+            filter(lambda col: not isinstance(col, Column), operands))
         scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
 
         data = {
@@ -229,58 +285,41 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generateClose(self, store_op):
+    def _generateSchema(self, close_op):
 
-        def _toSchema(store_op):
-
-            inRel = store_op.getInRel()
-            inCols = inRel.columns
-            outRel = store_op.outRel
-            outCols = outRel.columns
-            colDefs = []
-            colDefTemplate = open(
-                "{0}/colDef.tmpl".format(self.template_directory), 'r').read()
-            for inCol, outCol in zip(inCols, outCols):
-                colData = {
-                    'IN_NAME': inCol.getName(),
-                    'OUT_NAME': outCol.getName(),
-                    'TYPE': "xor_uint32"  # hard-coded for now
-                }
-                colDefs.append(pystache.render(colDefTemplate, colData))
-            colDefStr = "\n".join(colDefs)
-            relDefTemplate = open(
-                "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
-            relData = {
-                "NAME": outRel.name,
-                "COL_DEFS": colDefStr
+        inRel = close_op.getInRel()
+        inCols = inRel.columns
+        outRel = close_op.outRel
+        outCols = outRel.columns
+        colDefs = []
+        colDefTemplate = open(
+            "{0}/colDef.tmpl".format(self.template_directory), 'r').read()
+        for inCol, outCol in zip(inCols, outCols):
+            colData = {
+                'IN_NAME': inCol.getName(),
+                'OUT_NAME': outCol.getName(),
+                'TYPE': "xor_uint32"  # hard-coded for now
             }
-            relDefStr = pystache.render(relDefTemplate, relData)
-            return relDefStr
+            colDefs.append(pystache.render(colDefTemplate, colData))
+        colDefStr = "\n".join(colDefs)
+        relDefTemplate = open(
+            "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
+        relData = {
+            "NAME": outRel.name,
+            "COL_DEFS": colDefStr
+        }
+        relDefStr = pystache.render(relDefTemplate, relData)
+        return inRel.name, relDefStr
 
-        def _toCSVImp(store_op):
+    def _generateCSVImport(self, close_op):
 
-            template = open(
-                "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
-            data = {
-                "HDFS_ROOT": "root", # hard-coded for now
-                "IN_NAME": store_op.getInRel().name
-            }
-            return pystache.render(template, data)
+        template = open(
+            "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "IN_NAME": close_op.getInRel().name
+        }
+        return pystache.render(template, data)
 
-        def _toProtocol(store_op):
+    def _writeCode(self, code, output_directory, job_name):
 
-            template = open(
-                "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
-            data = {
-                "NAME": store_op.outRel.name,
-                "TYPE": "xor_uint32"
-            }
-            return pystache.render(template, data)
-
-        res = (
-            store_op.getInRel().name,
-            _toSchema(store_op),
-            _toCSVImp(store_op),
-            _toProtocol(store_op)
-        )
-        return res
+        pass
