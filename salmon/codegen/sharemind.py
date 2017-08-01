@@ -1,9 +1,10 @@
 from salmon.codegen import CodeGen
+from salmon.job import SharemindJob
 from salmon.dag import *
 from salmon.rel import *
 import os
 import pystache
-
+import shutil
 
 class SharemindCodeGen(CodeGen):
 
@@ -58,7 +59,9 @@ class SharemindCodeGen(CodeGen):
         # sanity check
         assert op_code
 
-        return op_code
+        # create job
+        job = SharemindJob(job_name, controller_pid, input_parties)
+        return job, op_code
 
     def _generate_miner_code(self, nodes):
 
@@ -100,7 +103,7 @@ class SharemindCodeGen(CodeGen):
         # only support one output party
         assert(len(output_parties) == 1)
         # that output party will be the controller
-        return next(iter(output_parties)) # pop
+        return next(iter(output_parties))  # pop
 
     def _get_input_parties(self, nodes):
 
@@ -204,7 +207,8 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
 
-        operands = [op.idx if isinstance(op, Column) else op for op in divide_op.operands]
+        operands = [op.idx if isinstance(
+            op, Column) else op for op in divide_op.operands]
         operands_str = ",".join(str(op) for op in operands)
         scalar_flags = [0 if isinstance(
             op, Column) else 1 for op in divide_op.operands]
@@ -319,6 +323,31 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _writeCode(self, code, output_directory, job_name):
+    def _writeCode(self, code_dict, output_directory, job_name):
 
-        pass
+        def _write(root_dir, fn, ext, content):
+            fullpath = "{}/{}.{}".format(root_dir, fn, ext)
+            os.makedirs(os.path.dirname(fullpath), exist_ok=True)
+            with open(fullpath, "w") as f:
+                f.write(content)
+
+        ext_lookup = {
+            "schemas": "xml",
+            "input": "sh",
+            "controller": "sh",
+            "miner": "sc"
+        }
+
+        # root directory to write to
+        job_root_dir = "{}/{}".format(output_directory, job_name)
+        # get rid of old files
+        shutil.rmtree(job_root_dir)
+        # write files
+        for code_type, code in code_dict.items():
+            if code_type == "schemas":
+                schemas = code
+                for schema_name in schemas:
+                    _write(job_root_dir, schema_name,
+                           ext_lookup[code_type], schemas[schema_name])
+            else:
+                _write(job_root_dir, code_type, ext_lookup[code_type], code)

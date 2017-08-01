@@ -36,18 +36,7 @@ def testSimple():
         return set([in1, in2, in3])
 
     dag = protocol()
-    code = SharemindCodeGen(dag, 1)._generate("job", "/tmp")
-    print(code["miner"])
-    print(code["schemas"])
-    print(code["input"])
-    print(code["controller"])
-    code = SharemindCodeGen(dag, 2)._generate("job", "/tmp")
-    print(code["schemas"])
-    print(code["input"])
-    code = SharemindCodeGen(dag, 3)._generate("job", "/tmp")
-    print(code["schemas"])
-    print(code["input"])
-
+    job = SharemindCodeGen(dag, 1).generate("job", "/tmp")
 
 if __name__ == "__main__":
 
