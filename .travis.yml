@@ -1,0 +1,11 @@
+language: python
+
+script:
+  - ./tests.sh
+
+notifications:
+  email: true
+    - malte@csail.mit.edu
+
+os:
+  - linux
