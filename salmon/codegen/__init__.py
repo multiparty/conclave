@@ -44,7 +44,7 @@ class CodeGen:
                 op_code += self._generateDivide(node)
             else:
                 print("encountered unknown operator type", repr(node))
-        
+
         # expand top-level job template and return code
         return self._generateJob(job_name, op_code)
 
