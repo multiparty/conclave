@@ -121,13 +121,13 @@ class SparkCodeGen(CodeGen):
 
         op_cols = mult_op.operands
 
-        # assuming here that the target col will always be at index 0
-        if hasattr(op_cols[1], 'idx'):
+        # XXX(malte): how does this deal with multiple operand columns?
+        if hasattr(op_cols[0], 'idx'):
             scalar = False
-            operand = op_cols[1].idx
+            operand = op_cols[0].idx
         else:
             scalar = True
-            operand = op_cols[1]
+            operand = op_cols[0]
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
@@ -145,12 +145,13 @@ class SparkCodeGen(CodeGen):
 
         op_cols = div_op.operands
 
-        if hasattr(op_cols[1], 'idx'):
+        # XXX(malte): how does this deal with multiple operand columns?
+        if hasattr(op_cols[0], 'idx'):
             scalar = False
-            operand = op_cols[1].idx
+            operand = op_cols[0].idx
         else:
             scalar = True
-            operand = op_cols[1]
+            operand = op_cols[0]
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'divide'), 'r').read()
 
