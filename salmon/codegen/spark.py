@@ -176,6 +176,8 @@ class SparkCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _writeCode(self, code, output_directory, job_name):
+
+        os.makedirs(os.path.dirname(output_directory), exist_ok=True)
         # write code to a file
         outfile = open("{}/{}.py".format(output_directory, job_name), 'w')
         outfile.write(code)

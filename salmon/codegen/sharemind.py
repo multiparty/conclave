@@ -341,7 +341,10 @@ class SharemindCodeGen(CodeGen):
         # root directory to write to
         job_root_dir = "{}/{}".format(output_directory, job_name)
         # get rid of old files
-        shutil.rmtree(job_root_dir)
+        try:
+            shutil.rmtree(job_root_dir)
+        except FileNotFoundError:
+            pass
         # write files
         for code_type, code in code_dict.items():
             if code_type == "schemas":
