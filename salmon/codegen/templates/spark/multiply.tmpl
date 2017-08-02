@@ -1,16 +1,10 @@
 
 scalar = {{{SCALAR}}}
-operand = {{{OPERAND}}}
+operands = {{{OPERANDS}}}
 target_id = {{{TARGET_ID}}}
 
-if not scalar:
-    {{{OUTREL}}} = {{{INREL}}} \
-        .map(lambda x: [x[operand]*x[i] if i == target_id \
-            else x[i] for i in range(len(x))]) \
-        .cache()
-else:
-    {{{OUTREL}}} = {{{INREL}}} \
-        .map(lambda x: [operand*x[i] if i == target_id \
-            else x[i] for i in range(len(x))]) \
-        .cache()
-
+{{{OUTREL}}} = {{{INREL}}} \
+    .map(lambda x: [functools.reduce(operator.mul, [x[i] if i in set(operands) \
+        else 1 for i in range(len(x))], 1)*x[j]*scalar if j == target_id \
+        else x[j] for j in range(len(x))]) \
+    .cache()
