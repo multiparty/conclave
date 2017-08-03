@@ -19,9 +19,12 @@ def collSetsFromColumns(columns):
     return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
 
 def find(columns, colName):
-    
-    return next(iter([col for col in columns if col.getName() == colName]))
 
+    try:
+        return next(iter([col for col in columns if col.getName() == colName]))
+    except StopIteration:
+        print("column '{}' not found in {}".format(colName, [c.getName() for c in columns]))
+        return None
 
 def defCol(name, tpy, *collSets):
 
