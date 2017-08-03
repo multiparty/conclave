@@ -2,8 +2,8 @@ from salmon.utils import *
 
 def testDefCol():
 
-    actual = defCol("INTEGER", [1], [2], [1, 2, 3])
-    expected = ('INTEGER', {frozenset({1, 2, 3}), frozenset({2}), frozenset({1})})
+    actual = defCol("a", "INTEGER", [1], [2], [1, 2, 3])
+    expected = ('a', 'INTEGER', {frozenset({1, 2, 3}), frozenset({2}), frozenset({1})})
 
     assert actual == expected, actual
 
