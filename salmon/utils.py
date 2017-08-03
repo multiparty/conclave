@@ -15,8 +15,8 @@ def mergeCollSets(left, right):
 
 def collSetsFromColumns(columns):
 
-    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns] 
-    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)    
+    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns]
+    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
 
 def find(columns, colName):
     
