@@ -1,0 +1,98 @@
+import salmon.lang as sal
+from salmon.comp import dagonly
+from salmon.codegen import spark, viz
+from salmon.utils import *
+
+@dagonly
+def simple_div():
+
+    colsInA = [
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create("in1", colsInA, set([1]))
+
+    div1 = sal.divide(in1, "div1", "in1_0", ["in1_0", "in1_1"])
+
+    opened = sal.collect(div1, 1)
+
+    # return root nodes
+    return set([in1])
+
+
+@dagonly
+def comp_div():
+
+    colsInA = [
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create("in1", colsInA, set([1]))
+
+    # divide column 0 by columns 1 & 2, then divide by 5 (scalar)
+    div1 = sal.divide(in1, "div1", "in1_0", ["in1_0", "in1_1", "in1_2", 5])
+
+    opened = sal.collect(div1, 1)
+
+    # return root nodes
+    return set([in1])
+
+
+@dagonly
+def simple_mult():
+
+    colsInA = [
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create("in1", colsInA, set([1]))
+
+    mult1 = sal.multiply(in1, "mult1", "in1_0", ["in1_0", "in1_1"])
+
+    opened = sal.collect(mult1, 1)
+
+    # return root nodes
+    return set([in1])
+
+
+@dagonly
+def comp_mult():
+    colsInA = [
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3]),
+        defCol("INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create("in1", colsInA, set([1]))
+
+    # multiply column 0 by columns 1 & 2, then multiply by 5 (scalar)
+    mult1 = sal.multiply(in1, "mult1", "in1_0", ["in1_0", "in1_1", "in1_2", 5])
+
+    opened = sal.collect(mult1, 1)
+
+    # return root nodes
+    return set([in1])
+
+
+if __name__ == "__main__":
+
+    simple_mult_dag = simple_mult()
+    comp_mult_dag = comp_mult()
+    simple_div_dag = simple_div()
+    comp_div_dag = comp_div()
+
+    simple_mult = spark.SparkCodeGen(simple_mult_dag)
+    simple_mult.generate("simple_mult", "/tmp")
+
+    comp_mult = spark.SparkCodeGen(comp_mult_dag)
+    comp_mult.generate("comp_mult", "/tmp")
+
+    simple_div = spark.SparkCodeGen(simple_div_dag)
+    simple_div.generate("simple_div", "/tmp")
+
+    comp_div = spark.SparkCodeGen(comp_div_dag)
+    comp_div.generate("comp_div", "/tmp")
+
+    print("Spark code generated in /tmp/")

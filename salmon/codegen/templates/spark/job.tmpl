@@ -1,5 +1,5 @@
 from pyspark import SparkContext, SparkConf
-import numpy
+import numpy, functools, operator
 
 conf = SparkConf().setAppName("{{{JOB_NAME}}}").setMaster("{{{SPARK_MASTER}}}")
 sc = SparkContext(conf=conf)

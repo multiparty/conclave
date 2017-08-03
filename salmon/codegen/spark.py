@@ -120,21 +120,25 @@ class SparkCodeGen(CodeGen):
     def _generateMultiply(self, mult_op):
 
         op_cols = mult_op.operands
+        targetCol = mult_op.targetCol
+        operands = []
+        scalar = 1
 
-        # XXX(malte): how does this deal with multiple operand columns?
-        if hasattr(op_cols[0], 'idx'):
-            scalar = False
-            operand = op_cols[0].idx
-        else:
-            scalar = True
-            operand = op_cols[0]
+        # (ben) targetCol is at op_cols[0]
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                if op_col.idx != targetCol.idx:
+                    operands.append(op_col.idx)
+            else:
+                # there will only be one scalar
+                scalar = op_col
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
         data = {
-            'OPERAND': operand,
-            'SCALAR': scalar,
-            'TARGET_ID': mult_op.targetCol.idx,
+            'OPERANDS': [idx for idx in operands],
+            'SCALARS': scalar,
+            'TARGET_ID': targetCol.idx,
             'INREL': mult_op.getInRel().name,
             'OUTREL': mult_op.outRel.name
         }
@@ -144,19 +148,23 @@ class SparkCodeGen(CodeGen):
     def _generateDivide(self, div_op):
 
         op_cols = div_op.operands
+        targetCol = div_op.targetCol
+        operands = []
+        scalar = 1
 
-        # XXX(malte): how does this deal with multiple operand columns?
-        if hasattr(op_cols[0], 'idx'):
-            scalar = False
-            operand = op_cols[0].idx
-        else:
-            scalar = True
-            operand = op_cols[0]
+        # (ben) targetCol is at op_cols[0]
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                if op_col.idx != targetCol.idx:
+                    operands.append(op_col.idx)
+            else:
+                # there will only be one scalar
+                scalar = op_col
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'divide'), 'r').read()
 
         data = {
-            'OPERAND': operand,
+            'OPERANDS': [idx for idx in operands],
             'SCALAR': scalar,
             'TARGET_ID': div_op.targetCol.idx,
             'INREL': div_op.getInRel().name,
