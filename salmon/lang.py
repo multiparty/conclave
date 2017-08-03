@@ -6,7 +6,7 @@ import salmon.utils as utils
 
 def create(name, columns, storedWith):
 
-    columns = [rel.Column(name, idx, typeStr, collusionSet)
+    columns = [rel.Column(name, "{}_{}".format(name, idx), idx, typeStr, collusionSet)
                for idx, (typeStr, collusionSet) in enumerate(columns)]
     outRel = rel.Relation(name, columns, storedWith)
     op = dag.Create(outRel)
@@ -148,7 +148,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
             # Exclude key column
             if idx != keyColIdx:
                 newCol = rel.Column(
-                    outputName, idx, col.typeStr, set())
+                    outputName, "{}_{}".format(outputName, idx), idx, col.typeStr, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -171,7 +171,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # Create new key column
     outKeyCol = rel.Column(
-        outputName, 0, leftJoinCol.typeStr, set())
+        outputName, "{}_{}".format(outputName, 0), 0, leftJoinCol.typeStr, set())
 
     # Define output relation columns.
     # These will be the key column followed

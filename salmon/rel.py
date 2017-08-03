@@ -2,16 +2,21 @@ import salmon.utils as utils
 
 class Column():
 
-    def __init__(self, relName, idx, typeStr, collSets):
+    def __init__(self, relName, name, idx, typeStr, collSets):
 
         self.relName = relName
+        self.name = name
         self.idx = idx
         self.typeStr = typeStr
         self.collSets = collSets
 
     def getName(self):
 
-        return self.relName + "_" + str(self.idx)
+        return self.name
+
+    def getIdx(self):
+
+        return self.idx
 
     def dbgStr(self):
 
@@ -40,6 +45,7 @@ class Relation():
         self.name = newName
         for col in self.columns:
             col.relName = newName
+            col.name = "{}_{}".format(newName, col.idx)
 
     def isShared(self):
 
@@ -58,11 +64,12 @@ class Relation():
         self.updateColumnIndexes()
         for col in self.columns:
             col.relName = self.name
+            col.name = "{}_{}".format(self.name, col.idx)
 
     def dbgStr(self):
 
         colStr = ", ".join([col.dbgStr() for col in self.columns])
-        return "{}([{}]) {}".format(self.name, colStr, self.storedWith)        
+        return "{}([{}]) {}".format(self.name, colStr, self.storedWith)
 
     def __str__(self):
 
