@@ -13,7 +13,7 @@ def create(relName, columns, storedWith):
     return op
 
 
-def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
+def aggregate(inputOpNode, outputName, keyColName, overColName, aggregator, aggOutColName):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
@@ -22,20 +22,22 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     inCols = inRel.columns
     keyCol = utils.find(inCols, keyColName)
     keyCol.collSets = set()
-    aggCol = utils.find(inCols, aggColName)
-    aggCol.collSets = set()
+    overCol = utils.find(inCols, overColName)
+    overCol.collSets = set()
 
     # Create output relation. Default column order is
     # key column first followed by column that will be
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
-    outRelCols = [copy.deepcopy(keyCol), copy.deepcopy(aggCol)]
+    aggOutCol = copy.deepcopy(overCol)
+    aggOutCol.name = aggOutColName
+    outRelCols = [copy.deepcopy(keyCol), aggOutCol]
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Aggregate(outRel, inputOpNode, keyCol, aggCol, aggregator)
+    op = dag.Aggregate(outRel, inputOpNode, keyCol, overCol, aggregator)
 
     # Add it as a child to input node
     inputOpNode.children.add(op)
