@@ -45,7 +45,6 @@ class Relation():
         self.name = newName
         for col in self.columns:
             col.relName = newName
-            col.name = "{}_{}".format(newName, col.idx)
 
     def isShared(self):
 
@@ -64,7 +63,6 @@ class Relation():
         self.updateColumnIndexes()
         for col in self.columns:
             col.relName = self.name
-            col.name = "{}_{}".format(self.name, col.idx)
 
     def dbgStr(self):
 

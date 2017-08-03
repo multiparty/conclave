@@ -4,11 +4,11 @@ from salmon import dag
 import salmon.utils as utils
 
 
-def create(name, columns, storedWith):
+def create(relName, columns, storedWith):
 
-    columns = [rel.Column(name, "{}_{}".format(name, idx), idx, typeStr, collusionSet)
-               for idx, (typeStr, collusionSet) in enumerate(columns)]
-    outRel = rel.Relation(name, columns, storedWith)
+    columns = [rel.Column(relName, colName, idx, typeStr, collusionSet)
+               for idx, (colName, typeStr, collusionSet) in enumerate(columns)]
+    outRel = rel.Relation(relName, columns, storedWith)
     op = dag.Create(outRel)
     return op
 
@@ -148,7 +148,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
             # Exclude key column
             if idx != keyColIdx:
                 newCol = rel.Column(
-                    outputName, "{}_{}".format(outputName, idx), idx, col.typeStr, set())
+                    outputName, col.getName(), idx, col.typeStr, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -171,7 +171,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # Create new key column
     outKeyCol = rel.Column(
-        outputName, "{}_{}".format(outputName, 0), 0, leftJoinCol.typeStr, set())
+        outputName, leftJoinCol.getName(), 0, leftJoinCol.typeStr, set())
 
     # Define output relation columns.
     # These will be the key column followed

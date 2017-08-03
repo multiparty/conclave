@@ -22,6 +22,7 @@ def find(columns, colName):
     
     return next(iter([col for col in columns if col.getName() == colName]))
 
-def defCol(tpy, *collSets):
 
-    return (tpy, set([frozenset(collSet) for collSet in collSets]))
+def defCol(name, tpy, *collSets):
+
+    return (name, tpy, set([frozenset(collSet) for collSet in collSets]))
