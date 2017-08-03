@@ -205,7 +205,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     return op
 
 
-def concat(inputOpNodes, outputName):
+def concat(inputOpNodes, outputName, columnNames=None):
 
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
@@ -216,13 +216,20 @@ def concat(inputOpNodes, outputName):
 
     # Ensure that all input relations have same
     # number of columns
-    relLens = [len(inRel.columns) for inRel in inRels]
-    relSizesEqual = len(set(relLens)) == 1
-    assert(relSizesEqual)
+    numCols = len(inRels[0].columns)
+    for inRel in inRels:
+        assert(len(inRel.columns) == numCols)
+    if columnNames is not None:
+        assert(len(columnNames) == numCols)
 
     # Copy over columns from existing relation
     outRelCols = copy.deepcopy(inRels[0].columns)
-    for col in outRelCols:
+    for (i, col) in enumerate(outRelCols):
+        if columnNames is not None:
+            col.name = columnNames[i]
+        else:
+            # we use the column names from the first input
+            pass
         col.collSets = set()
 
     # The result of the concat will be stored with the union
