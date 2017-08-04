@@ -117,6 +117,11 @@ class SparkCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    '''
+    TODO (ben)
+    once named columns are implemented, modify template
+    file to detect extra columns and append it to DF
+    '''
     def _generateMultiply(self, mult_op):
 
         op_cols = mult_op.operands
@@ -124,7 +129,7 @@ class SparkCodeGen(CodeGen):
         operands = []
         scalar = 1
 
-        # (ben) targetCol is at op_cols[0]
+        # targetCol is at op_cols[0]
         for op_col in op_cols:
             if hasattr(op_col, 'idx'):
                 if op_col.idx != targetCol.idx:
@@ -145,6 +150,11 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    '''
+    TODO (ben)
+    once named columns are implemented, modify template
+    file to detect extra columns and append it to DF
+    '''
     def _generateDivide(self, div_op):
 
         op_cols = div_op.operands
@@ -152,7 +162,7 @@ class SparkCodeGen(CodeGen):
         operands = []
         scalar = 1
 
-        # (ben) targetCol is at op_cols[0]
+        # targetCol is at op_cols[0]
         for op_col in op_cols:
             if hasattr(op_col, 'idx'):
                 if op_col.idx != targetCol.idx:
@@ -172,7 +182,6 @@ class SparkCodeGen(CodeGen):
         }
 
         return pystache.render(template, data)
-
 
     def _generateStore(self, store_op):
 
