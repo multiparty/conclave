@@ -1,23 +1,23 @@
 import salmon.lang as sal
 from salmon.comp import mpc
-from salmon.codegen import beer
+from salmon.codegen import spark
 
 @mpc
 def protocol():
 
     # define inputs
     colsInA = [
-        ("INTEGER", set([1, 2, 3])),
-        ("INTEGER", set([1, 2, 3])),
-        ("INTEGER", set([1, 2, 3]))
+        ("productID", "INTEGER", set([1, 2, 3])),
+        ("price", "INTEGER", set([1, 2, 3])),
+        ("amount", "INTEGER", set([1, 2, 3])),
+        ("userID", "INTEGER", set([1, 2, 3]))
     ]
     inA = sal.create("inA", colsInA, set([1]))
 
     # specify the workflow
-    agg = sal.aggregate(inA, "agg", "inA_0", "inA_1", "+")
-    projA = sal.project(agg, "projA", ["agg_0", "agg_1"])
-    projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-    mult = sal.multiply(projB, "mult", "projB_0", ["projB_1"])
+    proj = sal.project(inA, "projected", ["productID", "price", "amount"])
+    mult = sal.multiply(proj, "subtotals", "price", ["price", "amount"])
+    agg = sal.aggregate(mult, "revenue", "productID", "price", "+", "revenue")
     opened = sal.collect(mult, 1)
 
     # return root nodes
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    cg = beer.BeerCodeGen(dag)
+    cg = spark.SparkCodeGen(dag)
     cg.generate("aggtest", "/tmp")
 
     print("Spark code generated in /tmp/aggtest.py")

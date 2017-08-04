@@ -8,24 +8,26 @@ def protocol():
 
     # define inputs
     colsInA = [
-        defCol("STRING", [1]),
-        defCol("INTEGER", [1]),
-        defCol("STRING", [1]),
-        defCol("INTEGER", [1]),
-        defCol("FLOAT", [1]),
-        defCol("FLOAT", [1])
+        defCol("a", "STRING", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "STRING", [1]),
+        defCol("d", "INTEGER", [1]),
+        defCol("e", "FLOAT", [1]),
+        defCol("f", "FLOAT", [1])
     ]
     inA = sal.create("inA", colsInA, set([1]))
-    multA = sal.multiply(inA, "multA", "inA_4", ["inA_4", "inA_5"])
-    projA = sal.project(multA, "projA", ["multA_0", "multA_1"])
-    projB = sal.project(multA, "projB", ["multA_2", "multA_3"])
-    projC = sal.project(multA, "projC", ["multA_0", "multA_4"])
-    projD = sal.project(multA, "projD", ["multA_2", "multA_5"])
-    joinA = sal.join(projA, projB, "joinA", "projA_0", "projB_0")
-    joinB = sal.join(projC, projD, "joinB", "projC_0", "projD_0")
-    concatA = sal.concat([joinA, joinB], "concatA")
-    multB = sal.multiply(concatA, "multB", "concatA_1", ["concatA_1", 10])
-    opened = sal.collect(multB, 1)
+    multFloats = sal.multiply(inA, "mult", "e", ["e", "f"])
+    projStringInt = sal.project(multFloats, "projStringInt", ["a", "b"])
+    projStringInt2 = sal.project(multFloats, "projStringInt2", ["c", "d"])
+    projStringFloat = sal.project(multFloats, "projStringFloat", ["a", "e"])
+    projStringFloat2 = sal.project(multFloats, "projStringFloat2", ["c", "f"])
+    joinIntsOnString = sal.join(projStringInt, projStringInt2, "joinIntsOnString", "a", "c")
+    joinFloatsOnString = sal.join(projStringFloat, projStringFloat2, "joinFloatsOnString", "a", "c")
+    # TODO(malte): this concats ints and float, which I guess we assume is fine, even though they
+    # aren't the same column types?
+    concat = sal.concat([joinIntsOnString, joinFloatsOnString], "concat")
+    mult = sal.multiply(concat, "mult", "b", ["b", 10])
+    opened = sal.collect(mult, 1)
 
     # return root nodes
     return set([inA])

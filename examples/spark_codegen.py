@@ -7,13 +7,13 @@ from salmon.utils import *
 def simple_div():
 
     colsInA = [
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
-    div1 = sal.divide(in1, "div1", "in1_0", ["in1_0", "in1_1"])
+    div1 = sal.divide(in1, "div1", "a", ["a", "b"])
 
     opened = sal.collect(div1, 1)
 
@@ -25,14 +25,14 @@ def simple_div():
 def comp_div():
 
     colsInA = [
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
     # divide column 0 by columns 1 & 2, then divide by 5 (scalar)
-    div1 = sal.divide(in1, "div1", "in1_0", ["in1_0", "in1_1", "in1_2", 5])
+    div1 = sal.divide(in1, "div1", "a", ["a", "b", "c", 5])
 
     opened = sal.collect(div1, 1)
 
@@ -44,13 +44,13 @@ def comp_div():
 def simple_mult():
 
     colsInA = [
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
-    mult1 = sal.multiply(in1, "mult1", "in1_0", ["in1_0", "in1_1"])
+    mult1 = sal.multiply(in1, "mult1", "a", ["a", "b"])
 
     opened = sal.collect(mult1, 1)
 
@@ -61,14 +61,14 @@ def simple_mult():
 @dagonly
 def comp_mult():
     colsInA = [
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
     # multiply column 0 by columns 1 & 2, then multiply by 5 (scalar)
-    mult1 = sal.multiply(in1, "mult1", "in1_0", ["in1_0", "in1_1", "in1_2", 5])
+    mult1 = sal.multiply(in1, "mult1", "a", ["a", "b", "c", 5])
 
     opened = sal.collect(mult1, 1)
 
