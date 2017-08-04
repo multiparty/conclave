@@ -11,18 +11,18 @@ def testSingleConcat():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
         colsIn3 = [
-            defCol("INTEGER", [3]),
-            defCol("INTEGER", [3])
+            defCol("a", "INTEGER", [3]),
+            defCol("b", "INTEGER", [3])
         ]
         in3 = sal.create("in3", colsIn3, set([3]))
 
@@ -34,12 +34,12 @@ def testSingleConcat():
         # return root nodes
         return set([in1, in2, in3])
 
-    expected = """CREATE RELATION in1([in1_0 {1}, in1_1 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([in2_0 {2}, in2_1 {2}]) {2} INTO in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}
-CREATE RELATION in3([in3_0 {3}, in3_1 {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in3([in3_0 {3}, in3_1 {3}]) {3} INTO in3_close([in3_close_0 {3}, in3_close_1 {3}]) {1}
-CONCAT [in1([in1_0 {1}, in1_1 {1}]) {1}, in2_close([in2_close_0 {2}, in2_close_1 {2}]) {1}, in3_close([in3_close_0 {3}, in3_close_1 {3}]) {1}] AS rel([rel_0 {1,2,3}, rel_1 {1,2,3}]) {1}
+    expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
+CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE in3([a {3}, b {3}]) {3} INTO in3_close([a {3}, b {3}]) {1}
+CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}, in3_close([a {3}, b {3}]) {1}] AS rel([a {1,2,3}, b {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -53,13 +53,13 @@ def testSingleAgg():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
 
@@ -67,7 +67,7 @@ def testSingleAgg():
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
-        agg = sal.aggregate(rel, "agg", "rel_0", "rel_1", "+")
+        agg = sal.aggregate(rel, "agg", "a", "b", "+", "total_b")
 
         sal.collect(agg, 1)
 
