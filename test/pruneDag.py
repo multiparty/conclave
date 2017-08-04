@@ -97,13 +97,13 @@ def testAggProjProj():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
 
@@ -111,11 +111,11 @@ def testAggProjProj():
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
-        projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
-        projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-        agg = sal.aggregate(projB, "agg", "projB_0", "projB_1", "+")
-        projC = sal.project(agg, "projC", ["agg_0", "agg_1"])
-        projD = sal.project(projC, "projD", ["projC_0", "projC_1"])
+        projA = sal.project(rel, "projA", ["a", "b"])
+        projB = sal.project(projA, "projB", ["a", "b"])
+        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        projC = sal.project(agg, "projC", ["a", "total_b"])
+        projD = sal.project(projC, "projD", ["a", "total_b"])
 
         sal.collect(projD, 1)
 
@@ -144,13 +144,13 @@ def testAggProjProjOther():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
 
@@ -158,11 +158,11 @@ def testAggProjProjOther():
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
-        projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
-        projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-        agg = sal.aggregate(projB, "agg", "projB_0", "projB_1", "+")
-        projC = sal.project(agg, "projC", ["agg_0", "agg_1"])
-        projD = sal.project(projC, "projD", ["projC_0", "projC_1"])
+        projA = sal.project(rel, "projA", ["a", "b"])
+        projB = sal.project(projA, "projB", ["a", "b"])
+        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        projC = sal.project(agg, "projC", ["a", "total_b"])
+        projD = sal.project(projC, "projD", ["a", "total_b"])
 
         sal.collect(projD, 1)
 
@@ -190,18 +190,19 @@ def testJoin():
     @mpc(1)
     def protocol():
         colsInA = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1]),
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1]),
         ]
         inA = sal.create("inA", colsInA, set([1]))
         colsInB = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("c", "INTEGER", [2]),
+            defCol("d", "INTEGER", [2])
         ]
         inB = sal.create("inB", colsInB, set([2]))
-        projB = sal.project(inB, "projB", ["inB_0", "inB_1"])
-        joined = sal.join(inA, projB, "joined", "inA_0", "projB_0")
-        mult = sal.multiply(joined, "mult", "joined_0", ["joined_0", 0])
+
+        projB = sal.project(inB, "projB", ["c", "d"])
+        joined = sal.join(inA, projB, "joined", "a", "c")
+        mult = sal.multiply(joined, "mult", "a", ["a", 0])
         sal.collect(mult, 1)
         return set([inA, inB])
 
