@@ -122,15 +122,15 @@ def testAggProjProj():
         # return root nodes
         return set([in1, in2])
 
-    expected = """CLOSE agg_0([agg_0_0 {1}, agg_0_1 {1}]) {1} INTO agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}
-CREATE RELATION in2([in2_0 {2}, in2_1 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-PROJECT [in2_0, in2_1] FROM (in2([in2_0 {2}, in2_1 {2}]) {2}) AS projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}
-PROJECT [projA_1_0, projA_1_1] FROM (projA_1([projA_1_0 {2}, projA_1_1 {2}]) {2}) AS projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}
-AGG [projB_1_1, +] FROM (projB_1([projB_1_0 {2}, projB_1_1 {2}]) {2}) GROUP BY [projB_1_0] AS agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2}
-CLOSE agg_1([agg_1_0 {2}, agg_1_1 {2}]) {2} INTO agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}
-CONCATMPC [agg_0_close([agg_0_close_0 {1}, agg_0_close_1 {1}]) {1, 2}, agg_1_close([agg_1_close_0 {2}, agg_1_close_1 {2}]) {1, 2}] AS rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}
-AGGMPC [rel_1, +] FROM (rel([rel_0 {1,2}, rel_1 {1,2}]) {1, 2}) GROUP BY [rel_0] AS agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2}
-OPEN agg_obl([agg_obl_0 {1,2}, agg_obl_1 {1,2}]) {1, 2} INTO agg_obl_open([agg_obl_open_0 {1,2}, agg_obl_open_1 {1,2}]) {1}
+    expected = """CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS projA_1([a {2}, b {2}]) {2}
+PROJECT [a, b] FROM (projA_1([a {2}, b {2}]) {2}) AS projB_1([a {2}, b {2}]) {2}
+AGG [b, +] FROM (projB_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
+CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
+CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2}, agg_1_close([a {2}, total_b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
+AGGMPC [b, +] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) GROUP BY [a] AS agg_obl([a {1,2}, total_b {1,2}]) {1, 2}
+OPEN agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
