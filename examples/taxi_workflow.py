@@ -8,45 +8,38 @@ def protocol():
 
     # define inputs
     colsInA = [
-        defCol("INTEGER", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("STRING", [1, 2, 3]),
-        defCol("INTEGER", [1, 2, 3])
+        defCol("companyID", "INTEGER", [1, 2, 3]),
+        defCol("cab_data_1", "STRING", [1, 2, 3]),
+        defCol("cab_data_2", "STRING", [1, 2, 3]),
+        defCol("cab_data_3", "STRING", [1, 2, 3]),
+        defCol("cab_data_4", "STRING", [1, 2, 3]),
+        defCol("cab_data_5", "STRING", [1, 2, 3]),
+        defCol("cab_data_6", "STRING", [1, 2, 3]),
+        defCol("cab_data_7", "STRING", [1, 2, 3]),
+        defCol("cab_data_8", "STRING", [1, 2, 3]),
+        defCol("cab_data_9", "STRING", [1, 2, 3]),
+        defCol("cab_data_10", "STRING", [1, 2, 3]),
+        defCol("cab_data_11", "STRING", [1, 2, 3]),
+        defCol("cab_data_12", "STRING", [1, 2, 3]),
+        defCol("cab_data_13", "STRING", [1, 2, 3]),
+        defCol("cab_data_14", "STRING", [1, 2, 3]),
+        defCol("cab_data_15", "STRING", [1, 2, 3]),
+        defCol("cab_data_16", "STRING", [1, 2, 3]),
+        defCol("price", "INTEGER", [1, 2, 3])
     ]
     cab_data = sal.create("cab_data", colsInA, set([1]))
 
-    selected_input = sal.project(cab_data, "selected_input", ["cab_data_0", "cab_data_17"])
-    local_rev = sal.aggregate(selected_input, "local_rev", "selected_input_0",
-                              "selected_input_1", "+")
-    scaled_down = sal.divide(local_rev, "scaled_down", "local_rev_1", ["local_rev_1", 1000])
-    first_val_blank = sal.multiply(scaled_down, "first_val_blank", "scaled_down_0",
-                                   ["scaled_down_0", 0])
-    local_rev_scaled = sal.multiply(first_val_blank, "local_rev_scaled", "first_val_blank_1",
-                                    ["first_val_blank_1", 100])
-    total_rev = sal.aggregate(first_val_blank, "total_rev", "first_val_blank_0",
-                              "first_val_blank_1", "+")
-    local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev",
-                               "local_rev_scaled_0", "total_rev_0")
-    market_share = sal.divide(local_total_rev, "market_share", "local_total_rev_1",
-                              ["local_total_rev_1", "local_total_rev_2"])
-    market_share_squared = sal.multiply(market_share, "market_share_squared", "market_share_1",
-                                        ["market_share_1", "market_share_1"])
-    hhi = sal.aggregate(market_share_squared, "hhi", "market_share_squared_1",
-                        "market_share_squared_0", "+")
+    selected_input = sal.project(cab_data, "selected_input", ["companyID", "price"])
+    local_rev = sal.aggregate(selected_input, "local_rev", "companyID", "price", "+", "local_rev")
+    scaled_down = sal.divide(local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+    first_val_blank = sal.multiply(scaled_down, "first_val_blank", "companyID", ["companyID", 0])
+    local_rev_scaled = sal.multiply(first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
+    total_rev = sal.aggregate(first_val_blank, "total_rev", "companyID", "local_rev", "+", "global_rev")
+    local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", "companyID", "companyID")
+    market_share = sal.divide(local_total_rev, "market_share", "local_rev", ["local_rev", "global_rev"])
+    market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
+                                        ["local_rev", "local_rev"])
+    hhi = sal.aggregate(market_share_squared, "hhi", "local_rev", "companyID", "+", "hhi")
 
     opened = sal.collect(hhi, 1)
 

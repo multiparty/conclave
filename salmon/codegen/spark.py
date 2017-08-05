@@ -40,6 +40,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    # TODO: (ben) implement multiple keyCols
     def _generateAggregate(self, agg_op):
 
         aggregator = agg_op.aggregator
@@ -117,6 +118,11 @@ class SparkCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    '''
+    TODO (ben)
+    once named columns are implemented, modify template
+    file to detect extra columns and append it to DF
+    '''
     def _generateMultiply(self, mult_op):
 
         op_cols = mult_op.operands
@@ -124,20 +130,32 @@ class SparkCodeGen(CodeGen):
         operands = []
         scalar = 1
 
-        # (ben) targetCol is at op_cols[0]
-        for op_col in op_cols:
-            if hasattr(op_col, 'idx'):
-                if op_col.idx != targetCol.idx:
+        if targetCol.name == op_cols[0].name:
+            new_col = False
+            # targetCol is at op_cols[0]
+            for op_col in op_cols:
+                if hasattr(op_col, 'idx'):
+                    if op_col.idx != targetCol.idx:
+                        operands.append(op_col.idx)
+                else:
+                    # there will only be one scalar
+                    scalar = op_col
+        else:
+            new_col = True
+            for op_col in op_cols:
+                if hasattr(op_col, 'idx'):
                     operands.append(op_col.idx)
-            else:
-                # there will only be one scalar
-                scalar = op_col
+                else:
+                    # there will only be one scalar
+                    scalar = op_col
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
+        # TODO: check in codegen if {{{NEWCOL_FLAG}}} is passed as str or bool
         data = {
+            'NEWCOL_FLAG': new_col,
             'OPERANDS': [idx for idx in operands],
-            'SCALARS': scalar,
+            'SCALAR': scalar,
             'TARGET_ID': targetCol.idx,
             'INREL': mult_op.getInRel().name,
             'OUTREL': mult_op.outRel.name
@@ -145,6 +163,11 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    '''
+    TODO (ben)
+    once named columns are implemented, modify template
+    file to detect extra columns and append it to DF
+    '''
     def _generateDivide(self, div_op):
 
         op_cols = div_op.operands
@@ -152,7 +175,7 @@ class SparkCodeGen(CodeGen):
         operands = []
         scalar = 1
 
-        # (ben) targetCol is at op_cols[0]
+        # targetCol is at op_cols[0]
         for op_col in op_cols:
             if hasattr(op_col, 'idx'):
                 if op_col.idx != targetCol.idx:
@@ -172,7 +195,6 @@ class SparkCodeGen(CodeGen):
         }
 
         return pystache.render(template, data)
-
 
     def _generateStore(self, store_op):
 

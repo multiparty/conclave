@@ -15,13 +15,17 @@ def mergeCollSets(left, right):
 
 def collSetsFromColumns(columns):
 
-    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns] 
-    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)    
+    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns]
+    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
 
 def find(columns, colName):
-    
-    return next(iter([col for col in columns if col.getName() == colName]))
 
-def defCol(tpy, *collSets):
+    try:
+        return next(iter([col for col in columns if col.getName() == colName]))
+    except StopIteration:
+        print("column '{}' not found in {}".format(colName, [c.getName() for c in columns]))
+        return None
 
-    return (tpy, set([frozenset(collSet) for collSet in collSets]))
+def defCol(name, tpy, *collSets):
+
+    return (name, tpy, set([frozenset(collSet) for collSet in collSets]))

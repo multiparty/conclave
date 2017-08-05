@@ -4,16 +4,16 @@ from salmon import dag
 import salmon.utils as utils
 
 
-def create(name, columns, storedWith):
+def create(relName, columns, storedWith):
 
-    columns = [rel.Column(name, "{}_{}".format(name, idx), idx, typeStr, collusionSet)
-               for idx, (typeStr, collusionSet) in enumerate(columns)]
-    outRel = rel.Relation(name, columns, storedWith)
+    columns = [rel.Column(relName, colName, idx, typeStr, collusionSet)
+               for idx, (colName, typeStr, collusionSet) in enumerate(columns)]
+    outRel = rel.Relation(relName, columns, storedWith)
     op = dag.Create(outRel)
     return op
 
 
-def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
+def aggregate(inputOpNode, outputName, keyColName, overColName, aggregator, aggOutColName):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
@@ -22,20 +22,22 @@ def aggregate(inputOpNode, outputName, keyColName, aggColName, aggregator):
     inCols = inRel.columns
     keyCol = utils.find(inCols, keyColName)
     keyCol.collSets = set()
-    aggCol = utils.find(inCols, aggColName)
-    aggCol.collSets = set()
+    overCol = utils.find(inCols, overColName)
+    overCol.collSets = set()
 
     # Create output relation. Default column order is
     # key column first followed by column that will be
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
-    outRelCols = [copy.deepcopy(keyCol), copy.deepcopy(aggCol)]
+    aggOutCol = copy.deepcopy(overCol)
+    aggOutCol.name = aggOutColName
+    outRelCols = [copy.deepcopy(keyCol), aggOutCol]
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Aggregate(outRel, inputOpNode, keyCol, aggCol, aggregator)
+    op = dag.Aggregate(outRel, inputOpNode, keyCol, overCol, aggregator)
 
     # Add it as a child to input node
     inputOpNode.children.add(op)
@@ -86,8 +88,15 @@ def divide(inputOpNode, outputName, targetColName, operands):
     for operand in operands:
         if hasattr(operand, "collSets"):
             operand.collSets = set()
-    targetColumn = utils.find(inRel.columns, targetColName)
-    targetColumn.collSets = set()
+    # if targetCol already exists, it will be at the 0th index of operands
+    if targetColName == operands[0]:
+        targetColumn = utils.find(inRel.columns, targetColName)
+        targetColumn.collSets = set()
+    else:
+        # TODO: figure out new column's collSets
+        targetColumn = rel.Column(
+            outputName, targetColName, len(inputOpNode.columns), "INTEGER", set())
+        outRelCols.append(targetColumn)
 
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
@@ -116,8 +125,16 @@ def multiply(inputOpNode, outputName, targetColName, operands):
     for operand in operands:
         if hasattr(operand, "collSets"):
             operand.collSets = set()
-    targetColumn = utils.find(inRel.columns, targetColName)
-    targetColumn.collSets = set()
+
+    # if targetCol already exists, it will be at the 0th index of operands
+    if targetColName == operands[0]:
+        targetColumn = utils.find(inRel.columns, targetColName)
+        targetColumn.collSets = set()
+    else:
+        # TODO: figure out new column's collSets
+        targetColumn = rel.Column(
+            outputName, targetColName, len(inputOpNode.columns), "INTEGER", set())
+        outRelCols.append(targetColumn)
 
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
@@ -148,7 +165,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
             # Exclude key column
             if idx != keyColIdx:
                 newCol = rel.Column(
-                    outputName, "{}_{}".format(outputName, idx), idx, col.typeStr, set())
+                    outputName, col.getName(), idx, col.typeStr, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -171,7 +188,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
 
     # Create new key column
     outKeyCol = rel.Column(
-        outputName, "{}_{}".format(outputName, 0), 0, leftJoinCol.typeStr, set())
+        outputName, leftJoinCol.getName(), 0, leftJoinCol.typeStr, set())
 
     # Define output relation columns.
     # These will be the key column followed
@@ -205,7 +222,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     return op
 
 
-def concat(inputOpNodes, outputName):
+def concat(inputOpNodes, outputName, columnNames=None):
 
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
@@ -216,13 +233,20 @@ def concat(inputOpNodes, outputName):
 
     # Ensure that all input relations have same
     # number of columns
-    relLens = [len(inRel.columns) for inRel in inRels]
-    relSizesEqual = len(set(relLens)) == 1
-    assert(relSizesEqual)
+    numCols = len(inRels[0].columns)
+    for inRel in inRels:
+        assert(len(inRel.columns) == numCols)
+    if columnNames is not None:
+        assert(len(columnNames) == numCols)
 
     # Copy over columns from existing relation
     outRelCols = copy.deepcopy(inRels[0].columns)
-    for col in outRelCols:
+    for (i, col) in enumerate(outRelCols):
+        if columnNames is not None:
+            col.name = columnNames[i]
+        else:
+            # we use the column names from the first input
+            pass
         col.collSets = set()
 
     # The result of the concat will be stored with the union

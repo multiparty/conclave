@@ -12,8 +12,8 @@ def testClose():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         out = sal._close(in1, "out", set([1, 2, 3]))
@@ -35,11 +35,11 @@ def testAgg():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        agg = sal.aggregate(in1, "agg", "in1_0", "in1_1", "+")
+        agg = sal.aggregate(in1, "agg", "a", "b", "+", "total_b")
 
         # return root nodes
         return set([in1])
@@ -58,13 +58,13 @@ def testConcatTwo():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
         rel = sal.concat([in1, in2], "rel")
@@ -86,18 +86,18 @@ def testConcatMore():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
         colsIn3 = [
-            defCol("INTEGER", [3]),
-            defCol("INTEGER", [3])
+            defCol("a", "INTEGER", [3]),
+            defCol("b", "INTEGER", [3])
         ]
         in3 = sal.create("in3", colsIn3, set([3]))
 
@@ -118,16 +118,16 @@ def testJoin():
 
         # define inputs
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
-            defCol("INTEGER", [2]),
-            defCol("INTEGER", [2])
+            defCol("c", "INTEGER", [2]),
+            defCol("d", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsIn2, set([2]))
-        joined = sal.join(in1, in2, "joined", "in1_0", "in2_0")
+        joined = sal.join(in1, in2, "joined", "a", "c")
 
         # return root nodes
         return set([in1, in2])
@@ -143,11 +143,11 @@ def testProj():
     def protocol():
 
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        proj = sal.project(in1, "proj", ["in1_1", "in1_0"])
+        proj = sal.project(in1, "proj", ["a", "b"])
 
         return set([in1])
 
@@ -162,8 +162,8 @@ def testOpen():
     def protocol():
 
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
         opened = sal._open(in1, "opened", 1)
@@ -181,11 +181,11 @@ def testMult():
     def protocol():
 
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        mult = sal.multiply(in1, "mult", "in1_0", ["in1_0", "in1_1", 1])
+        mult = sal.multiply(in1, "mult", "a", ["a", "b", 1])
 
         return set([in1])
 
@@ -200,11 +200,11 @@ def testDiv():
     def protocol():
 
         colsIn1 = [
-            defCol("INTEGER", [1]),
-            defCol("INTEGER", [1])
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
         ]
         in1 = sal.create("in1", colsIn1, set([1]))
-        div = sal.divide(in1, "div", "in1_0", ["in1_0", "in1_1", 10])
+        div = sal.divide(in1, "div", "a", ["a", "b", 10])
 
         return set([in1])
 
