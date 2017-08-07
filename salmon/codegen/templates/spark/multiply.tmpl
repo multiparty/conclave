@@ -6,14 +6,13 @@ new_col_flag = {{{NEWCOL_FLAG}}}
 
 if not new_col_flag:
     {{{OUTREL}}} = {{{INREL}}} \
-        .map(lambda x: [functools.reduce(operator.mul, [x[i] if i in set(operands) \
-            else 1 for i in range(len(x))], 1)*x[j]*scalar if j == target_id \
+        .map(lambda x: [functools.reduce(operator.mul, [x[i] for i in operands], 1)*x[j]*scalar \
+            if j == target_id \
             else x[j] for j in range(len(x))]) \
         .cache()
 else:
     new_col = {{{INREL}}} \
-        .map(lambda x: functools.reduce(operator.mul, [x[i] if i in set(operands) \
-            else 1 for i in range(len(x))], 1)*scalar) \
+        .map(lambda x: functools.reduce(operator.mul, [x[i] for i in operands], 1)*scalar) \
         .cache()
 
     {{{OUTREL}}} = {{{INREL}}} \
