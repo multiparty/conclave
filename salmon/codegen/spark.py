@@ -118,11 +118,7 @@ class SparkCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    '''
-    TODO (ben)
-    once named columns are implemented, modify template
-    file to detect extra columns and append it to DF
-    '''
+
     def _generateMultiply(self, mult_op):
 
         op_cols = mult_op.operands

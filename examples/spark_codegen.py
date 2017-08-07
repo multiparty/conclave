@@ -76,12 +76,29 @@ def comp_mult():
     return set([in1])
 
 
+@dagonly
+def create_col_mult():
+    colsInA = [
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create("in1", colsInA, set([1]))
+
+    mult1 = sal.multiply(in1, "mult1", "d", ["a", "b"])
+
+    opened = sal.collect(mult1, 1)
+
+    return set([in1])
+
+
 if __name__ == "__main__":
 
     simple_mult_dag = simple_mult()
     comp_mult_dag = comp_mult()
     simple_div_dag = simple_div()
     comp_div_dag = comp_div()
+    create_mult_dag = create_col_mult()
 
     simple_mult = spark.SparkCodeGen(simple_mult_dag)
     simple_mult.generate("simple_mult", "/tmp")
@@ -94,5 +111,8 @@ if __name__ == "__main__":
 
     comp_div = spark.SparkCodeGen(comp_div_dag)
     comp_div.generate("comp_div", "/tmp")
+
+    create_mult = spark.SparkCodeGen(create_mult_dag)
+    create_mult.generate("create_mult", "/tmp")
 
     print("Spark code generated in /tmp/")

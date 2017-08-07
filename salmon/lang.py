@@ -88,6 +88,7 @@ def divide(inputOpNode, outputName, targetColName, operands):
     for operand in operands:
         if hasattr(operand, "collSets"):
             operand.collSets = set()
+
     # if targetCol already exists, it will be at the 0th index of operands
     if targetColName == operands[0]:
         targetColumn = utils.find(inRel.columns, targetColName)
