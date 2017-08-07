@@ -90,13 +90,13 @@ def divide(inputOpNode, outputName, targetColName, operands):
             operand.collSets = set()
 
     # if targetCol already exists, it will be at the 0th index of operands
-    if targetColName == operands[0]:
+    if targetColName == operands[0].name:
         targetColumn = utils.find(inRel.columns, targetColName)
         targetColumn.collSets = set()
     else:
         # TODO: figure out new column's collSets
         targetColumn = rel.Column(
-            outputName, targetColName, len(inputOpNode.columns), "INTEGER", set())
+            outputName, targetColName, len(inRel.columns), "INTEGER", set())
         outRelCols.append(targetColumn)
 
     # Create output relation
@@ -128,13 +128,13 @@ def multiply(inputOpNode, outputName, targetColName, operands):
             operand.collSets = set()
 
     # if targetCol already exists, it will be at the 0th index of operands
-    if targetColName == operands[0]:
+    if targetColName == operands[0].name:
         targetColumn = utils.find(inRel.columns, targetColName)
         targetColumn.collSets = set()
     else:
         # TODO: figure out new column's collSets
         targetColumn = rel.Column(
-            outputName, targetColName, len(inputOpNode.columns), "INTEGER", set())
+            outputName, targetColName, len(inRel.columns), "INTEGER", set())
         outRelCols.append(targetColumn)
 
     # Create output relation
