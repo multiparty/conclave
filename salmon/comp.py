@@ -264,10 +264,13 @@ class CollSetPropDown(DagRewriter):
 
     def _rewriteAggregate(self, node):
 
-        inKeyCol = node.keyCol
-        outKeyCol = node.outRel.columns[0]
-        outKeyCol.collSets |= copy.deepcopy(inKeyCol.collSets)
-
+        inKeyCols = node.keyCols
+        outKeyCols = node.outRel.columns[:-1]
+        # TODO: (ben/malte) is the collSet propagation a 1:1 mapping here,
+        # or is there a relationship between the collusion set associated
+        # with two keyCols i & j?
+        for i in range(len(outKeyCols)):
+            outKeyCols[i].collSets |= copy.deepcopy(inKeyCols[i].collSets)
         inAggCol = node.aggCol
         outAggCol = node.outRel.columns[1]
         outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
