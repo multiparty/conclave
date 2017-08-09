@@ -40,7 +40,7 @@ class SharemindCodeGen(CodeGen):
             # the data model definitions used by CSVImporter
             # and the code the party will run to secret-share its
             # inputs with the miners
-            schemas, input_code = self._generate_input_code(nodes)
+            schemas, input_code = self._generate_input_code(nodes, job_name, output_directory)
             op_code["schemas"] = schemas
             op_code["input"] = input_code
 
@@ -52,13 +52,12 @@ class SharemindCodeGen(CodeGen):
             miner_code = self._generate_miner_code(nodes)
             # code to submit the job and receive the output
             # (currently assumes there is only one output party)
-            controller_code = self._generate_controller_code(nodes)
+            controller_code = self._generate_controller_code(nodes, job_name, output_directory)
             op_code["miner"] = miner_code
             op_code["controller"] = controller_code
 
         # sanity check
         assert op_code
-
         # create job
         job = SharemindJob(job_name, controller_pid, input_parties)
         return job, op_code
@@ -115,7 +114,7 @@ class SharemindCodeGen(CodeGen):
         # want these in-order
         return sorted(list(input_parties))
 
-    def _generate_input_code(self, nodes):
+    def _generate_input_code(self, nodes, job_name, output_directory):
 
         # all schemas of the relations this party will input
         schemas = {}
@@ -131,18 +130,26 @@ class SharemindCodeGen(CodeGen):
             name, schema = self._generateSchema(close_op)
             schemas[name] = schema
             # generate csv import code
-            input_code += self._generateCSVImport(close_op)
+            input_code += self._generateCSVImport(close_op, output_directory, job_name)
+        # expand top-level
+        top_level_template = open(
+            "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
+        top_level_data = {
+            "ROOT_DIR": output_directory,
+            "IMPORTS": input_code
+        }
         # return schemas and input code
-        return schemas, input_code
+        return schemas, pystache.render(top_level_template, top_level_data)
 
-    def _generate_controller_code(self, nodes):
+    def _generate_controller_code(self, nodes, job_name, output_directory):
 
-        # TODO: only a stub
-        return "sm_compile_and_run.sh protocol.sc"
-
-    def _generateJob(self, job_name, output_parties, op_code):
-
-        return op_code
+        template = open(
+            "{0}/controller.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "ROOT_DIR": output_directory,
+            "JOB_DIR": job_name
+        }
+        return pystache.render(template, data)
 
     def _generateAggregate(self, agg_op):
 
@@ -314,12 +321,14 @@ class SharemindCodeGen(CodeGen):
         relDefStr = pystache.render(relDefTemplate, relData)
         return inRel.name, relDefStr
 
-    def _generateCSVImport(self, close_op):
+    def _generateCSVImport(self, close_op, output_directory, job_name):
 
         template = open(
             "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "IN_NAME": close_op.getInRel().name
+            "IN_NAME": close_op.getInRel().name,
+            "ROOT_DIR": output_directory,
+            "JOB_DIR": job_name
         }
         return pystache.render(template, data)
 
@@ -340,11 +349,6 @@ class SharemindCodeGen(CodeGen):
 
         # root directory to write to
         job_root_dir = "{}/{}".format(output_directory, job_name)
-        # get rid of old files
-        try:
-            shutil.rmtree(job_root_dir)
-        except FileNotFoundError:
-            pass
         # write files
         for code_type, code in code_dict.items():
             if code_type == "schemas":

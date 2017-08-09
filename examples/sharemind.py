@@ -30,13 +30,16 @@ def testSimple():
         cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
         cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
         rel = sal.concat([cl1, cl2, cl3], "rel")
+        agg = sal.aggregate(rel, "agg", "a", "b", "+", "total")
 
-        opened = sal._open(rel, "opened", 1)
+        opened = sal._open(agg, "opened", 1)
         # return root nodes
         return set([in1, in2, in3])
 
     dag = protocol()
-    job = SharemindCodeGen(dag, 1).generate("job", "/tmp")
+    SharemindCodeGen(dag, 1).generate("job-1", "/home/sharemind/Sharemind-SDK/sharemind/client")
+    SharemindCodeGen(dag, 2).generate("job-2", "/home/sharemind/Sharemind-SDK/sharemind/client")
+    SharemindCodeGen(dag, 3).generate("job-3", "/home/sharemind/Sharemind-SDK/sharemind/client")
 
 if __name__ == "__main__":
 
