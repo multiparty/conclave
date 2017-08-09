@@ -288,17 +288,17 @@ class Concat(NaryOpNode):
 
 class Aggregate(UnaryOpNode):
 
-    def __init__(self, outRel, parent, keyCol, aggCol, aggregator):
+    def __init__(self, outRel, parent, keyCols, aggCol, aggregator):
 
         super(Aggregate, self).__init__("aggregation", outRel, parent)
-        self.keyCol = keyCol
+        self.keyCols = keyCols
         self.aggCol = aggCol
         self.aggregator = aggregator
 
     def updateOpSpecificCols(self):
 
         # TODO: do we need to copy here?
-        self.keyCol = self.getInRel().columns[self.keyCol.idx]
+        self.keyCols = [self.getInRel().columns[keyCol.idx] for keyCol in self.keyCols]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
 
