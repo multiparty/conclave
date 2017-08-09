@@ -108,8 +108,24 @@ def create_col_div():
     return set([in1])
 
 
+@dagonly
+def multicol_agg():
+    colsInA = [
+        defCol("a", "INTEGER", [1, 2, 3]),
+        defCol("b", "INTEGER", [1, 2, 3]),
+        defCol("c", "INTEGER", [1, 2, 3])
+    ]
+    in1 = sal.create('in1', colsInA, set([1]))
+
+    agg1 = sal.aggregate(in1, 'agg1', ['a', 'b'], 'c', '+', 'c')
+
+    opened = sal.collect(agg1, 1)
+
+    return set([in1])
+
 if __name__ == "__main__":
 
+    '''
     simple_mult_dag = simple_mult()
     comp_mult_dag = comp_mult()
     simple_div_dag = simple_div()
@@ -134,5 +150,10 @@ if __name__ == "__main__":
 
     create_div = spark.SparkCodeGen(create_div_dag)
     create_div.generate("create_div", "/tmp")
+    '''
+
+    multicol_agg_dag = multicol_agg()
+    multicol_agg = spark.SparkCodeGen(multicol_agg_dag)
+    multicol_agg.generate('multicol_agg', '/tmp')
 
     print("Spark code generated in /tmp/")
