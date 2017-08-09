@@ -50,8 +50,8 @@ class SparkCodeGen(CodeGen):
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL_ID': agg_op.keyCol.idx,
-            'AGGCOL_ID': agg_op.aggCol.idx,
+            'KEYCOL_IDS': [keyCol.idx for keyCol in agg_op.keyCols],
+            'AGGCOL_IDS': [agg_op.aggCol.idx],
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
         }
