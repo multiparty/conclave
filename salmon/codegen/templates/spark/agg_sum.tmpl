@@ -1,9 +1,13 @@
-k_id = int({{{KEYCOL_ID}}})
-a_id = int({{{AGGCOL_ID}}})
+
+k_ids = {{{KEYCOL_IDS}}}
+a_ids = {{{AGGCOL_IDS}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: (x[k_id], x[a_id])) \
-    .aggregateByKey(0, \
-        lambda acc, val: acc + val, \
-        lambda acc1, acc2: acc1 + acc2) \
+    .map(lambda x: ([x[i] for i in k], [x[j] for j in a])) \
+    .map(lambda x: (tuple(x[0]), tuple(x[1]))) \
+    .aggregateByKey((0,0), \
+        lambda acc, val: tuple(map(sum, zip(acc, val))), \
+        lambda acc1, acc2: tuple(map(sum, zip(acc1, acc2)))) \
+    .map(lambda x: numpy.hstack(x).tolist())
     .cache()
+
