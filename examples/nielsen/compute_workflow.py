@@ -83,4 +83,3 @@ if __name__ == "__main__":
 
     print("Spark code generated in /tmp/nielsen_workflow.py")
 
-    
