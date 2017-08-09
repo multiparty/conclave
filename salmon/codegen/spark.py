@@ -40,7 +40,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO: (ben) implement multiple keyCols
+    # TODO: (ben) only agg_sum.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
 
         aggregator = agg_op.aggregator
@@ -50,7 +50,7 @@ class SparkCodeGen(CodeGen):
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL_IDS': [keyCol.idx for keyCol in agg_op.keyCols],
+            'GROUPCOL_IDS': [groupCol.idx for groupCol in agg_op.groupCols],
             'AGGCOL_IDS': [agg_op.aggCol.idx],
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name

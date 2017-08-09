@@ -148,11 +148,13 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
+
+        # for now, only 1 groupCol in mpc ops
         data = {
             "TYPE": "xor_uint32",
             "OUT_REL_NAME": agg_op.outRel.name,
             "IN_REL_NAME": agg_op.getInRel().name,
-            "KEY_COL_IDX": agg_op.keyCol.idx,
+            "KEY_COL_IDX": agg_op.groupCols[0].idx,
             "AGG_COL_IDX": agg_op.aggCol.idx
         }
         return pystache.render(template, data)

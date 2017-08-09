@@ -20,7 +20,7 @@ class ScotchCodeGen(CodeGen):
             agg_op.aggCol.getName(),
             agg_op.aggregator,
             agg_op.getInRel().dbgStr(),
-            agg_op.keyCol.getName(),
+            [groupCol.getName() for groupCol in agg_op.groupCols],
             agg_op.outRel.dbgStr()
         )
 

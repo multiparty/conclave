@@ -13,16 +13,16 @@ def create(relName, columns, storedWith):
     return op
 
 
-def aggregate(inputOpNode, outputName, keyColNames, overColName, aggregator, aggOutColName):
+def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
     # Get relevant columns and reset their collusion sets
     inCols = inRel.columns
-    keyCols = [utils.find(inCols, keyColName) for keyColName in keyColNames]
-    for keyCol in keyCols:
-        keyCol.collSets = set()
+    groupCols = [utils.find(inCols, groupColName) for groupColName in groupColNames]
+    for groupCol in groupCols:
+        groupCol.collSets = set()
     overCol = utils.find(inCols, overColName)
     overCol.collSets = set()
 
@@ -33,13 +33,13 @@ def aggregate(inputOpNode, outputName, keyColNames, overColName, aggregator, agg
     # shouldn't affect the original columns
     aggOutCol = copy.deepcopy(overCol)
     aggOutCol.name = aggOutColName
-    outRelCols = [copy.deepcopy(keyCol) for keyCol in keyCols]
+    outRelCols = [copy.deepcopy(groupCol) for groupCol in groupCols]
     outRelCols.append(copy.deepcopy(aggOutCol))
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Aggregate(outRel, inputOpNode, keyCols, overCol, aggregator)
+    op = dag.Aggregate(outRel, inputOpNode, groupCols, overCol, aggregator)
 
     # Add it as a child to input node
     inputOpNode.children.add(op)
