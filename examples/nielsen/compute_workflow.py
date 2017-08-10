@@ -8,7 +8,7 @@ from salmon.utils import *
 def protocol():
 
     # TODO: look at nielsen data and find appropriate column names / order
-    colsInA = [
+    cols_concatenated_DFs = [
         defCol("unit_price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("prmult", "INTEGER", [1, 2, 3, 4, 5]),
@@ -16,7 +16,7 @@ def protocol():
         defCol("week_end", "INTEGER", [1, 2, 3, 4, 5])
     ]
 
-    colsInB = [
+    cols_temp_UPC_brandBU_crspnd = [
         defCol("unit_price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("prmult", "INTEGER", [1, 2, 3, 4, 5]),
@@ -25,11 +25,11 @@ def protocol():
     ]
 
     # concatenated DFs from create_DFs.py
-    concatenated_DFs = sal.create('concatenated_DFs', colsInA, set([1]))
+    concatenated_DFs = sal.create('concatenated_DFs', cols_concatenated_DFs, set([1]))
 
     # some filtering is performed on temp_UPC_brandBU_crspnd, maybe
     # write it as a separate script and load the filtered script here
-    temp_UPC_brandBU_crspnd = sal.create('temp_UPC_brandBU_crspnd', colsInB, set([1]))
+    temp_UPC_brandBU_crspnd = sal.create('temp_UPC_brandBU_crspnd', cols_temp_UPC_brandBU_crspnd, set([1]))
 
     '''
     SECTION 1
