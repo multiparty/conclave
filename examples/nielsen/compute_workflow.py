@@ -82,6 +82,9 @@ if __name__ == "__main__":
 
     dag = protocol()
 
+    viz = viz.VizCodeGen(dag)
+    viz.generate("nielsen_workflow", "/tmp")
+
     cg = spark.SparkCodeGen(dag)
     cg.generate("nielsen_workflow", "/tmp")
 
