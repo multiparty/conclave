@@ -18,6 +18,11 @@ class DoneMsg():
         self.task_name = task_name
 
 
+class FailMsg():
+    # TODO
+    pass
+
+
 class SalmonProtocol(asyncio.Protocol):
     # defines what messages salmon peers can send to each other
 
@@ -119,7 +124,8 @@ class SalmonPeer():
                 print("Will connect to {} at {}:{}".format(
                     other_pid, other_host, other_port))
                 # create connection
-                conn = asyncio.ensure_future(self.loop.create_connection(
+                # using deprecated asyncio.async for 3.4.3 support
+                conn = asyncio.async(self.loop.create_connection(
                     lambda: SalmonProtocol(self), other_host, other_port))
                 self.peer_connections[other_pid] = conn
                 # once connection is ready, register own ID with other peer
@@ -142,15 +148,16 @@ class SalmonPeer():
             # the result is a (transport, protocol) tuple
             # we only want the transport
             self.peer_connections[pid] = completed_future.result()[0]
-        print(self.peer_connections)
 
     def _send_msg(self, receiver, msg):
 
+        # sends formatted message
         formatted = pickle.dumps(msg) + b"\n\n\n"
         self.peer_connections[receiver].write(formatted)
 
     def send_done_msg(self, receiver, task_name):
 
+        # sends message indicating task completion
         done_msg = DoneMsg(self.pid, task_name)
         self._send_msg(receiver, done_msg)
 

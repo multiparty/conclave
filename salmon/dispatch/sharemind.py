@@ -1,4 +1,5 @@
 import asyncio
+from subprocess import call
 
 class SharemindDispatcher():
     '''
@@ -11,6 +12,24 @@ class SharemindDispatcher():
         self.loop = peer.loop
         self.to_wait_on = {}
 
+    def _input_data(self, job):
+
+        cmd = "{}/{}/input.sh".format(
+            job.root_dir,
+            job.name
+        )
+        print("Will run data submission: " + cmd)
+        call(["bash", cmd])
+
+    def _submit_to_miners(self, job):
+
+        cmd = "{}/{}/controller.sh".format(
+            job.root_dir,
+            job.name
+        )
+        print("Will submit jobs to miners: " + cmd)
+        call(["bash", cmd])
+
     def _dispatch_as_controller(self, job):
 
         # track which participants have completed data submission
@@ -22,8 +41,11 @@ class SharemindDispatcher():
         futures = self.to_wait_on.values()
         self.loop.run_until_complete(asyncio.gather(*futures))
 
-        # submit job to miners, etc.
-        print("proceed")
+        # submit data to miners
+        self._input_data(job)
+
+        # submit job to miners
+        self._submit_to_miners(job)
 
         # notify other parties that job is done
         for input_party in job.input_parties:
@@ -34,9 +56,8 @@ class SharemindDispatcher():
 
     def _regular_dispatch(self, job):
 
-        # mock work
-        import time
-        time.sleep(self.peer.pid * 2)
+        # submit data to miners
+        self._input_data(job)
 
         # notify controller that we're done
         self.peer.send_done_msg(job.controller, job.name + ".input")

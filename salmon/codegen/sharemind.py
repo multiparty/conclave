@@ -6,6 +6,7 @@ import os
 import pystache
 import shutil
 
+
 class SharemindCodeGen(CodeGen):
 
     def __init__(self, dag, pid, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
@@ -40,7 +41,8 @@ class SharemindCodeGen(CodeGen):
             # the data model definitions used by CSVImporter
             # and the code the party will run to secret-share its
             # inputs with the miners
-            schemas, input_code = self._generate_input_code(nodes, job_name, output_directory)
+            schemas, input_code = self._generate_input_code(
+                nodes, job_name, output_directory)
             op_code["schemas"] = schemas
             op_code["input"] = input_code
 
@@ -52,14 +54,16 @@ class SharemindCodeGen(CodeGen):
             miner_code = self._generate_miner_code(nodes)
             # code to submit the job and receive the output
             # (currently assumes there is only one output party)
-            controller_code = self._generate_controller_code(nodes, job_name, output_directory)
+            controller_code = self._generate_controller_code(
+                nodes, job_name, output_directory)
             op_code["miner"] = miner_code
             op_code["controller"] = controller_code
 
         # sanity check
         assert op_code
         # create job
-        job = SharemindJob(job_name, controller_pid, input_parties)
+        job = SharemindJob(job_name, output_directory,
+                           controller_pid, input_parties)
         return job, op_code
 
     def _generate_miner_code(self, nodes):
@@ -130,7 +134,8 @@ class SharemindCodeGen(CodeGen):
             name, schema = self._generateSchema(close_op)
             schemas[name] = schema
             # generate csv import code
-            input_code += self._generateCSVImport(close_op, output_directory, job_name)
+            input_code += self._generateCSVImport(
+                close_op, output_directory, job_name)
         # expand top-level
         top_level_template = open(
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
