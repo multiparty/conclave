@@ -368,16 +368,16 @@ class Divide(UnaryOpNode):
 class Join(BinaryOpNode):
 
     def __init__(self, outRel, leftParent,
-                 rightParent, leftJoinCol, rightJoinCol):
+                 rightParent, leftJoinCols, rightJoinCols):
 
         super(Join, self).__init__("join", outRel, leftParent, rightParent)
-        self.leftJoinCol = leftJoinCol
-        self.rightJoinCol = rightJoinCol
+        self.leftJoinCols = leftJoinCols
+        self.rightJoinCols = rightJoinCols
 
     def updateOpSpecificCols(self):
 
-        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
-        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
+        self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx] for leftJoinCol in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx] for rightJoinCol in self.rightJoinCols]
 
 
 class RevealJoin(Join):
