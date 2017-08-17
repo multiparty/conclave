@@ -20,7 +20,7 @@ def protocol():
         defCol("unit_price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("price", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("prmult", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("store_code_uc", "INTEGER", [1, 2, 3, 4]),
+        defCol("store_code_uc", "INTEGER", [1, 2, 3, 4, 5]),
         defCol("week_end", "INTEGER", [1, 2, 3, 4, 5])
     ]
 
