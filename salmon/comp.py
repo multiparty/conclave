@@ -272,7 +272,7 @@ class CollSetPropDown(DagRewriter):
         for i in range(len(outGroupCols)):
             outGroupCols[i].collSets |= copy.deepcopy(inGroupCols[i].collSets)
         inAggCol = node.aggCol
-        outAggCol = node.outRel.columns[1]
+        outAggCol = node.outRel.columns[-1]
         outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
 
     def _rewriteDivide(self, node):
@@ -330,25 +330,31 @@ class CollSetPropDown(DagRewriter):
         leftInRel = node.getLeftInRel()
         rightInRel = node.getRightInRel()
 
-        leftJoinCol = node.leftJoinCol
-        rightJoinCol = node.rightJoinCol
+        leftJoinCols = node.leftJoinCols
+        rightJoinCols = node.rightJoinCols
 
-        outJoinCol = node.outRel.columns[0]
-        keyColCollSets = utils.mergeCollSets(
-            leftJoinCol.collSets, rightJoinCol.collSets)
-        outJoinCol.collSets = keyColCollSets
+        numJoinCols = len(leftJoinCols)
 
-        absIdx = 1
+        outJoinCols = node.outRel.columns[:numJoinCols]
+        keyColsCollSets = []
+        for i in range(len(leftJoinCols)):
+            keyColsCollSets.append(utils.mergeCollSets(
+                leftJoinCols[i].collSets, rightJoinCols[i].collSets))
+            outJoinCols[i].collSets = keyColsCollSets[i]
+
+        absIdx = len(leftJoinCols)
         for inCol in leftInRel.columns:
-            if inCol != leftJoinCol:
-                node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                    keyColCollSets, inCol.collSets)
+            if inCol not in set(leftJoinCols):
+                for keyColCollSets in keyColsCollSets:
+                    node.outRel.columns[absIdx].collSets.add(utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets))
                 absIdx += 1
 
         for inCol in rightInRel.columns:
-            if inCol != rightJoinCol:
-                node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                    keyColCollSets, inCol.collSets)
+            if inCol not in set(rightJoinCols):
+                for keyColCollSets in keyColsCollSets:
+                    node.outRel.columns[absIdx].collSets.add(utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets))
                 absIdx += 1
 
     def _rewriteConcat(self, node):
