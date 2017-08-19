@@ -4,6 +4,7 @@ import salmon.net
 from salmon.comp import dagonly
 import salmon.lang as sal
 from salmon.utils import *
+from multiprocessing import Process
 import sys
 
 
@@ -37,10 +38,9 @@ def protocol():
     # return root nodes
     return set([in1, in2, in3])
 
-if __name__ == "__main__":
+def party_proc(pid):
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
-    pid = int(sys.argv[1])
     config = {
         "pid": pid,
         "parties": {
@@ -54,3 +54,17 @@ if __name__ == "__main__":
     job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(peer, job_queue)
+
+if __name__ == "__main__":
+
+    # run each party in separate process
+    # TODO: switch to threads if asyncio is thread-safe
+    procs = []
+    for pid in [1, 2, 3]:
+        p = Process(target=party_proc, args=(pid,))
+        p.start()
+        procs.append(p)
+    # wait for processes to complete
+    for p in procs:
+        p.join()
+

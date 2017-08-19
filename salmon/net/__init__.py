@@ -109,6 +109,24 @@ class SalmonPeer():
 
     def connect_to_others(self):
 
+        def _create_connection_retry(f, other_host, other_port):
+
+            def retry(conn, res):
+
+                if res.exception():
+                    c = asyncio.async(self.loop.create_connection(
+                        f, other_host, other_port))
+                    c.add_done_callback(functools.partial(retry, conn))
+                else:
+                    conn.set_result(res.result())
+
+            complete_conn = asyncio.Future()
+            conn = asyncio.async(self.loop.create_connection(
+                f, other_host, other_port))
+            conn.add_done_callback(functools.partial(retry, complete_conn))
+
+            return complete_conn
+
         def _send_IAM(pid, conn):
 
             msg = IAMMsg(pid)
@@ -125,8 +143,8 @@ class SalmonPeer():
                     other_pid, other_host, other_port))
                 # create connection
                 # using deprecated asyncio.async for 3.4.3 support
-                conn = asyncio.async(self.loop.create_connection(
-                    lambda: SalmonProtocol(self), other_host, other_port))
+                conn = _create_connection_retry(
+                    lambda: SalmonProtocol(self), other_host, other_port)
                 self.peer_connections[other_pid] = conn
                 # once connection is ready, register own ID with other peer
                 conn.add_done_callback(functools.partial(_send_IAM, self.pid))

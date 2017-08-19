@@ -11,7 +11,7 @@ def dispatch_all(peer, jobs):
     # dispatch each job
     for job in jobs:
         try:
-            # lookup dispatcher and dispatch
+            # look up dispatcher and dispatch
             dispatchers[type(job)].dispatch(job)
         except Exception as e:
             print(e) 

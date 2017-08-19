@@ -1,5 +1,5 @@
 import asyncio
-from subprocess import call
+from subprocess import call, Popen, PIPE
 
 class SharemindDispatcher():
     '''
@@ -19,7 +19,17 @@ class SharemindDispatcher():
             job.name
         )
         print("Will run data submission: " + cmd)
-        call(["bash", cmd])
+        try:
+            call(["bash", cmd])
+        except Exception:
+            print("Failed data input")
+
+    def _parse_result(self, res):
+
+        # HACK
+        lines = res.split(b"\n")
+        res_lines = [line for line in lines if b"type: " in line]
+        return res_lines
 
     def _submit_to_miners(self, job):
 
@@ -28,7 +38,16 @@ class SharemindDispatcher():
             job.name
         )
         print("Will submit jobs to miners: " + cmd)
-        call(["bash", cmd])
+        p = Popen(["bash", cmd], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        output, err = p.communicate(b"")
+        rc = p.returncode
+        if rc == 0:
+            parsed_res = self._parse_result(output)
+            for line in parsed_res:
+                print(line)
+        else:
+            print("non-zero return code with error:", err)
+
 
     def _dispatch_as_controller(self, job):
 
