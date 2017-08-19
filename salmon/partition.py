@@ -16,7 +16,7 @@ class SubDag(Dag):
     def findLeaves(self):
 
         def isLocalLeaf(current_node, all_nodes):
-            return len(set.intersection(current_node.children, set(all_nodes))) > 0
+            return len(set.intersection(current_node.children, set(all_nodes))) == 0
 
         leaves = []
 
@@ -31,7 +31,7 @@ class SubDag(Dag):
     def findRoots(self):
 
         def isLocalRoot(node, all_nodes):
-            return len(set.intersection(node.parents, set(all_nodes))) > 0
+            return len(set.intersection(node.parents, set(all_nodes))) == 0
 
         roots = []
 
