@@ -40,7 +40,6 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO: (ben) implement multiple keyCols
     def _generateAggregate(self, agg_op):
 
         aggregator = agg_op.aggregator
@@ -146,7 +145,6 @@ class SparkCodeGen(CodeGen):
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
 
-        # TODO: check in codegen if {{{NEWCOL_FLAG}}} is passed as str or bool
         data = {
             'NEWCOL_FLAG': new_col,
             'OPERANDS': [idx for idx in operands],
