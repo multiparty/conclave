@@ -1,16 +1,15 @@
 from salmon.dag import Dag
 from math import inf
-
-# TODO: (ben) helper method that takes best partition of subdags,
-# reads in backend type strings, and calls appropriate code gen
+from salmon.codegen import spark, sharemind
 
 
 class SubDag(Dag):
 
-    def __init__(self, nodes):
+    def __init__(self, nodes, name=''):
         self.nodes = nodes
         self.roots = self.findRoots()
         self.leaves = self.findLeaves()
+        self.name = name
         super(SubDag, self).__init__(self.roots)
 
     def findLeaves(self):
@@ -72,29 +71,17 @@ def determineBackend(subdag):
         return 'spark'
 
 
-# method that will get called on each dag object. return
-# a list of jobs which represents and optimal partition.
-def partitionDag(dag):
-    sorted_nodes = dag.topSort()
-    all_partitions = getAllPartitions(sorted_nodes)
+# calls appropriate codegen for a given job
+def mapToBackends(jobs):
+    for job in jobs:
+        if job[1] == 'spark':
+            # TODO: make spark output dir configurable
+            spark.SparkCodeGen(job[0]).generate(job[0].name, "/tmp")
+        elif job[1] == 'sharemind':
+            for i in range(1,4):
+                sharemind.SharemindCodeGen(job[0], i).generate(
+                    "{0}-{1}".format(job[0].name, i),
+                    "/home/sharemind/Sharemind-SDK/sharemind/client")
+        else:
+            print("unknown backend for job {0}".format(job[0].name))
 
-    all_jobs = []
-    for partition in all_partitions:
-        part = []
-        for subdag in partition:
-            part.append(SubDag(subdag))
-        all_jobs.append(part)
-
-    current_min = 0
-    best_partition = ""
-    for part in all_jobs:
-        cost = measureCost(part)
-        if cost < current_min:
-            best_partition = part
-
-    res = []
-    for subdag in best_partition:
-        backend = determineBackend(subdag)
-        res.append((subdag, backend))
-
-    return res
