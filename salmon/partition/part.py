@@ -84,30 +84,3 @@ def mapToBackends(jobs):
         else:
             print("unknown backend for job {0}".format(job[0].name))
 
-
-def partitionDag(dag):
-    sorted_nodes = dag.topSort()
-    all_partitions = getAllPartitions(sorted_nodes)
-
-    all_jobs = []
-    for partition in all_partitions:
-        part = []
-        for subdag in partition:
-            # TODO: implement some naming scheme here or elsewhere
-            part.append(SubDag(subdag))
-        all_jobs.append(part)
-
-    current_min = 0
-    best_partition = ""
-    for part in all_jobs:
-        cost = measureCost(part)
-        if cost < current_min:
-            best_partition = part
-
-    res = []
-    for subdag in best_partition:
-        backend = determineBackend(subdag)
-        res.append((subdag, backend))
-
-    return res
-
