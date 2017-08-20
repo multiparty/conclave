@@ -71,6 +71,7 @@ def determineBackend(subdag):
         return 'spark'
 
 
+# calls appropriate codegen for a given job
 def mapToBackends(jobs):
     for job in jobs:
         if job[1] == 'spark':
