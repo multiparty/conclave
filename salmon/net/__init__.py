@@ -9,6 +9,9 @@ class IAMMsg():
 
         self.pid = pid
 
+    def __str__(self):
+
+        return "IAMMsg({})".format(self.pid)
 
 class DoneMsg():
 
@@ -17,6 +20,9 @@ class DoneMsg():
         self.pid = pid
         self.task_name = task_name
 
+    def __str__(self):
+
+        return "DoneMsg({})".format(self.pid)
 
 class FailMsg():
     # TODO
@@ -31,7 +37,6 @@ class SalmonProtocol(asyncio.Protocol):
         self.peer = peer
         self.buffer = b""
         self.transport = None
-        self.msg_buffer = []
 
     def connection_made(self, transport):
 
@@ -53,7 +58,7 @@ class SalmonProtocol(asyncio.Protocol):
 
     def _handle_iam_msg(self, iam_msg):
 
-        print("iam_msg received", iam_msg)
+        print("iam msg received", iam_msg)
         other_pid = iam_msg.pid
         if other_pid not in self.peer.peer_connections:
             raise Exception(
@@ -66,11 +71,11 @@ class SalmonProtocol(asyncio.Protocol):
 
     def _handle_done_msg(self, done_msg):
 
-        print("done_msg received", done_msg)
+        print("done msg received", done_msg)
         if self.peer.dispatcher:
             self.peer.dispatcher.receive_msg(done_msg)
         else:
-            self.msg_buffer.append(done_msg)
+            self.peer.msg_buffer.append(done_msg)
 
     def handle_msg(self, msg):
 
@@ -105,10 +110,25 @@ class SalmonPeer():
         self.port = self.parties[self.pid]["port"]
         self.peer_connections = {}
         self.dispatcher = None
+        self.msg_buffer = []
         self.server = loop.create_server(
             lambda: SalmonProtocol(self),
             host=self.host, port=self.port)
         self.loop = loop
+
+    def register_dispatcher(self, dispatcher):
+
+        # HACK
+        # having a message buffer per connection might
+        # make more sense
+        self.dispatcher = dispatcher
+        # early messages got buffered so we need to
+        # forward them to newly-registered the dispatcher
+        for msg in self.msg_buffer:
+            if isinstance(msg, DoneMsg):
+                self.dispatcher.receive_msg(msg)
+        self.msg_buffer = [msg for msg in self.msg_buffer if isinstance(msg, DoneMsg)]
+
 
     def connect_to_others(self):
 

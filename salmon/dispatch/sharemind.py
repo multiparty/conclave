@@ -11,6 +11,7 @@ class SharemindDispatcher():
         self.peer = peer
         self.loop = peer.loop
         self.to_wait_on = {}
+        self.early = set()
 
     def _input_data(self, job):
 
@@ -53,7 +54,7 @@ class SharemindDispatcher():
 
         # track which participants have completed data submission
         for input_party in job.input_parties:
-            if input_party != self.peer.pid:
+            if input_party != self.peer.pid and input_party not in self.early:
                 self.to_wait_on[input_party] = asyncio.Future()
 
         # wait until other peers are done submitting
@@ -88,7 +89,7 @@ class SharemindDispatcher():
     def dispatch(self, job):
 
         # register self as current dispatcher with peer
-        self.peer.dispatcher = self
+        self.peer.register_dispatcher(self)
 
         if self.peer.pid == job.controller:
             self._dispatch_as_controller(job)
@@ -98,6 +99,7 @@ class SharemindDispatcher():
         self.peer.dispatcher = None
         # not waiting on any peers
         self.to_wait_on = {}
+        self.early = set()
 
     def receive_msg(self, msg):
 
@@ -105,4 +107,5 @@ class SharemindDispatcher():
         if done_peer in self.to_wait_on:
             self.to_wait_on[done_peer].set_result(True)
         else:
-            print("weird message", msg)
+            self.early.add(done_peer)
+            print("early message", msg)
