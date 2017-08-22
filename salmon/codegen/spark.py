@@ -1,5 +1,4 @@
 from salmon.codegen import CodeGen
-from salmon.dag import *
 import os, pystache
 
 
