@@ -1,4 +1,4 @@
-from salmon.dag import Dag
+from salmon.dag import *
 from math import inf, pow
 from salmon.codegen import spark, sharemind
 from sys import maxsize
@@ -6,11 +6,11 @@ from sys import maxsize
 
 class SubDag(Dag):
 
-    def __init__(self, nodes, name=''):
+    def __init__(self, nodes):
         self.nodes = nodes
         self.roots = self.findRoots()
         self.leaves = self.findLeaves()
-        self.name = name
+        self.name = self.debugStr()
         super(SubDag, self).__init__(self.roots)
 
     def findLeaves(self):
@@ -20,7 +20,7 @@ class SubDag(Dag):
 
         leaves = []
 
-        for node in self.nodes():
+        for node in self.nodes:
             if not node.isLeaf():
                 if isLocalLeaf(node, self.nodes):
                     node.children = set()
@@ -42,22 +42,23 @@ class SubDag(Dag):
 
         return roots
 
-    # return infinity if there exist incompatible collsets across nodes
+    # could be helpful later if we want to give estimates
+    # of a workflow given a list of subdags
     def getCost(self):
         return inf
 
+    def debugStr(self):
+        return "{" + ", ".join([node.outRel.name for node in self.nodes]) + "}"
 
-def partitionDag(dag):
-    sorted_nodes = dag.topSort()
-    best = getBestPartition(sorted_nodes)
 
-    return best
 
 
 def getBestPartition(nodes):
-    max_cost = maxsize
+    # TODO: is this the best way to express maximum cost?
+    # max_cost = int(maxsize)
+    max_cost = 1000
     num_ops = len(nodes)
-    max_ops = pow(2, num_ops)
+    max_ops = int(pow(2, num_ops))
     cost = [[False for i in range(max_ops)] for j in range(max_cost)]
     cost[0][0] = True
     parent = [[0 for i in range(max_ops)] for j in range(max_cost)]
@@ -73,7 +74,7 @@ def getBestPartition(nodes):
     all_ops_flag = max_ops - 1
 
     # TODO: this is a hacky way to iterate over frameworks
-    fmwks = ['spark', 'sharemind', 'viff']
+    fmwks = ['spark', 'sharemind']
     for i in range(1, max_ops):
         merge_nodes = []
         for j in range(num_ops):
@@ -110,13 +111,13 @@ def getBestPartition(nodes):
     cur_jobs_exec = all_ops_flag
     while cur_jobs_exec > 0:
         subdag = []
-        assert cur_cost >= max_cost, \
+        assert cur_cost <= max_cost, \
             "At least one operator could not be mapped to a backend."
         # assert parent[final_cost] is not None
         prev_jobs_exec = parent[cur_cost][cur_jobs_exec]
         jobs_merged = prev_jobs_exec ^ cur_jobs_exec
         for num_op in range(num_ops):
-            if pow(2, num_op) & jobs_merged:
+            if int(pow(2, num_op)) & jobs_merged:
                 subdag.append(nodes[num_op])
         result.append((SubDag(subdag), scheduled_fmwk[cur_cost][cur_jobs_exec]))
         tmp_jobs_exec = cur_jobs_exec
@@ -127,9 +128,23 @@ def getBestPartition(nodes):
     return result
 
 
-# TODO: implement s.t. cost is gauged for a node relative to particular framework
+# TODO: the way this is filled in is just for temporary testing
 def measureCost(nodes, fmwk):
-    return inf
+    cost = 0
+    if fmwk == 'spark':
+        for node in nodes:
+            if isinstance(node, Multiply):
+                cost += 1
+            elif isinstance(node, Join):
+                cost += inf
+            elif isinstance(node, Project):
+                cost += inf
+            elif isinstance(node, Create):
+                cost += 1
+    elif fmwk == 'sharemind':
+        for node in nodes:
+            cost += 10
+    return cost
 
 
 # calls appropriate codegen for a given job
