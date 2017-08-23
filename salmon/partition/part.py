@@ -51,8 +51,6 @@ class SubDag(Dag):
         return "{" + ", ".join([node.outRel.name for node in self.nodes]) + "}"
 
 
-
-
 def getBestPartition(nodes):
     # TODO: is this the best way to express maximum cost?
     # max_cost = int(maxsize)
