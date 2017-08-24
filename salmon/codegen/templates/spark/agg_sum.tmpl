@@ -1,6 +1,6 @@
 
-k_ids = {{{GROUPCOL_IDS}}}
-a_ids = {{{AGGCOL_IDS}}}
+k = {{{GROUPCOL_IDS}}}
+a = {{{AGGCOL_IDS}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
     .map(lambda x: ([x[i] for i in k], [x[j] for j in a])) \
@@ -8,6 +8,6 @@ a_ids = {{{AGGCOL_IDS}}}
     .aggregateByKey((0,0), \
         lambda acc, val: tuple(map(sum, zip(acc, val))), \
         lambda acc1, acc2: tuple(map(sum, zip(acc1, acc2)))) \
-    .map(lambda x: numpy.hstack(x).tolist())
+    .map(lambda x: numpy.hstack(x).tolist()) \
     .cache()
 
