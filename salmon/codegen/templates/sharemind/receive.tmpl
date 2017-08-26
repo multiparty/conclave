@@ -50,8 +50,7 @@ def _parse_result(res, job_dir, rels_meta):
 
 if __name__ == "__main__":
     
-    job_dir = {{JOB_DIR}}
+    job_dir = "{{ROOT_DIR}}/{{JOB_DIR}}"
     rels_meta = {}
-{{RELS_META}}
+{{{RELS_META}}}
     _parse_result(sys.stdin, job_dir, rels_meta)
-    

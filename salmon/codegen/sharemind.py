@@ -54,10 +54,13 @@ class SharemindCodeGen(CodeGen):
             miner_code = self._generate_miner_code(nodes)
             # code to submit the job and receive the output
             # (currently assumes there is only one output party)
-            controller_code = self._generate_controller_code(
+            submit_code, receive_code = self._generate_controller_code(
                 nodes, job_name, output_directory)
+            # controller_code = self._generate_controller_code(
+            #     nodes, job_name, output_directory)
             op_code["miner"] = miner_code
-            op_code["controller"] = controller_code
+            op_code["submit"] = submit_code
+            op_code["receive"] = receive_code
 
         # sanity check
         assert op_code
@@ -146,15 +149,51 @@ class SharemindCodeGen(CodeGen):
         # return schemas and input code
         return schemas, pystache.render(top_level_template, top_level_data)
 
-    def _generate_controller_code(self, nodes, job_name, output_directory):
+    def _generate_submit_code(self, nodes, job_name, output_directory):
 
+        # code for submitting job to miners
         template = open(
-            "{0}/controller.tmpl".format(self.template_directory), 'r').read()
+            "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
             "ROOT_DIR": output_directory,
             "JOB_DIR": job_name
         }
         return pystache.render(template, data)
+
+    def _generate_receive_code(self, nodes, job_name, output_directory):
+
+        def _generate_rel_meta(open_op):
+
+            # length lookup for relation
+            name = open_op.outRel.name
+            num_vals = len(open_op.outRel.columns)
+            template = open(
+                "{0}/relMetaDef.tmpl".format(self.template_directory), 'r').read()
+            return pystache.render(template, {
+                    "REL_NAME": name,
+                    "REL_LEN": num_vals
+                })
+
+        # code for parsing results received by controller
+        template = open(
+            "{0}/receive.tmpl".format(self.template_directory), 'r').read()
+        # we need all open ops to get the size of the output rels
+        # for parsing
+        open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
+        rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
+        rels_meta_str = "\n".join(rels_meta_defs) 
+        data = {
+            "ROOT_DIR": output_directory,
+            "JOB_DIR": job_name,
+            "RELS_META": rels_meta_str
+        }
+        return pystache.render(template, data)
+
+    def _generate_controller_code(self, nodes, job_name, output_directory):
+
+        submit_code = self._generate_submit_code(nodes, job_name, output_directory)
+        receive_code = self._generate_receive_code(nodes, job_name, output_directory)
+        return submit_code, receive_code
 
     def _generateAggregate(self, agg_op):
 
@@ -348,7 +387,8 @@ class SharemindCodeGen(CodeGen):
         ext_lookup = {
             "schemas": "xml",
             "input": "sh",
-            "controller": "sh",
+            "submit": "sh",
+            "receive": "py",
             "miner": "sc"
         }
 
