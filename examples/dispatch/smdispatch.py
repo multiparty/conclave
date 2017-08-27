@@ -39,6 +39,7 @@ def protocol():
 
 if __name__ == "__main__":
 
+    sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
     pid = int(sys.argv[1])
     config = {
         "pid": pid,
@@ -50,6 +51,6 @@ if __name__ == "__main__":
     }
     peer = salmon.net.setup_peer(config)
 
-    job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), "/tmp")
+    job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(peer, job_queue)

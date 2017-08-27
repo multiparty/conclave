@@ -1,0 +1,6 @@
+cd {{ROOT_DIR}}
+if miner_output=$(sm_compile_and_run.sh {{JOB_DIR}}/miner.sc); then
+	printf '%s' "$miner_output" | python3 {{JOB_DIR}}/receive.py
+else
+	exit 1
+fi

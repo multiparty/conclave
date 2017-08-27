@@ -1,0 +1,57 @@
+import sys
+import re
+
+def _write_rel(job_dir, rel_name, rel):
+
+    print("Will write to {}/{}".format(job_dir, rel_name))
+    path = "{}/{}".format(job_dir, rel_name)
+    with open(path, "w") as f:
+        for row in rel:
+            f.write(" ".join(row) + "\n")
+
+def _parse_result(res, job_dir, rels_meta):
+    # sort of hacky
+
+    def _parse_header(header):
+
+        # header = header.decode("utf-8")
+        name_pattern = re.compile("name\: ([a-z]+)\,")
+        return name_pattern.search(header).group(1)
+        
+    def _parse_res_line(res_line):
+
+        split_line = res_line.split("{")
+        # will to regex matching on the header so we want
+        # to separate it from the potentially long data portion
+        header, data = split_line[0], split_line[1][:-2]
+                    
+        # get relation name
+        rel_name = _parse_header(header)
+        parsed_data = data.split(", ")
+        return rel_name, parsed_data
+
+    def _to_rel(rel_name, vals_per_row, raw_vals):
+
+        def chunk(vals, n):
+
+            for i in range(0, len(vals), n):
+                yield vals[i:i + n]
+
+        rows = chunk(raw_vals, vals_per_row)
+        return rows
+
+    # lines = res.split(b"\n")
+    lines = res
+    print("raw output: ", lines)
+    res_lines = [line for line in lines if "type: " in line]
+    for res_line in res_lines:
+        rel_name, parsed_data = _parse_res_line(res_line)
+        rel = _to_rel(rel_name, rels_meta[rel_name], parsed_data)
+        _write_rel(job_dir, rel_name + ".csv", rel)
+
+if __name__ == "__main__":
+    
+    job_dir = "{{ROOT_DIR}}/{{JOB_DIR}}"
+    rels_meta = {}
+{{{RELS_META}}}
+    _parse_result(sys.stdin, job_dir, rels_meta)

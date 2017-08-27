@@ -10,6 +10,8 @@ before compute_workflow.py. For our purposes, we can just run it once and modify
 code to iterate over files in a directory and concatenate the results along the way.
 '''
 
+# run on /0_2008/9999_2008.tsv
+
 @dagonly
 def protocol():
 
@@ -26,13 +28,13 @@ def protocol():
     w_unit_p = sal.divide(create, "w_unit_p", 'unit_price', ['price', 'prmult'])
     sum_units = sal.aggregate(w_unit_p, 'sum_units', ['store_code_uc', 'upc', 'week_end'], 'units', '+', 'q')
     # TODO: what does our join do with duplicate columns?
-    total_units = sal.join(w_unit_p, sum_units, 'total_units' ['store_code_uc', 'upc', 'week_end'], \
+    total_units = sal.join(w_unit_p, sum_units, 'total_units' ['store_code_uc', 'upc', 'week_end'],
                            ['store_code_uc', 'upc', 'week_end'])
     wghtd_total = sal.multiply(total_units, 'wghtd_total', 'wghtd_unit_p', ['units', 'unit_price'])
     wghtd_total_final = sal.divide(wghtd_total, 'wghtd_total_final', 'wghtd_unit_p', ['wghtd_unit_p', 'q'])
-    total_unit_wghts = sal.aggregate(wghtd_total_final, 'total_unit_wghts', ['store_code_uc', 'upc', 'week_end'], \
+    total_unit_wghts = sal.aggregate(wghtd_total_final, 'total_unit_wghts', ['store_code_uc', 'upc', 'week_end'],
                                      'wghtd_unit_p', '+', 'avg_unit_p')
-    final_join = sal.join(total_units, total_unit_wghts, 'final_join', ['store_code_uc', 'upc', 'week_end'], \
+    final_join = sal.join(total_units, total_unit_wghts, 'final_join', ['store_code_uc', 'upc', 'week_end'],
                           ['store_code_uc', 'upc', 'week_end'])
 
     opened = sal.collect(final_join, 1)
