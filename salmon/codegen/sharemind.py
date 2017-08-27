@@ -321,6 +321,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
 
         operands = multiply_op.operands
+        print("operands", operands)
         col_op_indeces = [col.idx for col in filter(
             lambda col: isinstance(col, Column), operands)]
         col_op_str = ",".join([str(col) for col in col_op_indeces])

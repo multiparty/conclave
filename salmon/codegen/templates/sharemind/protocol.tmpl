@@ -62,10 +62,10 @@ D xor_uint32[[2]] aggregateSum(D xor_uint32[[2]] rows, uint keyCol, uint valCol)
 }
 
 template <domain D : shared3p>
-D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
+D xor_uint32[[2]] project(D xor_uint32[[2]] rows, uint[[1]] selectedCols) {
     uint nrows = shape(rows)[0];
     uint ncols = size(selectedCols);
-    D uint32 [[2]] projected(nrows, ncols);
+    D xor_uint32 [[2]] projected(nrows, ncols);
     for (uint c = 0; c < ncols; ++c) {
         projected[:, c] = rows[:, selectedCols[c]];
     }
@@ -73,18 +73,20 @@ D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
 }
 
 template <domain D : shared3p>
-D uint32[[2]] multiply(D uint32[[2]] rows, uint targetColIdx, uint[[1]] colOperandIndeces, uint[[1]] scalarOperands) {
-    D uint32 [[2]] multiplied(nrows, ncols) = rows;
-    multiplied[:, targetColIdx] = (uint32) 1;
+D xor_uint32[[2]] multiply(D xor_uint32[[2]] rows, uint targetColIdx, uint[[1]] colOperandIndeces, uint[[1]] scalarOperands) {
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+    D uint32 [[2]] multiplied(nrows, ncols) = (uint32) rows;
+    multiplied[:, targetColIdx] = 1;
     // note: below works because order of operands doesn't matter with multiplication
     for (uint c = 0; c < size(colOperandIndeces); ++c) {
-        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * rows[:, colOperandIndeces[c]];
+        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * (uint32) rows[:, colOperandIndeces[c]];
     }
     for (uint c = 0; c < size(scalarOperands); ++c) {
         D uint32 scalar = (uint32) scalarOperands[c];
         multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * scalar;
     }
-    return multiplied;
+    return (xor_uint32) multiplied;
 }
 
 template <domain D : shared3p>
