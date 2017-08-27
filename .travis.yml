@@ -8,7 +8,7 @@ script:
 
 notifications:
   email: true
-    - malte@csail.mit.edu
+  slack: appliedmpc:fU25pTj0itFJQp9ycTEFXI2F
 
 os:
   - linux
