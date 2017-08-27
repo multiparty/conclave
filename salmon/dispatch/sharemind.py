@@ -26,37 +26,10 @@ class SharemindDispatcher():
         except Exception:
             print("Failed data input")
 
-    def _parse_result(self, res):
-
-        def _parse_header(header):
-
-            header = header.decode("utf-8") 
-            name_pattern = re.compile("name\: ([a-z]+)\,")
-            return name_pattern.search(header).group(1)
-            
-        def _parse_res_line(res_line):
-
-            split_line = res_line.split(b"{")
-            # will to regex matching on the header so we want
-            # to separate it from the potentially long data portion
-            header, data = split_line[0], split_line[1][:-1]
-                        
-            # get relation name
-            rel_name = _parse_header(header)
-            print(rel_name)
-            parsed_data = data.split(b", ")
-            print(parsed_data)
-
-        # HACK
-        lines = res.split(b"\n")
-        res_lines = [line for line in lines if b"type: " in line]
-        for res_line in res_lines:
-            _parse_res_line(res_line)
-        return res_lines
 
     def _submit_to_miners(self, job):
 
-        cmd = "{}/{}/controller.sh".format(
+        cmd = "{}/{}/submit.sh".format(
             job.root_dir,
             job.name
         )
@@ -65,7 +38,7 @@ class SharemindDispatcher():
         output, err = p.communicate(b"")
         rc = p.returncode
         if rc == 0:
-            parsed_res = self._parse_result(output)
+            print("job success")
         else:
             print("non-zero return code with error:", err)
 
