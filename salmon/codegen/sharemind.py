@@ -200,7 +200,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "OUT_REL_NAME": agg_op.outRel.name,
             "IN_REL_NAME": agg_op.getInRel().name,
             "KEY_COL_IDX": agg_op.keyCol.idx,
@@ -214,7 +214,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
         data = {
             "NAME": close_op.outRel.name,
-            "TYPE": "xor_uint32"
+            "TYPE": "uint32"
         }
         return pystache.render(template, data)
 
@@ -239,7 +239,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
         data = {
             "OUT_REL": concat_op.outRel.name,
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "CATS": cats
         }
         outer = pystache.render(outer, data)
@@ -266,7 +266,7 @@ class SharemindCodeGen(CodeGen):
         scalar_flags_str = ",".join(str(op) for op in scalar_flags)
 
         data = {
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "OUT_REL": divide_op.outRel.name,
             "IN_REL": divide_op.getInRel().name,
             "TARGET_COL": divide_op.targetCol.idx,
@@ -281,7 +281,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "OUT_REL": join_op.outRel.name,
             "LEFT_IN_REL": join_op.getLeftInRel().name,
             "LEFT_KEY_COL": join_op.leftJoinCol.idx,
@@ -307,7 +307,7 @@ class SharemindCodeGen(CodeGen):
         selectedCols = project_op.selectedCols
         selectedColStr = ",".join([str(col.idx) for col in selectedCols])
         data = {
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "OUT_REL": project_op.outRel.name,
             "IN_REL": project_op.getInRel().name,
             # hacking array brackets
@@ -320,25 +320,46 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
 
-        operands = multiply_op.operands
-        print("operands", operands)
-        col_op_indeces = [col.idx for col in filter(
-            lambda col: isinstance(col, Column), operands)]
-        col_op_str = ",".join([str(col) for col in col_op_indeces])
-        scalar_ops = list(
-            filter(lambda col: not isinstance(col, Column), operands))
-        scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
+        operands = [op.idx if isinstance(
+            op, Column) else op for op in multiply_op.operands]
+        operands_str = ",".join(str(op) for op in operands)
+        scalar_flags = [0 if isinstance(
+            op, Column) else 1 for op in multiply_op.operands]
+        scalar_flags_str = ",".join(str(op) for op in scalar_flags)
 
         data = {
-            "TYPE": "xor_uint32",
+            "TYPE": "uint32",
             "OUT_REL": multiply_op.outRel.name,
             "IN_REL": multiply_op.getInRel().name,
             "TARGET_COL": multiply_op.targetCol.idx,
             # hacking array brackets
-            "COL_OP_INDECES": "{" + col_op_str + "}",
-            "SCALAR_OPS": "{" + scalar_ops_str + "}"
+            "OPERANDS": "{" + operands_str + "}",
+            "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
+
+        # template = open(
+        #     "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
+
+        # operands = multiply_op.operands
+        # print("operands", operands)
+        # col_op_indeces = [col.idx for col in filter(
+        #     lambda col: isinstance(col, Column), operands)]
+        # col_op_str = ",".join([str(col) for col in col_op_indeces])
+        # scalar_ops = list(
+        #     filter(lambda col: not isinstance(col, Column), operands))
+        # scalar_ops_str = ",".join([str(scalar) for scalar in scalar_ops])
+
+        # data = {
+        #     "TYPE": "uint32",
+        #     "OUT_REL": multiply_op.outRel.name,
+        #     "IN_REL": multiply_op.getInRel().name,
+        #     "TARGET_COL": multiply_op.targetCol.idx,
+        #     # hacking array brackets
+        #     "COL_OP_INDECES": "{" + col_op_str + "}",
+        #     "SCALAR_OPS": "{" + scalar_ops_str + "}"
+        # }
+        # return pystache.render(template, data)
 
     def _generateSchema(self, close_op):
 
@@ -353,7 +374,7 @@ class SharemindCodeGen(CodeGen):
             colData = {
                 'IN_NAME': inCol.getName(),
                 'OUT_NAME': outCol.getName(),
-                'TYPE': "xor_uint32"  # hard-coded for now
+                'TYPE': "uint32"  # hard-coded for now
             }
             colDefs.append(pystache.render(colDefTemplate, colData))
         colDefStr = "\n".join(colDefs)

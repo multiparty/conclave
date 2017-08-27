@@ -12,11 +12,11 @@ domain pd_shared3p shared3p;
 
 // relational operators and helper functions that don't come with vanilla sharemind
 template <domain D : shared3p>
-D xor_uint32[[2]] aggregateSum(D xor_uint32[[2]] rows, uint keyCol, uint valCol) {
+D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     uint nrows = shape(rows)[0];
     uint ncols = 2;
 
-    D xor_uint32 [[2]] input(nrows, ncols);
+    D uint32 [[2]] input(nrows, ncols);
     input[:,0] = rows[:,keyCol];
     input[:,1] = rows[:,valCol];
 
@@ -58,14 +58,14 @@ D xor_uint32[[2]] aggregateSum(D xor_uint32[[2]] rows, uint keyCol, uint valCol)
             resIdx++;
         }
     }
-    return (xor_uint32) finalResult;
+    return finalResult;
 }
 
 template <domain D : shared3p>
-D xor_uint32[[2]] project(D xor_uint32[[2]] rows, uint[[1]] selectedCols) {
+D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
     uint nrows = shape(rows)[0];
     uint ncols = size(selectedCols);
-    D xor_uint32 [[2]] projected(nrows, ncols);
+    D uint32 [[2]] projected(nrows, ncols);
     for (uint c = 0; c < ncols; ++c) {
         projected[:, c] = rows[:, selectedCols[c]];
     }
@@ -73,20 +73,29 @@ D xor_uint32[[2]] project(D xor_uint32[[2]] rows, uint[[1]] selectedCols) {
 }
 
 template <domain D : shared3p>
-D xor_uint32[[2]] multiply(D xor_uint32[[2]] rows, uint targetColIdx, uint[[1]] colOperandIndeces, uint[[1]] scalarOperands) {
-    uint nrows = shape(rows)[0];
-    uint ncols = shape(rows)[1];
-    D uint32 [[2]] multiplied(nrows, ncols) = (uint32) rows;
-    multiplied[:, targetColIdx] = 1;
-    // note: below works because order of operands doesn't matter with multiplication
-    for (uint c = 0; c < size(colOperandIndeces); ++c) {
-        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * (uint32) rows[:, colOperandIndeces[c]];
+D uint32[[2]] multiply(D uint32[[2]] rows, uint targetColIdx, uint[[1]] operands, uint[[1]] scalarFlags) {
+    D uint32 [[2]] res = rows;
+    if (scalarFlags[0] == 0) {
+        // column operand
+        res[:, targetColIdx] = rows[:, operands[0]];
     }
-    for (uint c = 0; c < size(scalarOperands); ++c) {
-        D uint32 scalar = (uint32) scalarOperands[c];
-        multiplied[:, targetColIdx] = multiplied[:, targetColIdx] * scalar;
+    else {
+        // scalar operand
+        D uint32 scalar = (uint32) operands[0];
+        res[:, targetColIdx] = scalar;
     }
-    return (xor_uint32) multiplied;
+    for (uint c = 1; c < size(operands); ++c) {
+        if (scalarFlags[c] == 0) {
+            // column operand
+            res[:, targetColIdx] = res[:, targetColIdx] * rows[:, operands[c]];
+        }
+        else {
+            // scalar operand
+            D uint32 scalar = (uint32) operands[c];
+            res[:, targetColIdx] = res[:, targetColIdx] * scalar;
+        }
+    }
+    return res;
 }
 
 template <domain D : shared3p>
@@ -115,13 +124,13 @@ D uint32[[2]] divide(D uint32[[2]] rows, uint targetColIdx, uint[[1]] operands, 
     return divided;
 }
 
-pd_shared3p xor_uint32 [[2]] readFromDb(string ds, string tbl) {
+pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
     uint ncols = tdbGetColumnCount(ds, tbl);
     uint nrows = tdbGetRowCount(ds, tbl);
 
-    pd_shared3p xor_uint32 [[2]] mat(nrows, ncols);
+    pd_shared3p uint32 [[2]] mat(nrows, ncols);
     for (uint c = 0; c < ncols; ++c) {
-        pd_shared3p xor_uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
+        pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
         for (uint r = 0; r < nrows; ++r) {
             mat[r, c] = col[r];
         }
@@ -129,7 +138,6 @@ pd_shared3p xor_uint32 [[2]] readFromDb(string ds, string tbl) {
     return mat;
 }
 
-// the actual mpc-protocol 
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);

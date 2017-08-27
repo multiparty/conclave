@@ -46,7 +46,7 @@ def agg():
 def proj():
 
     inputs, rel = setup()
-    res = sal.project(rel, "res", ["a", "b"])
+    res = sal.project(rel, "res", ["a"])
 
     opened = sal._open(res, "opened", 1)
     return inputs
@@ -69,6 +69,24 @@ def mult_mixed():
     opened = sal._open(res, "opened", 1)
     return inputs
 
+@dagonly
+def div():
+
+    inputs, rel = setup()
+    res = sal.divide(rel, "res", "b", ["b", 2])
+
+    opened = sal._open(res, "opened", 1)
+    return inputs
+
+@dagonly
+def div_broken():
+
+    inputs, rel = setup()
+    res = sal.divide(rel, "res", "b", [10000, "b"])
+
+    opened = sal._open(res, "opened", 1)
+    return inputs
+
 
 def party_proc(pid):
 
@@ -83,7 +101,7 @@ def party_proc(pid):
     }
     peer = salmon.net.setup_peer(config)
 
-    job = SharemindCodeGen(mult_mixed(), pid).generate("job-" + str(pid), sharemind_home)
+    job = SharemindCodeGen(div(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(peer, job_queue)
 
