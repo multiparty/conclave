@@ -2,6 +2,27 @@ from salmon.codegen import CodeGen
 from salmon.dag import *
 import os, pystache
 
+# helper to extract column list
+def _columnList(op):
+
+    return ", <BR/>".join([col.name for col in op.outRel.columns])
+
+
+def _nodeDescription(op, kind, inner):
+
+    if inner:
+        return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} | {} }}".format(
+                op.outRel.name,
+                kind,
+                inner,
+                _columnList(op))
+    else:
+        return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} }}".format(
+                op.outRel.name,
+                kind,
+                _columnList(op))
+
+
 class VizCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/viz".format(os.path.dirname(os.path.realpath(__file__)))):
         super(VizCodeGen, self).__init__(dag)
@@ -17,8 +38,14 @@ class VizCodeGen(CodeGen):
                 edges_code += "{} -> {}\n".format(node.outRel.name, c.outRel.name)
         return edges_code
 
-    def _generateNode(self, name, descr):
-        return "{} [style=\"filled\", label=\"{}\"]\n".format(name, descr)
+    def _generateNode(self, op, descr):
+
+        if op.isMPC:
+            c = 1
+        else:
+            c = 2
+        return "{} [style=\"filled\", fillcolor=\"/set312/{}\",  \
+                label=<{}>]\n".format(op.outRel.name, c, descr)
 
     def _generateJob(self, job_name, op_code):
 
@@ -32,10 +59,13 @@ class VizCodeGen(CodeGen):
     def _generateAggregate(self, agg_op):
 
         return self._generateNode(
-                agg_op.outRel.name,
-                "{{ AGG{} | {} }}".format(
-                "MPC" if agg_op.isMPC else "",
-                agg_op.outRel.name)
+                agg_op,
+                _nodeDescription(agg_op, "AGG",
+                    "{}: {}({})".format(
+                        agg_op.outRel.columns[-1].name,
+                        agg_op.aggregator,
+                        agg_op.aggCol)
+                )
             )
 
     def _generateConcat(self, concat_op):
@@ -43,10 +73,8 @@ class VizCodeGen(CodeGen):
         inRelStr = ", ".join([inRel.name for inRel in concat_op.getInRels()])
 
         return self.generateNode(
-                concat_op.outRel.name,
-                "{{ CONCAT{} | {} }}".format(
-                "MPC" if self.isMPC else "",
-                concat_op.outRel.name)
+                concat_op,
+                _nodeDescription(concat_op, "CONCAT", "")
             )
 
     def _generateCreate(self, create_op):
@@ -54,36 +82,39 @@ class VizCodeGen(CodeGen):
         colTypeStr = ", ".join([col.typeStr for col in create_op.outRel.columns])
 
         return self._generateNode(
-                create_op.outRel.name,
-                "{{ CREATE | {} }}".format(
-                create_op.outRel.name)
+                create_op,
+                _nodeDescription(create_op, "CREATE", "")
             )
 
     def _generateDivide(self, div_op):
 
         return self._generateNode(
-                div_op.outRel.name,
-                "{{ DIV | {} }}".format(
-                div_op.outRel.name)
+                div_op,
+                _nodeDescription(div_op, "DIV", "{}: {}".format(
+                    div_op.targetCol.name,
+                    " / ".join([str(o) for o in div_op.operands]),
+                    ))
             )
 
     def _generateJoin(self, join_op):
 
         return self._generateNode(
-                join_op.outRel.name,
-                "{{ JOIN{} | {} ⋈ {} | {} }}".format(
-                "MPC" if join_op.isMPC else "",
-                join_op.getLeftInRel().name,
-                join_op.getRightInRel().name,
-                join_op.outRel.name)
+                join_op,
+                _nodeDescription(join_op, "JOIN",
+                    "{} ⋈ {}".format(
+                        join_op.getLeftInRel().name,
+                        join_op.getRightInRel().name)
+                )
             )
 
     def _generateMultiply(self, mul_op):
 
         return self._generateNode(
-                mul_op.outRel.name,
-                "{{ MUL | {} }}".format(
-                mul_op.outRel.name)
+                mul_op,
+                _nodeDescription(mul_op, "MUL", "{}: {}".format(
+                    mul_op.targetCol.name,
+                    " * ".join([str(o) for o in mul_op.operands]),
+                    ))
             )
 
     def _generateProject(self, project_op):
@@ -91,18 +122,15 @@ class VizCodeGen(CodeGen):
         selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
 
         return self._generateNode(
-                project_op.outRel.name,
-                "{{ PROJECT{} | {} }}".format(
-                "MPC" if project_op.isMPC else "",
-                project_op.outRel.name)
+                project_op,
+                _nodeDescription(project_op, "PROJECT", "")
             )
 
     def _generateStore(self, store_op):
 
         return self._generateNode(
-                store_op.outRel.name,
-                "{{ STORE | {} }}".format(
-                store_op.outRel.name)
+                store_op,
+                _nodeDescription(store_op, "STORE", "")
             )
 
     def _writeCode(self, code, output_directory, job_name):
