@@ -132,7 +132,7 @@ def measureCost(nodes, fmwk):
     cost = 0
     if fmwk == 'spark':
         for node in nodes:
-            if node.isMpc:
+            if node.isMPC:
                 cost += inf
             else:
                 if isinstance(node, Aggregate):
