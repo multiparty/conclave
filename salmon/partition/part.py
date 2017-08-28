@@ -10,6 +10,7 @@ class SubDag(Dag):
         self.nodes = nodes
         self.roots = self.findRoots()
         self.leaves = self.findLeaves()
+        # change naming in the future
         self.name = self.debugStr()
         super(SubDag, self).__init__(self.roots)
 
@@ -131,17 +132,55 @@ def measureCost(nodes, fmwk):
     cost = 0
     if fmwk == 'spark':
         for node in nodes:
-            if isinstance(node, Multiply):
-                cost += 1
-            elif isinstance(node, Join):
+            if node.isMpc:
                 cost += inf
-            elif isinstance(node, Project):
-                cost += inf
-            elif isinstance(node, Create):
-                cost += 1
+            else:
+                if isinstance(node, Aggregate):
+                    cost += 1
+                elif isinstance(node, Concat):
+                    cost += 1
+                elif isinstance(node, Create):
+                    cost += 1
+                elif isinstance(node, RevealJoin):
+                    cost += 1
+                elif isinstance(node, HybridJoin):
+                    cost += 1
+                elif isinstance(node, Join):
+                    cost += 1
+                elif isinstance(node, Project):
+                    cost += 1
+                elif isinstance(node, Multiply):
+                    cost += 1
+                elif isinstance(node, Divide):
+                    cost += 1
+                else:
+                    print("encountered unknown operator type", repr(node))
     elif fmwk == 'sharemind':
         for node in nodes:
-            cost += 10
+            if isinstance(node, Aggregate):
+                cost += 10
+            elif isinstance(node, Concat):
+                cost += 10
+            elif isinstance(node, Create):
+                cost += 10
+            elif isinstance(node, Close):
+                cost += 10
+            elif isinstance(node, RevealJoin):
+                cost += 10
+            elif isinstance(node, HybridJoin):
+                cost += 10
+            elif isinstance(node, Join):
+                cost += 10
+            elif isinstance(node, Open):
+                cost += 10
+            elif isinstance(node, Project):
+                cost += 10
+            elif isinstance(node, Multiply):
+                cost += 10
+            elif isinstance(node, Divide):
+                cost += 10
+            else:
+                print("encountered unknown operator type", repr(node))
     return cost
 
 
