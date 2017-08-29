@@ -7,21 +7,19 @@ from salmon.utils import *
 @dagonly
 def protocol():
 
-    # TODO: look at nielsen data and find appropriate column names / order
     cols_concatenated_DFs = [
-        defCol("unit_price", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("price", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("prmult", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("store_code_uc", "INTEGER", [1, 2, 3, 4]),
-        defCol("week_end", "INTEGER", [1, 2, 3, 4, 5])
+        defCol("store_code_uc", "INTEGER", [1]),
+        defCol('upc', 'INTEGER', [1]),
+        defCol('week_end', 'INTEGER', [1]),
+        defCol('q', 'INTEGER', [1]),
+        defCol('avg_unit_p', 'FLOAT', [1])
     ]
 
     cols_temp_UPC_brandBU_crspnd = [
-        defCol("unit_price", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("price", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("prmult", "INTEGER", [1, 2, 3, 4, 5]),
-        defCol("store_code_uc", "INTEGER", [1, 2, 3, 4]),
-        defCol("week_end", "INTEGER", [1, 2, 3, 4, 5])
+        defCol('brand_code_bu', 'FLOAT', [2]),
+        defCol('brand_descr_bu', 'STRING', [2]),
+        defCol('upc', 'INTEGER', [2]),
+        defCol('size1_amount', 'FLOAT', [2]),
     ]
 
     # concatenated DFs from create_DFs.py
