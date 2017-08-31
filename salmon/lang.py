@@ -13,15 +13,16 @@ def create(relName, columns, storedWith):
     return op
 
 
-def aggregate(inputOpNode, outputName, keyColName, overColName, aggregator, aggOutColName):
+def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
     # Get relevant columns and reset their collusion sets
     inCols = inRel.columns
-    keyCol = utils.find(inCols, keyColName)
-    keyCol.collSets = set()
+    groupCols = [utils.find(inCols, groupColName) for groupColName in groupColNames]
+    for groupCol in groupCols:
+        groupCol.collSets = set()
     overCol = utils.find(inCols, overColName)
     overCol.collSets = set()
 
@@ -32,12 +33,13 @@ def aggregate(inputOpNode, outputName, keyColName, overColName, aggregator, aggO
     # shouldn't affect the original columns
     aggOutCol = copy.deepcopy(overCol)
     aggOutCol.name = aggOutColName
-    outRelCols = [copy.deepcopy(keyCol), aggOutCol]
+    outRelCols = [copy.deepcopy(groupCol) for groupCol in groupCols]
+    outRelCols.append(copy.deepcopy(aggOutCol))
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.Aggregate(outRel, inputOpNode, keyCol, overCol, aggregator)
+    op = dag.Aggregate(outRel, inputOpNode, groupCols, overCol, aggregator)
 
     # Add it as a child to input node
     inputOpNode.children.add(op)
@@ -151,7 +153,7 @@ def multiply(inputOpNode, outputName, targetColName, operands):
 
 
 # TODO: is a self-join a problem?
-def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
+def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames):
 
     # TODO: technically this should take in a start index as well
     # This helper method takes in a relation, the key column of the join
@@ -159,14 +161,14 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     # It returns a list of new columns with correctly merged collusion sets
     # for the output relation (in the same order as they appear on the input
     # relation but excluding the key column)
-    def _colsFromRel(relation, keyCol, keyColIdx):
+    def _colsFromRel(startIdx, relation, keyColIdxs):
 
         resultCols = []
-        for idx, col in enumerate(relation.columns):
-            # Exclude key column
-            if idx != keyColIdx:
+        for num, col in enumerate(relation.columns):
+            # Exclude key columns and add num from enumerate to start index
+            if col.idx not in set(keyColIdxs):
                 newCol = rel.Column(
-                    outputName, col.getName(), idx, col.typeStr, set())
+                    outputName, col.getName(), num + startIdx - len(keyColIdxs), col.typeStr, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -180,24 +182,33 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
     rightCols = rightInRel.columns
 
     # Get columns we will join on
-    leftJoinCol = utils.find(leftCols, leftColName)
-    rightJoinCol = utils.find(rightCols, rightColName)
+    leftJoinCols = [utils.find(leftCols, leftColName) for leftColName in leftColNames]
+    rightJoinCols = [utils.find(rightCols, rightColName) for rightColName in rightColNames]
 
     # # Get the key columns' merged collusion set
     # keyCollusionSet = utils.mergeCollusionSets(
     #     leftJoinCol.collusionSet, rightJoinCol.collusionSet)
 
-    # Create new key column
-    outKeyCol = rel.Column(
-        outputName, leftJoinCol.getName(), 0, leftJoinCol.typeStr, set())
+    # Create new key columns
+    outKeyCols = []
+    for i in range(len(leftJoinCols)):
+        outKeyCols.append(
+            rel.Column(outputName, leftJoinCols[i].getName(), i, leftJoinCols[i].typeStr, set()))
 
     # Define output relation columns.
-    # These will be the key column followed
-    # by all columns from left (other than join column)
-    # and right (again excluding join column)
-    outRelCols = [outKeyCol] \
-        + _colsFromRel(leftInRel, outKeyCol, leftJoinCol.idx) \
-        + _colsFromRel(rightInRel, outKeyCol, rightJoinCol.idx)
+    # These will be the key columns followed
+    # by all columns from left (other than join columns)
+    # and right (again excluding join columns)
+
+    startIdx = len(outKeyCols)
+    # continueIdx will be (startIdx + len(leftInRel.columns) - len(leftJoinCols)),
+    # which is just len(leftInRel.columns)
+    continueIdx = len(leftInRel.columns)
+    outRelCols = outKeyCols \
+        + _colsFromRel(
+            startIdx, leftInRel, [leftJoinCol.idx for leftJoinCol in leftJoinCols]) \
+        + _colsFromRel(
+            continueIdx, rightInRel, [rightJoinCol.idx for rightJoinCol in rightJoinCols])
 
     # The result of the join will be stored with the union
     # of the parties storing left and right
@@ -212,8 +223,8 @@ def join(leftInputNode, rightInputNode, outputName, leftColName, rightColName):
         outRel,
         leftInputNode,
         rightInputNode,
-        leftJoinCol,
-        rightJoinCol
+        leftJoinCols,
+        rightJoinCols
     )
 
     # Add it as a child to both input nodes

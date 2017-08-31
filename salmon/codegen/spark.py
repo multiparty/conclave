@@ -39,6 +39,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    # TODO: (ben) only agg_sum.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
 
         aggregator = agg_op.aggregator
@@ -48,8 +49,8 @@ class SparkCodeGen(CodeGen):
         template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
 
         data = {
-            'KEYCOL_ID': agg_op.keyCol.idx,
-            'AGGCOL_ID': agg_op.aggCol.idx,
+            'GROUPCOL_IDS': [groupCol.idx for groupCol in agg_op.groupCols],
+            'AGGCOL_IDS': [agg_op.aggCol.idx],
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name
         }
@@ -89,15 +90,15 @@ class SparkCodeGen(CodeGen):
 
         # spark code supports multiple join cols, only need to modify
         # data variables in the future for multiple join cols
-        leftJoinCol, rightJoinCol = join_op.leftJoinCol, join_op.rightJoinCol
+        leftJoinCols, rightJoinCols = join_op.leftJoinCols, join_op.rightJoinCols
 
         template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
 
         data = {
             'LEFT_PARENT': leftName,
             'RIGHT_PARENT': rightName,
-            'LEFT_COL': leftJoinCol.idx,
-            'RIGHT_COL': rightJoinCol.idx,
+            'LEFT_COLS': [leftJoinCol.idx for leftJoinCol in leftJoinCols],
+            'RIGHT_COLS': [rightJoinCol.idx for rightJoinCol in rightJoinCols],
             'OUTREL': join_op.outRel.name
         }
 
