@@ -346,15 +346,13 @@ class CollSetPropDown(DagRewriter):
         for inCol in leftInRel.columns:
             if inCol not in set(leftJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets.add(utils.mergeCollSets(
-                        keyColCollSets, inCol.collSets))
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
                 absIdx += 1
 
         for inCol in rightInRel.columns:
             if inCol not in set(rightJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets.add(utils.mergeCollSets(
-                        keyColCollSets, inCol.collSets))
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
                 absIdx += 1
 
     def _rewriteConcat(self, node):
