@@ -101,9 +101,11 @@ class VizCodeGen(CodeGen):
         return self._generateNode(
                 join_op,
                 _nodeDescription(join_op, "JOIN",
-                    "{} ⋈ {}".format(
+                    "{} ⋈ {} <br />on: {} ⋈ {}" .format(
                         join_op.getLeftInRel().name,
-                        join_op.getRightInRel().name)
+                        join_op.getRightInRel().name,
+                        [c.name for c in join_op.leftJoinCols],
+                        [c.name for c in join_op.rightJoinCols])
                 )
             )
 
