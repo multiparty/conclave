@@ -55,10 +55,10 @@ def protocol():
     retailer-$geo_unit. Compute the total quantity sold by each retailer-$geo_unit
     '''
 
-    temp_sum = sal.aggregate(final_result, 'temp_sum', ['zip3', 'rtlr', 'brand_code_bu', 'week_end'], 'brnd_OZq')
+    temp_sum = sal.aggregate(final_result, 'temp_sum', ['zip3', 'rtlr', 'brand_code_bu', 'week_end'], 'brand_OZq', '+', 'brand_OZq')
     result_brnd_sum = sal.join(final_result, temp_sum, 'result_brnd_sum', ['zip3', 'rtlr', 'brand_code_bu', 'week_end'], \
                                ['zip3', 'rtlr', 'brand_code_bu', 'week_end'])
-    wghtd_p_mult = sal.multiply(result_brnd_sum, 'wghtd_p_mult', 'wghtd_p', ['brnd_OZq', 'avg_OZ_brnd_p'])
+    wghtd_p_mult = sal.multiply(result_brnd_sum, 'wghtd_p_mult', 'wghtd_p', ['brand_OZq', 'avg_OZ_brnd_p'])
     wghtd_p_final = sal.divide(wghtd_p_mult, 'wghtd_p_final', 'wghtd_p', ['wghtd_p', 'q'])
     wghtd_p_sum = sal.aggregate(wghtd_p_final, 'wghtd_p_sum', ['zip3', 'rtlr', 'brand_code_bu', 'week_end'], 'wghtd_p', '+', 'p')
     sec_4_result = sal.join(wghtd_p_final, wghtd_p_sum, 'sec_4_result', ['zip3', 'rtlr', 'brand_code_bu', 'week_end'], \
