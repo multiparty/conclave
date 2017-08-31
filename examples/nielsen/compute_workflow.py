@@ -46,7 +46,7 @@ def protocol():
                                'wghtd_OZ_brnd_p', '+', 'avg_OZ_brnd_p')
     result = sal.join(brnd_p_sum, w_wghtd_OZ_brnd_p_final, 'result', ['store_code_uc', 'brand_code_bu', 'week_end'], \
                       ['store_code_uc', 'brand_code_bu', 'week_end'])
-    final_result = sal.project(result, 'final_result', ["avg_OZ_brnd_p", "weed_end","store_code_uc", "brand_code_bu", "brand_descr_bu", "brnd_OZq"])
+    final_result = sal.project(result, 'final_result', ["avg_OZ_brnd_p", "week_end","store_code_uc", "brand_code_bu", "brand_descr_bu", "brnd_OZq"])
 
     '''
     SECTION 2
