@@ -209,7 +209,7 @@ def testJoin():
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CLOSE projB([c {2}, d {2}]) {2} INTO projB_close([c {2}, d {2}]) {1, 2}
-(inA_close([a {1}, b {1}]) {1, 2}) JOINMPC (projB_close([c {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
+(inA_close([a {1}, b {1}]) {1, 2}) JOINMPC (projB_close([c {2}, d {2}]) {1, 2}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
 MULTIPLYMPC [a -> a * 0] FROM (joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}) AS mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
 OPEN mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, d {1,2}]) {1}
 """

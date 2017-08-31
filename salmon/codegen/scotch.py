@@ -56,12 +56,12 @@ class ScotchCodeGen(CodeGen):
 
     def _generateJoin(self, join_op):
 
-        return "({}) JOIN{} ({}) ON {} AND {} AS {}\n".format(
+        return "({}) JOIN{} ({}) ON [{}] AND [{}] AS {}\n".format(
             join_op.getLeftInRel().dbgStr(),
             "MPC" if join_op.isMPC else "",
             join_op.getRightInRel().dbgStr(),
-            str(join_op.leftJoinCol),
-            str(join_op.rightJoinCol),
+            ",".join([c.name for c in join_op.leftJoinCols]),
+            ",".join([c.name for c in join_op.rightJoinCols]),
             join_op.outRel.dbgStr()
         )
 
@@ -70,8 +70,8 @@ class ScotchCodeGen(CodeGen):
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
             reveal_join_op.getLeftInRel().dbgStr(),
             reveal_join_op.getRightInRel().dbgStr(),
-            str(reveal_join_op.leftJoinCol),
-            str(reveal_join_op.rightJoinCol),
+            ",".join([c.name for c in reveal_join_op.leftJoinCols]),
+            ",".join([c.name for c in reveal_join_op.rightJoinCols]),
             reveal_join_op.outRel.dbgStr()
         )
 
@@ -80,8 +80,8 @@ class ScotchCodeGen(CodeGen):
         return "({}) HYBRIDJOIN ({}) ON {} AND {} AS {}\n".format(
             hybrid_join_op.getLeftInRel().dbgStr(),
             hybrid_join_op.getRightInRel().dbgStr(),
-            str(hybrid_join_op.leftJoinCol),
-            str(hybrid_join_op.rightJoinCol),
+            ",".join([c.name for c in hybrid_join_op.leftJoinCols]),
+            ",".join([c.name for c in hybrid_join_op.rightJoinCols]),
             hybrid_join_op.outRel.dbgStr()
         )
 

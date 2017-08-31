@@ -391,10 +391,10 @@ class RevealJoin(Join):
     """
 
     def __init__(self, outRel, leftParent, rightParent,
-                 leftJoinCol, rightJoinCol, revealedInRel, recepient):
+                 leftJoinCols, rightJoinCols, revealedInRel, recepient):
 
         super(RevealJoin, self).__init__(outRel, leftParent,
-                                         rightParent, leftJoinCol, rightJoinCol)
+                                         rightParent, leftJoinCols, rightJoinCols)
         self.name = "revealJoin"
         self.revealedInRel = revealedInRel
         self.recepient = recepient
@@ -403,13 +403,13 @@ class RevealJoin(Join):
     @classmethod
     def fromJoin(cls, joinOp, revealedInRel, recepient):
         obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
-                  joinOp.leftJoinCol, joinOp.rightJoinCol, revealedInRel, recepient)
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, revealedInRel, recepient)
         return obj
 
     def updateOpSpecificCols(self):
 
-        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
-        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
+        self.leftJoinCols = [self.getLeftInRel().columns[c.idx] for c in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[c.idx] for c in self.rightJoinCols]
 
 
 class HybridMultiPartyJoin(Join):
@@ -426,10 +426,10 @@ class HybridJoin(Join):
     """
 
     def __init__(self, outRel, leftParent, rightParent,
-                 leftJoinCol, rightJoinCol, trustedParty):
+                 leftJoinCols, rightJoinCols, trustedParty):
 
         super(HybridJoin, self).__init__(outRel, leftParent,
-                                         rightParent, leftJoinCol, rightJoinCol)
+                                         rightParent, leftJoinCols, rightJoinCols)
         self.name = "hybridJoin"
         self.trustedParty = trustedParty
         self.isMPC = True
@@ -437,14 +437,14 @@ class HybridJoin(Join):
     @classmethod
     def fromJoin(cls, joinOp, trustedParty):
         obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
-                  joinOp.leftJoinCol, joinOp.rightJoinCol, trustedParty)
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, trustedParty)
         obj.children = joinOp.children
         return obj
 
     def updateOpSpecificCols(self):
 
-        self.leftJoinCol = self.getLeftInRel().columns[self.leftJoinCol.idx]
-        self.rightJoinCol = self.getRightInRel().columns[self.rightJoinCol.idx]
+        self.leftJoinCols = [self.getLeftInRel().columns[c.idx] for c in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[c.idx] for c in self.rightJoinCols]
 
 
 class Dag():
