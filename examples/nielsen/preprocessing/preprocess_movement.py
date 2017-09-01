@@ -1,7 +1,3 @@
-import findspark
-
-findspark.init('/usr/local/opt/apache-spark/libexec')
-
 from pyspark import SparkContext, SparkConf
 import sys, os, numpy
 

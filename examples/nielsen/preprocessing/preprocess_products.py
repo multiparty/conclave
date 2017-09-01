@@ -13,4 +13,5 @@ in_f = sc.textFile(sys.argv[1]) \
     .filter(lambda x: x[15] == 'OZ') \
     .distinct() \
     .map(lambda x: [x[i] for i in col_ids]) \
+    .map(lambda x: ','.join(str(d) for d in x)) \
     .saveAsTextFile(sys.argv[2])
