@@ -286,9 +286,9 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL": join_op.outRel.name,
             "LEFT_IN_REL": join_op.getLeftInRel().name,
-            "LEFT_KEY_COL": join_op.leftJoinCol.idx,
+            "LEFT_KEY_COL": join_op.leftJoinCols[0].idx,
             "RIGHT_IN_REL": join_op.getRightInRel().name,
-            "RIGHT_KEY_COL": join_op.rightJoinCol.idx
+            "RIGHT_KEY_COL": join_op.rightJoinCols[0].idx
         }
         return pystache.render(template, data)
 

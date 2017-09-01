@@ -79,6 +79,37 @@ def div():
     return inputs
 
 @dagonly
+def join():
+
+    # define inputs
+    colsIn1 = [
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1])
+    ]
+    in1 = sal.create("in1", colsIn1, set([1]))
+    colsIn2 = [
+        defCol("c", "INTEGER", [2]),
+        defCol("d", "INTEGER", [2])
+    ]
+    in2 = sal.create("in2", colsIn2, set([2]))
+    colsIn3 = [
+        defCol("a", "INTEGER", [3]),
+        defCol("b", "INTEGER", [3])
+    ]
+    # TODO: dummy relation for now 
+    in3 = sal.create("in3", colsIn3, set([3]))
+    
+    cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
+    cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
+    cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
+    
+    res = sal.join(cl1, cl2, "res", "a", "c")
+
+    opened = sal._open(res, "opened", 1)
+    return set([in1, in2, in3])
+
+
+@dagonly
 def div_broken():
 
     inputs, rel = setup()
@@ -101,7 +132,7 @@ def party_proc(pid):
     }
     peer = salmon.net.setup_peer(config)
 
-    job = SharemindCodeGen(div(), pid).generate("job-" + str(pid), sharemind_home)
+    job = SharemindCodeGen(join(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(peer, job_queue)
 
