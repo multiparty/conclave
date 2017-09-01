@@ -1,7 +1,7 @@
 from pyspark import SparkContext, SparkConf
 import sys
 
-# filters products_cleaned_w_brand_code_bu.tsv
+# prepares products_cleaned_w_brand_code_bu.tsv to be used in the workflow
 
 conf = SparkConf().setAppName("create_div").setMaster("local")
 sc = SparkContext(conf=conf)
