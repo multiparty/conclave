@@ -22,11 +22,10 @@ def protocol():
         defCol('size1_amount', 'FLOAT', [2]),
     ]
 
-    # concatenated DFs from create_DFs.py
+    # concatenated DFs from local_workflow.py
     concatenated_DFs = sal.create('concatenated_DFs', cols_concatenated_DFs, set([1]))
 
-    # some filtering is performed on temp_UPC_brandBU_crspnd, maybe
-    # write it as a separate script and load the filtered script here
+    # the output of preprocess_products.py
     temp_UPC_brandBU_crspnd = sal.create('temp_UPC_brandBU_crspnd', cols_temp_UPC_brandBU_crspnd, set([1]))
 
     '''
@@ -37,18 +36,19 @@ def protocol():
     w_upc = sal.join(concatenated_DFs, temp_UPC_brandBU_crspnd, 'w_upc', ['upc'], ['upc'])
     w_avg_OZ_p = sal.divide(w_upc, 'w_avg_OZ_p', 'avg_OZ_p', ['avg_unit_p', 'size1_amount'])
     w_q_upd = sal.multiply(w_avg_OZ_p, 'w_q_upd', 'q', ['q', 'size1_amount'])
-    # TODO: rewrite to use nested binary joins
-    brand_OZq_sum = sal.aggregate(w_q_upd, 'brand_OZq_sum', ['store_code_uc', 'brand_code_bu', 'week_end'], 'q', '+', 'brand_OZq')
-    total_brnd_OZq = sal.join(w_q_upd, brand_OZq_sum, 'total_brnd_OZq', ['store_code_uc', 'brand_code_bu', 'week_end'], \
+    brand_OZq_sum = sal.aggregate(w_q_upd, 'brand_OZq_sum', ['store_code_uc', 'brand_code_bu', 'week_end'],
+                                  'q', '+', 'brand_OZq')
+    total_brnd_OZq = sal.join(w_q_upd, brand_OZq_sum, 'total_brnd_OZq', ['store_code_uc', 'brand_code_bu', 'week_end'],
                               ['store_code_uc', 'brand_code_bu', 'week_end'])
     w_wghtd_OZ_brnd_p = sal.multiply(total_brnd_OZq, 'w_wghtd_OZ_brnd_p', 'wghtd_OZ_brnd_p', ['q', 'avg_OZ_p'])
-    w_wghtd_OZ_brnd_p_final = sal.divide(w_wghtd_OZ_brnd_p, 'w_wghtd_OZ_brnd_p_final', 'wghtd_OZ_brnd_p', ['wghtd_OZ_brnd_p', 'brand_OZq'])
-    brnd_p_sum = sal.aggregate(w_wghtd_OZ_brnd_p_final, 'brnd_p_sum', ['store_code_uc', 'brand_code_bu', 'week_end'], \
+    w_wghtd_OZ_brnd_p_final = sal.divide(w_wghtd_OZ_brnd_p, 'w_wghtd_OZ_brnd_p_final', 'wghtd_OZ_brnd_p',
+                                         ['wghtd_OZ_brnd_p', 'brand_OZq'])
+    brnd_p_sum = sal.aggregate(w_wghtd_OZ_brnd_p_final, 'brnd_p_sum', ['store_code_uc', 'brand_code_bu', 'week_end'],
                                'wghtd_OZ_brnd_p', '+', 'avg_OZ_brnd_p')
-    # TODO: rewrite to use nested binary joins
-    result = sal.join(brnd_p_sum, w_wghtd_OZ_brnd_p_final, 'result', ['store_code_uc', 'brand_code_bu', 'week_end'], \
+    result = sal.join(brnd_p_sum, w_wghtd_OZ_brnd_p_final, 'result', ['store_code_uc', 'brand_code_bu', 'week_end'],
                       ['store_code_uc', 'brand_code_bu', 'week_end'])
-    final_result = sal.project(result, 'final_result', ["avg_OZ_brnd_p", "week_end","store_code_uc", "brand_code_bu", "brand_descr_bu", "brand_OZq"])
+    final_result = sal.project(result, 'final_result', ["avg_OZ_brnd_p", "week_end","store_code_uc", "brand_code_bu",
+                                                        "brand_descr_bu", "brand_OZq"])
 
     '''
     SECTION 2
