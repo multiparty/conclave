@@ -5,8 +5,8 @@ from salmon.utils import *
 
 
 '''
-NOTE: This script is intended to be run on the output of preprocess_movement.py after
-the data has been separated into distinct parties by retailer_code.
+NOTE: This script is intended to be run locally on the output of preprocess_movement.py
+after the data has been separated into distinct parties by retailer_code.
 '''
 
 @dagonly
@@ -30,7 +30,6 @@ def protocol():
     # aggregate multiple entries for the same (store, product, week) combination
     sum_units = sal.aggregate(w_unit_p, 'sum_units', ['store_code_uc', 'upc', 'week_end'], 'units', '+', 'q')
 
-    # TODO: what does our join do with duplicate columns?
     # add 'unit_price' to each row keyed by (store, product, week)
     total_units = sal.join(w_unit_p, sum_units, 'total_units', ['store_code_uc', 'upc', 'week_end'],
                            ['store_code_uc', 'upc', 'week_end'])
@@ -48,7 +47,10 @@ def protocol():
     final_join = sal.join(total_units, total_unit_wghts, 'final_join', ['store_code_uc', 'upc', 'week_end'],
                           ['store_code_uc', 'upc', 'week_end'])
 
-    opened = sal.collect(final_join, 1)
+    selected_cols = sal.project(final_join, 'selected_cols',
+                                ['store_code_uc', 'upc', 'week_end', 'q', 'avg_unit_p'])
+
+    opened = sal.collect(selected_cols, 1)
 
     return set([create])
 
@@ -57,9 +59,9 @@ if __name__ == "__main__":
     dag = protocol()
 
     vg = viz.VizCodeGen(dag)
-    vg.generate("nielsen_create", "/tmp")
+    vg.generate("local_workflow", "/tmp")
 
     cg = spark.SparkCodeGen(dag)
-    cg.generate("nielsen_create", "/tmp")
+    cg.generate("local_workflow", "/tmp")
 
-    print("Spark code generated in /tmp/nielsen_create.py")
+    print("Spark code generated in /tmp/local_workflow.py")
