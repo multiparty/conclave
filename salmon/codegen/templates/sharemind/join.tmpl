@@ -1,1 +1,1 @@
-    pd_shared3p {{TYPE}} [[2]] {{OUT_REL}} = ({{TYPE}}) tableJoinAes128((xor_uint32){{LEFT_IN_REL}}, (uint){{LEFT_KEY_COL}}, (xor_uint32){{RIGHT_IN_REL}}, (uint){{RIGHT_KEY_COL}});
+    pd_shared3p {{TYPE}} [[2]] {{OUT_REL}} = join({{LEFT_IN_REL}}, (uint){{LEFT_KEY_COLS}}, {{RIGHT_IN_REL}}, (uint){{RIGHT_KEY_COLS}}, (uint){{COLS_TO_KEEP}});
