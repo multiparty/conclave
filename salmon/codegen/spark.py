@@ -8,21 +8,18 @@ def op_to_sum(op):
 
 
 def split_datatypes(cols):
-    integers = []
-    floats = []
-
+    nums = []
     for i in range(len(cols)):
         if cols[i].typeStr == "INTEGER":
-            integers.append(i)
+            nums.append(i)
         elif cols[i].typeStr == "STRING":
             # assume elements are stored as strings by default
             pass
         elif cols[i].typeStr == "FLOAT":
-            floats.append(i)
+            nums.append(i)
         else:
             print("Unknown datatype: {0}".format(cols[i].typeStr))
-
-    return [integers, floats]
+    return nums
 
 
 class SparkCodeGen(CodeGen):
@@ -72,13 +69,12 @@ class SparkCodeGen(CodeGen):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
 
-        type_lists = split_datatypes(create_op.outRel.columns)
+        type_list = split_datatypes(create_op.outRel.columns)
 
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
-                'INT_COLS': [i for i in type_lists[0]],
-                'FLOAT_COLS': [j for j in type_lists[1]]
+                'NUM_COLS': type_list
                }
 
         return pystache.render(template, data)
