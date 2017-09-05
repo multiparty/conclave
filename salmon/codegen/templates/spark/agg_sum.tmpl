@@ -3,7 +3,7 @@ k = {{{GROUPCOL_IDS}}}
 a = {{{AGGCOL_IDS}}}
 
 {{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: ([x[i] for i in k], [x[j] for j in a])) \
+    .map(lambda x: ([x[i] for i in k], [float(x[j]) for j in a])) \
     .map(lambda x: (tuple(x[0]), tuple(x[1]))) \
     .aggregateByKey((0,0), \
         lambda acc, val: tuple(map(sum, zip(acc, val))), \

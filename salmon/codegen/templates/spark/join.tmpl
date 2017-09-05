@@ -2,12 +2,12 @@ lCol = {{{LEFT_COLS}}}
 rCol = {{{RIGHT_COLS}}}
 
 l = {{{LEFT_PARENT}}} \
-    .map(lambda x: (tuple([x[i] for i in lCol]), \
-        [x[i] for i in range(len(x)) if i not in set(lCol)]))
+    .map(lambda x: (tuple([str(x[i]) for i in lCol]), \
+        [str(x[i]) for i in range(len(x)) if i not in set(lCol)]))
 
 r = {{{RIGHT_PARENT}}} \
-    .map(lambda x: (tuple([x[i] for i in rCol]), \
-        [x[i] for i in range(len(x)) if i not in set(rCol)]))
+    .map(lambda x: (tuple([str(x[i]) for i in rCol]), \
+        [str(x[i]) for i in range(len(x)) if i not in set(rCol)]))
 
 {{{OUTREL}}} = l \
     .join(r) \
