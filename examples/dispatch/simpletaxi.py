@@ -69,13 +69,18 @@ def party_proc(pid):
 
 if __name__ == "__main__":
 
-    # run each party in separate process
-    # TODO: switch to threads if asyncio is thread-safe
-    procs = []
-    for pid in [1, 2, 3]:
-        p = Process(target=party_proc, args=(pid,))
-        p.start()
-        procs.append(p)
-    # wait for processes to complete
-    for p in procs:
-        p.join()
+    sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
+    job, code = SharemindCodeGen(protocol(), pid)._generate("job-1", sharemind_home)
+    print(code)
+    
+
+    # # run each party in separate process
+    # # TODO: switch to threads if asyncio is thread-safe
+    # procs = []
+    # for pid in [1, 2, 3]:
+    #     p = Process(target=party_proc, args=(pid,))
+    #     p.start()
+    #     procs.append(p)
+    # # wait for processes to complete
+    # for p in procs:
+    #     p.join()

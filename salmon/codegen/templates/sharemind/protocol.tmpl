@@ -13,6 +13,21 @@ domain pd_shared3p shared3p;
 
 // relational operators and helper functions that don't come with vanilla sharemind
 template <domain D : shared3p>
+D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
+    D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
+    // TODO: assert join cols are singletons
+    // perform native join
+    D uint32[[2]] res = (uint32) tableJoinAes128(
+        (xor_uint32) leftRel,
+        leftJoinCols[0],
+        (xor_uint32) rightRel,
+        leftJoinCols[0]
+    );
+    return project(res, colsToKeep);
+}
+
+// relational operators and helper functions that don't come with vanilla sharemind
+template <domain D : shared3p>
 D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     uint nrows = shape(rows)[0];
     uint ncols = 2;
