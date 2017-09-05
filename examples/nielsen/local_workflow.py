@@ -13,14 +13,14 @@ after the data has been separated into distinct parties by retailer_code.
 def protocol():
 
     colsInA = [
-        defCol("store_code_uc", "INTEGER", [1]),
-        defCol("upc", "INTEGER", [1]),
-        defCol("week_end", "INTEGER", [1]),
+        defCol("store_code_uc", "STRING", [1]),
+        defCol("upc", "STRING", [1]),
+        defCol("week_end", "STRING", [1]),
         defCol("units", "INTEGER", [1]),
         defCol("prmult", "INTEGER", [1]),
         defCol("price", "FLOAT", [1]),
-        defCol("retailer_code", "INTEGER", [1]),
-        defCol("store_zip3", "INTEGER", [1])
+        defCol("retailer_code", "STRING", [1]),
+        defCol("store_zip3", "STRING", [1])
     ]
     create = sal.create("movement", colsInA, set([1]))
 
@@ -48,7 +48,7 @@ def protocol():
                           ['store_code_uc', 'upc', 'week_end'])
 
     selected_cols = sal.project(final_join, 'selected_cols',
-                                ['store_code_uc', 'upc', 'week_end', 'q', 'avg_unit_p'])
+                                ['store_code_uc', 'upc', 'week_end', 'q', 'avg_unit_p', 'retailer_code', 'store_zip3'])
 
     opened = sal.collect(selected_cols, 1)
 
