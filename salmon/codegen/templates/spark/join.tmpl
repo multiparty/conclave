@@ -14,4 +14,4 @@ r = {{{RIGHT_PARENT}}} \
     .map(lambda x: numpy.hstack( \
         [elem for tupl in x for elem in numpy.array(tupl, dtype='O')]) \
         .tolist()) \
-    .cache()
+    {{{CACHE_VAR}}}

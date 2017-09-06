@@ -10,14 +10,13 @@ if not new_col_flag:
             [float(x[i]) for i in operands], 1)*float(x[j])*scalar \
             if j == target_id \
             else x[j] for j in range(len(x))]) \
-        .cache()
+        {{{CACHE_VAR}}}
 else:
+    {{{INREL}}}.cache()
     new_col = {{{INREL}}} \
-        .map(lambda x: functools.reduce(operator.mul, [float(x[i]) for i in operands], 1)*scalar) \
-        .cache()
-
+        .map(lambda x: functools.reduce(operator.mul, [float(x[i]) for i in operands], 1)*scalar)
     {{{OUTREL}}} = {{{INREL}}} \
         .zip(new_col) \
         .map(lambda x: numpy.hstack(x).tolist()) \
-        .cache()
+        {{{CACHE_VAR}}}
 

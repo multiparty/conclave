@@ -7,5 +7,5 @@ inpt_idx += 1
     .map(lambda line: line.split(',')) \
     .map(lambda x: [float(x[i]) if i in num_cols \
         else x[i] for i in range(len(x))]) \
-    .cache()
+    {{{CACHE_VAR}}}
 
