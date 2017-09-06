@@ -876,6 +876,73 @@ OPEN mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, 
     actual = protocol()
     assert expected == actual, actual
 
+def testTaxi():
+
+    @scotch
+    @mpc
+    def protocol():
+        colsIn1 = [
+            defCol("companyID", "INTEGER", [1]),
+            defCol("price", "INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("companyID", "INTEGER", [2]),
+            defCol("price", "INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        colsIn3 = [
+            defCol("companyID", "INTEGER", [3]),
+            defCol("price", "INTEGER", [3])
+        ]
+        in3 = sal.create("in3", colsIn3, set([3]))
+        
+        cab_data = sal.concat([in1, in2, in3], "cab_data")
+
+        selected_input = sal.project(cab_data, "selected_input", ["companyID", "price"])
+        local_rev = sal.aggregate(selected_input, "local_rev", ["companyID"], "price", "+", "local_rev")
+        scaled_down = sal.divide(local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+        first_val_blank = sal.multiply(scaled_down, "first_val_blank", "companyID", ["companyID", 0])
+        local_rev_scaled = sal.multiply(first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
+        total_rev = sal.aggregate(first_val_blank, "total_rev", ["companyID"], "local_rev", "+", "global_rev")
+        local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", ["companyID"], ["companyID"])
+        market_share = sal.divide(local_total_rev, "market_share", "local_rev", ["local_rev", "global_rev"])
+        market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
+                                            ["local_rev", "local_rev", 1])
+        hhi = sal.aggregate(market_share_squared, "hhi", ["companyID"], "local_rev", "+", "hhi")
+        
+        sal.collect(hhi, 1)
+        
+        # return root nodes
+        return set([in1, in2, in3])
+
+    expected = """CREATE RELATION in1([companyID {1}, price {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([companyID {2}, price {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in3([companyID {3}, price {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [companyID, price] FROM (in1([companyID {1}, price {1}]) {1}) AS selected_input_0([companyID {1}, price {1}]) {1}
+AGG [price, +] FROM (selected_input_0([companyID {1}, price {1}]) {1}) GROUP BY [companyID] AS local_rev_0([companyID {1}, local_rev {1}]) {1}
+CLOSE local_rev_0([companyID {1}, local_rev {1}]) {1} INTO local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
+PROJECT [companyID, price] FROM (in2([companyID {2}, price {2}]) {2}) AS selected_input_1([companyID {2}, price {2}]) {2}
+AGG [price, +] FROM (selected_input_1([companyID {2}, price {2}]) {2}) GROUP BY [companyID] AS local_rev_1([companyID {2}, local_rev {2}]) {2}
+CLOSE local_rev_1([companyID {2}, local_rev {2}]) {2} INTO local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
+PROJECT [companyID, price] FROM (in3([companyID {3}, price {3}]) {3}) AS selected_input_2([companyID {3}, price {3}]) {3}
+AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY [companyID] AS local_rev_2([companyID {3}, local_rev {3}]) {3}
+CLOSE local_rev_2([companyID {3}, local_rev {3}]) {3} INTO local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
+CONCATMPC [local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
+AGGMPC [price, +] FROM (cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+DIVIDEMPC [local_rev -> companyID / local_rev] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+MULTIPLYMPC [companyID -> companyID * 0] FROM (scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+AGGMPC [local_rev, +] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
+(local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) JOINMPC (total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) ON [companyID] AND [companyID] AS local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
+DIVIDEMPC [local_rev -> local_rev / global_rev] FROM (local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
+MULTIPLYMPC [local_rev -> local_rev * local_rev * 1] FROM (market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
+AGGMPC [local_rev, +] FROM (market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3}
+OPEN hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID {1,2,3}, hhi {1,2,3}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
 if __name__ == "__main__":
 
     testSingleConcat()
@@ -890,3 +957,4 @@ if __name__ == "__main__":
     testHybridJoinOpt()
     testHybridAndRevealJoinOpt()
     testJoin()
+    testTaxi()
