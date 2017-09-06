@@ -15,6 +15,7 @@ def create(relName, columns, storedWith):
 
 def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName):
 
+    assert isinstance(groupColNames, list)
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
@@ -172,6 +173,9 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
                 resultCols.append(newCol)
 
         return resultCols
+
+    assert isinstance(leftColNames, list)
+    assert isinstance(rightColNames, list)
 
     # Get input relation from input nodes
     leftInRel = leftInputNode.outRel

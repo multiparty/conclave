@@ -67,7 +67,7 @@ def testAggProj():
         # specify the workflow
         projA = sal.project(rel, "projA", ["a", "b"])
         projB = sal.project(projA, "projB", ["a", "b"])
-        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(projB, "agg", ["a"], "b", "+", "total_b")
         projC = sal.project(agg, "projC", ["a", "total_b"])
 
         sal.collect(projC, 1)
@@ -113,7 +113,7 @@ def testAggProjProj():
         # specify the workflow
         projA = sal.project(rel, "projA", ["a", "b"])
         projB = sal.project(projA, "projB", ["a", "b"])
-        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(projB, "agg", ["a"], "b", "+", "total_b")
         projC = sal.project(agg, "projC", ["a", "total_b"])
         projD = sal.project(projC, "projD", ["a", "total_b"])
 
@@ -160,7 +160,7 @@ def testAggProjProjOther():
         # specify the workflow
         projA = sal.project(rel, "projA", ["a", "b"])
         projB = sal.project(projA, "projB", ["a", "b"])
-        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(projB, "agg", ["a"], "b", "+", "total_b")
         projC = sal.project(agg, "projC", ["a", "total_b"])
         projD = sal.project(projC, "projD", ["a", "total_b"])
 
@@ -201,7 +201,7 @@ def testJoin():
         inB = sal.create("inB", colsInB, set([2]))
 
         projB = sal.project(inB, "projB", ["c", "d"])
-        joined = sal.join(inA, projB, "joined", "a", "c")
+        joined = sal.join(inA, projB, "joined", ["a"], ["c"])
         mult = sal.multiply(joined, "mult", "a", ["a", 0])
         sal.collect(mult, 1)
         return set([inA, inB])

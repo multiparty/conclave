@@ -25,7 +25,7 @@ def testPartition():
         mult1 = sal.multiply(in1, "mult1", "c", ["a", "b"])
         mult2 = sal.multiply(in2, "mult2", "d", ["a", "b"])
 
-        join1 = sal.join(mult1, mult2, 'join1', 'a', 'a')
+        join1 = sal.join(mult1, mult2, "join1", ["a"], ["a"])
         proj1 = sal.project(join1, "projA", ["b"])
 
         sal.collect(proj1, 1)

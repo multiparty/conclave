@@ -201,6 +201,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
 
         # for now, only 1 groupCol in mpc ops
+        # TODO: update template with multi-col
         data = {
             "TYPE": "uint32",
             "OUT_REL_NAME": agg_op.outRel.name,

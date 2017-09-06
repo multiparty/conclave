@@ -1,5 +1,10 @@
 from salmon.dag import *
-from math import inf, pow
+try:
+    from math import inf
+except:
+    # No inf until 3.5
+    inf = float("inf")
+from math import pow
 from salmon.codegen import spark, sharemind
 from sys import maxsize
 

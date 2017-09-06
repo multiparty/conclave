@@ -67,7 +67,7 @@ def testSingleAgg():
         rel = sal.concat([in1, in2], "rel")
 
         # specify the workflow
-        agg = sal.aggregate(rel, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(rel, "agg", ["a"], "b", "+", "total_b")
 
         sal.collect(agg, 1)
 
@@ -270,7 +270,7 @@ def testConcatPushdown():
         # combine parties' inputs into one relation
         rel = sal.concat([in1, in2, in3], "rel")
         proj = sal.project(rel, "proj", ["a", "b"])
-        agg = sal.aggregate(proj, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
 
         sal.collect(agg, 1)
 
@@ -321,7 +321,7 @@ def testAgg():
         # specify the workflow
         projA = sal.project(rel, "projA", ["rel_0", "rel_1"])
         projB = sal.project(projA, "projB", ["projA_0", "projA_1"])
-        agg = sal.aggregate(projB, "agg", "projB_0", "projB_1", "+")
+        agg = sal.aggregate(projB, "agg", ["projB_0"], "projB_1", "+")
 
         sal.collect(agg, 1)
 
@@ -367,7 +367,7 @@ def testAggProj():
         # specify the workflow
         projA = sal.project(rel, "projA", ["a", "b"])
         projB = sal.project(projA, "projB", ["a", "b"])
-        agg = sal.aggregate(projB, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(projB, "agg", ["a"], "b", "+", "total_b")
         projC = sal.project(agg, "projC", ["a", "total_b"])
 
         sal.collect(projC, 1)
@@ -753,7 +753,7 @@ def testRevealJoinOpt():
         ]
         inB = sal.create("inB", colsInB, set([2]))
 
-        joined = sal.join(inA, inB, "joined", "a", "c")
+        joined = sal.join(inA, inB, "joined", ["a"], ["c"])
 
         sal.collect(joined, 1)
         # create dag
@@ -787,9 +787,9 @@ def testHybridJoinOpt():
         ]
         inB = sal.create("inB", colsInB, set([2]))
 
-        joined = sal.join(inA, inB, "joined", "a", "c")
+        joined = sal.join(inA, inB, "joined", ["a"], ["c"])
         # need the agg to prevent joined from being converted to a RevealJoin
-        agg = sal.aggregate(joined, "agg", "a", "b", "+", "total_b")
+        agg = sal.aggregate(joined, "agg", ["a"], "b", "+", "total_b")
 
         sal.collect(agg, 1)
         # create dag
@@ -827,7 +827,7 @@ def testHybridAndRevealJoinOpt():
         ]
         inB = sal.create("inB", colsInB, set([2]))
 
-        joined = sal.join(inA, inB, "joined", "a", "c")
+        joined = sal.join(inA, inB, "joined", ["a"], ["c"])
 
         sal.collect(joined, 1)
         # create dag
@@ -859,7 +859,7 @@ def testJoin():
         inB = sal.create("inB", colsInB, set([2]))
         projB = sal.project(inB, "projB", ["c", "d"])
 
-        joined = sal.join(inA, projB, "joined", "a", "c")
+        joined = sal.join(inA, projB, "joined", ["a"], ["c"])
         mult = sal.multiply(joined, "mult", "a", ["a", 0])
         sal.collect(mult, 1)
         return set([inA, inB])
