@@ -9,4 +9,4 @@ a = {{{AGGCOL_IDS}}}
         lambda acc, val: tuple(map(sum, zip(acc, val))), \
         lambda acc1, acc2: tuple(map(sum, zip(acc1, acc2)))) \
     .map(lambda x: numpy.hstack(x).tolist()) \
-    .cache()
+    {{{CACHE_VAR}}}

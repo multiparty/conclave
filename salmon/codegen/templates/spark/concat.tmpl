@@ -1,4 +1,5 @@
 
 in_rels = {{{INRELS}}}
 
-{{{OUTREL}}} = sc.union([eval(rel) for rel in in_rels])
+{{{OUTREL}}} = sc.union([eval(rel) for rel in in_rels]) \
+    {{{CACHE_VAR}}}

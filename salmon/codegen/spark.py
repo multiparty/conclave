@@ -22,6 +22,13 @@ def split_datatypes(cols):
     return nums
 
 
+def cache_var(op_node):
+    if len(op_node.children) > 1:
+        return ".cache()"
+    else:
+        return ''
+
+
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(dag)
@@ -49,7 +56,8 @@ class SparkCodeGen(CodeGen):
             'GROUPCOL_IDS': [groupCol.idx for groupCol in agg_op.groupCols],
             'AGGCOL_IDS': [agg_op.aggCol.idx],
             'INREL': agg_op.getInRel().name,
-            'OUTREL': agg_op.outRel.name
+            'OUTREL': agg_op.outRel.name,
+            'CACHE_VAR': cache_var(agg_op)
         }
 
         return pystache.render(template, data)
@@ -60,7 +68,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'INRELS': [rel.name for rel in concat_op.getInRels()],
-            'OUTREL': concat_op.outRel.name
+            'OUTREL': concat_op.outRel.name,
+            'CACHE_VAR': cache_var(concat_op)
         }
 
         return pystache.render(template, data)
@@ -74,7 +83,8 @@ class SparkCodeGen(CodeGen):
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
-                'NUM_COLS': type_list
+                'NUM_COLS': type_list,
+                'CACHE_VAR': cache_var(create_op)
                }
 
         return pystache.render(template, data)
@@ -95,7 +105,8 @@ class SparkCodeGen(CodeGen):
             'RIGHT_PARENT': rightName,
             'LEFT_COLS': [leftJoinCol.idx for leftJoinCol in leftJoinCols],
             'RIGHT_COLS': [rightJoinCol.idx for rightJoinCol in rightJoinCols],
-            'OUTREL': join_op.outRel.name
+            'OUTREL': join_op.outRel.name,
+            'CACHE_VAR': cache_var(join_op)
         }
 
         return pystache.render(template, data)
@@ -109,7 +120,8 @@ class SparkCodeGen(CodeGen):
         data = {
             'COL_IDS': [c.idx for c in cols],
             'INREL': project_op.getInRel().name,
-            'OUTREL': project_op.outRel.name
+            'OUTREL': project_op.outRel.name,
+            'CACHE_VAR': cache_var(project_op)
         }
         return pystache.render(template, data)
 
@@ -147,7 +159,8 @@ class SparkCodeGen(CodeGen):
             'SCALAR': scalar,
             'TARGET_ID': targetCol.idx,
             'INREL': mult_op.getInRel().name,
-            'OUTREL': mult_op.outRel.name
+            'OUTREL': mult_op.outRel.name,
+            'CACHE_VAR': cache_var(mult_op)
         }
 
         return pystache.render(template, data)
@@ -186,7 +199,8 @@ class SparkCodeGen(CodeGen):
             'SCALAR': scalar,
             'TARGET_ID': div_op.targetCol.idx,
             'INREL': div_op.getInRel().name,
-            'OUTREL': div_op.outRel.name
+            'OUTREL': div_op.outRel.name,
+            'CACHE_VAR': cache_var(div_op)
         }
 
         return pystache.render(template, data)
