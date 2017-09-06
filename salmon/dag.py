@@ -234,6 +234,7 @@ class Open(UnaryOpNode):
     def __init__(self, outRel, parent):
 
         super(Open, self).__init__("open", outRel, parent)
+        self.isMPC = True
 
     def isReversible(self):
 
@@ -245,6 +246,7 @@ class Close(UnaryOpNode):
     def __init__(self, outRel, parent):
 
         super(Close, self).__init__("close", outRel, parent)
+        self.isMPC = True
 
     def isReversible(self):
 
