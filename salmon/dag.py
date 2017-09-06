@@ -52,11 +52,11 @@ class OpNode(Node):
 
     def isUpperBoundary(self):
 
-        return self.isMPC and not any([par.isMPC for par in self.parents])
+        return self.isMPC and not any([par.isMPC and not isinstance(par, Close) for par in self.parents])
 
     def isLowerBoundary(self):
 
-        return self.isMPC and not any([child.isMPC for child in self.children])
+        return self.isMPC and not any([child.isMPC and not isinstance(child, Open) for child in self.children])
 
     # By default operations are not reversible, i.e., given
     # the output of the operation we cannot learn the input
