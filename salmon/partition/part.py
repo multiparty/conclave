@@ -146,10 +146,6 @@ def measureCost(nodes, fmwk):
                     cost += 1
                 elif isinstance(node, Create):
                     cost += 1
-                elif isinstance(node, RevealJoin):
-                    cost += 1
-                elif isinstance(node, HybridJoin):
-                    cost += 1
                 elif isinstance(node, Join):
                     cost += 1
                 elif isinstance(node, Project):
