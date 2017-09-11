@@ -67,7 +67,8 @@ def getBestPartition(nodes):
     cost[0][0] = True
     parent = [[0 for i in range(max_ops)] for j in range(max_cost)]
     parent_cost = [[0 for i in range(max_ops)] for j in range(max_cost)]
-    scheduled_fmwk = [["spark" for i in range(max_ops)] for j in range(max_cost)]
+    scheduled_fmwk = [["spark" for i in range(
+        max_ops)] for j in range(max_cost)]
 
     min_cost = [inf for i in range(max_ops)]
     job_cost = [inf for i in range(max_ops)]
@@ -109,7 +110,8 @@ def getBestPartition(nodes):
                         if next_cost < min_cost[next_jobs_exec]:
                             min_cost[next_jobs_exec] = next_cost
                             min_fmwk[next_jobs_exec] = min_fmwk[jobs_merged]
-                        scheduled_fmwk[next_cost][next_jobs_exec] = min_fmwk[jobs_merged]
+                        scheduled_fmwk[next_cost][
+                            next_jobs_exec] = min_fmwk[jobs_merged]
     result = []
 
     cur_jobs_exec = all_ops_flag
@@ -123,7 +125,8 @@ def getBestPartition(nodes):
         for num_op in range(num_ops):
             if int(pow(2, num_op)) & jobs_merged:
                 subdag.append(nodes[num_op])
-        result.append((SubDag(subdag), scheduled_fmwk[cur_cost][cur_jobs_exec]))
+        result.append((SubDag(subdag), scheduled_fmwk[
+                      cur_cost][cur_jobs_exec]))
         tmp_jobs_exec = cur_jobs_exec
         cur_jobs_exec = parent[cur_cost][cur_jobs_exec]
         cur_cost = parent_cost[cur_cost][tmp_jobs_exec]
@@ -192,10 +195,9 @@ def mapToBackends(jobs):
             # TODO: make spark output dir configurable
             spark.SparkCodeGen(job[0]).generate(job[0].name, "/tmp")
         elif job[1] == 'sharemind':
-            for i in range(1,4):
+            for i in range(1, 4):
                 sharemind.SharemindCodeGen(job[0], i).generate(
                     "{0}-{1}".format(job[0].name, i),
                     "/home/sharemind/Sharemind-SDK/sharemind/client")
         else:
             print("unknown backend for job {0}".format(job[0].name))
-
