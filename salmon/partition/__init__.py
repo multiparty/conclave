@@ -1,4 +1,7 @@
 from . import part
+from salmon.dag import OpDag
+from salmon.codegen import scotch
+from copy import deepcopy
 
 
 def partDag(dag):
@@ -8,7 +11,9 @@ def partDag(dag):
 
     return best
 
-def heuristic_partition(dag):
+
+def heupart(dag):
+    # hack hack hack
 
     def visit(node, collected, new_roots, mode):
 
@@ -17,20 +22,43 @@ def heuristic_partition(dag):
             for child in node.children:
                 visit(child, collected, new_roots, mode)
         else:
+            if node not in new_roots:
+                new_roots.append(node)
+
+    def split_dag(current_dag, mode):
+
+        collected = []
+        new_roots = []
+
+        # this will traverse into the current dag
+        # until all boundary nodes are hit and orphan them
+        for root in current_dag.roots:
+            visit(root, collected, new_roots, mode)
+
+        for root in new_roots:
             # boundary nodes are guaranteed to be unary
             # (open and close) so we don't need to worry
             # about multiple parents
-            node.makeOrphan()
-            new_roots.append(node)
+            parent = root.parent
+            if parent:
+                parent.children.remove(root)
+                root.makeOrphan()
+            if root in current_dag.roots:
+                current_dag.roots.remove(root)
+        # return subdag below boundary nodes
+        return OpDag(new_roots)
 
-    collected = []
-    new_roots = []
+    nextdag = dag
+    mpcmode = False
+    mapping = []
 
-    for root in dag.roots:
-        visit(root, collected, new_roots, False)
+    while nextdag.roots:
+        fmwk = "sharemind" if mpcmode else "spark"
+        # store subdag
+        mapping.append((fmwk, nextdag))
+        # partition of next subdag
+        nextdag = split_dag(nextdag, mpcmode)
+        # flip mode
+        mpcmode = not mpcmode
 
-    print(collected)
-    print(new_roots)
-
-    return [dag]
-
+    return mapping

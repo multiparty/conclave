@@ -102,8 +102,9 @@ class OpNode(Node):
 
     def __str__(self):
 
-        return "{}->{}".format(
+        return "{}{}->{}".format(
             super(OpNode, self).__str__(),
+            "mpc" if self.isMPC else "",
             self.outRel.name
         )
 

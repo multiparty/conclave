@@ -82,17 +82,36 @@ def test_partition_taxi():
                                             ["local_rev", "local_rev", 1])
         hhi = sal.aggregate(market_share_squared, "hhi", [
                             "companyID"], "local_rev", "+", "hhi")
-
-        sal.collect(hhi, 1)
+        # dummy projection to force non-mpc subdag
+        hhi_only = sal.project(
+            hhi, "hhi_only", ["companyID", "hhi"])
+        
+        sal.collect(hhi_only, 1)
 
         # return root nodes
         return set([in1, in2, in3])
 
     dag = protocol()
-    subdags = part.heuristic_partition(dag)
+    mapping = part.heupart(dag)
 
-    for subdag in subdags:
-        print(subdag)
+    expected = '''sparkcreate->in1,
+project->selected_input_0,
+aggregation->local_rev_0###sharemindclosempc->local_rev_0_close,
+closempc->local_rev_1_close,
+closempc->local_rev_2_close,
+concatmpc->cab_data,
+aggregationmpc->local_rev_obl,
+dividempc->scaled_down,
+multiplympc->first_val_blank,
+multiplympc->local_rev_scaled,
+aggregationmpc->total_rev,
+joinmpc->local_total_rev,
+dividempc->market_share,
+multiplympc->market_share_squared,
+aggregationmpc->hhi,
+openmpc->hhi_open###sparkproject->hhi_only'''
+    actual = "###".join([fmwk + str(subdag) for (fmwk, subdag) in mapping])
+    assert expected == actual, actual
 
 if __name__ == "__main__":
 
