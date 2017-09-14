@@ -1,5 +1,5 @@
 from . import part
-from salmon.dag import OpDag
+from salmon.dag import OpDag, Create
 from salmon.codegen import scotch
 from copy import deepcopy
 
@@ -30,23 +30,29 @@ def heupart(dag):
         collected = []
         new_roots = []
 
-        # this will traverse into the current dag
-        # until all boundary nodes are hit and orphan them
+        # this will traverse into the current dag until all boundary nodes are
+        # hit
         for root in current_dag.roots:
             visit(root, collected, new_roots, mode)
 
         for root in new_roots:
-            # boundary nodes are guaranteed to be unary
-            # (open and close) so we don't need to worry
-            # about multiple parents
+            # boundary nodes are guaranteed to be unary (open and close) so we
+            # don't need to worry about multiple parents
             parent = root.parent
             if parent:
                 parent.children.remove(root)
-                root.makeOrphan()
+                # replace parent with create node of output relation
+                create_op = Create(parent.outRel)
+                # hack mpc flag
+                create_op.isMPC = not mode 
+                root.parent = create_op
+                create_op.children.add(root)
             if root in current_dag.roots:
                 current_dag.roots.remove(root)
+        # new roots are parent create nodes we inserted
+        parent_roots = [root.parent for root in new_roots]
         # return subdag below boundary nodes
-        return OpDag(new_roots)
+        return OpDag(set(parent_roots))
 
     nextdag = dag
     mpcmode = False

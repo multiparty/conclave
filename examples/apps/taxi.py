@@ -1,48 +1,10 @@
 import salmon.lang as sal
-from salmon.comp import dagonly, mpc
+from salmon import codegen
 from salmon.utils import *
-import salmon.partition as part
 
 
-def testPartition():
+def taxi():
 
-    @dagonly
-    def protocol():
-
-        colsIn1 = [
-            defCol("a", "INTEGER", [1]),
-            defCol("b", "INTEGER", [1])
-        ]
-
-        colsIn2 = [
-            defCol("a", "INTEGER", [2]),
-            defCol("b", "INTEGER", [2])
-        ]
-
-        in1 = sal.create("in1", colsIn1, set([1]))
-        in2 = sal.create("in2", colsIn2, set([2]))
-
-        mult1 = sal.multiply(in1, "mult1", "c", ["a", "b"])
-        mult2 = sal.multiply(in2, "mult2", "d", ["a", "b"])
-
-        join1 = sal.join(mult1, mult2, "join1", ["a"], ["a"])
-        proj1 = sal.project(join1, "projA", ["b"])
-
-        sal.collect(proj1, 1)
-
-        return set([in1, in2])
-
-    dag = protocol()
-    part_dag = part.partDag(dag)
-
-    for job in part_dag:
-        print(job[0].name)
-        print(job[1])
-
-
-def test_partition_taxi():
-
-    @mpc(1)
     def protocol():
         colsIn1 = [
             defCol("companyID", "INTEGER", [1]),
@@ -85,39 +47,26 @@ def test_partition_taxi():
         # dummy projection to force non-mpc subdag
         hhi_only = sal.project(
             hhi, "hhi_only", ["companyID", "hhi"])
-        
+
         sal.collect(hhi_only, 1)
 
         # return root nodes
         return set([in1, in2, in3])
 
-    dag = protocol()
-    mapping = part.heupart(dag)
-
-    expected = '''sparkcreate->in1,
-project->selected_input_0,
-aggregation->local_rev_0###sharemindcreatempc->local_rev_0,
-closempc->local_rev_0_close,
-creatempc->local_rev_1,
-closempc->local_rev_1_close,
-creatempc->local_rev_2,
-closempc->local_rev_2_close,
-concatmpc->cab_data,
-aggregationmpc->local_rev_obl,
-dividempc->scaled_down,
-multiplympc->first_val_blank,
-multiplympc->local_rev_scaled,
-aggregationmpc->total_rev,
-joinmpc->local_total_rev,
-dividempc->market_share,
-multiplympc->market_share_squared,
-aggregationmpc->hhi,
-openmpc->hhi_open###sparkcreate->hhi_open,
-project->hhi_only'''
-    actual = "###".join([fmwk + str(subdag) for (fmwk, subdag) in mapping])
-    assert expected == actual, actual
+    config = {
+        "general": {
+            "pid": 1
+        },
+        "sharemind": {
+            "home": "/tmp"
+        },
+        "spark": {
+            "home": "/tmp"
+        }
+    }
+    jobqueue = codegen(protocol, config)
+    print(jobqueue)
 
 if __name__ == "__main__":
 
-    testPartition()
-    test_partition_taxi()
+    taxi()
