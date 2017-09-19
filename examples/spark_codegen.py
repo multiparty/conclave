@@ -7,9 +7,9 @@ from salmon.utils import *
 def simple_div():
 
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -25,9 +25,9 @@ def simple_div():
 def comp_div():
 
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -42,11 +42,10 @@ def comp_div():
 
 @dagonly
 def simple_mult():
-
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -61,9 +60,9 @@ def simple_mult():
 @dagonly
 def comp_mult():
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -79,9 +78,9 @@ def comp_mult():
 @dagonly
 def create_col_mult():
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -95,9 +94,9 @@ def create_col_mult():
 @dagonly
 def create_col_div():
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create("in1", colsInA, set([1]))
 
@@ -111,9 +110,9 @@ def create_col_div():
 @dagonly
 def multicol_agg():
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
     in1 = sal.create('in1', colsInA, set([1]))
 
@@ -127,19 +126,19 @@ def multicol_agg():
 @dagonly
 def multicol_join():
     colsInA = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("c", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
     ]
 
     colsInB = [
-        defCol("a", "INTEGER", [1, 2, 3]),
-        defCol("b", "INTEGER", [1, 2, 3]),
-        defCol("d", "INTEGER", [1, 2, 3])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("d", "INTEGER", [1])
     ]
 
-    in1 = sal.create('in1', colsInA, set([1, 2, 3]))
-    in2 = sal.create('in2', colsInB, set([1, 2, 3]))
+    in1 = sal.create('in1', colsInA, set([1]))
+    in2 = sal.create('in2', colsInB, set([1]))
 
     join1 = sal.join(in1, in2, 'join1', ['a', 'b'], ['a', 'b'])
 
@@ -149,39 +148,36 @@ def multicol_join():
 
 if __name__ == "__main__":
 
-    '''
     simple_mult_dag = simple_mult()
     simple_mult = spark.SparkCodeGen(simple_mult_dag)
-    simple_mult.generate("simple_mult", "/tmp")
+    job = simple_mult.generate("simple_mult", "/tmp")
 
     comp_mult_dag = comp_mult()
     comp_mult = spark.SparkCodeGen(comp_mult_dag)
-    comp_mult.generate("comp_mult", "/tmp")
+    job = comp_mult.generate("comp_mult", "/tmp")
 
     simple_div_dag = simple_div()
     simple_div = spark.SparkCodeGen(simple_div_dag)
-    simple_div.generate("simple_div", "/tmp")
+    job = simple_div.generate("simple_div", "/tmp")
 
     comp_div_dag = comp_div()
     comp_div = spark.SparkCodeGen(comp_div_dag)
-    comp_div.generate("comp_div", "/tmp")
+    job = comp_div.generate("comp_div", "/tmp")
 
     create_mult_dag = create_col_mult()
     create_mult = spark.SparkCodeGen(create_mult_dag)
-    create_mult.generate("create_mult", "/tmp")
+    job = create_mult.generate("create_mult", "/tmp")
 
     create_div_dag = create_col_div()
     create_div = spark.SparkCodeGen(create_div_dag)
-    create_div.generate("create_div", "/tmp")
+    job = create_div.generate("create_div", "/tmp")
 
     multicol_agg_dag = multicol_agg()
     multicol_agg = spark.SparkCodeGen(multicol_agg_dag)
-    multicol_agg.generate('multicol_agg', '/tmp')
-    '''
+    job = multicol_agg.generate('multicol_agg', '/tmp')
 
     multicol_join_dag = multicol_join()
     multicol_join = spark.SparkCodeGen(multicol_join_dag)
-    multicol_join.generate('multicol_join', '/tmp')
-
+    job = multicol_join.generate('multicol_join', '/tmp')
 
     print("Spark code generated in /tmp/")
