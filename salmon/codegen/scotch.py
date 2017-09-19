@@ -9,7 +9,7 @@ class ScotchCodeGen(CodeGen):
 
         super(ScotchCodeGen, self).__init__(dag)
 
-    def _generateJob(self, job_name, op_code):
+    def _generateJob(self, job_name, output_directory, op_code):
 
         return op_code
 
