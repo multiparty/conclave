@@ -1,11 +1,8 @@
-num_cols = set({{{NUM_COLS}}})
 
 in_f = sc.textFile(sys.argv[inpt_idx])
 inpt_idx += 1
 
 {{{RELATION_NAME}}} = in_f \
-    .map(lambda line: line.split(',')) \
-    .map(lambda x: [float(x[i]) if i in num_cols \
-        else x[i] for i in range(len(x))]) \
+    .map(lambda line: line.split('\t')) \
     {{{CACHE_VAR}}}
 

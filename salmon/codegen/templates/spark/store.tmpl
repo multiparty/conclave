@@ -1,1 +1,4 @@
-{{{RELATION_NAME}}}.saveAsTextFile("{{{OUTPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
+
+{{{RELATION_NAME}}} \
+    .map(lambda x: ','.join(str(d) for d in x)) \
+    .saveAsTextFile("{{{OUTPUT_PATH}}}/{{{RELATION_NAME}}}.csv")
