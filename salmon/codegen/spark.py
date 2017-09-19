@@ -1,3 +1,4 @@
+from salmon.job import SparkJob
 from salmon.codegen import CodeGen
 import os, pystache
 
@@ -5,21 +6,6 @@ import os, pystache
 def op_to_sum(op):
     if op == "+":
         return "sum"
-
-
-def split_datatypes(cols):
-    nums = []
-    for i in range(len(cols)):
-        if cols[i].typeStr == "INTEGER":
-            nums.append(i)
-        elif cols[i].typeStr == "STRING":
-            # assume elements are stored as strings by default
-            pass
-        elif cols[i].typeStr == "FLOAT":
-            nums.append(i)
-        else:
-            print("Unknown datatype: {0}".format(cols[i].typeStr))
-    return nums
 
 
 def cache_var(op_node):
@@ -34,14 +20,18 @@ class SparkCodeGen(CodeGen):
         super(SparkCodeGen, self).__init__(dag)
         self.template_directory = template_directory
 
-    def _generateJob(self, job_name, op_code):
+    def _generateJob(self, job_name, output_directory, op_code):
 
         template = open("{}/job.tmpl".format(self.template_directory), 'r').read()
         data = { 'JOB_NAME': job_name,
                  'SPARK_MASTER': 'local',  # XXX(malte): make configurable
                  'OP_CODE': op_code }
 
-        return pystache.render(template, data)
+        op_code = pystache.render(template, data)
+
+        job = SparkJob(job_name, output_directory)
+
+        return job, op_code
 
     # TODO: (ben) only agg_sum.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
@@ -78,12 +68,9 @@ class SparkCodeGen(CodeGen):
 
         template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
 
-        type_list = split_datatypes(create_op.outRel.columns)
-
         data = {
                 'RELATION_NAME': create_op.outRel.name,
                 'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
-                'NUM_COLS': type_list,
                 'CACHE_VAR': cache_var(create_op)
                }
 
