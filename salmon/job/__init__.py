@@ -7,3 +7,11 @@ class SharemindJob():
         self.root_dir = root_dir
         self.controller = controller
         self.input_parties = input_parties
+
+
+class SparkJob():
+
+    def __init__(self, name, root_dir):
+
+        self.name = name
+        self.root_dir = root_dir
