@@ -1,11 +1,13 @@
 import salmon.job
-from . import sharemind
+from . import sharemind, spark
+
 
 def dispatch_all(peer, jobs):
 
     # create a lookup from job class to instantiated dispatcher
     dispatchers = {
-        salmon.job.SharemindJob: sharemind.SharemindDispatcher(peer)                
+        salmon.job.SharemindJob: sharemind.SharemindDispatcher(peer),
+        salmon.job.SparkJob: spark.SparkDispatcher(peer)
     }
 
     # dispatch each job
