@@ -103,7 +103,7 @@ def join():
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
     
-    res = sal.join(cl1, cl2, "res", "a", "c")
+    res = sal.join(cl1, cl2, "res", ["a"], ["c"])
 
     opened = sal._open(res, "opened", 1)
     return set([in1, in2, in3])
