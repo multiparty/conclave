@@ -3,17 +3,17 @@ from salmon.codegen import CodeGen
 import os, pystache
 
 
-def op_to_sum(op):
-    if op == "+":
-        return "sum"
-
-
 def cache_var(op_node):
     if len(op_node.children) > 1:
         return ".cache()"
     else:
         return ''
 
+# TODO: if we're splitting the whole dag into subdags and removing
+# parent/child relations between boundary nodes, how do we sort out
+# the input/output file relationships for loading the correct file?
+# The subdag class could be useful here, since it would preserve the
+# parent relationship between nodes (but eliminate the child rel)
 
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
@@ -22,25 +22,32 @@ class SparkCodeGen(CodeGen):
 
     def _generateJob(self, job_name, output_directory, op_code):
 
-        template = open("{}/job.tmpl".format(self.template_directory), 'r').read()
-        data = { 'JOB_NAME': job_name,
-                 'SPARK_MASTER': 'local',  # XXX(malte): make configurable
-                 'OP_CODE': op_code }
+        template = open("{}/job.tmpl"
+                        .format(self.template_directory), 'r').read()
+        data = {
+            'JOB_NAME': job_name,
+            'SPARK_MASTER': 'local',  # XXX(malte): make configurable
+            'OP_CODE': op_code
+        }
 
         op_code = pystache.render(template, data)
 
+        # TODO: will probably need to pass number/names of input and output files
         job = SparkJob(job_name, output_directory)
 
         return job, op_code
 
-    # TODO: (ben) only agg_sum.tmpl is updated for multiple group cols right now
+    # TODO: (ben) only agg_+.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
 
-        aggregator = agg_op.aggregator
+        store_code = ''
+        if agg_op.isLeaf():
+            store_code += self._generateStore(agg_op)
 
-        agg_type = 'agg_' + op_to_sum(aggregator)
+        agg_type = 'agg_' + agg_op.aggregator
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, agg_type), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, agg_type), 'r').read()
 
         data = {
             'GROUPCOL_IDS': [groupCol.idx for groupCol in agg_op.groupCols],
@@ -50,42 +57,51 @@ class SparkCodeGen(CodeGen):
             'CACHE_VAR': cache_var(agg_op)
         }
 
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
     def _generateConcat(self, concat_op):
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
+        store_code = ''
+        if concat_op.isLeaf():
+            store_code += self._generateStore(concat_op)
+
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'INRELS': [rel.name for rel in concat_op.getInRels()],
+            'INRELS': [r.name for r in concat_op.getInRels()],
             'OUTREL': concat_op.outRel.name,
             'CACHE_VAR': cache_var(concat_op)
         }
 
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
     def _generateCreate(self, create_op):
 
-        template = open("{}/create.tmpl".format(self.template_directory), 'r').read()
+        template = open("{}/create.tmpl"
+                        .format(self.template_directory), 'r').read()
 
         data = {
-                'RELATION_NAME': create_op.outRel.name,
-                'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
-                'CACHE_VAR': cache_var(create_op)
-               }
+            'RELATION_NAME': create_op.outRel.name,
+            'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
+            'CACHE_VAR': cache_var(create_op)
+        }
 
         return pystache.render(template, data)
 
     def _generateJoin(self, join_op):
 
+        store_code = ''
+        if join_op.isLeaf():
+            store_code += self._generateStore(join_op)
+
         leftName = join_op.getLeftInRel().name
         rightName = join_op.getRightInRel().name
 
-        # spark code supports multiple join cols, only need to modify
-        # data variables in the future for multiple join cols
         leftJoinCols, rightJoinCols = join_op.leftJoinCols, join_op.rightJoinCols
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'join'), 'r').read()
 
         data = {
             'LEFT_PARENT': leftName,
@@ -96,13 +112,18 @@ class SparkCodeGen(CodeGen):
             'CACHE_VAR': cache_var(join_op)
         }
 
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
     def _generateProject(self, project_op):
 
+        store_code = ''
+        if project_op.isLeaf():
+            store_code += self._generateStore(project_op)
+
         cols = project_op.selectedCols
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'project'), 'r').read()
 
         data = {
             'COL_IDS': [c.idx for c in cols],
@@ -110,9 +131,13 @@ class SparkCodeGen(CodeGen):
             'OUTREL': project_op.outRel.name,
             'CACHE_VAR': cache_var(project_op)
         }
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
     def _generateMultiply(self, mult_op):
+
+        store_code = ''
+        if mult_op.isLeaf():
+            store_code += self._generateStore(mult_op)
 
         op_cols = mult_op.operands
         targetCol = mult_op.targetCol
@@ -127,7 +152,6 @@ class SparkCodeGen(CodeGen):
                     if op_col.idx != targetCol.idx:
                         operands.append(op_col.idx)
                 else:
-                    # there will only be one scalar
                     scalar = op_col
         else:
             new_col = True
@@ -135,10 +159,10 @@ class SparkCodeGen(CodeGen):
                 if hasattr(op_col, 'idx'):
                     operands.append(op_col.idx)
                 else:
-                    # there will only be one scalar
                     scalar = op_col
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'multiply'), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'multiply'), 'r').read()
 
         data = {
             'NEWCOL_FLAG': new_col,
@@ -150,9 +174,13 @@ class SparkCodeGen(CodeGen):
             'CACHE_VAR': cache_var(mult_op)
         }
 
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
     def _generateDivide(self, div_op):
+
+        store_code = ''
+        if div_op.isLeaf():
+            store_code += self._generateStore(div_op)
 
         op_cols = div_op.operands
         targetCol = div_op.targetCol
@@ -167,7 +195,6 @@ class SparkCodeGen(CodeGen):
                     if op_col.idx != targetCol.idx:
                         operands.append(op_col.idx)
                 else:
-                    # there will only be one scalar
                     scalar = op_col
         else:
             new_col = True
@@ -175,10 +202,10 @@ class SparkCodeGen(CodeGen):
                 if hasattr(op_col, 'idx'):
                     operands.append(op_col.idx)
                 else:
-                    # there will only be one scalar
                     scalar = op_col
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'divide'), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'divide'), 'r').read()
 
         data = {
             'NEWCOL_FLAG': new_col,
@@ -190,21 +217,22 @@ class SparkCodeGen(CodeGen):
             'CACHE_VAR': cache_var(div_op)
         }
 
-        return pystache.render(template, data)
+        return pystache.render(template, data) + store_code
 
-    def _generateStore(self, store_op):
+    def _generateStore(self, op):
 
-        template = open("{}/store.tmpl".format(self.template_directory), 'r').read()
+        template = open("{}/store.tmpl"
+                        .format(self.template_directory), 'r').read()
         data = {
-                'RELATION_NAME': store_op.outRel.name,
-                'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
-               }
+            'RELATION_NAME': op.outRel.name,
+            'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+        }
 
         return pystache.render(template, data)
 
     def _writeCode(self, code, output_directory, job_name):
 
-        os.makedirs(os.path.dirname(output_directory), exist_ok=True)
         # write code to a file
-        outfile = open("{}/{}.py".format(output_directory, job_name), 'w')
+        outfile = open("{}/{}.py"
+                       .format(output_directory, job_name, job_name), 'w')
         outfile.write(code)
