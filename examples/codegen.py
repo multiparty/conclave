@@ -30,4 +30,4 @@ if __name__ == "__main__":
     cg = spark.SparkCodeGen(dag)
     cg.generate("aggtest", "/tmp")
 
-    print("Spark code generated in /tmp/aggtest.py")
+    print("Spark code generated in /tmp/aggtest/")
