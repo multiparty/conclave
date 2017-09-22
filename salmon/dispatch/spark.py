@@ -10,8 +10,6 @@ class SparkDispatcher():
 
     def dispatch(self, job):
 
-        # can handle spark config options in codegen
-        # TODO: configurable inpt/outpt files?
         cmd = "{0}/{1}.sh"\
             .format(job.root_dir, job.name)
 
