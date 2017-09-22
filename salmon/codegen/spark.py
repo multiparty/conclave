@@ -10,7 +10,6 @@ def cache_var(op_node):
     else:
         return ''
 
-# TODO: output file to directory, include bash script with correct command line args
 
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
