@@ -10,17 +10,15 @@ class SparkDispatcher():
 
     def dispatch(self, job):
 
-        # can handle spark config options in codegen
-        # TODO: configurable inpt/outpt files?
-        cmd = "{0}/{1}.py {1}.csv {1}_out.csv"\
+        cmd = "{0}/{1}.sh"\
             .format(job.root_dir, job.name)
 
-        print("Running script {}.py located at: {}"
+        print("Running script {}.sh located at: {}"
               .format(job.name, job.root_dir)
               )
 
         try:
-            call(["spark-submit", cmd])
+            call(["bash", cmd])
         except Exception as e:
             print(e)
 

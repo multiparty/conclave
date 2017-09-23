@@ -1,5 +1,6 @@
 from salmon.job import SparkJob
 from salmon.codegen import CodeGen
+from salmon.dag import *
 import os, pystache
 
 
@@ -9,11 +10,6 @@ def cache_var(op_node):
     else:
         return ''
 
-# TODO: if we're splitting the whole dag into subdags and removing
-# parent/child relations between boundary nodes, how do we sort out
-# the input/output file relationships for loading the correct file?
-# The subdag class could be useful here, since it would preserve the
-# parent relationship between nodes (but eliminate the child rel)
 
 class SparkCodeGen(CodeGen):
     def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
@@ -32,7 +28,6 @@ class SparkCodeGen(CodeGen):
 
         op_code = pystache.render(template, data)
 
-        # TODO: will probably need to pass number/names of input and output files
         job = SparkJob(job_name, output_directory)
 
         return job, op_code
@@ -230,9 +225,41 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _writeBash(self, output_directory, job_name):
+        roots, leaves = [], []
+
+        nodes = self.dag.topSort()
+        for node in nodes:
+            if node.isRoot():
+                roots.append("{}/{}/{}.csv"
+                             .format(output_directory, job_name, node.outRel.name))
+            elif node.isLeaf():
+                leaves.append("{}/{}/{}.csv"
+                              .format(output_directory, job_name, node.outRel.name))
+
+        path = "{}/{}".format(output_directory, job_name)
+
+        template = open("{}/bash.tmpl"
+                        .format(self.template_directory), 'r').read()
+
+        data = {
+            'INPUTS': ' '.join(roots),
+            'OUTPUTS': ' '.join(leaves),
+            'PATH': path
+        }
+
+        return pystache.render(template, data)
+
     def _writeCode(self, code, output_directory, job_name):
 
+        fullpath = "{}/{}/".format(output_directory, job_name)
+        os.makedirs(os.path.dirname(fullpath), exist_ok=True)
+
         # write code to a file
-        outfile = open("{}/{}.py"
-                       .format(output_directory, job_name, job_name), 'w')
-        outfile.write(code)
+        pyfile = open("{}/{}/workflow.py"
+                      .format(output_directory, job_name, job_name), 'w')
+        pyfile.write(code)
+
+        bash_code = self._writeBash(output_directory, job_name)
+        bash = open("{}/{}/bash.sh".format(output_directory, job_name), 'w')
+        bash.write(bash_code)
