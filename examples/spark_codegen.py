@@ -146,6 +146,24 @@ def multicol_join():
 
     return set([in1])
 
+
+@dagonly
+def index():
+
+    colsInA = [
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
+        defCol("c", "INTEGER", [1])
+    ]
+
+    in1 = sal.create('in1', colsInA, set([1]))
+
+    index = sal.index(in1, "index")
+
+    opened = sal.collect(index, 1)
+
+    return set([in1])
+
 if __name__ == "__main__":
 
     simple_mult_dag = simple_mult()
@@ -179,5 +197,9 @@ if __name__ == "__main__":
     multicol_join_dag = multicol_join()
     multicol_join = spark.SparkCodeGen(multicol_join_dag)
     job = multicol_join.generate('multicol_join', '/tmp')
+
+    index_dag = index()
+    index = spark.SparkCodeGen(index_dag)
+    job = index.generate('index', '/tmp')
 
     print("Spark code generated in /tmp/")
