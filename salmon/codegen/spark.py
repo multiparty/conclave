@@ -1,6 +1,5 @@
 from salmon.job import SparkJob
 from salmon.codegen import CodeGen
-from salmon.dag import *
 import os, pystache
 
 
@@ -32,12 +31,40 @@ class SparkCodeGen(CodeGen):
 
         return job, op_code
 
+    def _generateStore(self, op):
+
+        store_code = ''
+        if op.isLeaf():
+            template = open("{}/store.tmpl"
+                            .format(self.template_directory), 'r').read()
+            data = {
+                'RELATION_NAME': op.outRel.name,
+                'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+            }
+            store_code += pystache.render(template, data)
+
+        return store_code
+
+    def _generateIndex(self, index_op):
+
+        store_code = self._generateStore(index_op)
+
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'index'), 'r').read()
+
+        data = {
+            'INREL': index_op.getInRel().name,
+            'OUTREL': index_op.outRel.name,
+            'CACHE_VAR': cache_var(index_op)
+        }
+
+        return pystache.render(template, data) + store_code
+
+
     # TODO: (ben) only agg_+.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
 
-        store_code = ''
-        if agg_op.isLeaf():
-            store_code += self._generateStore(agg_op)
+        store_code = self._generateStore(agg_op)
 
         agg_type = 'agg_' + agg_op.aggregator
 
@@ -71,6 +98,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
+    # TODO: create.tmpl assumes the rows are tab-delimited right now
     def _generateCreate(self, create_op):
 
         template = open("{}/create.tmpl"
@@ -257,9 +285,10 @@ class SparkCodeGen(CodeGen):
 
         # write code to a file
         pyfile = open("{}/{}/workflow.py"
-                      .format(output_directory, job_name, job_name), 'w')
+                      .format(output_directory, job_name), 'w')
         pyfile.write(code)
 
         bash_code = self._writeBash(output_directory, job_name)
-        bash = open("{}/{}/bash.sh".format(output_directory, job_name), 'w')
+        bash = open("{}/{}/bash.sh"
+                    .format(output_directory, job_name), 'w')
         bash.write(bash_code)

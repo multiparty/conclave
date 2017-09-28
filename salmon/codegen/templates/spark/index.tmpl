@@ -1,0 +1,5 @@
+
+{{{OUTREL}}} = {{{INREL}}} \
+    .zipWithIndex() \
+    .map(lambda x: numpy.hstack(x).tolist()) \
+    {{{CACHE_VAR}}}

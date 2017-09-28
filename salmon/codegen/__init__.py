@@ -45,6 +45,8 @@ class CodeGen:
                 op_code += self._generateMultiply(node)
             elif isinstance(node, Divide):
                 op_code += self._generateDivide(node)
+            elif isinstance(node, Index):
+                op_code += self._generateIndex(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

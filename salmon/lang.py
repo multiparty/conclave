@@ -284,6 +284,27 @@ def concat(inputOpNodes, outputName, columnNames=None):
     return op
 
 
+def index(inputOpNode, outputName, idxColName="index"):
+    inRel = inputOpNode.outRel
+
+    # Copy over columns from existing relation
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    indexCol = rel.Column(
+        outputName, idxColName, len(inRel.columns), "INTEGER", set())
+    outRelCols.append(indexCol)
+
+    # Create output relation
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    op = dag.Index(outRel, inputOpNode)
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
+
+
 def collect(inputOpNode, targetParty):
 
     # Get input relation from input node
