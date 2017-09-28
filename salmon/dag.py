@@ -253,6 +253,7 @@ class Close(UnaryOpNode):
 
         return True
 
+
 class Send(UnaryOpNode):
 
     def __init__(self, outRel, parent):
@@ -262,6 +263,7 @@ class Send(UnaryOpNode):
     def isReversible(self):
 
         return True
+
 
 class Concat(NaryOpNode):
 
@@ -301,7 +303,8 @@ class Aggregate(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         # TODO: do we need to copy here?
-        self.groupCols = [self.getInRel().columns[groupCol.idx] for groupCol in self.groupCols]
+        self.groupCols = [self.getInRel().columns[groupCol.idx]
+                          for groupCol in self.groupCols]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
 
@@ -327,6 +330,33 @@ class Project(UnaryOpNode):
         self.selectedCols = [tempCols[col.idx] for col in tempCols]
 
 
+class Index(UnaryOpNode):
+    """Add a column with row indeces to relation"""
+
+    def __init__(self, outRel, parent):
+
+        super(Index, self).__init__("index", outRel, parent)
+        # Indexing needs parties to communicate size
+        self.isLocal = False
+
+    def isReversible(self):
+
+        return True
+
+
+class Shuffle(UnaryOpNode):
+    """Randomly permute rows of relation"""
+
+    def __init__(self, outRel, parent):
+
+        super(Shuffle, self).__init__("shuffle", outRel, parent)
+        self.isLocal = False
+
+    def isReversible(self):
+        # Order is broken, but all the values are still there
+        return True
+
+
 class Multiply(UnaryOpNode):
 
     def __init__(self, outRel, parent, targetCol, operands):
@@ -347,6 +377,7 @@ class Multiply(UnaryOpNode):
         tempCols = self.getInRel().columns
         self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in tempCols]
+
 
 class Divide(UnaryOpNode):
 
@@ -379,8 +410,30 @@ class Join(BinaryOpNode):
 
     def updateOpSpecificCols(self):
 
-        self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx] for leftJoinCol in self.leftJoinCols]
-        self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx] for rightJoinCol in self.rightJoinCols]
+        self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx]
+                             for leftJoinCol in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx]
+                              for rightJoinCol in self.rightJoinCols]
+
+
+class IndexJoin(Join):
+    """TODO"""
+
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCols, rightJoinCols, indexRel):
+
+        super(IndexJoin, self).__init__(outRel, leftParent,
+                                        rightParent, leftJoinCols, rightJoinCols)
+        self.name = "indexJoin"
+        self.revealedInRel = revealedInRel
+        self.recepient = recepient
+        self.isMPC = True
+
+    @classmethod
+    def fromJoin(cls, joinOp, indexRel):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, indexRel)
+        return obj
 
 
 class RevealJoin(Join):
@@ -409,10 +462,13 @@ class RevealJoin(Join):
                   joinOp.leftJoinCols, joinOp.rightJoinCols, revealedInRel, recepient)
         return obj
 
+    # TODO: remove?
     def updateOpSpecificCols(self):
 
-        self.leftJoinCols = [self.getLeftInRel().columns[c.idx] for c in self.leftJoinCols]
-        self.rightJoinCols = [self.getRightInRel().columns[c.idx] for c in self.rightJoinCols]
+        self.leftJoinCols = [self.getLeftInRel().columns[c.idx]
+                             for c in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[c.idx]
+                              for c in self.rightJoinCols]
 
 
 class HybridMultiPartyJoin(Join):
@@ -444,10 +500,13 @@ class HybridJoin(Join):
         obj.children = joinOp.children
         return obj
 
+    # TODO: remove?
     def updateOpSpecificCols(self):
 
-        self.leftJoinCols = [self.getLeftInRel().columns[c.idx] for c in self.leftJoinCols]
-        self.rightJoinCols = [self.getRightInRel().columns[c.idx] for c in self.rightJoinCols]
+        self.leftJoinCols = [self.getLeftInRel().columns[c.idx]
+                             for c in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[c.idx]
+                              for c in self.rightJoinCols]
 
 
 class Dag():
