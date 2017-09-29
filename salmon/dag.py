@@ -410,6 +410,21 @@ class Divide(UnaryOpNode):
             col, rel.Column) else col for col in tempCols]
 
 
+class Filter(UnaryOpNode):
+
+    def __init__(self, outRel, parent, targetCol, operator, expr):
+
+        super(Filter, self).__init__("filter", outRel, parent)
+        self.operator = operator
+        self.filterExpr = expr
+        self.targetCol = targetCol
+        self.isLocal = True
+
+    def isReversible(self):
+
+        return False
+
+
 class Join(BinaryOpNode):
 
     def __init__(self, outRel, leftParent,

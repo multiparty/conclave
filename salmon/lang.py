@@ -116,6 +116,31 @@ def divide(inputOpNode, outputName, targetColName, operands):
     return op
 
 
+def filter(inputOpNode, outputName, filterColName, operator, filterExpr):
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    # Get index of filter column
+    filterCol = utils.find(inRel.columns, filterColName)
+    filterCol.collSets = set()
+
+    # Create output relation
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    # Create our operator node
+    op = dag.Filter(outRel, inputOpNode, filterCol, operator, filterExpr)
+
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
+
+
 def multiply(inputOpNode, outputName, targetColName, operands):
 
     # Get input relation from input node

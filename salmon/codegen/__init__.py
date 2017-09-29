@@ -41,6 +41,8 @@ class CodeGen:
                 op_code += self._generateJoin(node)
             elif isinstance(node, Open):
                 op_code += self._generateOpen(node)
+            elif isinstance(node, Filter):
+                op_code += self._generateFilter(node)
             elif isinstance(node, Project):
                 op_code += self._generateProject(node)
             elif isinstance(node, Persist):

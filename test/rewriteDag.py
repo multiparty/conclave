@@ -205,6 +205,48 @@ DIVIDE [a -> a / b] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,2}
     assert expected == actual, actual
 
 
+def testSingleFilter():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2], "rel")
+
+        # specify the workflow
+        mult = sal.filter(rel, "filtered", "a", "=", 42)
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2])
+
+    # Filter must be under MPC as it is not a reversible operator
+    expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2}
+CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1, 2}
+CONCATMPC [in1_close([a {1}, b {1}]) {1, 2}, in2_close([a {2}, b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
+FILTERMPC [a = 42] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) AS filtered([a {1,2}, b {1,2}]) {1, 2}
+OPEN filtered([a {1,2}, b {1,2}]) {1, 2} INTO filtered_open([a {1,2}, b {1,2}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, "\nexpected:\n{}actual:\n{}".format(expected, actual)
+
+
 def testMultByZero():
 
     @scotch
@@ -913,6 +955,7 @@ if __name__ == "__main__":
     testSingleProj()
     testSingleMult()
     testSingleDiv()
+    testSingleFilter()
     testMultByZero()
     testAggProj()
     testConcatPushdown()

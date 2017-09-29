@@ -85,6 +85,8 @@ class DagRewriter:
                 self._rewriteDivide(node)
             elif isinstance(node, saldag.Project):
                 self._rewriteProject(node)
+            elif isinstance(node, saldag.Filter):
+                self._rewriteFilter(node)
             elif isinstance(node, saldag.Multiply):
                 self._rewriteMultiply(node)
             elif isinstance(node, saldag.RevealJoin):
@@ -146,6 +148,10 @@ class MPCPushDown(DagRewriter):
 
         self._rewriteUnaryDefault(node)
 
+    def _rewriteFilter(self, node):
+
+        self._rewriteUnaryDefault(node)
+
     def _rewriteMultiply(self, node):
 
         self._rewriteUnaryDefault(node)
@@ -201,6 +207,10 @@ class MPCPushUp(DagRewriter):
         self._rewriteUnaryDefault(node)
 
     def _rewriteProject(self, node):
+
+        self._rewriteUnaryDefault(node)
+
+    def _rewriteFilter(self, node):
 
         self._rewriteUnaryDefault(node)
 
@@ -298,6 +308,14 @@ class CollSetPropDown(DagRewriter):
         selectedCols = node.selectedCols
 
         for inCol, outCol in zip(selectedCols, node.outRel.columns):
+            outCol.collSets |= copy.deepcopy(inCol.collSets)
+
+    def _rewriteFilter(self, node):
+
+        inCols = node.getInRel().columns
+        outRelCols = node.outRel.columns
+
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
             outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteMultiply(self, node):
@@ -428,6 +446,10 @@ class HybridJoinOpt(DagRewriter):
 
         pass
 
+    def _rewriteFilter(self, node):
+
+        pass
+
     def _rewriteDivide(self, node):
 
         pass
@@ -512,6 +534,10 @@ class InsertOpenAndCloseOps(DagRewriter):
         self._rewriteDefaultUnary(node)
 
     def _rewriteProject(self, node):
+
+        self._rewriteDefaultUnary(node)
+
+    def _rewriteFilter(self, node):
 
         self._rewriteDefaultUnary(node)
 

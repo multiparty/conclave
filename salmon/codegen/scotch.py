@@ -108,6 +108,17 @@ class ScotchCodeGen(CodeGen):
             project_op.outRel.dbgStr()
         )
 
+    def _generateFilter(self, filter_op):
+
+        filterStr = "{} {} {}".format(filter_op.targetCol,
+                filter_op.operator, filter_op.filterExpr)
+        return "FILTER{} [{}] FROM ({}) AS {}\n".format(
+            "MPC" if filter_op.isMPC else "",
+            filterStr,
+            filter_op.getInRel().dbgStr(),
+            filter_op.outRel.dbgStr()
+        )
+
     def _generateMultiply(self, multiply_op):
 
         operandColStr = " * ".join([str(col) for col in multiply_op.operands])
