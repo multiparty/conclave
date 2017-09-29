@@ -627,6 +627,10 @@ class ExpandCompositeOps(DagRewriter):
 
         pass
 
+    def _rewriteFilter(self, node):
+
+        pass
+
     def _rewriteMultiply(self, node):
 
         pass
