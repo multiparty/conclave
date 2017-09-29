@@ -230,6 +230,17 @@ class Store(UnaryOpNode):
         return True
 
 
+class Persist(UnaryOpNode):
+
+    def __init__(self, outRel, parent):
+
+        super(Persist, self).__init__("persist", outRel, parent)
+
+    def isReversible(self):
+
+        return True
+
+
 class Open(UnaryOpNode):
 
     def __init__(self, outRel, parent):
@@ -425,8 +436,9 @@ class IndexJoin(Join):
         super(IndexJoin, self).__init__(outRel, leftParent,
                                         rightParent, leftJoinCols, rightJoinCols)
         self.name = "indexJoin"
-        self.revealedInRel = revealedInRel
-        self.recepient = recepient
+        self.indexRel = indexRel
+        # index rel is also a parent
+        self.parents.add(indexRel)
         self.isMPC = True
 
     @classmethod

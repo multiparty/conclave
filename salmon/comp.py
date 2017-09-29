@@ -581,6 +581,58 @@ class InsertOpenAndCloseOps(DagRewriter):
         pass
 
 
+class ExpandCompositeOps(DagRewriter):
+    """Replaces operator nodes that correspond to composite operations
+    for example hybrid joins into subdags of primitive operators"""
+
+    def __init__(self):
+
+        super(ExpandCompositeOps, self).__init__()
+
+    def _rewriteAggregate(self, node):
+
+        pass
+
+    def _rewriteDivide(self, node):
+
+        pass
+
+    def _rewriteProject(self, node):
+
+        pass
+
+    def _rewriteMultiply(self, node):
+
+        pass
+
+    def _rewriteRevealJoin(self, node):
+
+        pass
+
+    def _rewriteHybridJoin(self, node):
+
+        pass
+
+    def _rewriteJoin(self, node):
+
+        pass
+
+    def _rewriteConcat(self, node):
+
+        pass
+
+    def _rewriteCreate(self, node):
+
+        pass
+
+    def _rewriteOpen(self, node):
+
+        pass
+
+    def _rewriteClose(self, node):
+
+        pass
+
 def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
@@ -589,6 +641,7 @@ def rewriteDag(dag):
     CollSetPropDown().rewrite(dag)
     HybridJoinOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
+    ExpandCompositeOps().rewrite(dag)
     return dag
 
 

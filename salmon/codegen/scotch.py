@@ -65,6 +65,18 @@ class ScotchCodeGen(CodeGen):
             join_op.outRel.dbgStr()
         )
 
+    def _generateIndexJoin(self, index_join_op):
+
+        return "({}) IDXJOIN{} ({}) WITH INDECES ({}) ON [{}] AND [{}] AS {}\n".format(
+            index_join_op.getLeftInRel().dbgStr(),
+            "MPC" if index_join_op.isMPC else "",
+            index_join_op.getRightInRel().dbgStr(),
+            index_join_op.indexRel.outRel.dbgStr(),
+            ",".join([c.name for c in index_join_op.leftJoinCols]),
+            ",".join([c.name for c in index_join_op.rightJoinCols]),
+            index_join_op.outRel.dbgStr()
+        )
+
     def _generateRevealJoin(self, reveal_join_op):
 
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
@@ -107,6 +119,22 @@ class ScotchCodeGen(CodeGen):
             multiply_op.outRel.dbgStr()
         )
 
+    def _generateShuffle(self, shuffle_op):
+
+        return "SHUFFLE{} ({}) AS {}\n".format(
+            "MPC" if shuffle_op.isMPC else "",
+            shuffle_op.getInRel().dbgStr(),
+            shuffle_op.outRel.dbgStr()
+        )
+
+    def _generateIndex(self, index_op):
+
+        return "INDEX{} ({}) AS {}\n".format(
+            "MPC" if index_op.isMPC else "",
+            index_op.getInRel().dbgStr(),
+            index_op.outRel.dbgStr()
+        )
+
     def _generateClose(self, close_op):
 
         return "CLOSE {} INTO {}\n".format(
@@ -119,4 +147,11 @@ class ScotchCodeGen(CodeGen):
         return "OPEN {} INTO {}\n".format(
             open_op.getInRel().dbgStr(),
             open_op.outRel.dbgStr()
+        )
+
+    def _generatePersist(self, persist_op):
+
+        return "PERSIST {} INTO {}\n".format(
+            persist_op.getInRel().dbgStr(),
+            persist_op.outRel.dbgStr()
         )

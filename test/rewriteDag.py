@@ -165,6 +165,7 @@ MULTIPLY [a -> a * 1] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,
     actual = protocol()
     assert expected == actual, actual
 
+
 def testSingleDiv():
 
     @scotch
@@ -202,6 +203,7 @@ DIVIDE [a -> a / b] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,2}
 """
     actual = protocol()
     assert expected == actual, actual
+
 
 def testMultByZero():
 
@@ -429,56 +431,6 @@ PROJECT [inB_0, inB_1] FROM (inB {2}) AS projB {2}
 (projA {1}) JOINMPC (projB {2}) ON projA_0 AND projB_0 AS joined {1, 2}
 AGGMPC [joined_1, +] FROM (joined {1, 2}) GROUP BY [joined_0] AS agg {1}
 PROJECT [agg_0, agg_1] FROM (agg {1}) AS proj {1}
-"""
-    actual = protocol()
-    assert expected == actual, actual
-
-
-def testJoin():
-
-    @scotch
-    @mpc
-    def protocol():
-        # define inputs
-        colsInA = [
-            ("INTEGER", set([1])),
-            ("INTEGER", set([1]))
-        ]
-        inA = sal.create("inA", colsInA, set([1]))
-
-        colsInB = [
-            ("INTEGER", set([2])),
-            ("INTEGER", set([2]))
-        ]
-        inB = sal.create("inB", colsInB, set([2]))
-
-        # specify the workflow
-        aggA = sal.aggregate(inA, "aggA", "inA_0", "inA_1", "+")
-        projA = sal.project(aggA, "projA", ["aggA_0", "aggA_1"])
-
-        aggB = sal.aggregate(inB, "aggB", "inB_0", "inB_1", "+")
-        projB = sal.project(aggB, "projB", ["aggB_0", "aggB_1"])
-
-        joined = sal.join(projA, projB, "joined", "projA_0", "projB_0")
-
-        proj = sal.project(joined, "proj", ["joined_0", "joined_1"])
-        agg = sal.aggregate(
-            proj, "agg", "proj_0", "proj_1", "+")
-
-        sal.collect(agg, 1)
-
-        # create dag
-        return set([inA, inB])
-
-    expected = """CREATE RELATION inA {1} WITH COLUMNS (INTEGER, INTEGER)
-AGG [inA_1, +] FROM (inA {1}) GROUP BY [inA_0] AS aggA {1}
-CREATE RELATION inB {2} WITH COLUMNS (INTEGER, INTEGER)
-AGG [inB_1, +] FROM (inB {2}) GROUP BY [inB_0] AS aggB {2}
-PROJECT [aggA_0, aggA_1] FROM (aggA {1}) AS projA {1}
-PROJECT [aggB_0, aggB_1] FROM (aggB {2}) AS projB {2}
-(projA {1}) JOINMPC (projB {2}) ON projA_0 AND projB_0 AS joined {1, 2}
-PROJECTMPC [joined_0, joined_1] FROM (joined {1, 2}) AS proj {1, 2}
-AGGMPC [proj_1, +] FROM (proj {1, 2}) GROUP BY [proj_0] AS agg {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -842,6 +794,7 @@ CLOSE inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
     actual = protocol()
     assert expected == actual, actual
 
+
 def testJoin():
 
     @scotch
@@ -876,6 +829,7 @@ OPEN mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, 
     actual = protocol()
     assert expected == actual, actual
 
+
 def testTaxi():
 
     @scotch
@@ -896,23 +850,32 @@ def testTaxi():
             defCol("price", "INTEGER", [3])
         ]
         in3 = sal.create("in3", colsIn3, set([3]))
-        
+
         cab_data = sal.concat([in1, in2, in3], "cab_data")
 
-        selected_input = sal.project(cab_data, "selected_input", ["companyID", "price"])
-        local_rev = sal.aggregate(selected_input, "local_rev", ["companyID"], "price", "+", "local_rev")
-        scaled_down = sal.divide(local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
-        first_val_blank = sal.multiply(scaled_down, "first_val_blank", "companyID", ["companyID", 0])
-        local_rev_scaled = sal.multiply(first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
-        total_rev = sal.aggregate(first_val_blank, "total_rev", ["companyID"], "local_rev", "+", "global_rev")
-        local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", ["companyID"], ["companyID"])
-        market_share = sal.divide(local_total_rev, "market_share", "local_rev", ["local_rev", "global_rev"])
+        selected_input = sal.project(
+            cab_data, "selected_input", ["companyID", "price"])
+        local_rev = sal.aggregate(selected_input, "local_rev", [
+                                  "companyID"], "price", "+", "local_rev")
+        scaled_down = sal.divide(
+            local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+        first_val_blank = sal.multiply(
+            scaled_down, "first_val_blank", "companyID", ["companyID", 0])
+        local_rev_scaled = sal.multiply(
+            first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
+        total_rev = sal.aggregate(first_val_blank, "total_rev", [
+                                  "companyID"], "local_rev", "+", "global_rev")
+        local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", [
+                                   "companyID"], ["companyID"])
+        market_share = sal.divide(local_total_rev, "market_share", "local_rev", [
+                                  "local_rev", "global_rev"])
         market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
                                             ["local_rev", "local_rev", 1])
-        hhi = sal.aggregate(market_share_squared, "hhi", ["companyID"], "local_rev", "+", "hhi")
-        
+        hhi = sal.aggregate(market_share_squared, "hhi", [
+                            "companyID"], "local_rev", "+", "hhi")
+
         sal.collect(hhi, 1)
-        
+
         # return root nodes
         return set([in1, in2, in3])
 

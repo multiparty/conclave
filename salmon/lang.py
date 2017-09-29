@@ -21,7 +21,8 @@ def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, a
 
     # Get relevant columns and reset their collusion sets
     inCols = inRel.columns
-    groupCols = [utils.find(inCols, groupColName) for groupColName in groupColNames]
+    groupCols = [utils.find(inCols, groupColName)
+                 for groupColName in groupColNames]
     for groupCol in groupCols:
         groupCol.collSets = set()
     overCol = utils.find(inCols, overColName)
@@ -186,8 +187,10 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
     rightCols = rightInRel.columns
 
     # Get columns we will join on
-    leftJoinCols = [utils.find(leftCols, leftColName) for leftColName in leftColNames]
-    rightJoinCols = [utils.find(rightCols, rightColName) for rightColName in rightColNames]
+    leftJoinCols = [utils.find(leftCols, leftColName)
+                    for leftColName in leftColNames]
+    rightJoinCols = [utils.find(rightCols, rightColName)
+                     for rightColName in rightColNames]
 
     # # Get the key columns' merged collusion set
     # keyCollusionSet = utils.mergeCollusionSets(
@@ -285,6 +288,7 @@ def concat(inputOpNodes, outputName, columnNames=None):
 
 
 def index(inputOpNode, outputName, idxColName="index"):
+
     inRel = inputOpNode.outRel
 
     # Copy over columns from existing relation
@@ -292,13 +296,31 @@ def index(inputOpNode, outputName, idxColName="index"):
 
     indexCol = rel.Column(
         outputName, idxColName, len(inRel.columns), "INTEGER", set())
-    outRelCols.append(indexCol)
+    outRelCols = [indexCol] + outRelCols
 
     # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     op = dag.Index(outRel, inputOpNode)
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
+
+
+def shuffle(inputOpNode, outputName):
+
+    inRel = inputOpNode.outRel
+
+    # Copy over columns from existing relation
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    # Create output relation
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    op = dag.Shuffle(outRel, inputOpNode)
     # Add it as a child to input node
     inputOpNode.children.add(op)
 
@@ -312,9 +334,36 @@ def collect(inputOpNode, targetParty):
     inRel.storedWith = set([targetParty])
 
 
+# Below functions are NOT part of the public API! Only used to simplify
+# codegen testing
+
+def _index_join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames, indexOpNode):
+
+    join_op = join(leftInputNode, rightInputNode,
+                   outputName, leftColNames, rightColNames)
+    idx_join_op = dag.IndexJoin.fromJoin(join_op, indexOpNode)
+
+    leftInputNode.children.remove(join_op)
+    rightInputNode.children.remove(join_op)
+
+    leftInputNode.children.add(idx_join_op)
+    rightInputNode.children.add(idx_join_op)
+    indexOpNode.children.add(idx_join_op)
+
+    return idx_join_op
+
+
+def _persist(inputOpNode, outputName):
+
+    outRel = copy.deepcopy(inputOpNode.outRel)
+    outRel.rename(outputName)
+    persistOp = dag.Persist(outRel, inputOpNode)
+    inputOpNode.children.add(persistOp)
+    return persistOp
+
+
 def _close(inputOpNode, outputName, targetParties):
 
-    # Not part of the public API! Only used to simplify codegen testing
     outRel = copy.deepcopy(inputOpNode.outRel)
     outRel.storedWith = targetParties
     outRel.rename(outputName)
@@ -325,7 +374,6 @@ def _close(inputOpNode, outputName, targetParties):
 
 def _open(inputOpNode, outputName, targetParty):
 
-    # Not part of the public API! Only used to simplify codegen testing
     outRel = copy.deepcopy(inputOpNode.outRel)
     outRel.storedWith = set([targetParty])
     outRel.rename(outputName)

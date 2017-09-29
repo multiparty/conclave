@@ -31,6 +31,8 @@ class CodeGen:
                 op_code += self._generateCreate(node)
             elif isinstance(node, Close):
                 op_code += self._generateClose(node)
+            elif isinstance(node, IndexJoin):
+                op_code += self._generateIndexJoin(node)
             elif isinstance(node, RevealJoin):
                 op_code += self._generateRevealJoin(node)
             elif isinstance(node, HybridJoin):
@@ -41,12 +43,16 @@ class CodeGen:
                 op_code += self._generateOpen(node)
             elif isinstance(node, Project):
                 op_code += self._generateProject(node)
+            elif isinstance(node, Persist):
+                op_code += self._generatePersist(node)
             elif isinstance(node, Multiply):
                 op_code += self._generateMultiply(node)
             elif isinstance(node, Divide):
                 op_code += self._generateDivide(node)
             elif isinstance(node, Index):
                 op_code += self._generateIndex(node)
+            elif isinstance(node, Shuffle):
+                op_code += self._generateShuffle(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
