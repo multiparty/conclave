@@ -1,1 +1,10 @@
-spark-submit {{{PATH}}}/workflow.py {{{INPUTS}}} {{{OUTPUTS}}}
+#!/bin/bash
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: run.sh <MASTER URL>"
+  exit 1
+fi
+
+MASTER_URL=$1
+
+spark-submit --master ${MASTER_URL} {{{PATH}}}/workflow.py {{{INPUTS}}} {{{OUTPUTS}}}

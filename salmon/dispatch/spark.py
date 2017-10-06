@@ -5,16 +5,16 @@ class SparkDispatcher():
     '''
     Dispatches Spark jobs
     '''
-    def __init__(self):
-        pass
+    def __init__(self, master_url):
+        self.master = master_url
 
     def dispatch(self, job):
 
-        cmd = "{0}/{1}.sh"\
-            .format(job.root_dir, job.name)
+        cmd = "{0}/{1}/bash.sh {2}"\
+            .format(job.root_dir, job.name, self.master)
 
-        print("Running script {}.sh located at: {}"
-              .format(job.name, job.root_dir)
+        print("{}/{}/bash.sh dispatching to Spark master at {}"
+              .format(job.root_dir, job.name, self.master)
               )
 
         try:

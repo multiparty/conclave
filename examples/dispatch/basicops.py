@@ -122,6 +122,8 @@ def div_broken():
 def party_proc(pid):
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
+    spark_master = "local"
+
     config = {
         "pid": pid,
         "parties": {
@@ -134,7 +136,7 @@ def party_proc(pid):
 
     job = SharemindCodeGen(join(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
-    salmon.dispatch.dispatch_all(peer, job_queue)
+    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
 
 if __name__ == "__main__":
 

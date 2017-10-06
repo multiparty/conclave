@@ -21,7 +21,6 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
         data = {
             'JOB_NAME': job_name,
-            'SPARK_MASTER': 'local',  # XXX(malte): make configurable
             'OP_CODE': op_code
         }
 
