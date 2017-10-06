@@ -27,7 +27,7 @@ def protocol():
         defCol("price", "INTEGER", [3])
     ]
     in3 = sal.create("in3", colsIn3, set([3]))
-    
+
     cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
@@ -68,7 +68,7 @@ def party_proc(pid):
     salmon.dispatch.dispatch_all(peer, job_queue)
 
 if __name__ == "__main__":
-    
+
     # run each party in separate process
     # TODO: switch to threads if asyncio is thread-safe
     procs = []

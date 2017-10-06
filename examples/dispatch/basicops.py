@@ -96,13 +96,13 @@ def join():
         defCol("a", "INTEGER", [3]),
         defCol("b", "INTEGER", [3])
     ]
-    # TODO: dummy relation for now 
+    # TODO: dummy relation for now
     in3 = sal.create("in3", colsIn3, set([3]))
-    
+
     cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
-    
+
     res = sal.join(cl1, cl2, "res", ["a"], ["c"])
 
     opened = sal._open(res, "opened", 1)
