@@ -21,9 +21,3 @@ class SparkDispatcher():
             call(["bash", cmd])
         except Exception as e:
             print(e)
-
-
-
-
-
-
