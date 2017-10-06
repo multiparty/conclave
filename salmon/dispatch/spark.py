@@ -18,6 +18,6 @@ class SparkDispatcher():
               )
 
         try:
-            call(["bash", cmd])
+            call(["/bin/bash", cmd])
         except Exception as e:
             print(e)
