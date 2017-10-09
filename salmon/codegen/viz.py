@@ -47,10 +47,11 @@ class VizCodeGen(CodeGen):
         return "{} [style=\"filled\", fillcolor=\"/set312/{}\",  \
                 label=<{}>]\n".format(op.outRel.name, c, descr)
 
-    def _generateJob(self, job_name, op_code):
+    def _generateJob(self, job_name, output_directory, op_code):
 
         edges = self._generateEdges()
-        return "digraph {{\n" \
+        # no job object here
+        return None, "digraph {{\n" \
                 "node [shape=record, fontsize=10]\n\n" \
                 "{}\n" \
                 "{}\n" \
@@ -72,7 +73,7 @@ class VizCodeGen(CodeGen):
 
         inRelStr = ", ".join([inRel.name for inRel in concat_op.getInRels()])
 
-        return self.generateNode(
+        return self._generateNode(
                 concat_op,
                 _nodeDescription(concat_op, "CONCAT", "")
             )
