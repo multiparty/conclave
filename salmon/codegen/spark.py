@@ -107,7 +107,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'RELATION_NAME': create_op.outRel.name,
-            'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
+            'INPUT_PATH': self.config.input_path,
+            'DELIMITER': self.config.delimiter,
             'CACHE_VAR': cache_var(create_op)
         }
 
@@ -249,7 +250,8 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
         data = {
             'RELATION_NAME': op.outRel.name,
-            'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+            'DELIMITER': self.config.delimiter,
+            'OUTPUT_PATH': self.config.output_path,
         }
 
         return pystache.render(template, data)
