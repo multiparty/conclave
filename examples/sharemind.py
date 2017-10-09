@@ -30,7 +30,7 @@ def testSimple():
         cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
         cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
         rel = sal.concat([cl1, cl2, cl3], "rel")
-        agg = sal.aggregate(rel, "agg", "a", "b", "+", "total")
+        agg = sal.aggregate(rel, "agg", ["a"], "b", "+", "total")
 
         opened = sal._open(agg, "opened", 1)
         # return root nodes
