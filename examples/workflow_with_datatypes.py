@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import mpc
-from salmon.codegen import spark
+from salmon.codegen import spark, CodeGenConfig
 from salmon.utils import *
 
 @mpc
@@ -35,8 +35,9 @@ def protocol():
 if __name__ == "__main__":
 
     dag = protocol()
+    config = CodeGenConfig()
 
-    cg = spark.SparkCodeGen(dag)
+    cg = spark.SparkCodeGen(config, dag)
     cg.generate("dtypes", "/tmp")
 
     print("Spark code generated in /tmp/dtypes.py")

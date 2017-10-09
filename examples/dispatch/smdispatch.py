@@ -43,7 +43,7 @@ if __name__ == "__main__":
     spark_master = "local"
 
     pid = int(sys.argv[1])
-    config = {
+    sharemind_config = {
         "pid": pid,
         "parties": {
             1: {"host": "localhost", "port": 9001},
@@ -51,8 +51,10 @@ if __name__ == "__main__":
             3: {"host": "localhost", "port": 9003}
         }
     }
-    sm_peer = salmon.net.setup_peer(config)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), sharemind_home)
+    codegen_config = CodeGenConfig()
+
+    job = SharemindCodeGen(codegen_config, protocol(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

@@ -9,9 +9,10 @@ import shutil
 
 class SharemindCodeGen(CodeGen):
 
-    def __init__(self, dag, pid, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
+    def __init__(self, config, dag, pid,
+            template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
-        super(SharemindCodeGen, self).__init__(dag)
+        super(SharemindCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
         self.pid = pid
 

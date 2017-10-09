@@ -1,3 +1,4 @@
+from salmon.codegen import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 import salmon.lang as sal
 from salmon.comp import dagonly
@@ -36,10 +37,11 @@ def testSimple():
         # return root nodes
         return set([in1, in2, in3])
 
+    config = CodeGenConfig()
     dag = protocol()
-    SharemindCodeGen(dag, 1).generate("job-1", "/home/sharemind/Sharemind-SDK/sharemind/client")
-    SharemindCodeGen(dag, 2).generate("job-2", "/home/sharemind/Sharemind-SDK/sharemind/client")
-    SharemindCodeGen(dag, 3).generate("job-3", "/home/sharemind/Sharemind-SDK/sharemind/client")
+    SharemindCodeGen(config, dag, 1).generate("job-1", "/home/sharemind/Sharemind-SDK/sharemind/client")
+    SharemindCodeGen(config, dag, 2).generate("job-2", "/home/sharemind/Sharemind-SDK/sharemind/client")
+    SharemindCodeGen(config, dag, 3).generate("job-3", "/home/sharemind/Sharemind-SDK/sharemind/client")
 
 if __name__ == "__main__":
 

@@ -5,9 +5,9 @@ from salmon.dag import *
 class ScotchCodeGen(CodeGen):
     # Basically BEER but with additional debugging information (scotch tape?)
 
-    def __init__(self, dag):
+    def __init__(self, config, dag):
 
-        super(ScotchCodeGen, self).__init__(dag)
+        super(ScotchCodeGen, self).__init__(config, dag)
 
     def _generateJob(self, job_name, output_directory, op_code):
 

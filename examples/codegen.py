@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import mpc
-from salmon.codegen import spark
+from salmon.codegen import spark, CodeGenConfig
 
 @mpc
 def protocol():
@@ -27,7 +27,9 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    cg = spark.SparkCodeGen(dag)
+    config = CodeGenConfig()
+
+    cg = spark.SparkCodeGen(config, dag)
     cg.generate("aggtest", "/tmp")
 
     print("Spark code generated in /tmp/aggtest/")

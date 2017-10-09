@@ -11,8 +11,10 @@ def cache_var(op_node):
 
 
 class SparkCodeGen(CodeGen):
-    def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
-        super(SparkCodeGen, self).__init__(dag)
+
+    def __init__(self, config, dag,
+            template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
+        super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
 
     def _generateJob(self, job_name, output_directory, op_code):

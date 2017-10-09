@@ -3,8 +3,8 @@ from salmon.dag import *
 import os, pystache
 
 class BeerCodeGen(CodeGen):
-    def __init__(self, dag):
-        super(BeerCodeGen, self).__init__(dag)
+    def __init__(self, config, dag):
+        super(BeerCodeGen, self).__init__(config, dag)
 
     def _generateJob(self, job_name, op_code):
 
