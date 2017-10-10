@@ -63,16 +63,17 @@ def taxi(config):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) < 3:
-        print("usage: taxi.py <HDFS master node:port> <HDFS root dir>")
+    if len(sys.argv) < 4:
+        print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir>")
         sys.exit(1)
 
-    hdfs_namenode = sys.argv[1]
-    hdfs_root = sys.argv[2]
+    pid = int(sys.argv[1])
+    hdfs_namenode = sys.argv[2]
+    hdfs_root = sys.argv[3]
 
     config = {
         "name": "taxi",
-        "pid": 1,
+        "pid": pid,
         "delimiter": ",",
         "code_path": "/tmp/taxi-code",
         "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
