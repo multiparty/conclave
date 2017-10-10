@@ -1,4 +1,5 @@
 from salmon.codegen.sharemind import SharemindCodeGen
+from salmon.codegen import CodeGenConfig
 import salmon.dispatch
 import salmon.net
 from salmon.comp import dagonly
@@ -31,7 +32,7 @@ def protocol():
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
     rel = sal.concat([cl1, cl2, cl3], "rel")
-    agg = sal.aggregate(rel, "agg", "a", "b", "+", "total")
+    agg = sal.aggregate(rel, "agg", ["a"], "b", "+", "total")
 
     opened = sal._open(agg, "opened", 1)
     # return root nodes
@@ -39,7 +40,7 @@ def protocol():
 
 if __name__ == "__main__":
 
-    sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
+    sharemind_home = "/tmp"
     spark_master = "local"
 
     pid = int(sys.argv[1])
@@ -51,10 +52,12 @@ if __name__ == "__main__":
             3: {"host": "localhost", "port": 9003}
         }
     }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
+    # sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    codegen_config = CodeGenConfig()
+    codegen_config = CodeGenConfig("sm-test")
+    codegen_config.code_path = "/tmp/"
 
-    job = SharemindCodeGen(codegen_config, protocol(), pid).generate("job-" + str(pid), sharemind_home)
-    job_queue = [job]
-    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
+    job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
+        "job-" + str(pid), sharemind_home)
+    # job_queue = [job]
+    # salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

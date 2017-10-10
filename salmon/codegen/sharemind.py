@@ -10,7 +10,7 @@ import shutil
 class SharemindCodeGen(CodeGen):
 
     def __init__(self, config, dag, pid,
-            template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
+                 template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         super(SharemindCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
@@ -45,7 +45,8 @@ class SharemindCodeGen(CodeGen):
             schemas, input_code = self._generate_input_code(
                 nodes, job_name, output_directory)
             op_code["schemas"] = schemas
-            op_code["input"] = input_code
+            op_code["input"] = input_code["outer"]
+            op_code["inputInner"] = input_code["inner"]
 
         # if we are the controller we need to generate miner
         # code and controller code
@@ -60,8 +61,10 @@ class SharemindCodeGen(CodeGen):
             # controller_code = self._generate_controller_code(
             #     nodes, job_name, output_directory)
             op_code["miner"] = miner_code
-            op_code["submit"] = submit_code
-            op_code["receive"] = receive_code
+            op_code["submit"] = submit_code["outer"]
+            op_code["submitInner"] = submit_code["inner"]
+            op_code["receive"] = receive_code["outer"]
+            op_code["receiveInner"] = receive_code["inner"]
 
         # sanity check
         assert op_code
@@ -150,18 +153,29 @@ class SharemindCodeGen(CodeGen):
             "IMPORTS": input_code
         }
         # return schemas and input code
-        return schemas, pystache.render(top_level_template, top_level_data)
+        code = {
+            "outer": pystache.render(top_level_template, top_level_data),
+            "inner": ""
+        }
+        return schemas, code
 
     def _generate_submit_code(self, nodes, job_name, output_directory):
 
         # code for submitting job to miners
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
-        data = {
+        data = {}
+        # inner template (separate shell script)
+        templateInner = open(
+            "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
+        dataInner = {
             "ROOT_DIR": output_directory,
             "JOB_DIR": job_name
         }
-        return pystache.render(template, data)
+        return {
+            "outer": pystache.render(template, data),
+            "inner": pystache.render(templateInner, dataInner)
+        }
 
     def _generate_receive_code(self, nodes, job_name, output_directory):
 
@@ -173,9 +187,9 @@ class SharemindCodeGen(CodeGen):
             template = open(
                 "{0}/relMetaDef.tmpl".format(self.template_directory), 'r').read()
             return pystache.render(template, {
-                    "REL_NAME": name,
-                    "REL_LEN": num_vals
-                })
+                "REL_NAME": name,
+                "REL_LEN": num_vals
+            })
 
         # code for parsing results received by controller
         template = open(
@@ -190,12 +204,17 @@ class SharemindCodeGen(CodeGen):
             "JOB_DIR": job_name,
             "RELS_META": rels_meta_str
         }
-        return pystache.render(template, data)
+        return {
+            "outer": pystache.render(template, data),
+            "inner": ""
+        }
 
     def _generate_controller_code(self, nodes, job_name, output_directory):
 
-        submit_code = self._generate_submit_code(nodes, job_name, output_directory)
-        receive_code = self._generate_receive_code(nodes, job_name, output_directory)
+        submit_code = self._generate_submit_code(
+            nodes, job_name, output_directory)
+        receive_code = self._generate_receive_code(
+            nodes, job_name, output_directory)
         return submit_code, receive_code
 
     def _generateAggregate(self, agg_op):
@@ -286,14 +305,18 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
-        left_key_cols_str = ",".join([str(col.idx) for col in join_op.leftJoinCols])
-        right_key_cols_str = ",".join([str(col.idx) for col in join_op.rightJoinCols])
+        left_key_cols_str = ",".join([str(col.idx)
+                                      for col in join_op.leftJoinCols])
+        right_key_cols_str = ",".join(
+            [str(col.idx) for col in join_op.rightJoinCols])
         left_rel = join_op.leftParent.outRel
         right_rel = join_op.rightParent.outRel
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
-        cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
-        cols_to_exclude = [col.idx + len(left_rel.columns) for col in join_op.rightJoinCols]
+        cols_to_keep = list(
+            range(len(left_rel.columns) + len(right_rel.columns)))
+        cols_to_exclude = [col.idx + len(left_rel.columns)
+                           for col in join_op.rightJoinCols]
         cols_to_keep_str = ",".join(
             [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
         data = {
@@ -395,6 +418,7 @@ class SharemindCodeGen(CodeGen):
     def _writeCode(self, code_dict, job_name):
 
         def _write(root_dir, fn, ext, content):
+
             fullpath = "{}/{}.{}".format(root_dir, fn, ext)
             os.makedirs(os.path.dirname(fullpath), exist_ok=True)
             with open(fullpath, "w") as f:
@@ -403,8 +427,11 @@ class SharemindCodeGen(CodeGen):
         ext_lookup = {
             "schemas": "xml",
             "input": "sh",
+            "inputInner": "sh",
             "submit": "sh",
+            "submitInner": "sh",
             "receive": "py",
+            "receiveInner": "py",
             "miner": "sc"
         }
 
