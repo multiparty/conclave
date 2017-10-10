@@ -13,7 +13,7 @@ def codegen(protocol, config):
     # apply optimizations
     dag = comp.rewriteDag(saldag.OpDag(protocol()))
     # prune for party
-    pruned = comp.pruneDag(dag, cfg.sharemind_pid)
+    pruned = comp.pruneDag(dag, cfg.pid)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag)
     # for each sub dag run code gen and add resulting job to job queue
@@ -21,7 +21,7 @@ def codegen(protocol, config):
     for job_num, (fmwk, subdag) in enumerate(mapping):
         print(job_num, fmwk)
         if fmwk == "sharemind":
-            job = SharemindCodeGen(cfg, subdag, cfg.sharemind_pid).generate(
+            job = SharemindCodeGen(cfg, subdag, cfg.pid).generate(
                 "sharemind-job-" + str(job_num), cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "spark":
