@@ -22,11 +22,11 @@ def codegen(protocol, config):
         print(job_num, fmwk)
         if fmwk == "sharemind":
             job = SharemindCodeGen(cfg, subdag, cfg.sharemind_pid).generate(
-                "sharemind-job-" + str(job_num), cfg.input_path)
+                "sharemind-job-" + str(job_num), cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "spark":
             job = SparkCodeGen(cfg, subdag).generate(
-                "spark-job-" + str(job_num), cfg.input_path)
+                "spark-job-" + str(job_num), cfg.output_path)
             jobqueue.append(job)
         else:
             raise Exception("Unknown framework: " + fmwk)
