@@ -1,9 +1,10 @@
+import salmon.dispatch
 import salmon.lang as sal
 from salmon import codegen
 from salmon.utils import *
+import sys
 
-
-def taxi():
+def taxi(config):
 
     def protocol():
         colsIn1 = [
@@ -53,17 +54,29 @@ def taxi():
         # return root nodes
         return set([in1, in2, in3])
 
+    jobqueue = codegen(protocol, config)
+    print(jobqueue)
+
+    # XXX(malte): need to pass Sharemind config here
+    salmon.dispatch.dispatch_all("spark://ca-spark-node-0:7077", None, jobqueue)
+
+
+if __name__ == "__main__":
+
+    if len(sys.argv) < 3:
+        print("usage: taxi.py <HDFS master node:port> <HDFS root dir>")
+        sys.exit(1)
+
+    hdfs_namenode = sys.argv[1]
+    hdfs_root = sys.argv[2]
+
     config = {
         "name": "taxi",
         "pid": 1,
         "delimiter": ",",
         "code_path": "/tmp/taxi-code",
-        "input_path": "/tmp",
-        "output_path": "/tmp",
+        "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
+        "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
     }
-    jobqueue = codegen(protocol, config)
-    print(jobqueue)
 
-if __name__ == "__main__":
-
-    taxi()
+    taxi(config)
