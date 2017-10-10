@@ -154,6 +154,53 @@ pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
     return mat;
 }
 
+template <domain D : shared3p>
+void persist(string ds, string tableName, D uint32[[2]] rows) {
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+    if (tdbTableExists(ds, tableName)) {
+        tdbTableDelete(ds, tableName);
+    }
+    pd_shared3p uint32 vtype;
+    tdbTableCreate(ds, tableName, vtype, ncols);
+    uint params = tdbVmapNew();
+    for (uint rowIdx = 0; rowIdx < nrows; ++rowIdx) {
+        if (rowIdx != 0) {
+            // This has to be called in-between rows
+            tdbVmapAddBatch(params);
+        }
+        tdbVmapAddValue(params, "values", rows[rowIdx,:]);
+    }
+    tdbInsertRow(ds, tableName, params);
+    tdbVmapDelete(params);
+}
+
+template <domain D : shared3p>
+D uint32[[2]] indexJoin(D uint32[[2]] leftRel, uint leftJoinCol, D uint32[[2]] rightRel,
+        uint rightJoinCol, uint32[[2]] indeces) {
+    uint nrows = shape(indeces)[0];
+    uint ncolsLeft = shape(leftRel)[1];
+    uint ncolsRight = shape(rightRel)[1];
+    uint ncolsRes = ncolsLeft + ncolsRight - 1;
+    pd_shared3p uint32 [[2]] result(nrows, ncolsRes);
+    for (uint r = 0; r < nrows; ++r) {
+        uint lidx = (uint) indeces[r, 0];
+        uint ridx = (uint) indeces[r, 1];
+        for (uint c = 0; c < ncolsLeft; ++c) {
+            result[r,c] = leftRel[lidx,c];
+        }
+        uint offset = ncolsLeft;
+        uint nextIdx = 0;
+        for (uint c = 0; c < ncolsRight; ++c) {
+            if (c != rightJoinCol) {
+                result[r,nextIdx + offset] = rightRel[ridx,c];
+                nextIdx++;
+            }
+        }
+    }
+    return result;
+}
+
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);

@@ -35,7 +35,9 @@ def testSingleConcat():
         return set([in1, in2, in3])
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSE in2([c {2}, d {2}]) {2} INTO in2_close([c {2}, d {2}]) {1}
+CREATE RELATION in3([e {3}, f {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 CLOSE in3([e {3}, f {3}]) {3} INTO in3_close([e {3}, f {3}]) {1}
 CONCAT [in1([a {1}, b {1}]) {1}, in2_close([c {2}, d {2}]) {1}, in3_close([e {3}, f {3}]) {1}] AS rel([x {1,2,3}, y {1,2,3}]) {1}
 """
@@ -75,7 +77,8 @@ def testAggProj():
         # return root nodes
         return set([in1, in2])
 
-    expected = """CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+    expected = """CREATE RELATION agg_0([a {1}, total_b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS projA_1([a {2}, b {2}]) {2}
 PROJECT [a, b] FROM (projA_1([a {2}, b {2}]) {2}) AS projB_1([a {2}, b {2}]) {2}
@@ -122,7 +125,8 @@ def testAggProjProj():
         # return root nodes
         return set([in1, in2])
 
-    expected = """CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+    expected = """CREATE RELATION agg_0([a {1}, total_b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS projA_1([a {2}, b {2}]) {2}
 PROJECT [a, b] FROM (projA_1([a {2}, b {2}]) {2}) AS projB_1([a {2}, b {2}]) {2}
@@ -169,7 +173,8 @@ def testAggProjProjOther():
         # return root nodes
         return set([in1, in2])
 
-    expected = """CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
+    expected = """CREATE RELATION agg_1([a {2}, total_b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
 CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [a, b] FROM (in1([a {1}, b {1}]) {1}) AS projA_0([a {1}, b {1}]) {1}
 PROJECT [a, b] FROM (projA_0([a {1}, b {1}]) {1}) AS projB_0([a {1}, b {1}]) {1}
@@ -208,6 +213,7 @@ def testJoin():
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
+CREATE RELATION projB([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSE projB([c {2}, d {2}]) {2} INTO projB_close([c {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) JOINMPC (projB_close([c {2}, d {2}]) {1, 2}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
 MULTIPLYMPC [a -> a * 0] FROM (joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}) AS mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2}

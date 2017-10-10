@@ -364,13 +364,15 @@ class CollSetPropDown(DagRewriter):
         for inCol in leftInRel.columns:
             if inCol not in set(leftJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
         for inCol in rightInRel.columns:
             if inCol not in set(rightJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
     def _rewriteConcat(self, node):
@@ -520,6 +522,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
                 # create and insert store node
                 storeOp = saldag.Open(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetweenChildren(node, storeOp)
             else:
                 raise Exception(
@@ -561,6 +564,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                 outRel.storedWith = copy.copy(combinedStoreWith)
                 # create and insert store node
                 storeOp = saldag.Close(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteHybridJoin(self, node):
@@ -581,6 +585,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                     outRel.storedWith = copy.copy(outStoredWith)
                     # create and insert store node
                     storeOp = saldag.Close(outRel, None)
+                    storeOp.isMPC = True
                     saldag.insertBetween(parent, node, storeOp)
                 else:
                     raise Exception(
@@ -600,6 +605,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                 outRel.storedWith = copy.copy(outStoredWith)
                 # create and insert close node
                 storeOp = saldag.Close(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteCreate(self, node):
@@ -663,6 +669,7 @@ class ExpandCompositeOps(DagRewriter):
 
         pass
 
+
 def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
@@ -676,9 +683,11 @@ def rewriteDag(dag):
 
 
 def pruneDag(dag, party):
+
     # given party and dag, remove all op nodes from dag that party
     # is not involved in
     ordered = dag.topSort()
+
     for node in ordered:
         parents = node.parents
         inputStoredWith = set().union(
@@ -686,10 +695,9 @@ def pruneDag(dag, party):
         inInput = party in inputStoredWith
         inOutput = party in node.outRel.storedWith
         if not (inInput or inOutput):
-            # prune
             parents = node.parents
             children = node.children
-            if node.isRoot():
+            if node.isRoot():                
                 dag.roots.remove(node)
                 dag.roots |= children
                 for child in children:
@@ -704,6 +712,21 @@ def pruneDag(dag, party):
                     parent = next(iter(parents))
                     child = next(iter(children))
                     saldag.removeBetween(parent, child, node)
+    for node in dag.topSort():
+        if node.isRoot() and not isinstance(node, saldag.Create):
+            # only handle unary nodes for now
+            if not isinstance(node, saldag.UnaryOpNode):
+                raise NotImplementedError()
+            assert node.parent
+            # we cheated, so "orphan" nodes still have parents
+            create_op = saldag.Create(node.getInRel())
+            # create op is in same mode as node
+            create_op.isMPC = node.isMPC
+            create_op.children.add(node)
+            node.parent = create_op
+            node.parents = {create_op}
+            dag.roots.remove(node)
+            dag.roots.add(create_op)
     return dag
 
 
@@ -717,6 +740,7 @@ def scotch(f):
 
     return wrap
 
+
 def sharemind(f):
 
     from salmon.codegen import sharemind
@@ -726,6 +750,7 @@ def sharemind(f):
         return code
 
     return wrap
+
 
 def mpc(*args):
     def _mpc(f):
@@ -744,6 +769,7 @@ def mpc(*args):
         # This is just returning the decorator
         party = args[0]
         return _mpc
+
 
 def dagonly(f):
 

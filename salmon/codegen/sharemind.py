@@ -71,6 +71,7 @@ class SharemindCodeGen(CodeGen):
 
     def _generate_miner_code(self, nodes):
 
+        # TODO: this code should be re-using base class _generate method
         # the code that will run on the miners
         miner_code = ""
         for node in nodes:
@@ -92,6 +93,10 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateProject(node)
             elif isinstance(node, Close):
                 miner_code += self._generateClose(node)
+            elif isinstance(node, Shuffle):
+                miner_code += self._generateShuffle(node)
+            elif isinstance(node, Persist):
+                miner_code += self._generatePersist(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -109,7 +114,7 @@ class SharemindCodeGen(CodeGen):
         output_parties = set().union(
             *[op.outRel.storedWith for op in open_ops])
         # only support one output party
-        assert(len(output_parties) == 1)
+        assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
         return next(iter(output_parties))  # pop
 
@@ -172,9 +177,9 @@ class SharemindCodeGen(CodeGen):
             template = open(
                 "{0}/relMetaDef.tmpl".format(self.template_directory), 'r').read()
             return pystache.render(template, {
-                    "REL_NAME": name,
-                    "REL_LEN": num_vals
-                })
+                "REL_NAME": name,
+                "REL_LEN": num_vals
+            })
 
         # code for parsing results received by controller
         template = open(
@@ -183,7 +188,7 @@ class SharemindCodeGen(CodeGen):
         # for parsing
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
-        rels_meta_str = "\n".join(rels_meta_defs) 
+        rels_meta_str = "\n".join(rels_meta_defs)
         data = {
             "ROOT_DIR": output_directory,
             "JOB_DIR": job_name,
@@ -193,8 +198,10 @@ class SharemindCodeGen(CodeGen):
 
     def _generate_controller_code(self, nodes, job_name, output_directory):
 
-        submit_code = self._generate_submit_code(nodes, job_name, output_directory)
-        receive_code = self._generate_receive_code(nodes, job_name, output_directory)
+        submit_code = self._generate_submit_code(
+            nodes, job_name, output_directory)
+        receive_code = self._generate_receive_code(
+            nodes, job_name, output_directory)
         return submit_code, receive_code
 
     def _generateAggregate(self, agg_op):
@@ -215,13 +222,16 @@ class SharemindCodeGen(CodeGen):
 
     def _generateClose(self, close_op):
 
-        template = open(
-            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
-        data = {
-            "NAME": close_op.outRel.name,
-            "TYPE": "uint32"
-        }
-        return pystache.render(template, data)
+        # TODO: figure out naming
+        # don't need to do anything for close ops
+        return ""
+        # template = open(
+        #     "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+        # data = {
+        #     "NAME": close_op.outRel.name,
+        #     "TYPE": "uint32"
+        # }
+        # return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
 
@@ -255,8 +265,14 @@ class SharemindCodeGen(CodeGen):
         return pystache.render(outer, data)
 
     def _generateCreate(self, create_op):
-        # don't need to do anything for create ops 
-        return ""
+
+        template = open(
+            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "NAME": create_op.outRel.name,
+            "TYPE": "uint32"
+        }
+        return pystache.render(template, data)
 
     def _generateDivide(self, divide_op):
 
@@ -285,14 +301,18 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
-        left_key_cols_str = ",".join([str(col.idx) for col in join_op.leftJoinCols])
-        right_key_cols_str = ",".join([str(col.idx) for col in join_op.rightJoinCols])
+        left_key_cols_str = ",".join([str(col.idx)
+                                      for col in join_op.leftJoinCols])
+        right_key_cols_str = ",".join(
+            [str(col.idx) for col in join_op.rightJoinCols])
         left_rel = join_op.leftParent.outRel
         right_rel = join_op.rightParent.outRel
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
-        cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
-        cols_to_exclude = [col.idx + len(left_rel.columns) for col in join_op.rightJoinCols]
+        cols_to_keep = list(
+            range(len(left_rel.columns) + len(right_rel.columns)))
+        cols_to_exclude = [col.idx + len(left_rel.columns)
+                           for col in join_op.rightJoinCols]
         cols_to_keep_str = ",".join(
             [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
         data = {
@@ -313,6 +333,26 @@ class SharemindCodeGen(CodeGen):
         data = {
             "OUT_REL": open_op.outRel.name,
             "IN_REL": open_op.getInRel().name,
+        }
+        return pystache.render(template, data)
+
+    def _generateShuffle(self, shuffle_op):
+
+        template = open(
+            "{0}/shuffle.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "OUT_REL": shuffle_op.outRel.name,
+            "IN_REL": shuffle_op.getInRel().name,
+        }
+        return pystache.render(template, data)
+
+    def _generatePersist(self, persist_op):
+
+        template = open(
+            "{0}/persist.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "OUT_REL": persist_op.outRel.name,
+            "IN_REL": persist_op.getInRel().name,
         }
         return pystache.render(template, data)
 

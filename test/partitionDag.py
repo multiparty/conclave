@@ -1,6 +1,7 @@
 import salmon.lang as sal
 from salmon.comp import dagonly, mpc
 from salmon.utils import *
+from salmon.codegen.scotch import ScotchCodeGen
 import salmon.partition as part
 
 
@@ -85,13 +86,15 @@ def test_partition_taxi():
         # dummy projection to force non-mpc subdag
         hhi_only = sal.project(
             hhi, "hhi_only", ["companyID", "hhi"])
-        
+
         sal.collect(hhi_only, 1)
 
         # return root nodes
         return set([in1, in2, in3])
 
     dag = protocol()
+    print(ScotchCodeGen(dag)._generate(None, None))
+
     mapping = part.heupart(dag)
 
     expected = '''sparkcreate->in1,
