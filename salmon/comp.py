@@ -584,7 +584,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                     saldag.insertBetween(parent, node, storeOp)
                 else:
                     raise Exception(
-                        "different storedWith on non-upper-boundary join", node.dbgStr())
+                        "different storedWith on non-upper-boundary join", node.debugStr())
 
     def _rewriteConcat(self, node):
 
