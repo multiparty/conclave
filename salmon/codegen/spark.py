@@ -40,7 +40,7 @@ class SparkCodeGen(CodeGen):
                             .format(self.template_directory), 'r').read()
             data = {
                 'RELATION_NAME': op.outRel.name,
-                'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+                'OUTPUT_PATH': self.config.output_path,
             }
             store_code += pystache.render(template, data)
 
