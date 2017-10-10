@@ -138,13 +138,15 @@ class SharemindCodeGen(CodeGen):
         # only need schemas for my close ops
         my_close_ops = filter(
             lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
+        import_statements = []
         for close_op in my_close_ops:
             # generate schema and get its name
             name, schema = self._generateSchema(close_op)
             schemas[name] = schema
             # generate csv import code
-            input_code += self._generateCSVImport(
-                close_op, output_directory, job_name)
+            import_statements.append(self._generateCSVImport(
+                close_op, output_directory, job_name)[:-1])
+        input_code = "&&".join(import_statements)
         # expand top-level
         top_level_template = open(
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
