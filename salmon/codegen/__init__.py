@@ -12,7 +12,7 @@ class CodeGenConfig:
     def with_pid(self, pid):
         if not self.inited:
             self.__init__()
-        self.sharemind_pid = pid
+        self.pid = pid
 
     def with_delimiter(self, delimiter):
         if not self.inited:
@@ -26,7 +26,7 @@ class CodeGenConfig:
         ccfg.input_path = cfg['input_path']
         ccfg.output_path = cfg['output_path']
 
-        ccfg.sharemind_pid = cfg['sharemind_pid']
+        ccfg.pid = cfg['pid']
 
         return ccfg
 
