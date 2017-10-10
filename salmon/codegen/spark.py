@@ -274,7 +274,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'INPUTS': ' '.join(roots),
             'OUTPUTS': ' '.join(leaves),
-            'PATH': self.config.code_path
+            'PATH': "{}/{}".format(self.config.code_path, job_name)
         }
 
         return pystache.render(template, data)
