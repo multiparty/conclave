@@ -11,8 +11,10 @@ def cache_var(op_node):
 
 
 class SparkCodeGen(CodeGen):
-    def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
-        super(SparkCodeGen, self).__init__(dag)
+
+    def __init__(self, config, dag,
+            template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
+        super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
 
     def _generateJob(self, job_name, output_directory, op_code):
@@ -38,7 +40,7 @@ class SparkCodeGen(CodeGen):
                             .format(self.template_directory), 'r').read()
             data = {
                 'RELATION_NAME': op.outRel.name,
-                'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+                'OUTPUT_PATH': self.config.output_path,
             }
             store_code += pystache.render(template, data)
 
@@ -105,7 +107,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'RELATION_NAME': create_op.outRel.name,
-            'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
+            'INPUT_PATH': self.config.input_path,
+            'DELIMITER': self.config.delimiter,
             'CACHE_VAR': cache_var(create_op)
         }
 
@@ -247,7 +250,8 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
         data = {
             'RELATION_NAME': op.outRel.name,
-            'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+            'DELIMITER': self.config.delimiter,
+            'OUTPUT_PATH': self.config.output_path,
         }
 
         return pystache.render(template, data)
@@ -258,13 +262,16 @@ class SparkCodeGen(CodeGen):
         nodes = self.dag.topSort()
         for node in nodes:
             if node.isRoot():
-                roots.append("{}/{}/{}.csv"
-                             .format(output_directory, job_name, node.outRel.name))
+                roots.append("{}/{}.csv"
+                             .format(self.config.input_path, node.outRel.name))
             elif node.isLeaf():
-                leaves.append("{}/{}/{}.csv"
-                              .format(output_directory, job_name, node.outRel.name))
+                leaves.append("{}/{}.csv"
+                              .format(self.config.input_path, node.outRel.name))
 
-        path = "{}/{}".format(output_directory, job_name)
+        # XXX(malte): this generates the driver script in the output directory, which
+        # is also where the Python code currently lives. We should probably make this
+        # configurable.
+        code_path = "{}/{}".format(output_directory, job_name)
 
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
@@ -272,7 +279,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'INPUTS': ' '.join(roots),
             'OUTPUTS': ' '.join(leaves),
-            'PATH': path
+            'PATH': code_path
         }
 
         return pystache.render(template, data)

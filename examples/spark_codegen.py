@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import dagonly
-from salmon.codegen import spark
+from salmon.codegen import spark, CodeGenConfig
 from salmon.utils import *
 
 @dagonly
@@ -166,40 +166,42 @@ def index():
 
 if __name__ == "__main__":
 
+    config = CodeGenConfig()
+
     simple_mult_dag = simple_mult()
-    simple_mult = spark.SparkCodeGen(simple_mult_dag)
+    simple_mult = spark.SparkCodeGen(config, simple_mult_dag)
     job = simple_mult.generate("simple_mult", "/tmp")
 
     comp_mult_dag = comp_mult()
-    comp_mult = spark.SparkCodeGen(comp_mult_dag)
+    comp_mult = spark.SparkCodeGen(config, comp_mult_dag)
     job = comp_mult.generate("comp_mult", "/tmp")
 
     simple_div_dag = simple_div()
-    simple_div = spark.SparkCodeGen(simple_div_dag)
+    simple_div = spark.SparkCodeGen(config, simple_div_dag)
     job = simple_div.generate("simple_div", "/tmp")
 
     comp_div_dag = comp_div()
-    comp_div = spark.SparkCodeGen(comp_div_dag)
+    comp_div = spark.SparkCodeGen(config, comp_div_dag)
     job = comp_div.generate("comp_div", "/tmp")
 
     create_mult_dag = create_col_mult()
-    create_mult = spark.SparkCodeGen(create_mult_dag)
+    create_mult = spark.SparkCodeGen(config, create_mult_dag)
     job = create_mult.generate("create_mult", "/tmp")
 
     create_div_dag = create_col_div()
-    create_div = spark.SparkCodeGen(create_div_dag)
+    create_div = spark.SparkCodeGen(config, create_div_dag)
     job = create_div.generate("create_div", "/tmp")
 
     multicol_agg_dag = multicol_agg()
-    multicol_agg = spark.SparkCodeGen(multicol_agg_dag)
+    multicol_agg = spark.SparkCodeGen(config, multicol_agg_dag)
     job = multicol_agg.generate('multicol_agg', '/tmp')
 
     multicol_join_dag = multicol_join()
-    multicol_join = spark.SparkCodeGen(multicol_join_dag)
+    multicol_join = spark.SparkCodeGen(config, multicol_join_dag)
     job = multicol_join.generate('multicol_join', '/tmp')
 
     index_dag = index()
-    index = spark.SparkCodeGen(index_dag)
+    index = spark.SparkCodeGen(config, index_dag)
     job = index.generate('index', '/tmp')
 
     print("Spark code generated in /tmp/")

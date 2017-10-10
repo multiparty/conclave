@@ -1,9 +1,41 @@
 from salmon.dag import *
 
+class CodeGenConfig:
+
+    def __init__(self):
+        self.inited = True
+        self.delimiter = ','
+        self.input_path = '/tmp'
+        self.output_path = '/tmp'
+        self.pid = 1
+
+    def with_pid(self, pid):
+        if not self.inited:
+            self.__init__()
+        self.sharemind_pid = pid
+
+    def with_delimiter(self, delimiter):
+        if not self.inited:
+            self.__init__()
+        self.delimiter = delimiter
+
+    def from_dict(cfg):
+        ccfg = CodeGenConfig()
+
+        ccfg.delimiter = cfg['delimiter']
+        ccfg.input_path = cfg['input_path']
+        ccfg.output_path = cfg['output_path']
+
+        ccfg.sharemind_pid = cfg['sharemind_pid']
+
+        return ccfg
+
+
 class CodeGen:
 
     # initialize code generator for DAG passed
-    def __init__(self, dag):
+    def __init__(self, config, dag):
+        self.config = config
         self.dag = dag
 
     # generate code for the DAG stored

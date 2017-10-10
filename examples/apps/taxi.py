@@ -54,15 +54,10 @@ def taxi():
         return set([in1, in2, in3])
 
     config = {
-        "general": {
-            "pid": 1
-        },
-        "sharemind": {
-            "home": "/tmp"
-        },
-        "spark": {
-            "home": "/tmp"
-        }
+        "sharemind_pid": 1,
+        "delimiter": ",",
+        "input_path": "/tmp",
+        "output_path": "/tmp",
     }
     jobqueue = codegen(protocol, config)
     print(jobqueue)

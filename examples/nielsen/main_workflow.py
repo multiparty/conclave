@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import dagonly
-from salmon.codegen import spark, viz
+from salmon.codegen import spark, viz, CodeGenConfig
 from salmon.utils import *
 
 
@@ -90,10 +90,12 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    viz = viz.VizCodeGen(dag)
+    config = CodeGenConfig()
+
+    viz = viz.VizCodeGen(config, dag)
     viz.generate("main_workflow", "/tmp")
 
-    cg = spark.SparkCodeGen(dag)
+    cg = spark.SparkCodeGen(config, dag)
     cg.generate("main_workflow", "/tmp")
 
     print("Spark code generated in /tmp/main_workflow.py")

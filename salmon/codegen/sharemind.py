@@ -9,9 +9,10 @@ import shutil
 
 class SharemindCodeGen(CodeGen):
 
-    def __init__(self, dag, pid, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
+    def __init__(self, config, dag, pid,
+            template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
-        super(SharemindCodeGen, self).__init__(dag)
+        super(SharemindCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
         self.pid = pid
 
@@ -183,7 +184,7 @@ class SharemindCodeGen(CodeGen):
         # for parsing
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
-        rels_meta_str = "\n".join(rels_meta_defs) 
+        rels_meta_str = "\n".join(rels_meta_defs)
         data = {
             "ROOT_DIR": output_directory,
             "JOB_DIR": job_name,
@@ -255,7 +256,7 @@ class SharemindCodeGen(CodeGen):
         return pystache.render(outer, data)
 
     def _generateCreate(self, create_op):
-        # don't need to do anything for create ops 
+        # don't need to do anything for create ops
         return ""
 
     def _generateDivide(self, divide_op):

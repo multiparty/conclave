@@ -3,6 +3,6 @@ in_f = sc.textFile(sys.argv[inpt_idx])
 inpt_idx += 1
 
 {{{RELATION_NAME}}} = in_f \
-    .map(lambda line: line.split('\t')) \
+    .map(lambda line: line.split('{{{DELIMITER}}}')) \
     {{{CACHE_VAR}}}
 
