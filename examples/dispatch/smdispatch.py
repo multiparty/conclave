@@ -40,7 +40,7 @@ def protocol():
 
 if __name__ == "__main__":
 
-    sharemind_home = "/tmp"
+    sharemind_home = "/shared"
     spark_master = "local"
 
     pid = int(sys.argv[1])
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # sm_peer = salmon.net.setup_peer(sharemind_config)
 
     codegen_config = CodeGenConfig("sm-test")
-    codegen_config.code_path = "/tmp/"
+    codegen_config.code_path = "/mnt/shared"
 
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
         "job-" + str(pid), sharemind_home)

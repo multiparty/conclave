@@ -1,6 +1,4 @@
-export LD_LIBRARY_PATH=/usr/local/sharemind/lib/
-cd {{ROOT_DIR}}
-if miner_output=$(sm_compile_and_run_remote.sh {{JOB_DIR}}/miner.sc); then
+if miner_output=$(./sm_compile_and_run_remote.sh {{JOB_DIR}}/miner.sc); then
     printf '%s' "$miner_output" | python3 {{JOB_DIR}}/receive.py
 else
     exit 1

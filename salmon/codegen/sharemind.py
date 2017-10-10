@@ -164,7 +164,10 @@ class SharemindCodeGen(CodeGen):
         # code for submitting job to miners
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
-        data = {}
+        data = {
+            "ROOT_DIR": output_directory,
+            "JOB_DIR": job_name
+	}
         # inner template (separate shell script)
         templateInner = open(
             "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()

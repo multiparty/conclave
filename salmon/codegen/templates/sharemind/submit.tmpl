@@ -1,1 +1,1 @@
-docker exec -ti 5110d22076ec sh -c "cd {{SHAREMIND_HOME}} && bash {{JOB_DIR}}/submitInner.sh"
+docker exec -ti 5110d22076ec sh -c "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd {{ROOT_DIR}} && bash {{JOB_DIR}}/submitInner.sh"
