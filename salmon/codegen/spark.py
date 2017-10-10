@@ -262,13 +262,16 @@ class SparkCodeGen(CodeGen):
         nodes = self.dag.topSort()
         for node in nodes:
             if node.isRoot():
-                roots.append("{}/{}/{}.csv"
-                             .format(output_directory, job_name, node.outRel.name))
+                roots.append("{}/{}.csv"
+                             .format(self.config.input_path, node.outRel.name))
             elif node.isLeaf():
-                leaves.append("{}/{}/{}.csv"
-                              .format(output_directory, job_name, node.outRel.name))
+                leaves.append("{}/{}.csv"
+                              .format(self.config.input_path, node.outRel.name))
 
-        path = "{}/{}".format(output_directory, job_name)
+        # XXX(malte): this generates the driver script in the output directory, which
+        # is also where the Python code currently lives. We should probably make this
+        # configurable.
+        code_path = "{}/{}".format(output_directory, job_name)
 
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
@@ -276,7 +279,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'INPUTS': ' '.join(roots),
             'OUTPUTS': ' '.join(leaves),
-            'PATH': path
+            'PATH': code_path
         }
 
         return pystache.render(template, data)
