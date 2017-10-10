@@ -10,12 +10,10 @@ class SparkDispatcher():
 
     def dispatch(self, job):
 
-        cmd = "{0}/{1}/bash.sh"\
-            .format(job.root_dir, job.name)
+        cmd = "{}/bash.sh".format(job.code_dir)
 
-        print("{}/{}/bash.sh dispatching to Spark master at {}"
-              .format(job.root_dir, job.name, self.master)
-              )
+        print("{}: {}/bash.sh dispatching to Spark master at {}" \
+                .format(job.name, job.code_dir, self.master))
 
         try:
             call(["/bin/bash", cmd, self.master])

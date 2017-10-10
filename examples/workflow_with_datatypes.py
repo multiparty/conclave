@@ -35,9 +35,9 @@ def protocol():
 if __name__ == "__main__":
 
     dag = protocol()
-    config = CodeGenConfig()
+    config = CodeGenConfig("dtypes")
 
     cg = spark.SparkCodeGen(config, dag)
     cg.generate("dtypes", "/tmp")
 
-    print("Spark code generated in /tmp/dtypes.py")
+    print("Spark code generated in {}".format(config.code_path))

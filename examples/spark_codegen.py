@@ -204,4 +204,4 @@ if __name__ == "__main__":
     index = spark.SparkCodeGen(config, index_dag)
     job = index.generate('index', '/tmp')
 
-    print("Spark code generated in /tmp/")
+    print("Spark code generated in {}".format(config.code_path))

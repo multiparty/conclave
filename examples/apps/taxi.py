@@ -54,8 +54,10 @@ def taxi():
         return set([in1, in2, in3])
 
     config = {
-        "sharemind_pid": 1,
+        "name": "taxi",
+        "pid": 1,
         "delimiter": ",",
+        "code_path": "/tmp/taxi-code",
         "input_path": "/tmp",
         "output_path": "/tmp",
     }

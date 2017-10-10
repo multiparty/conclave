@@ -16,9 +16,8 @@ class SharemindDispatcher():
 
     def _input_data(self, job):
 
-        cmd = "{}/{}/input.sh".format(
-            job.root_dir,
-            job.name
+        cmd = "{}/input.sh".format(
+            job.code_dir
         )
         print("Will run data submission: " + cmd)
         try:
@@ -30,8 +29,7 @@ class SharemindDispatcher():
     def _submit_to_miners(self, job):
 
         cmd = "{}/{}/submit.sh".format(
-            job.root_dir,
-            job.name
+            job.code_dir
         )
         print("Will submit jobs to miners: " + cmd)
         p = Popen(["bash", cmd], stdin=PIPE, stdout=PIPE, stderr=PIPE)

@@ -58,4 +58,4 @@ if __name__ == "__main__":
     cg = spark.SparkCodeGen(config, dag)
     cg.generate("taxi", "/tmp")
 
-    print("Spark code generated in /tmp/taxi.py")
+    print("Spark code generated in {}".format(config.code_path))

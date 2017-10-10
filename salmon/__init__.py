@@ -21,12 +21,14 @@ def codegen(protocol, config):
     for job_num, (fmwk, subdag) in enumerate(mapping):
         print(job_num, fmwk)
         if fmwk == "sharemind":
+            name = "{}-sharemind-job-{}".format(cfg.name, job_num)
             job = SharemindCodeGen(cfg, subdag, cfg.pid).generate(
-                "sharemind-job-" + str(job_num), cfg.output_path)
+                    name, cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "spark":
-            job = SparkCodeGen(cfg, subdag).generate(
-                "spark-job-" + str(job_num), cfg.output_path)
+            name = "{}-spark-job-{}".format(cfg.name, job_num)
+            job = SparkCodeGen(cfg, subdag).generate(name,
+                    cfg.output_path)
             jobqueue.append(job)
         else:
             raise Exception("Unknown framework: " + fmwk)

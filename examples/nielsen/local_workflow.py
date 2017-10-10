@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    config = CodeGenConfig()
+    config = CodeGenConfig("nielsen-local")
 
     vg = viz.VizCodeGen(config, dag)
     vg.generate("local_workflow", "/tmp")
@@ -66,4 +66,4 @@ if __name__ == "__main__":
     cg = spark.SparkCodeGen(config, dag)
     cg.generate("local_workflow", "/tmp")
 
-    print("Spark code generated in /tmp/local_workflow.py")
+    print("Spark code generated in {}".format(config.code_path))

@@ -20,7 +20,7 @@ class SharemindCodeGen(CodeGen):
 
         job, code = self._generate(job_name, output_directory)
         # store the code in type-specific files
-        self._writeCode(code, output_directory, job_name)
+        self._writeCode(code, job_name)
         # return job object
         return job
 
@@ -392,7 +392,7 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _writeCode(self, code_dict, output_directory, job_name):
+    def _writeCode(self, code_dict, job_name):
 
         def _write(root_dir, fn, ext, content):
             fullpath = "{}/{}.{}".format(root_dir, fn, ext)
@@ -408,14 +408,13 @@ class SharemindCodeGen(CodeGen):
             "miner": "sc"
         }
 
-        # root directory to write to
-        job_root_dir = "{}/{}".format(output_directory, job_name)
         # write files
+        job_code_path = "{}/{}".format(self.config.code_path, job_name)
         for code_type, code in code_dict.items():
             if code_type == "schemas":
                 schemas = code
                 for schema_name in schemas:
-                    _write(job_root_dir, schema_name,
+                    _write(job_code_path, schema_name,
                            ext_lookup[code_type], schemas[schema_name])
             else:
-                _write(job_root_dir, code_type, ext_lookup[code_type], code)
+                _write(job_code_path, code_type, ext_lookup[code_type], code)

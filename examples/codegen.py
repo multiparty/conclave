@@ -27,9 +27,9 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    config = CodeGenConfig()
+    config = CodeGenConfig("aggtest")
 
     cg = spark.SparkCodeGen(config, dag)
     cg.generate("aggtest", "/tmp")
 
-    print("Spark code generated in /tmp/aggtest/")
+    print("Spark code generated in {}".format(config.code_path))
