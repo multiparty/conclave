@@ -45,11 +45,8 @@ def taxi(config):
                                             ["local_rev", "local_rev", 1])
         hhi = sal.aggregate(market_share_squared, "hhi", [
                             "companyID"], "local_rev", "+", "hhi")
-        # dummy projection to force non-mpc subdag
-        hhi_only = sal.project(
-            hhi, "hhi_only", ["companyID", "hhi"])
 
-        sal.collect(hhi_only, 1)
+        sal.collect(hhi, 1)
 
         # return root nodes
         return set([in1, in2, in3])
