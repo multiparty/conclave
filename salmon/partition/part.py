@@ -59,7 +59,6 @@ class SubDag(Dag):
 
 def getBestPartition(nodes):
     # TODO: is this the best way to express maximum cost?
-    # max_cost = int(maxsize)
     max_cost = 1000
     num_ops = len(nodes)
     max_ops = int(pow(2, num_ops))
@@ -141,7 +140,8 @@ def measureCost(nodes, fmwk):
     if fmwk == 'spark':
         for node in nodes:
             if node.isMPC:
-                cost += inf
+                # can't use inf bc it tries to index the job_cost list at inf
+                cost += 1000
             else:
                 if isinstance(node, Aggregate):
                     cost += 1
