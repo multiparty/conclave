@@ -51,11 +51,13 @@ if __name__ == "__main__":
             3: {"host": "localhost", "port": 9003}
         }
     }
-    # sm_peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    codegen_config = SharemindCodeGenConfig("job-1", "/tmp")
-
+    codegen_config = SharemindCodeGenConfig("job-" + str(pid), "/mnt/shared")
+    codegen_config.code_path = "/mnt/shared/job-" + str(pid)
+    codegen_config.input_path = "/mnt/shared"
+    codegen_config.output_path = "/mnt/shared"
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
         "job-" + str(pid), sharemind_home)
-    # job_queue = [job]
-    # salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
+    job_queue = [job]
+    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

@@ -174,7 +174,7 @@ class SharemindCodeGen(CodeGen):
         # inner template (separate shell script)
         templateInner = open(
             "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
-        dataInner = {"CODE_PATH": job_name}
+        dataInner = {"CODE_PATH": code_path}
         return {
             "outer": pystache.render(template, data),
             "inner": pystache.render(templateInner, dataInner)
@@ -203,8 +203,7 @@ class SharemindCodeGen(CodeGen):
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
-            "ROOT_DIR": output_directory,
-            "JOB_DIR": job_name,
+            "OUTPUT_PATH": self.config.output_path,
             "RELS_META": rels_meta_str
         }
         return pystache.render(template, data)

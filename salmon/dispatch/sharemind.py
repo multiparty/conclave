@@ -28,17 +28,21 @@ class SharemindDispatcher():
 
     def _submit_to_miners(self, job):
 
-        cmd = "{}/{}/submit.sh".format(
+        cmd = "{}/submit.sh".format(
             job.code_dir
         )
         print("Will submit jobs to miners: " + cmd)
-        p = Popen(["bash", cmd], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        output, err = p.communicate(b"")
-        rc = p.returncode
-        if rc == 0:
-            print("job success")
-        else:
-            print("non-zero return code with error:", err)
+        try:
+            call(["bash", cmd])
+        except Exception:
+            print("Failed job")
+        #p = Popen(["bash", cmd], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        #output, err = p.communicate(b"")
+        #rc = p.returncode
+        #if rc == 0:
+        #    print("job success")
+        #else:
+        #    print("non-zero return code with error:", err)
 
 
     def _dispatch_as_controller(self, job):
