@@ -22,6 +22,11 @@ class SharemindCodeGen(CodeGen):
     def __init__(self, config, dag, pid,
                  template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
+        if not "sharemind" in config.system_configs:
+           print("Missing Sharemind configuration in CodeGenConfig!")
+           sys.exit(1)
+        self.sm_config = config.system_configs['sharemind']
+
         super(SharemindCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
         self.pid = pid
@@ -156,7 +161,7 @@ class SharemindCodeGen(CodeGen):
         top_level_template = open(
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
-            "SHAREMIND_HOME": self.config.home_path,
+            "SHAREMIND_HOME": self.sm_config.home_path,
             "IMPORTS": input_code
         }
         # return schemas and input code
@@ -168,7 +173,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "SHAREMIND_HOME": self.config.home_path,
+            "SHAREMIND_HOME": self.sm_config.home_path,
             "CODE_PATH": code_path
         }
         # inner template (separate shell script)

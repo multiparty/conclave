@@ -21,10 +21,21 @@ class CodeGenConfig:
             self.__init__()
         self.pid = pid
 
+        return self
+
     def with_delimiter(self, delimiter):
         if not self.inited:
             self.__init__()
         self.delimiter = delimiter
+
+        return self
+
+    def with_sharemind_config(self, cfg):
+        if not self.inited:
+            self.__init__()
+        self.system_configs['sharemind'] = cfg
+
+        return self
 
     def from_dict(cfg):
         ccfg = CodeGenConfig(cfg['name'])
