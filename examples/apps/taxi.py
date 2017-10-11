@@ -1,10 +1,11 @@
 import salmon.dispatch
+import salmon.net
 import salmon.lang as sal
 from salmon import codegen
 from salmon.utils import *
 import sys
 
-def taxi(config):
+def taxi(config, spark_master, sharemind_peer):
 
     def protocol():
         colsIn1 = [
@@ -54,8 +55,7 @@ def taxi(config):
     jobqueue = codegen(protocol, config)
     print(jobqueue)
 
-    # XXX(malte): need to pass Sharemind config here
-    salmon.dispatch.dispatch_all("spark://ca-spark-node-0:7077", None, jobqueue)
+    salmon.dispatch.dispatch_all(spark_master, sharemind_peer, jobqueue)
 
 
 if __name__ == "__main__":
@@ -77,4 +77,14 @@ if __name__ == "__main__":
         "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
     }
 
-    taxi(config)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
+    sm_peer = salmon.net.setup_peer(sharemind_config)
+
+    taxi(config, "spark://ca-spark-node-0:7077", sm_peer)
