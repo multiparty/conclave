@@ -8,7 +8,10 @@ from salmon.codegen.spark import SparkCodeGen
 def codegen(protocol, config):
 
     # set up code gen config object
-    cfg = CodeGenConfig.from_dict(config)
+    if isinstance(config, CodeGenConfig):
+        cfg = config
+    else:
+        cfg = CodeGenConfig.from_dict(config)
 
     # apply optimizations
     dag = comp.rewriteDag(saldag.OpDag(protocol()))

@@ -1,6 +1,8 @@
 import salmon.dispatch
 import salmon.net
 import salmon.lang as sal
+from salmon.codegen import CodeGenConfig
+from salmon.codegen.sharemind import SharemindCodeGenConfig
 from salmon import codegen
 from salmon.utils import *
 import sys
@@ -68,14 +70,23 @@ if __name__ == "__main__":
     hdfs_namenode = sys.argv[2]
     hdfs_root = sys.argv[3]
 
+    job_name = "job-" + str(pid)
     config = {
         "name": "taxi",
         "pid": pid,
         "delimiter": ",",
-        "code_path": "/tmp/taxi-code",
+        "code_path": "/mnt/shared/" + job_name,
         "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
         "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
     }
+    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        job_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + job_name
+    codegen_config.input_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
+    codegen_config.output_path = "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root)
+    codegen_config.pid = pid
+    codegen_config.name = job_name
 
     sharemind_config = {
         "pid": pid,
@@ -87,4 +98,4 @@ if __name__ == "__main__":
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    taxi(config, "spark://ca-spark-node-0:7077", sm_peer)
+    taxi(codegen_config, "spark://ca-spark-node-0:7077", sm_peer)

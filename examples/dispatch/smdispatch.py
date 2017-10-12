@@ -47,9 +47,9 @@ if __name__ == "__main__":
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
+            1: {"host": "10.10.10.12", "port": 9001},
+            2: {"host": "10.10.10.11", "port": 9002},
+            3: {"host": "10.10.10.8", "port": 9003}
         }
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
