@@ -54,13 +54,15 @@ if __name__ == "__main__":
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    sm_cg_config = SharemindCodeGenConfig("job-" + str(pid), "/mnt/shared")
-    codegen_config = CodeGenConfig("job-" + str(pid)).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/job-" + str(pid)
+    job_name = "job-" + str(pid)
+    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        job_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + job_name
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
-        "job-" + str(pid), sharemind_home)
+        job_name, sharemind_home)
     job_queue = [job]
     salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

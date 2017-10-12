@@ -209,7 +209,8 @@ class SharemindCodeGen(CodeGen):
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
             "OUTPUT_PATH": self.config.output_path,
-            "RELS_META": rels_meta_str
+            "RELS_META": rels_meta_str,
+            "DELIMITER": self.config.delimiter
         }
         return pystache.render(template, data)
 
@@ -411,13 +412,20 @@ class SharemindCodeGen(CodeGen):
 
     def _generateCSVImport(self, close_op, output_directory, job_name):
 
+        def _delim_lookup(delim):
+
+            if delim == ",":
+                return "c"
+            else:
+                raise Exception("unknown delimiter")
+
         template = open(
             "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
         data = {
             "IN_NAME": close_op.getInRel().name,
             "INPUT_PATH": self.config.input_path,
             "CODE_PATH": self.config.code_path,
-            "DELIM": "c"
+            'DELIMITER': _delim_lookup(self.config.delimiter),
         }
         return pystache.render(template, data)
 
