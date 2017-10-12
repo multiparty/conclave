@@ -14,6 +14,7 @@ class CodeGenConfig:
           self.name = os.path.basename(self.code_path)
         self.input_path = '/tmp'
         self.output_path = '/tmp'
+        self.system_configs = {}
         self.pid = 1
 
     def with_pid(self, pid):
