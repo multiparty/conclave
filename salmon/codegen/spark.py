@@ -11,23 +11,24 @@ def cache_var(op_node):
 
 
 class SparkCodeGen(CodeGen):
-    def __init__(self, dag, template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
-        super(SparkCodeGen, self).__init__(dag)
+
+    def __init__(self, config, dag,
+            template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
+        super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
 
-    def _generateJob(self, job_name, output_directory, op_code):
+    def _generateJob(self, job_name, code_directory, op_code):
 
         template = open("{}/job.tmpl"
                         .format(self.template_directory), 'r').read()
         data = {
             'JOB_NAME': job_name,
-            'SPARK_MASTER': 'local',  # XXX(malte): make configurable
             'OP_CODE': op_code
         }
 
         op_code = pystache.render(template, data)
 
-        job = SparkJob(job_name, output_directory)
+        job = SparkJob(job_name, "{}/{}".format(code_directory, job_name))
 
         return job, op_code
 
@@ -39,7 +40,7 @@ class SparkCodeGen(CodeGen):
                             .format(self.template_directory), 'r').read()
             data = {
                 'RELATION_NAME': op.outRel.name,
-                'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+                'OUTPUT_PATH': self.config.output_path,
             }
             store_code += pystache.render(template, data)
 
@@ -106,7 +107,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'RELATION_NAME': create_op.outRel.name,
-            'INPUT_PATH': "/tmp",  # XXX(malte): make configurable
+            'INPUT_PATH': self.config.input_path,
+            'DELIMITER': self.config.delimiter,
             'CACHE_VAR': cache_var(create_op)
         }
 
@@ -248,24 +250,23 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
         data = {
             'RELATION_NAME': op.outRel.name,
-            'OUTPUT_PATH': "/tmp"  # XXX(malte): make configurable
+            'DELIMITER': self.config.delimiter,
+            'OUTPUT_PATH': self.config.output_path,
         }
 
         return pystache.render(template, data)
 
-    def _writeBash(self, output_directory, job_name):
+    def _writeBash(self, job_name):
         roots, leaves = [], []
 
         nodes = self.dag.topSort()
         for node in nodes:
             if node.isRoot():
-                roots.append("{}/{}/{}.csv"
-                             .format(output_directory, job_name, node.outRel.name))
+                roots.append("{}/{}.csv"
+                             .format(self.config.input_path, node.outRel.name))
             elif node.isLeaf():
-                leaves.append("{}/{}/{}.csv"
-                              .format(output_directory, job_name, node.outRel.name))
-
-        path = "{}/{}".format(output_directory, job_name)
+                leaves.append("{}/{}.csv"
+                              .format(self.config.input_path, node.outRel.name))
 
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
@@ -273,22 +274,19 @@ class SparkCodeGen(CodeGen):
         data = {
             'INPUTS': ' '.join(roots),
             'OUTPUTS': ' '.join(leaves),
-            'PATH': path
+            'PATH': "{}/{}".format(self.config.code_path, job_name)
         }
 
         return pystache.render(template, data)
 
-    def _writeCode(self, code, output_directory, job_name):
+    def _writeCode(self, code, job_name):
 
-        fullpath = "{}/{}/".format(output_directory, job_name)
-        os.makedirs(os.path.dirname(fullpath), exist_ok=True)
+        os.makedirs("{}/{}".format(self.config.code_path, job_name), exist_ok=True)
 
         # write code to a file
-        pyfile = open("{}/{}/workflow.py"
-                      .format(output_directory, job_name), 'w')
+        pyfile = open("{}/{}/workflow.py".format(self.config.code_path, job_name), 'w')
         pyfile.write(code)
 
-        bash_code = self._writeBash(output_directory, job_name)
-        bash = open("{}/{}/bash.sh"
-                    .format(output_directory, job_name), 'w')
+        bash_code = self._writeBash(job_name)
+        bash = open("{}/{}/bash.sh".format(self.config.code_path, job_name), 'w')
         bash.write(bash_code)

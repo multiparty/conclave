@@ -3,6 +3,7 @@ from salmon.comp import mpc, scotch, dagonly
 from salmon.utils import *
 import salmon.partition as part
 
+
 def test_partition_taxi():
 
     @mpc(1)
@@ -38,7 +39,7 @@ def test_partition_taxi():
         hhi = sal.aggregate(market_share_squared, "hhi", ["companyID"], "local_rev", "+", "hhi")
         
         sal.collect(hhi, 1)
-        
+
         # return root nodes
         return set([in1, in2, in3])
 

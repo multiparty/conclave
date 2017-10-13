@@ -5,25 +5,17 @@ class SparkDispatcher():
     '''
     Dispatches Spark jobs
     '''
-    def __init__(self):
-        pass
+    def __init__(self, master_url):
+        self.master = master_url
 
     def dispatch(self, job):
 
-        cmd = "{0}/{1}.sh"\
-            .format(job.root_dir, job.name)
+        cmd = "{}/bash.sh".format(job.code_dir)
 
-        print("Running script {}.sh located at: {}"
-              .format(job.name, job.root_dir)
-              )
+        print("{}: {}/bash.sh dispatching to Spark master at {}" \
+                .format(job.name, job.code_dir, self.master))
 
         try:
-            call(["bash", cmd])
+            call(["/bin/bash", cmd, self.master])
         except Exception as e:
             print(e)
-
-
-
-
-
-

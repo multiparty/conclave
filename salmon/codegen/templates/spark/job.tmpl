@@ -1,9 +1,11 @@
 from pyspark import SparkContext, SparkConf
 import numpy, functools, operator, sys
 
-conf = SparkConf().setAppName("{{{JOB_NAME}}}").setMaster("{{{SPARK_MASTER}}}")
+conf = SparkConf().setAppName("{{{JOB_NAME}}}")
 sc = SparkContext(conf=conf)
 
 inpt_idx = 1
 
 {{{OP_CODE}}}
+
+sc.stop()

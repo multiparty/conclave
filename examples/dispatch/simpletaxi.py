@@ -1,3 +1,4 @@
+from salmon.codegen import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 import salmon.dispatch
 import salmon.net
@@ -27,7 +28,7 @@ def protocol():
         defCol("price", "INTEGER", [3])
     ]
     in3 = sal.create("in3", colsIn3, set([3]))
-    
+
     cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
@@ -53,7 +54,8 @@ def protocol():
 def party_proc(pid):
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
-    config = {
+    spark_master = "local"
+    sharemind_config = {
         "pid": pid,
         "parties": {
             1: {"host": "localhost", "port": 9001},
@@ -61,14 +63,16 @@ def party_proc(pid):
             3: {"host": "localhost", "port": 9003}
         }
     }
-    peer = salmon.net.setup_peer(config)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), sharemind_home)
+    codegen_config = CodeGenConfig()
+
+    job = SharemindCodeGen(codegen_config, protocol(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
-    salmon.dispatch.dispatch_all(peer, job_queue)
+    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
 
 if __name__ == "__main__":
-    
+
     # run each party in separate process
     # TODO: switch to threads if asyncio is thread-safe
     procs = []

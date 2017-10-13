@@ -8,7 +8,11 @@ script:
 
 notifications:
   email: true
-  slack: appliedmpc:fU25pTj0itFJQp9ycTEFXI2F
+  slack:
+    rooms:
+      - appliedmpc:fU25pTj0itFJQp9ycTEFXI2F
+    on_success: change
+    on_failure: always
 
 os:
   - linux

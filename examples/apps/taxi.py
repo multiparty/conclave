@@ -1,9 +1,13 @@
+import salmon.dispatch
+import salmon.net
 import salmon.lang as sal
+from salmon.codegen import CodeGenConfig
+from salmon.codegen.sharemind import SharemindCodeGenConfig
 from salmon import codegen
 from salmon.utils import *
+import sys
 
-
-def taxi():
+def taxi(config, spark_master, sharemind_peer):
 
     def protocol():
         colsIn1 = [
@@ -44,29 +48,55 @@ def taxi():
                                             ["local_rev", "local_rev", 1])
         hhi = sal.aggregate(market_share_squared, "hhi", [
                             "companyID"], "local_rev", "+", "hhi")
-        # dummy projection to force non-mpc subdag
-        hhi_only = sal.project(
-            hhi, "hhi_only", ["companyID", "hhi"])
 
-        sal.collect(hhi_only, 1)
+        sal.collect(hhi, 1)
 
         # return root nodes
         return set([in1, in2, in3])
 
-    config = {
-        "general": {
-            "pid": 1
-        },
-        "sharemind": {
-            "home": "/tmp"
-        },
-        "spark": {
-            "home": "/tmp"
-        }
-    }
     jobqueue = codegen(protocol, config)
     print(jobqueue)
 
+    salmon.dispatch.dispatch_all(spark_master, sharemind_peer, jobqueue)
+
+
 if __name__ == "__main__":
 
-    taxi()
+    if len(sys.argv) < 4:
+        print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>")
+        sys.exit(1)
+
+    pid = int(sys.argv[1])
+    hdfs_namenode = sys.argv[2]
+    hdfs_root = sys.argv[3]
+    spark_master_url = sys.argv[4]
+
+    job_name = "job-" + str(pid)
+    config = {
+        "name": "taxi",
+        "pid": pid,
+        "delimiter": ",",
+        "code_path": "/mnt/shared/" + job_name,
+        "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
+        "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
+    }
+    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        job_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + job_name
+    codegen_config.input_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
+    codegen_config.output_path = "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root)
+    codegen_config.pid = pid
+    codegen_config.name = job_name
+
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
+    sm_peer = salmon.net.setup_peer(sharemind_config)
+
+    taxi(codegen_config, spark_master_url, sm_peer)

@@ -1,4 +1,5 @@
-from salmon.codegen.sharemind import SharemindCodeGen
+from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from salmon.codegen import CodeGenConfig
 import salmon.dispatch
 import salmon.net
 from salmon.comp import dagonly
@@ -31,7 +32,7 @@ def protocol():
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
     rel = sal.concat([cl1, cl2, cl3], "rel")
-    agg = sal.aggregate(rel, "agg", "a", "b", "+", "total")
+    agg = sal.aggregate(rel, "agg", ["a"], "b", "+", "total")
 
     opened = sal._open(agg, "opened", 1)
     # return root nodes
@@ -39,18 +40,29 @@ def protocol():
 
 if __name__ == "__main__":
 
-    sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
+    sharemind_home = "/tmp"
+    spark_master = "local"
+
     pid = int(sys.argv[1])
-    config = {
+    sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
+            1: {"host": "10.10.10.12", "port": 9001},
+            2: {"host": "10.10.10.11", "port": 9002},
+            3: {"host": "10.10.10.8", "port": 9003}
         }
     }
-    peer = salmon.net.setup_peer(config)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    job = SharemindCodeGen(protocol(), pid).generate("job-" + str(pid), sharemind_home)
+    job_name = "job-" + str(pid)
+    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        job_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + job_name
+    codegen_config.input_path = "/mnt/shared"
+    codegen_config.output_path = "/mnt/shared"
+
+    job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
+        job_name, sharemind_home)
     job_queue = [job]
-    salmon.dispatch.dispatch_all(peer, job_queue)
+    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

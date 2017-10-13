@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.comp import dagonly
-from salmon.codegen import spark, viz
+from salmon.codegen import spark, viz, CodeGenConfig
 from salmon.utils import *
 
 
@@ -58,10 +58,12 @@ if __name__ == "__main__":
 
     dag = protocol()
 
-    vg = viz.VizCodeGen(dag)
+    config = CodeGenConfig("nielsen-local")
+
+    vg = viz.VizCodeGen(config, dag)
     vg.generate("local_workflow", "/tmp")
 
-    cg = spark.SparkCodeGen(dag)
+    cg = spark.SparkCodeGen(config, dag)
     cg.generate("local_workflow", "/tmp")
 
-    print("Spark code generated in /tmp/local_workflow.py")
+    print("Spark code generated in {}".format(config.code_path))

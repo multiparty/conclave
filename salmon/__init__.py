@@ -1,15 +1,22 @@
 import salmon.dag as saldag
 import salmon.comp as comp
 import salmon.partition as part
+from salmon.codegen import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 from salmon.codegen.spark import SparkCodeGen
 
 def codegen(protocol, config):
 
+    # set up code gen config object
+    if isinstance(config, CodeGenConfig):
+        cfg = config
+    else:
+        cfg = CodeGenConfig.from_dict(config)
+
     # apply optimizations
     dag = comp.rewriteDag(saldag.OpDag(protocol()))
     # prune for party
-    pruned = comp.pruneDag(dag, config["general"]["pid"])
+    pruned = comp.pruneDag(dag, cfg.pid)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag)
     # for each sub dag run code gen and add resulting job to job queue
@@ -17,12 +24,14 @@ def codegen(protocol, config):
     for job_num, (fmwk, subdag) in enumerate(mapping):
         print(job_num, fmwk)
         if fmwk == "sharemind":
-            job = SharemindCodeGen(subdag, config["general"]["pid"]).generate(
-                "sharemind-job-" + str(job_num), config["sharemind"]["home"])
+            name = "{}-sharemind-job-{}".format(cfg.name, job_num)
+            job = SharemindCodeGen(cfg, subdag, cfg.pid).generate(
+                    name, cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "spark":
-            job = SparkCodeGen(subdag).generate(
-                "spark-job-" + str(job_num), config["spark"]["home"])
+            name = "{}-spark-job-{}".format(cfg.name, job_num)
+            job = SparkCodeGen(cfg, subdag).generate(name,
+                    cfg.output_path)
             jobqueue.append(job)
         else:
             raise Exception("Unknown framework: " + fmwk)

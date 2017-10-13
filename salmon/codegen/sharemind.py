@@ -1,4 +1,4 @@
-from salmon.codegen import CodeGen
+from salmon.codegen import CodeGen, CodeGenConfig
 from salmon.job import SharemindJob
 from salmon.dag import *
 from salmon.rel import *
@@ -7,19 +7,35 @@ import pystache
 import shutil
 
 
+class SharemindCodeGenConfig(CodeGenConfig):
+
+    def __init__(self, job_name=None, home_path="/tmp", docker_id=None):
+
+        super(SharemindCodeGenConfig, self).__init__(job_name)
+        self.home_path = home_path
+        self.use_docker = True if docker_id else False
+        self.docker_id = docker_id
+
+
 class SharemindCodeGen(CodeGen):
 
-    def __init__(self, dag, pid, template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
+    def __init__(self, config, dag, pid,
+                 template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
-        super(SharemindCodeGen, self).__init__(dag)
+        if not "sharemind" in config.system_configs:
+           print("Missing Sharemind configuration in CodeGenConfig!")
+           sys.exit(1)
+        self.sm_config = config.system_configs['sharemind']
+
+        super(SharemindCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
         self.pid = pid
 
     def generate(self, job_name, output_directory):
 
-        job, code = self._generate(job_name, output_directory)
+        job, code = self._generate(self.config.name, self.config.code_path)
         # store the code in type-specific files
-        self._writeCode(code, output_directory, job_name)
+        self._writeCode(code, self.config.name)
         # return job object
         return job
 
@@ -42,7 +58,7 @@ class SharemindCodeGen(CodeGen):
             # and the code the party will run to secret-share its
             # inputs with the miners
             schemas, input_code = self._generate_input_code(
-                nodes, job_name, output_directory)
+                nodes, job_name, self.config.code_path)
             op_code["schemas"] = schemas
             op_code["input"] = input_code
 
@@ -55,11 +71,10 @@ class SharemindCodeGen(CodeGen):
             # code to submit the job and receive the output
             # (currently assumes there is only one output party)
             submit_code, receive_code = self._generate_controller_code(
-                nodes, job_name, output_directory)
-            # controller_code = self._generate_controller_code(
-            #     nodes, job_name, output_directory)
+                nodes, job_name, self.config.code_path)
             op_code["miner"] = miner_code
-            op_code["submit"] = submit_code
+            op_code["submit"] = submit_code["outer"]
+            op_code["submitInner"] = submit_code["inner"]
             op_code["receive"] = receive_code
 
         # sanity check
@@ -132,40 +147,48 @@ class SharemindCodeGen(CodeGen):
 
         # all schemas of the relations this party will input
         schemas = {}
-        # all CSVImports this party will perform
-        input_code = ""
         # only need close ops to generate schemas
         close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
         # only need schemas for my close ops
         my_close_ops = filter(
             lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
+        # all CSVImports this party will perform
+        import_statements = []
         for close_op in my_close_ops:
             # generate schema and get its name
             name, schema = self._generateSchema(close_op)
             schemas[name] = schema
             # generate csv import code
-            input_code += self._generateCSVImport(
-                close_op, output_directory, job_name)
+            import_statements.append(self._generateCSVImport(
+                close_op, output_directory, job_name)[:-1])
+        input_code = "&&".join(import_statements)
         # expand top-level
         top_level_template = open(
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
-            "ROOT_DIR": output_directory,
+            "SHAREMIND_HOME": self.sm_config.home_path,
             "IMPORTS": input_code
         }
         # return schemas and input code
         return schemas, pystache.render(top_level_template, top_level_data)
 
-    def _generate_submit_code(self, nodes, job_name, output_directory):
+    def _generate_submit_code(self, nodes, job_name, code_path):
 
         # code for submitting job to miners
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "ROOT_DIR": output_directory,
-            "JOB_DIR": job_name
+            "SHAREMIND_HOME": self.sm_config.home_path,
+            "CODE_PATH": code_path
         }
-        return pystache.render(template, data)
+        # inner template (separate shell script)
+        templateInner = open(
+            "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
+        dataInner = {"CODE_PATH": code_path}
+        return {
+            "outer": pystache.render(template, data),
+            "inner": pystache.render(templateInner, dataInner)
+        }
 
     def _generate_receive_code(self, nodes, job_name, output_directory):
 
@@ -190,9 +213,9 @@ class SharemindCodeGen(CodeGen):
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
-            "ROOT_DIR": output_directory,
-            "JOB_DIR": job_name,
-            "RELS_META": rels_meta_str
+            "OUTPUT_PATH": self.config.output_path,
+            "RELS_META": rels_meta_str,
+            "DELIMITER": self.config.delimiter
         }
         return pystache.render(template, data)
 
@@ -225,14 +248,7 @@ class SharemindCodeGen(CodeGen):
         # TODO: figure out naming
         # don't need to do anything for close ops
         return ""
-        # template = open(
-        #     "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
-        # data = {
-        #     "NAME": close_op.outRel.name,
-        #     "TYPE": "uint32"
-        # }
-        # return pystache.render(template, data)
-
+        
     def _generateConcat(self, concat_op):
 
         inRels = concat_op.getInRels()
@@ -422,18 +438,27 @@ class SharemindCodeGen(CodeGen):
 
     def _generateCSVImport(self, close_op, output_directory, job_name):
 
+        def _delim_lookup(delim):
+
+            if delim == ",":
+                return "c"
+            else:
+                raise Exception("unknown delimiter")
+
         template = open(
             "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
         data = {
             "IN_NAME": close_op.getInRel().name,
-            "ROOT_DIR": output_directory,
-            "JOB_DIR": job_name
+            "INPUT_PATH": self.config.input_path,
+            "CODE_PATH": self.config.code_path,
+            'DELIMITER': _delim_lookup(self.config.delimiter),
         }
         return pystache.render(template, data)
 
-    def _writeCode(self, code_dict, output_directory, job_name):
+    def _writeCode(self, code_dict, job_name):
 
         def _write(root_dir, fn, ext, content):
+
             fullpath = "{}/{}.{}".format(root_dir, fn, ext)
             os.makedirs(os.path.dirname(fullpath), exist_ok=True)
             with open(fullpath, "w") as f:
@@ -443,18 +468,18 @@ class SharemindCodeGen(CodeGen):
             "schemas": "xml",
             "input": "sh",
             "submit": "sh",
+            "submitInner": "sh",
             "receive": "py",
             "miner": "sc"
         }
 
-        # root directory to write to
-        job_root_dir = "{}/{}".format(output_directory, job_name)
         # write files
+        job_code_path = self.config.code_path
         for code_type, code in code_dict.items():
             if code_type == "schemas":
                 schemas = code
                 for schema_name in schemas:
-                    _write(job_root_dir, schema_name,
+                    _write(job_code_path, schema_name,
                            ext_lookup[code_type], schemas[schema_name])
             else:
-                _write(job_root_dir, code_type, ext_lookup[code_type], code)
+                _write(job_code_path, code_type, ext_lookup[code_type], code)

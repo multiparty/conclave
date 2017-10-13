@@ -12,7 +12,7 @@ def partDag(dag):
     return best
 
 
-def heupart(dag):
+def heupart(dag, mpc_frameworks, local_frameworks):
 
     def is_correct_mode(node, mode, available):
 
@@ -101,21 +101,23 @@ def heupart(dag):
             prev_subdag = subdag 
         return updated_mapping
 
+    assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
     nextdag = dag
     mapping = []
     available = set()
-    counter = 0
+
+    local_fmwk = local_frameworks[0]
+    mpc_fmwk = mpc_frameworks[0]
 
     while nextdag.roots:
         # determine if next dag is MPC or local
         mpcmode = nextdag.topSort()[0].isMPC
         # map to framework
-        fmwk = "sharemind" if mpcmode else "spark"
+        fmwk = mpc_fmwk if mpcmode else local_fmwk
         # store subdag
         mapping.append((fmwk, nextdag))
         # partition next subdag
         nextdag, available = split_dag(nextdag, available)
-        counter += 1
 
     merged = merge_neighbor_dags(mapping)
     return merged

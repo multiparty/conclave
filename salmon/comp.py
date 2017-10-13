@@ -589,7 +589,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                     saldag.insertBetween(parent, node, storeOp)
                 else:
                     raise Exception(
-                        "different storedWith on non-upper-boundary join", node.dbgStr())
+                        "different storedWith on non-upper-boundary join", node.debugStr())
 
     def _rewriteConcat(self, node):
 
@@ -732,10 +732,10 @@ def pruneDag(dag, party):
 
 def scotch(f):
 
-    from salmon.codegen import scotch
+    from salmon.codegen import scotch, CodeGenConfig
 
     def wrap():
-        code = scotch.ScotchCodeGen(f())._generate(None, None)
+        code = scotch.ScotchCodeGen(CodeGenConfig(), f())._generate(None, None)
         return code
 
     return wrap
@@ -743,10 +743,10 @@ def scotch(f):
 
 def sharemind(f):
 
-    from salmon.codegen import sharemind
+    from salmon.codegen import sharemind, CodeGenConfig
 
     def wrap():
-        code = sharemind.SharemindCodeGen(f())._generate(None, None)
+        code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)
         return code
 
     return wrap

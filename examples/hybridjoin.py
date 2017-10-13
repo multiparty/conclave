@@ -3,8 +3,10 @@ from salmon.comp import dagonly, pruneDag
 from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen
+from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
+from salmon.codegen.python import PythonCodeGen
 from salmon import codegen
 
 
@@ -81,20 +83,26 @@ def testHybridJoinWorkflow():
         # create dag
         return set([inA, inB])
 
+    job_name = "job-1"
+    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        job_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + job_name
+    codegen_config.input_path = "/mnt/shared"
+    codegen_config.output_path = "/mnt/shared"
+
     dag = pruneDag(protocol(), 1)
-    print(ScotchCodeGen(dag)._generate(None, None))
-    mapping = part.heupart(dag)
+    mapping = part.heupart(dag, ["sharemind"], ["python"])
     for fmwk, subdag in mapping:
         print("dag dag dag")
         print(fmwk, subdag)
         print()
-        # if fmwk == "sharemind":
-        #     job, code = SharemindCodeGen(subdag, 1)._generate(None, None)
-        #     print(code["miner"])
-        # else:
-        #     job, code = SparkCodeGen(subdag)._generate(None, None)
-        #     print(code)
-
+        if fmwk == "sharemind":
+            job, code = SharemindCodeGen(codegen_config, subdag, 1)._generate(None, None)
+            # print(code["miner"])
+        else:
+            job, code = PythonCodeGen(codegen_config, subdag)._generate(None, None)
+            print(code)
 
 
 if __name__ == "__main__":

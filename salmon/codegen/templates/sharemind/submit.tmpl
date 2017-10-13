@@ -1,6 +1,1 @@
-cd {{ROOT_DIR}}
-if miner_output=$(sm_compile_and_run.sh {{JOB_DIR}}/miner.sc); then
-    printf '%s' "$miner_output" | python3 {{JOB_DIR}}/receive.py
-else
-    exit 1
-fi
+docker exec -ti sharemind-client sh -c "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd {{SHAREMIND_HOME}} && bash {{CODE_PATH}}/submitInner.sh"

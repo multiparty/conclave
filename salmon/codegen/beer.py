@@ -3,8 +3,8 @@ from salmon.dag import *
 import os, pystache
 
 class BeerCodeGen(CodeGen):
-    def __init__(self, dag):
-        super(BeerCodeGen, self).__init__(dag)
+    def __init__(self, config, dag):
+        super(BeerCodeGen, self).__init__(config, dag)
 
     def _generateJob(self, job_name, op_code):
 
@@ -72,7 +72,7 @@ class BeerCodeGen(CodeGen):
                 store_op.outRel.name
             )
 
-    def _writeCode(self, code, output_directory, job_name):
+    def _writeCode(self, code, job_name):
         # write code to a file
-        outfile = open("{}/{}.rap".format(output_directory, job_name), 'w')
+        outfile = open("{}/{}.rap".format(self.config.code_path, job_name), 'w')
         outfile.write(code)
