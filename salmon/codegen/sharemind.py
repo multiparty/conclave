@@ -33,9 +33,9 @@ class SharemindCodeGen(CodeGen):
 
     def generate(self, job_name, output_directory):
 
-        job, code = self._generate(self.config.name, self.config.code_path)
+        job, code = self._generate(job_name, self.config.code_path)
         # store the code in type-specific files
-        self._writeCode(code, self.config.name)
+        self._writeCode(code, job_name)
         # return job object
         return job
 
@@ -80,7 +80,7 @@ class SharemindCodeGen(CodeGen):
         # sanity check
         assert op_code
         # create job
-        job = SharemindJob(job_name, output_directory,
+        job = SharemindJob(job_name, self.config.code_path + "/" + job_name,
                            controller_pid, input_parties)
         return job, op_code
 
@@ -179,12 +179,12 @@ class SharemindCodeGen(CodeGen):
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
-            "CODE_PATH": code_path
+            "CODE_PATH": code_path + "/" + job_name
         }
         # inner template (separate shell script)
         templateInner = open(
             "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
-        dataInner = {"CODE_PATH": code_path}
+        dataInner = {"CODE_PATH": code_path + "/" + job_name}
         return {
             "outer": pystache.render(template, data),
             "inner": pystache.render(templateInner, dataInner)
@@ -245,8 +245,7 @@ class SharemindCodeGen(CodeGen):
 
     def _generateClose(self, close_op):
 
-        # TODO: figure out naming
-        # don't need to do anything for close ops
+        # TODO: shouldn't be a noop but an assignment
         return ""
         
     def _generateConcat(self, concat_op):
@@ -357,8 +356,9 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/shuffle.tmpl".format(self.template_directory), 'r').read()
         data = {
+            "TYPE": "uint32",
             "OUT_REL": shuffle_op.outRel.name,
-            "IN_REL": shuffle_op.getInRel().name,
+            "IN_REL": shuffle_op.getInRel().name
         }
         return pystache.render(template, data)
 
@@ -450,16 +450,16 @@ class SharemindCodeGen(CodeGen):
         data = {
             "IN_NAME": close_op.getInRel().name,
             "INPUT_PATH": self.config.input_path,
-            "CODE_PATH": self.config.code_path,
+            "CODE_PATH": self.config.code_path + "/" + job_name,
             'DELIMITER': _delim_lookup(self.config.delimiter),
         }
         return pystache.render(template, data)
 
     def _writeCode(self, code_dict, job_name):
 
-        def _write(root_dir, fn, ext, content):
+        def _write(root_dir, fn, ext, content, job_name):
 
-            fullpath = "{}/{}.{}".format(root_dir, fn, ext)
+            fullpath = "{}/{}/{}.{}".format(root_dir, job_name, fn, ext)
             os.makedirs(os.path.dirname(fullpath), exist_ok=True)
             with open(fullpath, "w") as f:
                 f.write(content)
@@ -480,6 +480,6 @@ class SharemindCodeGen(CodeGen):
                 schemas = code
                 for schema_name in schemas:
                     _write(job_code_path, schema_name,
-                           ext_lookup[code_type], schemas[schema_name])
+                           ext_lookup[code_type], schemas[schema_name], job_name)
             else:
-                _write(job_code_path, code_type, ext_lookup[code_type], code)
+                _write(job_code_path, code_type, ext_lookup[code_type], code, job_name)

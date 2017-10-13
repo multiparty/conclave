@@ -15,3 +15,12 @@ class SparkJob():
 
         self.name = name
         self.code_dir = code_dir
+
+
+class PythonJob():
+    # TODO: add generic job class
+
+    def __init__(self, name, code_dir):
+
+        self.name = name
+        self.code_dir = code_dir

@@ -47,14 +47,14 @@ if __name__ == "__main__":
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "10.10.10.12", "port": 9001},
-            2: {"host": "10.10.10.11", "port": 9002},
-            3: {"host": "10.10.10.8", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    job_name = "job-" + str(pid)
+    job_name = "workflow-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
         job_name).with_sharemind_config(sm_cg_config)
@@ -63,6 +63,6 @@ if __name__ == "__main__":
     codegen_config.output_path = "/mnt/shared"
 
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
-        job_name, sharemind_home)
+        "sharemind-0", None)
     job_queue = [job]
     salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)

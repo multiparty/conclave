@@ -36,19 +36,13 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         # traverse current dag until all boundary nodes are hit
         for node in ordered:
-            print(node)
             if is_correct_mode(node, mode, available):
-                print("available")
                 available.add(node)
             elif ((not node.parents) or (node.parents & available)):
-                print("new root")
                 if node not in new_roots:
                     new_roots.append(node)
             else:
-                print("not available")
                 pass
-
-        print("new_roots", [str(root) for root in new_roots])
 
         for root in new_roots:
             for parent in copy(root.parents):
@@ -70,8 +64,6 @@ def heupart(dag, mpc_frameworks, local_frameworks):
             if isinstance(root, Create):
                 parent_roots.add(root)
 
-        print("parent_roots", [str(root) for root in parent_roots])
-        
         return OpDag(set(parent_roots)), available
 
     def _merge_dags(left_dag, right_dag):
@@ -98,7 +90,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 updated_mapping.append((fmwk, subdag))
             # keep track of previous values
             prev_fmwk = fmwk
-            prev_subdag = subdag 
+            prev_subdag = subdag
         return updated_mapping
 
     assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1

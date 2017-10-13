@@ -8,6 +8,9 @@ from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
 from salmon import codegen
+from salmon.dispatch import dispatch_all
+from salmon.net import setup_peer
+import sys
 
 
 def testHybridJoinWorkflow():
@@ -19,19 +22,19 @@ def testHybridJoinWorkflow():
             defCol("a", "INTEGER", [1]),
             defCol("b", "INTEGER", [1]),
         ]
-        inA = sal.create("inA", colsInA, set([1]))
-        inA.isMPC = True
+        in1 = sal.create("in1", colsInA, set([1]))
+        in1.isMPC = True
 
         colsInB = [
             defCol("c", "INTEGER", [1], [2]),
             defCol("d", "INTEGER", [2])
         ]
-        inB = sal.create("inB", colsInB, set([2]))
-        inB.isMPC = True
+        in2 = sal.create("in2", colsInB, set([2]))
+        in2.isMPC = True
 
-        clA = sal._close(inA, "clA", set([1, 2, 3]))
+        clA = sal._close(in1, "clA", set([1, 2, 3]))
         clA.isMPC = True
-        clB = sal._close(inB, "clB", set([1, 2, 3]))
+        clB = sal._close(in2, "clB", set([1, 2, 3]))
         clB.isMPC = True
 
         shuffledA = sal.shuffle(clA, "shuffledA")
@@ -72,7 +75,7 @@ def testHybridJoinWorkflow():
         joined = sal._index_join(persistedA, persistedB, "joined", [
                                  "a"], ["c"], indecesclosed)
         joined.isMPC = True
-        
+
         # dummy projection to force non-mpc subdag
         res = sal.project(
             joined, "res", ["a"])
@@ -81,29 +84,38 @@ def testHybridJoinWorkflow():
         sal._open(res, "opened", 1)
 
         # create dag
-        return set([inA, inB])
+        return set([in1, in2])
 
-    job_name = "job-1"
-    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    pid = int(sys.argv[1])
+    workflow_name = "hybrid-join-" + str(pid)
+    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
-        job_name).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/" + job_name
+        workflow_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
-    dag = pruneDag(protocol(), 1)
+    dag = pruneDag(protocol(), pid)
     mapping = part.heupart(dag, ["sharemind"], ["python"])
-    for fmwk, subdag in mapping:
-        print("dag dag dag")
-        print(fmwk, subdag)
-        print()
+    job_queue = []
+    for idx, (fmwk, subdag) in enumerate(mapping):
         if fmwk == "sharemind":
-            job, code = SharemindCodeGen(codegen_config, subdag, 1)._generate(None, None)
-            # print(code["miner"])
+            job = SharemindCodeGen(codegen_config, subdag, pid).generate(
+                "sharemind-" + str(idx), None)
         else:
-            job, code = PythonCodeGen(codegen_config, subdag)._generate(None, None)
-            print(code)
+            job = PythonCodeGen(codegen_config, subdag).generate("python-" + str(idx), None)
+        job_queue.append(job)
 
+    # sharemind_config = {
+    #     "pid": pid,
+    #     "parties": {
+    #         1: {"host": "localhost", "port": 9001},
+    #         2: {"host": "localhost", "port": 9002},
+    #         3: {"host": "localhost", "port": 9003}
+    #     }
+    # }
+    # sm_peer = setup_peer(sharemind_config)
+    # dispatch_all(None, sm_peer, job_queue)
 
 if __name__ == "__main__":
 
