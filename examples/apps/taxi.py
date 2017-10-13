@@ -78,14 +78,14 @@ if __name__ == "__main__":
         "delimiter": ",",
         "code_path": "/mnt/shared/" + workflow_name,
         "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
-        "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
+        "output_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
     }
     sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
-    codegen_config.output_path = "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root)
+    codegen_config.output_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
     codegen_config.pid = pid
     codegen_config.name = workflow_name
 
