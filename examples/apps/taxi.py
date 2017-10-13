@@ -62,7 +62,7 @@ def taxi(config, spark_master, sharemind_peer):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>")
         sys.exit(1)
 
