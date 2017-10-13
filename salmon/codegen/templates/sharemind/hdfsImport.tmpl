@@ -1,0 +1,2 @@
+echo "{{{SCHEMA_HEADER}}}" > {{CODE_PATH}}/{{IN_NAME}}.csv
+hadoop fs -cat {{INPUT_PATH}}/{{IN_NAME}}.csv/part-* >> {{CODE_PATH}}/{{IN_NAME}}.csv

@@ -148,11 +148,15 @@ class SharemindCodeGen(CodeGen):
         my_close_ops = filter(
             lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
         # all CSVImports this party will perform
+        hdfs_import_statements = []
         import_statements = []
         for close_op in my_close_ops:
             # generate schema and get its name
-            name, schema = self._generateSchema(close_op)
+            name, schema, header = self._generateSchema(close_op)
             schemas[name] = schema
+            # generate csv import code
+            hdfs_import_statements.append(self._generateHDFSImport(
+                close_op, header)[:-1])
             # generate csv import code
             import_statements.append(self._generateCSVImport(
                 close_op, output_directory, job_name)[:-1])
@@ -162,6 +166,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
+            "HDFS_IMPORTS": "\n".join(hdfs_import_statements),
             "IMPORTS": input_code
         }
         # return schemas and input code
@@ -407,8 +412,21 @@ class SharemindCodeGen(CodeGen):
             "NAME": outRel.name,
             "COL_DEFS": colDefStr
         }
+        relDefHeader = ",".join([c.name for c in inCols])
         relDefStr = pystache.render(relDefTemplate, relData)
-        return inRel.name, relDefStr
+        return inRel.name, relDefStr, relDefHeader
+
+    def _generateHDFSImport(self, close_op, header):
+
+        template = open(
+            "{0}/hdfsImport.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "IN_NAME": close_op.getInRel().name,
+            "SCHEMA_HEADER": header,
+            "INPUT_PATH": self.config.input_path,
+            "CODE_PATH": self.config.code_path,
+        }
+        return pystache.render(template, data)
 
     def _generateCSVImport(self, close_op, output_directory, job_name):
 
