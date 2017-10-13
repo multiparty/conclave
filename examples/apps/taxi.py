@@ -63,12 +63,13 @@ def taxi(config, spark_master, sharemind_peer):
 if __name__ == "__main__":
 
     if len(sys.argv) < 4:
-        print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir>")
+        print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>")
         sys.exit(1)
 
     pid = int(sys.argv[1])
     hdfs_namenode = sys.argv[2]
     hdfs_root = sys.argv[3]
+    spark_master_url = sys.argv[4]
 
     job_name = "job-" + str(pid)
     config = {
@@ -98,4 +99,4 @@ if __name__ == "__main__":
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
-    taxi(codegen_config, "spark://ca-spark-node-0:7077", sm_peer)
+    taxi(codegen_config, spark_master_url, sm_peer)
