@@ -424,7 +424,7 @@ class SharemindCodeGen(CodeGen):
             "IN_NAME": close_op.getInRel().name,
             "SCHEMA_HEADER": header,
             "INPUT_PATH": self.config.input_path,
-            "CODE_PATH": self.config.code_path,
+            "CODE_PATH": self.config.code_path + "/" + job_name,
         }
         return pystache.render(template, data)
 
