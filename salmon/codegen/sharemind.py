@@ -156,7 +156,7 @@ class SharemindCodeGen(CodeGen):
             schemas[name] = schema
             # generate csv import code
             hdfs_import_statements.append(self._generateHDFSImport(
-                close_op, header)[:-1])
+                close_op, header, job_name)[:-1])
             # generate csv import code
             import_statements.append(self._generateCSVImport(
                 close_op, output_directory, job_name)[:-1])
@@ -416,7 +416,7 @@ class SharemindCodeGen(CodeGen):
         relDefStr = pystache.render(relDefTemplate, relData)
         return inRel.name, relDefStr, relDefHeader
 
-    def _generateHDFSImport(self, close_op, header):
+    def _generateHDFSImport(self, close_op, header, job_name):
 
         template = open(
             "{0}/hdfsImport.tmpl".format(self.template_directory), 'r').read()
