@@ -245,8 +245,14 @@ class SharemindCodeGen(CodeGen):
 
     def _generateClose(self, close_op):
 
-        # TODO: shouldn't be a noop but an assignment
-        return ""
+        template = open(
+            "{0}/close.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": close_op.outRel.name,
+            "IN_REL_NAME": close_op.getInRel().name
+        }
+        return pystache.render(template, data)
         
     def _generateConcat(self, concat_op):
 
@@ -430,7 +436,7 @@ class SharemindCodeGen(CodeGen):
         relDefTemplate = open(
             "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
         relData = {
-            "NAME": outRel.name,
+            "NAME": close_op.getInRel().name,
             "COL_DEFS": colDefStr
         }
         relDefStr = pystache.render(relDefTemplate, relData)
