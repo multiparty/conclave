@@ -33,7 +33,7 @@ def taxi(config, spark_master, sharemind_peer):
         local_rev = sal.aggregate(selected_input, "local_rev", [
                                   "companyID"], "price", "+", "local_rev")
         scaled_down = sal.divide(
-            local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+            local_rev, "scaled_down", "local_rev", ["local_rev", 1])
         first_val_blank = sal.multiply(
             scaled_down, "first_val_blank", "companyID", ["companyID", 0])
         local_rev_scaled = sal.multiply(

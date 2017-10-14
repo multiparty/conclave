@@ -179,9 +179,9 @@ class SharemindCodeGen(CodeGen):
         hdfs_cmds = []
         for open_op in open_ops:
             name = open_op.outRel.name
-            hdfs_cmd = "hadoop fs -put {} {}".format(
-                    code_path + "/" + name, 
-                    self.config.output_path + name
+            hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
+                    code_path + "/" + job_name + "/" + name, 
+                    self.config.output_path + "/"  + name
                 )
             hdfs_cmds.append(hdfs_cmd)
         hdfs_cmds_str = "\n".join(hdfs_cmds)
