@@ -1,15 +1,13 @@
 import sys
 import re
 
-def _write_rel(job_dir, rel_name, rel, delim, hdfs_root_dir):
+def _write_rel(job_dir, rel_name, rel, delim):
 
     print("Will write to {}/{}".format(job_dir, rel_name))
     path = "{}/{}".format(job_dir, rel_name)
     with open(path, "w") as f:
         for row in rel:
             f.write(delim.join(row) + "\n")
-    print(hdfs_root_dir)
-
 
 def _parse_result(res, job_dir, rels_meta, hdfs_root_dir):
     # sort of hacky
@@ -47,11 +45,11 @@ def _parse_result(res, job_dir, rels_meta, hdfs_root_dir):
     for res_line in res_lines:
         rel_name, parsed_data = _parse_res_line(res_line)
         rel = _to_rel(rel_name, rels_meta[rel_name], parsed_data)
-        _write_rel(job_dir, rel_name + ".csv", rel, "{{DELIMITER}}", hdfs_root_dir)
+        _write_rel(job_dir, rel_name + ".csv", rel, "{{DELIMITER}}")
 
 if __name__ == "__main__":
     
     job_dir = "{{LOCAL_OUTPUT_PATH}}"
     rels_meta = {}
 {{{RELS_META}}}
-    _parse_result(sys.stdin, job_dir, rels_meta, "{{HDFS_OUTPUT_PATH}}")
+    _parse_result(sys.stdin, job_dir, rels_meta)

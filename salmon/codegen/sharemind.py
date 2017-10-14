@@ -174,12 +174,25 @@ class SharemindCodeGen(CodeGen):
 
     def _generate_submit_code(self, nodes, job_name, code_path):
 
+        # hack HDFS output
+        open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
+        hdfs_cmds = []
+        for open_op in open_ops:
+            name = open_op.outRel.name
+            hdfs_cmd = "hadoop fs -put {} {}".format(
+                    code_path + "/" + name, 
+                    self.config.output_path + name
+                )
+            hdfs_cmds.append(hdfs_cmd)
+        hdfs_cmds_str = "\n".join(hdfs_cmds)
+
         # code for submitting job to miners
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
-            "CODE_PATH": code_path + "/" + job_name
+            "CODE_PATH": code_path + "/" + job_name,
+            "HDFS_CMDS": hdfs_cmds_str
         }
         # inner template (separate shell script)
         templateInner = open(
@@ -214,7 +227,6 @@ class SharemindCodeGen(CodeGen):
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
             "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name,
-            "HDFS_OUTPUT_PATH": self.config.output_path,
             "RELS_META": rels_meta_str,
             "DELIMITER": self.config.delimiter
         }
