@@ -213,7 +213,8 @@ class SharemindCodeGen(CodeGen):
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
-            "OUTPUT_PATH": self.config.output_path,
+            "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name,
+            "HDFS_OUTPUT_PATH": self.config.output_path,
             "RELS_META": rels_meta_str,
             "DELIMITER": self.config.delimiter
         }
