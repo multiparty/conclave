@@ -935,7 +935,7 @@ AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY 
 CLOSE local_rev_2([companyID {3}, local_rev {3}]) {3} INTO local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
 CONCATMPC [local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
 AGGMPC [price, +] FROM (cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-DIVIDEMPC [local_rev -> companyID / local_rev] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+DIVIDEMPC [local_rev -> local_rev / 1000] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [companyID -> companyID * 0] FROM (scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 AGGMPC [local_rev, +] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}

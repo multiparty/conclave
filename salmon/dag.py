@@ -386,8 +386,9 @@ class Multiply(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
+        old_operands = copy.copy(self.operands)
         self.operands = [tempCols[col.idx] if isinstance(
-            col, rel.Column) else col for col in tempCols]
+            col, rel.Column) else col for col in old_operands]
 
 
 class Divide(UnaryOpNode):
@@ -406,8 +407,9 @@ class Divide(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
+        old_operands = copy.copy(self.operands)
         self.operands = [tempCols[col.idx] if isinstance(
-            col, rel.Column) else col for col in tempCols]
+            col, rel.Column) else col for col in old_operands]
 
 
 class Filter(UnaryOpNode):
