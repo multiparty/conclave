@@ -9,12 +9,13 @@ import shutil
 
 class SharemindCodeGenConfig(CodeGenConfig):
 
-    def __init__(self, job_name=None, home_path="/tmp", docker_id=None):
+    def __init__(self, job_name=None, home_path="/tmp", docker_id=None, use_hdfs=True):
 
         super(SharemindCodeGenConfig, self).__init__(job_name)
         self.home_path = home_path
         self.use_docker = True if docker_id else False
         self.docker_id = docker_id
+        self.use_hdfs = use_hdfs
 
 
 class SharemindCodeGen(CodeGen):
@@ -160,9 +161,16 @@ class SharemindCodeGen(CodeGen):
             # generate schema and get its name
             name, schema, header = self._generateSchema(close_op)
             schemas[name] = schema
-            # generate csv import code
-            hdfs_import_statements.append(self._generateHDFSImport(
-                close_op, header, job_name)[:-1])
+            # TODO: hack hack hack
+            if self.sm_config.use_hdfs:
+                hdfs_import_statements.append(self._generateHDFSImport(
+                    close_op, header, job_name)[:-1])
+            else:
+                hdfs_import_statements.append("cp {} {}".format(
+                        self.config.output_path + "/" + name + ".csv",
+                        self.config.code_path + "/" + job_name + "/" + name + ".csv"
+                    )
+                )
             # generate csv import code
             import_statements.append(self._generateCSVImport(
                 close_op, output_directory, job_name)[:-1])
@@ -185,10 +193,17 @@ class SharemindCodeGen(CodeGen):
         hdfs_cmds = []
         for open_op in open_ops:
             name = open_op.outRel.name
-            hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
+            # TODO: hack hack hack
+            if self.sm_config.use_hdfs:
+                hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
                     code_path + "/" + job_name + "/" + name, 
                     self.config.output_path + "/"  + name
                 )
+            else:
+                hdfs_cmd = "cp {}.csv {}.csv".format(
+                    code_path + "/" + job_name + "/" + name, 
+                    self.config.output_path + "/"  + name
+                )    
             hdfs_cmds.append(hdfs_cmd)
         hdfs_cmds_str = "\n".join(hdfs_cmds)
 
