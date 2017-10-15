@@ -9,7 +9,7 @@ def _write_rel(job_dir, rel_name, rel, delim):
         for row in rel:
             f.write(delim.join(row) + "\n")
 
-def _parse_result(res, job_dir, rels_meta, hdfs_root_dir):
+def _parse_result(res, job_dir, rels_meta):
     # sort of hacky
 
     def _parse_header(header):

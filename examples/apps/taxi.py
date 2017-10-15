@@ -14,17 +14,17 @@ def taxi(config, spark_master, sharemind_peer):
             defCol("companyID", "INTEGER", [1]),
             defCol("price", "INTEGER", [1])
         ]
-        in1 = sal.create("in1", colsIn1, set([1]))
+        in1 = sal.create("yellow1", colsIn1, set([1]))
         colsIn2 = [
             defCol("companyID", "INTEGER", [2]),
             defCol("price", "INTEGER", [2])
         ]
-        in2 = sal.create("in2", colsIn2, set([2]))
+        in2 = sal.create("yellow2", colsIn2, set([2]))
         colsIn3 = [
             defCol("companyID", "INTEGER", [3]),
             defCol("price", "INTEGER", [3])
         ]
-        in3 = sal.create("in3", colsIn3, set([3]))
+        in3 = sal.create("yellow3", colsIn3, set([3]))
 
         cab_data = sal.concat([in1, in2, in3], "cab_data")
 
@@ -33,7 +33,7 @@ def taxi(config, spark_master, sharemind_peer):
         local_rev = sal.aggregate(selected_input, "local_rev", [
                                   "companyID"], "price", "+", "local_rev")
         scaled_down = sal.divide(
-            local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+            local_rev, "scaled_down", "local_rev", ["local_rev", 1])
         first_val_blank = sal.multiply(
             scaled_down, "first_val_blank", "companyID", ["companyID", 0])
         local_rev_scaled = sal.multiply(
