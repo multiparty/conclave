@@ -16,17 +16,22 @@ def partDag(dag):
 
 def heupart(dag, mpc_frameworks, local_frameworks):
 
+    def get_stored_with(node):
+
+        if isinstance(node, Open):
+            return node.getInRel().storedWith
+        elif isinstance(node, Create):
+            return get_stored_with(next(iter(node.children)))
+        else:
+            return node.outRel.storedWith
+
     def is_correct_mode(node, available, storedWith):
 
         # if node itself is stored with different set of parties it doesn't
         # belong inside current dag
-        if isinstance(node, Open):
-            # open op is special case, need to check inRel not outRel
-            if node.getInRel().storedWith != storedWith:
-                return False
-        elif node.outRel.storedWith != storedWith:
+        if get_stored_with(node) != storedWith:
             return False
-
+        
         # otherwise check parents
         return node.parents.issubset(available) or not (node.parents or available)
 
@@ -34,8 +39,10 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         # need topological ordering
         ordered = current_dag.topSort()
-        # first node determines if we're in mpc mode or not
-        storedWith = ordered[0].outRel.storedWith
+        # first node must always be create node
+        assert isinstance(ordered[0], Create)
+        # first node determines if we're in mpc mode or not        
+        storedWith = get_stored_with(ordered[0])
 
         # available = set()
         # can new roots be set?
@@ -59,8 +66,8 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                     create_op = Create(deepcopy(parent.outRel))
                     # create op is in same mode as root
                     create_op.isMPC = root.isMPC
-                    create_op.outRel.storedWith = deepcopy(
-                        root.outRel.storedWith)
+                    # create_op.outRel.storedWith = deepcopy(
+                    #     root.outRel.storedWith)
                     # insert create op between parent and root
                     root.replaceParent(parent, create_op)
                     # connect create op with root
@@ -112,7 +119,8 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
     while nextdag.roots:
         first = nextdag.topSort()[0]
-        storedWith = first.outRel.storedWith
+        assert isinstance(first, Create)
+        storedWith = get_stored_with(first)
         mpcmode = first.isMPC
         # map to framework
         fmwk = mpc_fmwk if mpcmode else local_fmwk
@@ -120,6 +128,9 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         mapping.append((fmwk, nextdag, storedWith))
         # partition next subdag
         nextdag, available = split_dag(nextdag, available)
+
+    # for fmwk, subdag, storedWith in mapping:
+    #     print(ScotchCodeGen(CodeGenConfig(), sd)._generate(0, 0))
 
     merged = merge_neighbor_dags(mapping)
     return merged

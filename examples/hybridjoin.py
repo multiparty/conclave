@@ -66,8 +66,6 @@ def testHybridJoinWorkflow():
         keysA.isMPC = True
         keysB = sal._open(keysBclosed, "keysB", 1)
         keysB.isMPC = True
-        # keysAclosed.outRel.storedWith = set([1, 2, 3])
-        # keysBclosed.outRel.storedWith = set([1, 2, 3])
 
         indexedA = sal.index(keysA, "indexedA", "indexA")
         indexedA.isMPC = False
@@ -94,12 +92,7 @@ def testHybridJoinWorkflow():
                                  "a"], ["c"], indecesclosed)
         joined.isMPC = True
 
-        # dummy projection to force non-mpc subdag
-        res = sal.project(
-            joined, "res", ["a"])
-        res.isMPC = True
-
-        sal._open(res, "opened", 1)
+        sal._open(joined, "opened", 1)
 
         # create dag
         return set([in1, in2])
@@ -121,19 +114,23 @@ def testHybridJoinWorkflow():
             job = SharemindCodeGen(codegen_config, subdag, pid).generate(
                 "sharemind-" + str(idx), None)
         else:
-            job = PythonCodeGen(codegen_config, subdag).generate("python-" + str(idx), None)
+            job = PythonCodeGen(codegen_config, subdag).generate(
+                "python-" + str(idx), None)
+        # TODO: this probably doesn't belong here
+        if not pid in storedWith:
+            job.skip = True
         job_queue.append(job)
 
-    # sharemind_config = {
-    #     "pid": pid,
-    #     "parties": {
-    #         1: {"host": "localhost", "port": 9001},
-    #         2: {"host": "localhost", "port": 9002},
-    #         3: {"host": "localhost", "port": 9003}
-    #     }
-    # }
-    # sm_peer = setup_peer(sharemind_config)
-    # dispatch_all(None, sm_peer, job_queue)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
+        }
+    }
+    sm_peer = setup_peer(sharemind_config)
+    dispatch_all(None, sm_peer, job_queue)
 
 if __name__ == "__main__":
 

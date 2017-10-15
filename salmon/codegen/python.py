@@ -38,11 +38,13 @@ class PythonCodeGen(CodeGen):
 
     def _generateOutput(self, leaf):
 
-        return "{}write_rel('{}', '{}.csv', {})\n".format(
+        schema_header = ",".join(['"' + col.name + '"' for col in leaf.outRel.columns])
+        return "{}write_rel('{}', '{}.csv', {}, '{}')\n".format(
             self.space,
             self.config.output_path,
             leaf.outRel.name,
-            leaf.outRel.name
+            leaf.outRel.name,
+            schema_header
         )
 
     def _generateCreate(self, create_op):

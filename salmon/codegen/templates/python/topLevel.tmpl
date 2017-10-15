@@ -1,13 +1,13 @@
 import sys
 import re
 
-def write_rel(job_dir, rel_name, rel):
+def write_rel(job_dir, rel_name, rel, schema_header):
 
     print("Will write to {}/{}".format(job_dir, rel_name))
     path = "{}/{}".format(job_dir, rel_name)
     with open(path, "w") as f:
         # hack header
-        f.write('"key","value"\n')
+        f.write(schema_header + "\n")
         for row in rel:
             f.write(",".join([str(val) for val in row]) + "\n")
 
@@ -16,7 +16,7 @@ def read_rel(path_to_rel):
     rows = []
     with open(path_to_rel, "r") as f:
         for raw_row in f.readlines():
-            rows.append([int(val) for val in raw_row.split()])
+            rows.append([int(val) for val in raw_row.split(",")])
     return rows
 
 def project(rel, selected_cols):

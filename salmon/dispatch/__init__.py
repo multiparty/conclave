@@ -13,8 +13,11 @@ def dispatch_all(spark_master, sharemind_peer, jobs):
 
     # dispatch each job
     for job in jobs:
-        try:
-            # look up dispatcher and dispatch
-            dispatchers[type(job)].dispatch(job)
-        except Exception as e:
-            print(e)
+        if not job.skip:
+            try:
+                # look up dispatcher and dispatch
+                dispatchers[type(job)].dispatch(job)
+            except Exception as e:
+                print(e)
+        else:
+            print("Skipping other party's job: ", job)
