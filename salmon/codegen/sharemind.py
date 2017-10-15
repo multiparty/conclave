@@ -23,8 +23,8 @@ class SharemindCodeGen(CodeGen):
                  template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         if not "sharemind" in config.system_configs:
-           print("Missing Sharemind configuration in CodeGenConfig!")
-           sys.exit(1)
+            print("Missing Sharemind configuration in CodeGenConfig!")
+            sys.exit(1)
         self.sm_config = config.system_configs['sharemind']
 
         super(SharemindCodeGen, self).__init__(config, dag)
@@ -154,11 +154,15 @@ class SharemindCodeGen(CodeGen):
         my_close_ops = filter(
             lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
         # all CSVImports this party will perform
+        hdfs_import_statements = []
         import_statements = []
         for close_op in my_close_ops:
             # generate schema and get its name
-            name, schema = self._generateSchema(close_op)
+            name, schema, header = self._generateSchema(close_op)
             schemas[name] = schema
+            # generate csv import code
+            hdfs_import_statements.append(self._generateHDFSImport(
+                close_op, header, job_name)[:-1])
             # generate csv import code
             import_statements.append(self._generateCSVImport(
                 close_op, output_directory, job_name)[:-1])
@@ -168,6 +172,7 @@ class SharemindCodeGen(CodeGen):
             "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
+            "HDFS_IMPORTS": "\n".join(hdfs_import_statements),
             "IMPORTS": input_code
         }
         # return schemas and input code
@@ -175,12 +180,25 @@ class SharemindCodeGen(CodeGen):
 
     def _generate_submit_code(self, nodes, job_name, code_path):
 
+        # hack HDFS output
+        open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
+        hdfs_cmds = []
+        for open_op in open_ops:
+            name = open_op.outRel.name
+            hdfs_cmd = "hadoop fs -put {} {}".format(
+                    code_path + "/" + name, 
+                    self.config.output_path + name
+                )
+            hdfs_cmds.append(hdfs_cmd)
+        hdfs_cmds_str = "\n".join(hdfs_cmds)
+
         # code for submitting job to miners
         template = open(
             "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
-            "CODE_PATH": code_path + "/" + job_name
+            "CODE_PATH": code_path + "/" + job_name,
+            "HDFS_CMDS": hdfs_cmds_str
         }
         # inner template (separate shell script)
         templateInner = open(
@@ -214,7 +232,7 @@ class SharemindCodeGen(CodeGen):
         rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
         rels_meta_str = "\n".join(rels_meta_defs)
         data = {
-            "OUTPUT_PATH": self.config.output_path,
+            "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name,
             "RELS_META": rels_meta_str,
             "DELIMITER": self.config.delimiter
         }
@@ -440,8 +458,21 @@ class SharemindCodeGen(CodeGen):
             "NAME": close_op.getInRel().name,
             "COL_DEFS": colDefStr
         }
+        relDefHeader = ",".join([c.name for c in inCols])
         relDefStr = pystache.render(relDefTemplate, relData)
-        return inRel.name, relDefStr
+        return inRel.name, relDefStr, relDefHeader
+
+    def _generateHDFSImport(self, close_op, header, job_name):
+
+        template = open(
+            "{0}/hdfsImport.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "IN_NAME": close_op.getInRel().name,
+            "SCHEMA_HEADER": header,
+            "INPUT_PATH": self.config.input_path,
+            "CODE_PATH": self.config.code_path + "/" + job_name,
+        }
+        return pystache.render(template, data)
 
     def _generateCSVImport(self, close_op, output_directory, job_name):
 

@@ -62,7 +62,7 @@ def taxi(config, spark_master, sharemind_peer):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>")
         sys.exit(1)
 
@@ -71,23 +71,23 @@ if __name__ == "__main__":
     hdfs_root = sys.argv[3]
     spark_master_url = sys.argv[4]
 
-    job_name = "job-" + str(pid)
+    workflow_name = "job-" + str(pid)
     config = {
         "name": "taxi",
         "pid": pid,
         "delimiter": ",",
-        "code_path": "/mnt/shared/" + job_name,
+        "code_path": "/mnt/shared/" + workflow_name,
         "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
-        "output_path": "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root),
+        "output_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
     }
-    sm_cg_config = SharemindCodeGenConfig(job_name, "/mnt/shared")
+    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
-        job_name).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/" + job_name
+        workflow_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
-    codegen_config.output_path = "hdfs://{}/{}/taxi-out".format(hdfs_namenode, hdfs_root)
+    codegen_config.output_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
     codegen_config.pid = pid
-    codegen_config.name = job_name
+    codegen_config.name = workflow_name
 
     sharemind_config = {
         "pid": pid,
