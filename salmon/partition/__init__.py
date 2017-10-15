@@ -1,7 +1,9 @@
 from . import part
-from salmon.dag import OpDag, Create, Close, Open, UnaryOpNode, Index
+from salmon.dag import OpDag, Create, Close, Open, UnaryOpNode
 from salmon.codegen import scotch
 from copy import copy, deepcopy
+from salmon.codegen.scotch import ScotchCodeGen
+from salmon.codegen import CodeGenConfig
 
 
 def partDag(dag):
@@ -14,10 +16,15 @@ def partDag(dag):
 
 def heupart(dag, mpc_frameworks, local_frameworks):
 
-    def is_correct_mode(node, mode, available):
+    def is_correct_mode(node, available, storedWith):
 
-        # if node itself is in other mode return false
-        if node.isMPC != mode:
+        # if node itself is stored with different set of parties it doesn't
+        # belong inside current dag
+        if isinstance(node, Open):
+            # open op is special case, need to check inRel not outRel
+            if node.getInRel().storedWith != storedWith:
+                return False
+        elif node.outRel.storedWith != storedWith:
             return False
 
         # otherwise check parents
@@ -28,7 +35,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         # need topological ordering
         ordered = current_dag.topSort()
         # first node determines if we're in mpc mode or not
-        mode = ordered[0].isMPC
+        storedWith = ordered[0].outRel.storedWith
 
         # available = set()
         # can new roots be set?
@@ -36,7 +43,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         # traverse current dag until all boundary nodes are hit
         for node in ordered:
-            if is_correct_mode(node, mode, available):
+            if is_correct_mode(node, available, storedWith):
                 available.add(node)
             elif ((not node.parents) or (node.parents & available)):
                 if node not in new_roots:
@@ -49,9 +56,11 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 if parent in available:
                     parent.children.remove(root)
                     # replace parent with create node of output relation
-                    create_op = Create(parent.outRel)
+                    create_op = Create(deepcopy(parent.outRel))
                     # create op is in same mode as root
                     create_op.isMPC = root.isMPC
+                    create_op.outRel.storedWith = deepcopy(
+                        root.outRel.storedWith)
                     # insert create op between parent and root
                     root.replaceParent(parent, create_op)
                     # connect create op with root
@@ -75,19 +84,19 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     def merge_neighbor_dags(mapping):
 
         updated_mapping = []
-        prev_fmwk, prev_subdag = None, None
-        for fmwk, subdag in mapping:
+        prev_fmwk, prev_subdag, stored_with = None, None, None
+        for fmwk, subdag, stored_with in mapping:
             # we can merge neighboring subdags if they're mapped to the same
-            # framework
-            if fmwk == prev_fmwk:
+            # framework and are stored by same parties
+            if fmwk == prev_fmwk and stored_with == prev_fmwk:
                 # merge dags together
                 merged_dag = _merge_dags(prev_subdag, subdag)
                 # pop previous subdag
                 updated_mapping = updated_mapping[:-1]
-                updated_mapping.append((fmwk, merged_dag))
+                updated_mapping.append((fmwk, merged_dag, stored_with))
             else:
                 # can't merge, so just add subdag to result
-                updated_mapping.append((fmwk, subdag))
+                updated_mapping.append((fmwk, subdag, stored_with))
             # keep track of previous values
             prev_fmwk = fmwk
             prev_subdag = subdag
@@ -102,12 +111,13 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     mpc_fmwk = mpc_frameworks[0]
 
     while nextdag.roots:
-        # determine if next dag is MPC or local
-        mpcmode = nextdag.topSort()[0].isMPC
+        first = nextdag.topSort()[0]
+        storedWith = first.outRel.storedWith
+        mpcmode = first.isMPC
         # map to framework
         fmwk = mpc_fmwk if mpcmode else local_fmwk
         # store subdag
-        mapping.append((fmwk, nextdag))
+        mapping.append((fmwk, nextdag, storedWith))
         # partition next subdag
         nextdag, available = split_dag(nextdag, available)
 

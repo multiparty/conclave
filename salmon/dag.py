@@ -407,8 +407,9 @@ class Multiply(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
+        old_operands = copy.copy(self.operands)
         self.operands = [tempCols[col.idx] if isinstance(
-            col, rel.Column) else col for col in tempCols]
+            col, rel.Column) else col for col in old_operands]
 
 
 class Divide(UnaryOpNode):
@@ -427,8 +428,9 @@ class Divide(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         tempCols = self.getInRel().columns
+        old_operands = copy.copy(self.operands)
         self.operands = [tempCols[col.idx] if isinstance(
-            col, rel.Column) else col for col in tempCols]
+            col, rel.Column) else col for col in old_operands]
 
 
 class Filter(UnaryOpNode):
@@ -457,10 +459,14 @@ class Join(BinaryOpNode):
 
     def updateOpSpecificCols(self):
 
+        print(self)
+        print("self.leftJoinCols", self.leftJoinCols, self.leftJoinCols[0].idx)
+        print("self.getLeftInRel().columns", self.getLeftInRel().columns)
+
         self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx]
-                             for leftJoinCol in self.leftJoinCols]
+                             for leftJoinCol in copy.copy(self.leftJoinCols)]
         self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx]
-                              for rightJoinCol in self.rightJoinCols]
+                              for rightJoinCol in copy.copy(self.rightJoinCols)]
 
 
 class IndexJoin(Join):
@@ -654,10 +660,10 @@ class OpDag(Dag):
 
 def removeBetween(parent, child, other):
 
-    assert(len(other.children) < 2)
-    assert(len(other.parents) < 2)
+    assert len(other.children) < 2
+    assert len(other.parents) < 2
     # only dealing with unary nodes for now
-    assert(isinstance(other, UnaryOpNode))
+    assert isinstance(other, UnaryOpNode)
 
     if child:
         child.replaceParent(other, parent)

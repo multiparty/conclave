@@ -93,13 +93,14 @@ def test_partition_taxi():
         return set([in1, in2, in3])
 
     dag = protocol()
-    print(ScotchCodeGen(dag)._generate(None, None))
-
-    mapping = part.heupart(dag)
-
+    mapping = part.heupart(dag, ["sharemind"], ["spark"])
     expected = '''sparkcreate->in1,
 project->selected_input_0,
-aggregation->local_rev_0###sharemindcreatempc->local_rev_0,
+aggregation->local_rev_0{1}###sparkcreate->in2,
+project->selected_input_1,
+aggregation->local_rev_1{2}###sparkcreate->in3,
+project->selected_input_2,
+aggregation->local_rev_2{3}###sharemindcreatempc->local_rev_0,
 closempc->local_rev_0_close,
 creatempc->local_rev_1,
 closempc->local_rev_1_close,
@@ -115,9 +116,9 @@ joinmpc->local_total_rev,
 dividempc->market_share,
 multiplympc->market_share_squared,
 aggregationmpc->hhi,
-openmpc->hhi_open###sparkcreate->hhi_open,
-project->hhi_only'''
-    actual = "###".join([fmwk + str(subdag) for (fmwk, subdag) in mapping])
+openmpc->hhi_open{1, 2, 3}###sparkcreate->hhi_open,
+project->hhi_only{1}'''
+    actual = "###".join([fmwk + str(subdag) + str(parties) for (fmwk, subdag, parties) in mapping])
     assert expected == actual, actual
 
 if __name__ == "__main__":

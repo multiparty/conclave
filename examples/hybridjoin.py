@@ -1,5 +1,5 @@
 import salmon.lang as sal
-from salmon.comp import dagonly, pruneDag
+from salmon.comp import dagonly
 from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen
@@ -17,24 +17,33 @@ def testHybridJoinWorkflow():
 
     @dagonly
     def protocol():
+
         # define inputs
         colsInA = [
             defCol("a", "INTEGER", [1]),
             defCol("b", "INTEGER", [1]),
         ]
         in1 = sal.create("in1", colsInA, set([1]))
-        in1.isMPC = True
+        in1.isMPC = False
+
+        projA = sal.project(in1, "projA", ["a", "b"])
+        projA.isMPC = False
+        projA.outRel.storedWith = set([1])
 
         colsInB = [
             defCol("c", "INTEGER", [1], [2]),
             defCol("d", "INTEGER", [2])
         ]
         in2 = sal.create("in2", colsInB, set([2]))
-        in2.isMPC = True
+        in2.isMPC = False
 
-        clA = sal._close(in1, "clA", set([1, 2, 3]))
+        projB = sal.project(in2, "projB", ["c", "d"])
+        projB.isMPC = False
+        projB.outRel.storedWith = set([2])
+
+        clA = sal._close(projA, "clA", set([1, 2, 3]))
         clA.isMPC = True
-        clB = sal._close(in2, "clB", set([1, 2, 3]))
+        clB = sal._close(projB, "clB", set([1, 2, 3]))
         clB.isMPC = True
 
         shuffledA = sal.shuffle(clA, "shuffledA")
@@ -47,26 +56,35 @@ def testHybridJoinWorkflow():
         persistedB.isMPC = True
 
         keysAclosed = sal.project(shuffledA, "keysAclosed", ["a"])
+        keysAclosed.outRel.storedWith = set([1, 2, 3])
         keysAclosed.isMPC = True
         keysBclosed = sal.project(shuffledB, "keysBclosed", ["c"])
         keysBclosed.isMPC = True
+        keysBclosed.outRel.storedWith = set([1, 2, 3])
 
         keysA = sal._open(keysAclosed, "keysA", 1)
         keysA.isMPC = True
         keysB = sal._open(keysBclosed, "keysB", 1)
         keysB.isMPC = True
+        # keysAclosed.outRel.storedWith = set([1, 2, 3])
+        # keysBclosed.outRel.storedWith = set([1, 2, 3])
 
         indexedA = sal.index(keysA, "indexedA", "indexA")
         indexedA.isMPC = False
+        indexedA.outRel.storedWith = set([1])
         indexedB = sal.index(keysB, "indexedB", "indexB")
         indexedB.isMPC = False
+        indexedB.outRel.storedWith = set([1])
 
         joinedindeces = sal.join(
             indexedA, indexedB, "joinedindeces", ["a"], ["c"])
         joinedindeces.isMPC = False
+        joinedindeces.outRel.storedWith = set([1])
+
         indecesonly = sal.project(
             joinedindeces, "indecesonly", ["indexA", "indexB"])
         indecesonly.isMPC = False
+        indecesonly.outRel.storedWith = set([1])
 
         indecesclosed = sal._close(
             indecesonly, "indecesclosed", set([1, 2, 3]))
@@ -95,10 +113,10 @@ def testHybridJoinWorkflow():
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
-    dag = pruneDag(protocol(), pid)
+    dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
-    for idx, (fmwk, subdag) in enumerate(mapping):
+    for idx, (fmwk, subdag, storedWith) in enumerate(mapping):
         if fmwk == "sharemind":
             job = SharemindCodeGen(codegen_config, subdag, pid).generate(
                 "sharemind-" + str(idx), None)

@@ -682,54 +682,6 @@ def rewriteDag(dag):
     return dag
 
 
-def pruneDag(dag, party):
-
-    # given party and dag, remove all op nodes from dag that party
-    # is not involved in
-    ordered = dag.topSort()
-
-    for node in ordered:
-        parents = node.parents
-        inputStoredWith = set().union(
-            *[par.outRel.storedWith for par in parents])
-        inInput = party in inputStoredWith
-        inOutput = party in node.outRel.storedWith
-        if not (inInput or inOutput):
-            parents = node.parents
-            children = node.children
-            if node.isRoot():                
-                dag.roots.remove(node)
-                dag.roots |= children
-                for child in children:
-                    child.parents.remove(node)
-            elif node.isLeaf():
-                for parent in parents:
-                    parent.children.remove(node)
-            else:
-                if (len(parents) > 1 or len(children) > 1):
-                    raise NotImplementedError()
-                else:
-                    parent = next(iter(parents))
-                    child = next(iter(children))
-                    saldag.removeBetween(parent, child, node)
-    for node in dag.topSort():
-        if node.isRoot() and not isinstance(node, saldag.Create):
-            # only handle unary nodes for now
-            if not isinstance(node, saldag.UnaryOpNode):
-                raise NotImplementedError()
-            assert node.parent
-            # we cheated, so "orphan" nodes still have parents
-            create_op = saldag.Create(node.getInRel())
-            # create op is in same mode as node
-            create_op.isMPC = node.isMPC
-            create_op.children.add(node)
-            node.parent = create_op
-            node.parents = {create_op}
-            dag.roots.remove(node)
-            dag.roots.add(create_op)
-    return dag
-
-
 def scotch(f):
 
     from salmon.codegen import scotch, CodeGenConfig
@@ -746,7 +698,8 @@ def sharemind(f):
     from salmon.codegen import sharemind, CodeGenConfig
 
     def wrap():
-        code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)
+        code = sharemind.SharemindCodeGen(
+            CodeGenConfig(), f())._generate(None, None)
         return code
 
     return wrap
@@ -756,8 +709,6 @@ def mpc(*args):
     def _mpc(f):
         def wrapper(*args, **kwargs):
             dag = rewriteDag(saldag.OpDag(f()))
-            if party:
-                dag = pruneDag(dag, party)
             return dag
         return wrapper
     if len(args) == 1 and callable(args[0]):

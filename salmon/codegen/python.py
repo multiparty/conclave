@@ -38,7 +38,7 @@ class PythonCodeGen(CodeGen):
 
     def _generateOutput(self, leaf):
 
-        return "{}write_rel('{}', '{}.csv', {})".format(
+        return "{}write_rel('{}', '{}.csv', {})\n".format(
             self.space,
             self.config.output_path,
             leaf.outRel.name,
