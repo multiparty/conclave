@@ -42,7 +42,7 @@ def protocol():
 if __name__ == "__main__":
 
     pid = int(sys.argv[1])
-    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+    sharemind_config = exampleutils.get_sharemind_config(pid)
 
     sm_peer = salmon.net.setup_peer(sharemind_config)
 

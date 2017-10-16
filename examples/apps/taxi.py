@@ -54,7 +54,7 @@ def taxi(config, spark_master, sharemind_peer):
         # return root nodes
         return set([in1, in2, in3])
 
-    jobqueue = codegen(protocol, config)
+    jobqueue = codegen(protocol, config, ["sharemind"], ["spark"])
     print(jobqueue)
 
     salmon.dispatch.dispatch_all(spark_master, sharemind_peer, jobqueue)
