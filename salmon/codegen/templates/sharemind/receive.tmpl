@@ -1,6 +1,7 @@
 import sys
 import re
 
+
 def _write_rel(job_dir, rel_name, rel, delim):
 
     print("Will write to {}/{}".format(job_dir, rel_name))
@@ -9,22 +10,23 @@ def _write_rel(job_dir, rel_name, rel, delim):
         for row in rel:
             f.write(delim.join(row) + "\n")
 
+
 def _parse_result(res, job_dir, rels_meta):
     # sort of hacky
 
     def _parse_header(header):
 
-        # TODO: sloppy regex 
+        # TODO: sloppy regex
         name_pattern = re.compile("name\: ([a-zA-Z\_]+)\,")
         return name_pattern.search(header).group(1)
-        
+
     def _parse_res_line(res_line):
 
         split_line = res_line.split("{")
         # will do regex matching on the header so we want
         # to separate it from the potentially long data portion
         header, data = split_line[0], split_line[1][:-2]
-                    
+
         # get relation name
         rel_name = _parse_header(header)
         parsed_data = data.split(", ")
@@ -48,8 +50,10 @@ def _parse_result(res, job_dir, rels_meta):
         _write_rel(job_dir, rel_name + ".csv", rel, "{{DELIMITER}}")
 
 if __name__ == "__main__":
-    
+
+    print("start parsing")
     job_dir = "{{LOCAL_OUTPUT_PATH}}"
     rels_meta = {}
 {{{RELS_META}}}
     _parse_result(sys.stdin, job_dir, rels_meta)
+    print("done parsing")
