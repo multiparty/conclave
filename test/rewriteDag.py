@@ -926,17 +926,20 @@ CREATE RELATION in2([companyID {2}, price {2}]) {2} WITH COLUMNS (INTEGER, INTEG
 CREATE RELATION in3([companyID {3}, price {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [companyID, price] FROM (in1([companyID {1}, price {1}]) {1}) AS selected_input_0([companyID {1}, price {1}]) {1}
 AGG [price, +] FROM (selected_input_0([companyID {1}, price {1}]) {1}) GROUP BY [companyID] AS local_rev_0([companyID {1}, local_rev {1}]) {1}
-CLOSEMPC local_rev_0([companyID {1}, local_rev {1}]) {1} INTO local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_0([companyID {1}, local_rev {1}]) {1}) AS scaled_down_0_0([companyID {1}, local_rev {1}]) {1}
+CLOSEMPC scaled_down_0_0([companyID {1}, local_rev {1}]) {1} INTO scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in2([companyID {2}, price {2}]) {2}) AS selected_input_1([companyID {2}, price {2}]) {2}
 AGG [price, +] FROM (selected_input_1([companyID {2}, price {2}]) {2}) GROUP BY [companyID] AS local_rev_1([companyID {2}, local_rev {2}]) {2}
-CLOSEMPC local_rev_1([companyID {2}, local_rev {2}]) {2} INTO local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_1([companyID {2}, local_rev {2}]) {2}) AS scaled_down_0_1([companyID {2}, local_rev {2}]) {2}
+CLOSEMPC scaled_down_0_1([companyID {2}, local_rev {2}]) {2} INTO scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in3([companyID {3}, price {3}]) {3}) AS selected_input_2([companyID {3}, price {3}]) {3}
 AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY [companyID] AS local_rev_2([companyID {3}, local_rev {3}]) {3}
-CLOSEMPC local_rev_2([companyID {3}, local_rev {3}]) {3} INTO local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
-CONCATMPC [local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_2([companyID {3}, local_rev {3}]) {3}) AS scaled_down_0_2([companyID {3}, local_rev {3}]) {3}
+CLOSEMPC scaled_down_0_2([companyID {3}, local_rev {3}]) {3} INTO scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
+CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
+CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
 AGGMPC [price, +] FROM (cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-DIVIDEMPC [local_rev -> local_rev / 1000] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-MULTIPLYMPC [companyID -> companyID * 0] FROM (scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+MULTIPLYMPC [companyID -> companyID * 0] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 AGGMPC [local_rev, +] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 (local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) JOINMPC (total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) ON [companyID] AND [companyID] AS local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
@@ -944,6 +947,65 @@ DIVIDEMPC [local_rev -> local_rev / global_rev] FROM (local_total_rev([companyID
 MULTIPLYMPC [local_rev -> local_rev * local_rev * 1] FROM (market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 AGGMPC [local_rev, +] FROM (market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3}
 OPENMPC hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID {1,2,3}, hhi {1,2,3}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
+def testAggPushdown():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        colsIn3 = [
+            defCol("a", "INTEGER", [3]),
+            defCol("b", "INTEGER", [3])
+        ]
+        in3 = sal.create("in3", colsIn3, set([3]))
+
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2, in3], "rel")
+        proj = sal.project(rel, "proj", ["a", "b"])
+        agg = sal.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+        div = sal.divide(agg, "div", "a", ["a", 1])
+        mult = sal.multiply(div, "mult", "a", ["a", 1])
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2, in3])
+
+    expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [a, b] FROM (in1([a {1}, b {1}]) {1}) AS proj_0([a {1}, b {1}]) {1}
+AGG [b, +] FROM (proj_0([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
+DIVIDE [a -> a / 1] FROM (agg_0([a {1}, total_b {1}]) {1}) AS div_0_0([a {1}, total_b {1}]) {1}
+CLOSEMPC div_0_0([a {1}, total_b {1}]) {1} INTO div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}
+PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS proj_1([a {2}, b {2}]) {2}
+AGG [b, +] FROM (proj_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
+DIVIDE [a -> a / 1] FROM (agg_1([a {2}, total_b {2}]) {2}) AS div_0_1([a {2}, total_b {2}]) {2}
+CLOSEMPC div_0_1([a {2}, total_b {2}]) {2} INTO div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}
+PROJECT [a, b] FROM (in3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
+AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
+DIVIDE [a -> a / 1] FROM (agg_2([a {3}, total_b {3}]) {3}) AS div_0_2([a {3}, total_b {3}]) {3}
+CLOSEMPC div_0_2([a {3}, total_b {3}]) {3} INTO div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}
+CONCATMPC [div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
+CONCATMPC [div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
+AGGMPC [b, +] FROM (rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
+OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}
+MULTIPLY [a -> a * 1] FROM (agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}) AS mult([a {1,2,3}, total_b {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -964,3 +1026,4 @@ if __name__ == "__main__":
     testHybridAndRevealJoinOpt()
     testJoin()
     testTaxi()
+    testAggPushdown()

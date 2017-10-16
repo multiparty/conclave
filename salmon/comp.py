@@ -114,6 +114,18 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
+    def _do_commute(self, top_op, bottom_op):
+
+        # TODO: over-simplified
+        # TODO: add rules for other ops
+        if isinstance(top_op, saldag.Aggregate):
+            if isinstance(bottom_op, saldag.Divide):
+                return True
+            else:
+                return False
+        else:
+            return False
+
     def _rewriteDefault(self, node):
 
         node.isMPC = node.requiresMPC()
@@ -122,11 +134,23 @@ class MPCPushDown(DagRewriter):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            # if we have an MPC parent we can try and pull it down
-            # the leaf condition is to avoid issues with storedWith
-            # getting overwritten
-            if isinstance(parent, saldag.Concat) and parent.isBoundary() and not node.isLeaf():
+            # if node is leaf stop 
+            if node.isLeaf():
+                node.isMPC = True
+                return
+            # node is not leaf
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 pushOpNodeDown(parent, node)
+            elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
+                agg_op = parent
+                agg_parent = copy.copy(agg_op.parent)
+                if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
+                    concat_op = agg_parent
+                    pushOpNodeDown(agg_op, node)
+                    updated_node = agg_op.parent
+                    pushOpNodeDown(concat_op, updated_node)
+                else:
+                    node.isMPC = True
             else:
                 node.isMPC = True
         else:
