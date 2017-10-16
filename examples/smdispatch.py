@@ -6,7 +6,7 @@ from salmon.comp import dagonly
 import salmon.lang as sal
 from salmon.utils import *
 import sys
-
+import exampleutils
 
 @dagonly
 def protocol():
@@ -18,13 +18,13 @@ def protocol():
     ]
     in1 = sal.create("in1", colsIn1, set([1]))
     colsIn2 = [
-        defCol("a", "INTEGER", [2]),
-        defCol("b", "INTEGER", [2])
+        defCol("c", "INTEGER", [2]),
+        defCol("d", "INTEGER", [2])
     ]
     in2 = sal.create("in2", colsIn2, set([2]))
     colsIn3 = [
-        defCol("a", "INTEGER", [3]),
-        defCol("b", "INTEGER", [3])
+        defCol("e", "INTEGER", [3]),
+        defCol("f", "INTEGER", [3])
     ]
     in3 = sal.create("in3", colsIn3, set([3]))
 
@@ -38,31 +38,26 @@ def protocol():
     # return root nodes
     return set([in1, in2, in3])
 
+
 if __name__ == "__main__":
 
-    sharemind_home = "/tmp"
-    spark_master = "local"
-
     pid = int(sys.argv[1])
-    sharemind_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
-        }
-    }
+    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
     workflow_name = "job-" + str(pid)
-    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared", use_hdfs=False)
+    sm_cg_config = SharemindCodeGenConfig(
+        workflow_name, "/mnt/shared", use_hdfs=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
+    exampleutils.generate_data(pid, codegen_config.output_path)
+
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
         "sharemind-0", "")
     job_queue = [job]
-    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
+    salmon.dispatch.dispatch_all(None, sm_peer, job_queue)

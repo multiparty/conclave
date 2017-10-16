@@ -15,8 +15,12 @@ def read_rel(path_to_rel):
 
     rows = []
     with open(path_to_rel, "r") as f:
-        for raw_row in f.readlines():
-            rows.append([int(val) for val in raw_row.split(",")])
+        it = iter(f.readlines())
+        # skip header
+        next(it)
+        for raw_row in it:
+            split_row = raw_row.split(",")
+            rows.append([int(val) for val in split_row])
     return rows
 
 def project(rel, selected_cols):

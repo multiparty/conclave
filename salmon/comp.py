@@ -149,9 +149,7 @@ class MPCPushDown(DagRewriter):
                     assert len(concat_op.children) == 1
                     pushOpNodeDown(agg_op, node)
                     updated_node = agg_op.parent
-                    print(concat_op)
                     pushOpNodeDown(concat_op, updated_node)
-                    print(concat_op.children)
                 else:
                     node.isMPC = True
             else:

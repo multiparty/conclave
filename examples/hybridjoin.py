@@ -11,6 +11,7 @@ from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
+import exampleutils
 
 
 def testHybridJoinWorkflow():
@@ -26,9 +27,9 @@ def testHybridJoinWorkflow():
         in1 = sal.create("in1", colsInA, set([1]))
         in1.isMPC = False
 
-        projA = sal.project(in1, "projA", ["a", "b"])
-        projA.isMPC = False
-        projA.outRel.storedWith = set([1])
+        proja = sal.project(in1, "proja", ["a", "b"])
+        proja.isMPC = False
+        proja.outRel.storedWith = set([1])
 
         colsInB = [
             defCol("c", "INTEGER", [1], [2]),
@@ -37,13 +38,13 @@ def testHybridJoinWorkflow():
         in2 = sal.create("in2", colsInB, set([2]))
         in2.isMPC = False
 
-        projB = sal.project(in2, "projB", ["c", "d"])
-        projB.isMPC = False
-        projB.outRel.storedWith = set([2])
+        projb = sal.project(in2, "projb", ["c", "d"])
+        projb.isMPC = False
+        projb.outRel.storedWith = set([2])
 
-        clA = sal._close(projA, "clA", set([1, 2, 3]))
+        clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
-        clB = sal._close(projB, "clB", set([1, 2, 3]))
+        clB = sal._close(projb, "clB", set([1, 2, 3]))
         clB.isMPC = True
 
         shuffledA = sal.shuffle(clA, "shuffledA")
@@ -55,22 +56,22 @@ def testHybridJoinWorkflow():
         persistedB = sal._persist(shuffledB, "persistedB")
         persistedB.isMPC = True
 
-        keysAclosed = sal.project(shuffledA, "keysAclosed", ["a"])
-        keysAclosed.outRel.storedWith = set([1, 2, 3])
-        keysAclosed.isMPC = True
-        keysBclosed = sal.project(shuffledB, "keysBclosed", ["c"])
-        keysBclosed.isMPC = True
-        keysBclosed.outRel.storedWith = set([1, 2, 3])
+        keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
+        keysaclosed.outRel.storedWith = set([1, 2, 3])
+        keysaclosed.isMPC = True
+        keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
+        keysbclosed.isMPC = True
+        keysbclosed.outRel.storedWith = set([1, 2, 3])
 
-        keysA = sal._open(keysAclosed, "keysA", 1)
-        keysA.isMPC = True
-        keysB = sal._open(keysBclosed, "keysB", 1)
-        keysB.isMPC = True
+        keysa = sal._open(keysaclosed, "keysa", 1)
+        keysa.isMPC = True
+        keysb = sal._open(keysbclosed, "keysb", 1)
+        keysb.isMPC = True
 
-        indexedA = sal.index(keysA, "indexedA", "indexA")
+        indexedA = sal.index(keysa, "indexedA", "indexA")
         indexedA.isMPC = False
         indexedA.outRel.storedWith = set([1])
-        indexedB = sal.index(keysB, "indexedB", "indexB")
+        indexedB = sal.index(keysb, "indexedB", "indexB")
         indexedB.isMPC = False
         indexedB.outRel.storedWith = set([1])
 
@@ -107,6 +108,8 @@ def testHybridJoinWorkflow():
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
+    exampleutils.generate_data(pid, codegen_config.output_path)
+
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
@@ -122,16 +125,14 @@ def testHybridJoinWorkflow():
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
-        }
-    }
+    sharemind_config = exampleutils.get_sharemind_config(pid, True)
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
+    if pid == 1:
+        expected = ['', '2,200,2001', '3,300,3001', '4,400,4001', '42,42,1001', '5,500,5001',
+                    '6,600,6001', '7,700,7001', '7,800,7001', '7,900,7001', '8,1000,8001', '9,1100,9001']
+        exampleutils.check_res(expected, "/mnt/shared/opened.csv")
+        print("Success")
 
 if __name__ == "__main__":
 
