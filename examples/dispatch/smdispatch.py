@@ -55,7 +55,7 @@ if __name__ == "__main__":
     sm_peer = salmon.net.setup_peer(sharemind_config)
 
     workflow_name = "job-" + str(pid)
-    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
+    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared", use_hdfs=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name

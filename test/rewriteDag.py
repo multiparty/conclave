@@ -36,9 +36,9 @@ def testSingleConcat():
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
 CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in3([a {3}, b {3}]) {3} INTO in3_close([a {3}, b {3}]) {1}
+CLOSEMPC in3([a {3}, b {3}]) {3} INTO in3_close([a {3}, b {3}]) {1}
 CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}, in3_close([a {3}, b {3}]) {1}] AS rel([a {1,2,3}, b {1,2,3}]) {1}
 """
     actual = protocol()
@@ -76,13 +76,13 @@ def testSingleAgg():
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 AGG [b, +] FROM (in1([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
-CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 AGG [b, +] FROM (in2([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
-CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
+CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
 CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2}, agg_1_close([a {2}, total_b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
 AGGMPC [b, +] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) GROUP BY [a] AS agg_obl([a {1,2}, total_b {1,2}]) {1, 2}
-OPEN agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
+OPENMPC agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -119,7 +119,7 @@ def testSingleProj():
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
 CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}] AS rel([a {1,2}, b {1,2}]) {1}
 PROJECT [a, b] FROM (rel([a {1,2}, b {1,2}]) {1}) AS proj([a {1,2}, b {1,2}]) {1}
 """
@@ -158,7 +158,7 @@ def testSingleMult():
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
 CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}] AS rel([a {1,2}, b {1,2}]) {1}
 MULTIPLY [a -> a * 1] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,2}]) {1}
 """
@@ -197,7 +197,7 @@ def testSingleDiv():
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
 CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}] AS rel([a {1,2}, b {1,2}]) {1}
 DIVIDE [a -> a / b] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,2}]) {1}
 """
@@ -236,12 +236,12 @@ def testSingleFilter():
 
     # Filter must be under MPC as it is not a reversible operator
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1, 2}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1, 2}
 CONCATMPC [in1_close([a {1}, b {1}]) {1, 2}, in2_close([a {2}, b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
 FILTERMPC [a = 42] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) AS filtered([a {1,2}, b {1,2}]) {1, 2}
-OPEN filtered([a {1,2}, b {1,2}]) {1, 2} INTO filtered_open([a {1,2}, b {1,2}]) {1}
+OPENMPC filtered([a {1,2}, b {1,2}]) {1, 2} INTO filtered_open([a {1,2}, b {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, "\nexpected:\n{}actual:\n{}".format(expected, actual)
@@ -277,12 +277,12 @@ def testMultByZero():
         return set([in1, in2])
 
     expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1, 2}
+CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1, 2}
 CONCATMPC [in1_close([a {1}, b {1}]) {1, 2}, in2_close([a {2}, b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
 MULTIPLYMPC [a -> a * 0] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) AS mult([a {1,2}, b {1,2}]) {1, 2}
-OPEN mult([a {1,2}, b {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}]) {1}
+OPENMPC mult([a {1,2}, b {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -326,16 +326,16 @@ CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [a, b] FROM (in1([a {1}, b {1}]) {1}) AS proj_0([a {1}, b {1}]) {1}
 AGG [b, +] FROM (proj_0([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
-CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2, 3}
+CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2, 3}
 PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS proj_1([a {2}, b {2}]) {2}
 AGG [b, +] FROM (proj_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
-CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2, 3}
+CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2, 3}
 PROJECT [a, b] FROM (in3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
 AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
-CLOSE agg_2([a {3}, total_b {3}]) {3} INTO agg_2_close([a {3}, total_b {3}]) {1, 2, 3}
+CLOSEMPC agg_2([a {3}, total_b {3}]) {3} INTO agg_2_close([a {3}, total_b {3}]) {1, 2, 3}
 CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2, 3}, agg_1_close([a {2}, total_b {2}]) {1, 2, 3}, agg_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
 AGGMPC [b, +] FROM (rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
-OPEN agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}
+OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -425,13 +425,13 @@ PROJECT [a, b] FROM (in1([a {1}, b {1}]) {1}) AS projA_0([a {1}, b {1}]) {1}
 PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS projA_1([a {2}, b {2}]) {2}
 PROJECT [a, b] FROM (projA_0([a {1}, b {1}]) {1}) AS projB_0([a {1}, b {1}]) {1}
 AGG [b, +] FROM (projB_0([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
-CLOSE agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
 PROJECT [a, b] FROM (projA_1([a {2}, b {2}]) {2}) AS projB_1([a {2}, b {2}]) {2}
 AGG [b, +] FROM (projB_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
-CLOSE agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
+CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
 CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2}, agg_1_close([a {2}, total_b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
 AGGMPC [b, +] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) GROUP BY [a] AS agg_obl([a {1,2}, total_b {1,2}]) {1, 2}
-OPEN agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
+OPENMPC agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
 PROJECT [a, total_b] FROM (agg_obl_open([a {1,2}, total_b {1,2}]) {1}) AS projC([a {1,2}, total_b {1,2}]) {1}
 """
     actual = protocol()
@@ -754,9 +754,9 @@ def testRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION inB([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inB([c {2}, d {2}]) {2} INTO inB_close([c {2}, d {2}]) {1, 2}
+CLOSEMPC inB([c {2}, d {2}]) {2} INTO inB_close([c {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) REVEALJOIN (inB_close([c {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2}, b {1,2}, d {1,2}]) {1}
 """
     actual = protocol()
@@ -790,12 +790,12 @@ def testHybridJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION inB([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
+CLOSEMPC inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) HYBRIDJOIN (inB_close([c {1} {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1, 2}
 AGGMPC [b, +] FROM (joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1, 2}) GROUP BY [a] AS agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2}
-OPEN agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2} INTO agg_open([a {1,2} {1}, total_b {1,2} {1}]) {1}
+OPENMPC agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2} INTO agg_open([a {1,2} {1}, total_b {1,2} {1}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -828,9 +828,9 @@ def testHybridAndRevealJoinOpt():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION inB([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
+CLOSEMPC inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) REVEALJOIN (inB_close([c {1} {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1}
 """
     actual = protocol()
@@ -860,13 +860,13 @@ def testJoin():
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSE inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION inB([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [c, d] FROM (inB([c {2}, d {2}]) {2}) AS projB([c {2}, d {2}]) {2}
-CLOSE projB([c {2}, d {2}]) {2} INTO projB_close([c {2}, d {2}]) {1, 2}
+CLOSEMPC projB([c {2}, d {2}]) {2} INTO projB_close([c {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) JOINMPC (projB_close([c {2}, d {2}]) {1, 2}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
 MULTIPLYMPC [a -> a * 0] FROM (joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}) AS mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
-OPEN mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, d {1,2}]) {1}
+OPENMPC mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, d {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -926,24 +926,84 @@ CREATE RELATION in2([companyID {2}, price {2}]) {2} WITH COLUMNS (INTEGER, INTEG
 CREATE RELATION in3([companyID {3}, price {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [companyID, price] FROM (in1([companyID {1}, price {1}]) {1}) AS selected_input_0([companyID {1}, price {1}]) {1}
 AGG [price, +] FROM (selected_input_0([companyID {1}, price {1}]) {1}) GROUP BY [companyID] AS local_rev_0([companyID {1}, local_rev {1}]) {1}
-CLOSE local_rev_0([companyID {1}, local_rev {1}]) {1} INTO local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_0([companyID {1}, local_rev {1}]) {1}) AS scaled_down_0_0([companyID {1}, local_rev {1}]) {1}
+CLOSEMPC scaled_down_0_0([companyID {1}, local_rev {1}]) {1} INTO scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in2([companyID {2}, price {2}]) {2}) AS selected_input_1([companyID {2}, price {2}]) {2}
 AGG [price, +] FROM (selected_input_1([companyID {2}, price {2}]) {2}) GROUP BY [companyID] AS local_rev_1([companyID {2}, local_rev {2}]) {2}
-CLOSE local_rev_1([companyID {2}, local_rev {2}]) {2} INTO local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_1([companyID {2}, local_rev {2}]) {2}) AS scaled_down_0_1([companyID {2}, local_rev {2}]) {2}
+CLOSEMPC scaled_down_0_1([companyID {2}, local_rev {2}]) {2} INTO scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in3([companyID {3}, price {3}]) {3}) AS selected_input_2([companyID {3}, price {3}]) {3}
 AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY [companyID] AS local_rev_2([companyID {3}, local_rev {3}]) {3}
-CLOSE local_rev_2([companyID {3}, local_rev {3}]) {3} INTO local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
-CONCATMPC [local_rev_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, local_rev_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, local_rev_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_2([companyID {3}, local_rev {3}]) {3}) AS scaled_down_0_2([companyID {3}, local_rev {3}]) {3}
+CLOSEMPC scaled_down_0_2([companyID {3}, local_rev {3}]) {3} INTO scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
+CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
 AGGMPC [price, +] FROM (cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-DIVIDEMPC [local_rev -> local_rev / 1000] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-MULTIPLYMPC [companyID -> companyID * 0] FROM (scaled_down([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
+MULTIPLYMPC [companyID -> companyID * 0] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 AGGMPC [local_rev, +] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 (local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) JOINMPC (total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) ON [companyID] AND [companyID] AS local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 DIVIDEMPC [local_rev -> local_rev / global_rev] FROM (local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [local_rev -> local_rev * local_rev * 1] FROM (market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
 AGGMPC [local_rev, +] FROM (market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3}
-OPEN hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID {1,2,3}, hhi {1,2,3}]) {1}
+OPENMPC hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID {1,2,3}, hhi {1,2,3}]) {1}
+"""
+    actual = protocol()
+    assert expected == actual, actual
+
+def testAggPushdown():
+
+    @scotch
+    @mpc
+    def protocol():
+
+        # define inputs
+        colsIn1 = [
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1])
+        ]
+        in1 = sal.create("in1", colsIn1, set([1]))
+        colsIn2 = [
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsIn2, set([2]))
+        colsIn3 = [
+            defCol("a", "INTEGER", [3]),
+            defCol("b", "INTEGER", [3])
+        ]
+        in3 = sal.create("in3", colsIn3, set([3]))
+
+        # combine parties' inputs into one relation
+        rel = sal.concat([in1, in2, in3], "rel")
+        proj = sal.project(rel, "proj", ["a", "b"])
+        agg = sal.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+        div = sal.divide(agg, "div", "a", ["a", 1])
+        mult = sal.multiply(div, "mult", "a", ["a", 1])
+
+        sal.collect(mult, 1)
+
+        # return root nodes
+        return set([in1, in2, in3])
+
+    expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [a, b] FROM (in1([a {1}, b {1}]) {1}) AS proj_0([a {1}, b {1}]) {1}
+AGG [b, +] FROM (proj_0([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
+DIVIDE [a -> a / 1] FROM (agg_0([a {1}, total_b {1}]) {1}) AS div_0_0([a {1}, total_b {1}]) {1}
+CLOSEMPC div_0_0([a {1}, total_b {1}]) {1} INTO div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}
+PROJECT [a, b] FROM (in2([a {2}, b {2}]) {2}) AS proj_1([a {2}, b {2}]) {2}
+AGG [b, +] FROM (proj_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
+DIVIDE [a -> a / 1] FROM (agg_1([a {2}, total_b {2}]) {2}) AS div_0_1([a {2}, total_b {2}]) {2}
+CLOSEMPC div_0_1([a {2}, total_b {2}]) {2} INTO div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}
+PROJECT [a, b] FROM (in3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
+AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
+DIVIDE [a -> a / 1] FROM (agg_2([a {3}, total_b {3}]) {3}) AS div_0_2([a {3}, total_b {3}]) {3}
+CLOSEMPC div_0_2([a {3}, total_b {3}]) {3} INTO div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}
+CONCATMPC [div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
+AGGMPC [b, +] FROM (rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
+OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}
+MULTIPLY [a -> a * 1] FROM (agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}) AS mult([a {1,2,3}, total_b {1,2,3}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -964,3 +1024,4 @@ if __name__ == "__main__":
     testHybridAndRevealJoinOpt()
     testJoin()
     testTaxi()
+    testAggPushdown()

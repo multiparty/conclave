@@ -82,6 +82,10 @@ class OpNode(Node):
 
         self.parents = set()
 
+    def removeParent(self, parent):
+
+        self.parents.remove(parent)
+
     def replaceParent(self, oldParent, newParent):
 
         self.parents.remove(oldParent)
@@ -140,6 +144,11 @@ class UnaryOpNode(OpNode):
         super(UnaryOpNode, self).replaceParent(oldParent, newParent)
         self.parent = newParent
 
+    def removeParent(self, parent):
+
+        super(UnaryOpNode, self).removeParent(parent)
+        self.parent = None
+
 
 class BinaryOpNode(OpNode):
 
@@ -181,6 +190,14 @@ class BinaryOpNode(OpNode):
             self.leftParent = newParent
         elif self.rightParent == oldParent:
             self.rightParent = newParent
+
+    def removeParent(self, parent):
+
+        super(BinaryOpNode, self).removeParent(parent)
+        if self.leftParent == parent:
+            self.leftParent = None
+        elif self.rightParent == parent:
+            self.rightParent = None
 
 
 class NaryOpNode(OpNode):
@@ -300,6 +317,10 @@ class Concat(NaryOpNode):
         # this will throw if oldParent not in list
         idx = self.ordered.index(oldParent)
         self.ordered[idx] = newParent
+
+    def removeParent(self, parent):
+
+        raise NotImplementedError()
 
 
 class Aggregate(UnaryOpNode):
@@ -438,10 +459,14 @@ class Join(BinaryOpNode):
 
     def updateOpSpecificCols(self):
 
+        print(self)
+        print("self.leftJoinCols", self.leftJoinCols, self.leftJoinCols[0].idx)
+        print("self.getLeftInRel().columns", self.getLeftInRel().columns)
+
         self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx]
-                             for leftJoinCol in self.leftJoinCols]
+                             for leftJoinCol in copy.copy(self.leftJoinCols)]
         self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx]
-                              for rightJoinCol in self.rightJoinCols]
+                              for rightJoinCol in copy.copy(self.rightJoinCols)]
 
 
 class IndexJoin(Join):
@@ -575,6 +600,8 @@ class Dag():
     def _topSortVisit(self, node, marked, tempMarked,
                       unmarked, ordered, deterministic=True):
 
+        # print("Visiting", node)
+
         if node in tempMarked:
             raise Exception("Not a Dag!")
 
@@ -603,6 +630,8 @@ class Dag():
     def topSort(self, deterministic=True):
 
         unmarked = self.getAllNodes()
+        # print("start visit")
+
         if deterministic:
             unmarked = sorted(list(unmarked), key=lambda x: x.outRel.name)
         marked = set()
@@ -631,10 +660,10 @@ class OpDag(Dag):
 
 def removeBetween(parent, child, other):
 
-    assert(len(other.children) < 2)
-    assert(len(other.parents) < 2)
+    assert len(other.children) < 2
+    assert len(other.parents) < 2
     # only dealing with unary nodes for now
-    assert(isinstance(other, UnaryOpNode))
+    assert isinstance(other, UnaryOpNode)
 
     if child:
         child.replaceParent(other, parent)

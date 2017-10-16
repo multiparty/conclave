@@ -1,6 +1,7 @@
 import salmon.lang as sal
 from salmon.comp import dagonly, mpc
 from salmon.utils import *
+from salmon.codegen.scotch import ScotchCodeGen
 import salmon.partition as part
 
 
@@ -85,26 +86,31 @@ def test_partition_taxi():
         # dummy projection to force non-mpc subdag
         hhi_only = sal.project(
             hhi, "hhi_only", ["companyID", "hhi"])
-        
+
         sal.collect(hhi_only, 1)
 
         # return root nodes
         return set([in1, in2, in3])
 
     dag = protocol()
-    mapping = part.heupart(dag)
-
+    mapping = part.heupart(dag, ["sharemind"], ["spark"])
     expected = '''sparkcreate->in1,
 project->selected_input_0,
-aggregation->local_rev_0###sharemindcreatempc->local_rev_0,
-closempc->local_rev_0_close,
-creatempc->local_rev_1,
-closempc->local_rev_1_close,
-creatempc->local_rev_2,
-closempc->local_rev_2_close,
+aggregation->local_rev_0,
+divide->scaled_down_0_0{1}###sparkcreate->in2,
+project->selected_input_1,
+aggregation->local_rev_1,
+divide->scaled_down_0_1{2}###sparkcreate->in3,
+project->selected_input_2,
+aggregation->local_rev_2,
+divide->scaled_down_0_2{3}###sharemindcreatempc->scaled_down_0_0,
+closempc->scaled_down_0_0_close,
+creatempc->scaled_down_0_1,
+closempc->scaled_down_0_1_close,
+creatempc->scaled_down_0_2,
+closempc->scaled_down_0_2_close,
 concatmpc->cab_data,
 aggregationmpc->local_rev_obl,
-dividempc->scaled_down,
 multiplympc->first_val_blank,
 multiplympc->local_rev_scaled,
 aggregationmpc->total_rev,
@@ -112,9 +118,9 @@ joinmpc->local_total_rev,
 dividempc->market_share,
 multiplympc->market_share_squared,
 aggregationmpc->hhi,
-openmpc->hhi_open###sparkcreate->hhi_open,
-project->hhi_only'''
-    actual = "###".join([fmwk + str(subdag) for (fmwk, subdag) in mapping])
+openmpc->hhi_open{1, 2, 3}###sparkcreate->hhi_open,
+project->hhi_only{1}'''
+    actual = "###".join([fmwk + str(subdag) + str(parties) for (fmwk, subdag, parties) in mapping])
     assert expected == actual, actual
 
 if __name__ == "__main__":

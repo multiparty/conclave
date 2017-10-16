@@ -9,12 +9,13 @@ import shutil
 
 class SharemindCodeGenConfig(CodeGenConfig):
 
-    def __init__(self, job_name=None, home_path="/tmp", docker_id=None):
+    def __init__(self, job_name=None, home_path="/tmp", docker_id=None, use_hdfs=True):
 
         super(SharemindCodeGenConfig, self).__init__(job_name)
         self.home_path = home_path
         self.use_docker = True if docker_id else False
         self.docker_id = docker_id
+        self.use_hdfs = use_hdfs
 
 
 class SharemindCodeGen(CodeGen):
@@ -77,15 +78,17 @@ class SharemindCodeGen(CodeGen):
             op_code["submitInner"] = submit_code["inner"]
             op_code["receive"] = receive_code
 
-        # sanity check
-        assert op_code
         # create job
         job = SharemindJob(job_name, self.config.code_path + "/" + job_name,
                            controller_pid, input_parties)
+        # check if this party participates in any way
+        if not op_code:
+            job.skip = True
         return job, op_code
 
     def _generate_miner_code(self, nodes):
 
+        # TODO: this code should be re-using base class _generate method
         # the code that will run on the miners
         miner_code = ""
         for node in nodes:
@@ -107,6 +110,10 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateProject(node)
             elif isinstance(node, Close):
                 miner_code += self._generateClose(node)
+            elif isinstance(node, Shuffle):
+                miner_code += self._generateShuffle(node)
+            elif isinstance(node, Persist):
+                miner_code += self._generatePersist(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -124,7 +131,7 @@ class SharemindCodeGen(CodeGen):
         output_parties = set().union(
             *[op.outRel.storedWith for op in open_ops])
         # only support one output party
-        assert(len(output_parties) == 1)
+        assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
         return next(iter(output_parties))  # pop
 
@@ -154,9 +161,16 @@ class SharemindCodeGen(CodeGen):
             # generate schema and get its name
             name, schema, header = self._generateSchema(close_op)
             schemas[name] = schema
-            # generate csv import code
-            hdfs_import_statements.append(self._generateHDFSImport(
-                close_op, header, job_name)[:-1])
+            # TODO: hack hack hack
+            if self.sm_config.use_hdfs:
+                hdfs_import_statements.append(self._generateHDFSImport(
+                    close_op, header, job_name)[:-1])
+            else:
+                hdfs_import_statements.append("cp {} {}".format(
+                        self.config.output_path + "/" + name + ".csv",
+                        self.config.code_path + "/" + job_name + "/" + name + ".csv"
+                    )
+                )
             # generate csv import code
             import_statements.append(self._generateCSVImport(
                 close_op, output_directory, job_name)[:-1])
@@ -179,10 +193,17 @@ class SharemindCodeGen(CodeGen):
         hdfs_cmds = []
         for open_op in open_ops:
             name = open_op.outRel.name
-            hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
+            # TODO: hack hack hack
+            if self.sm_config.use_hdfs:
+                hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
                     code_path + "/" + job_name + "/" + name, 
                     self.config.output_path + "/"  + name
                 )
+            else:
+                hdfs_cmd = "cp {}.csv {}.csv".format(
+                    code_path + "/" + job_name + "/" + name, 
+                    self.config.output_path + "/"  + name
+                )    
             hdfs_cmds.append(hdfs_cmd)
         hdfs_cmds_str = "\n".join(hdfs_cmds)
 
@@ -259,13 +280,14 @@ class SharemindCodeGen(CodeGen):
     def _generateClose(self, close_op):
 
         template = open(
-            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+            "{0}/close.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "NAME": close_op.outRel.name,
-            "TYPE": "uint32"
+            "TYPE": "uint32",
+            "OUT_REL_NAME": close_op.outRel.name,
+            "IN_REL_NAME": close_op.getInRel().name
         }
         return pystache.render(template, data)
-
+        
     def _generateConcat(self, concat_op):
 
         inRels = concat_op.getInRels()
@@ -299,8 +321,13 @@ class SharemindCodeGen(CodeGen):
 
     def _generateCreate(self, create_op):
 
-        # don't need to do anything for create ops
-        return ""
+        template = open(
+            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "NAME": create_op.outRel.name,
+            "TYPE": "uint32"
+        }
+        return pystache.render(template, data)
 
     def _generateDivide(self, divide_op):
 
@@ -364,6 +391,27 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    def _generateShuffle(self, shuffle_op):
+
+        template = open(
+            "{0}/shuffle.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": shuffle_op.outRel.name,
+            "IN_REL": shuffle_op.getInRel().name
+        }
+        return pystache.render(template, data)
+
+    def _generatePersist(self, persist_op):
+
+        template = open(
+            "{0}/persist.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "OUT_REL": persist_op.outRel.name,
+            "IN_REL": persist_op.getInRel().name,
+        }
+        return pystache.render(template, data)
+
     def _generateProject(self, project_op):
 
         template = open(
@@ -422,7 +470,7 @@ class SharemindCodeGen(CodeGen):
         relDefTemplate = open(
             "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
         relData = {
-            "NAME": outRel.name,
+            "NAME": close_op.getInRel().name,
             "COL_DEFS": colDefStr
         }
         relDefHeader = ",".join([c.name for c in inCols])
@@ -487,5 +535,4 @@ class SharemindCodeGen(CodeGen):
                     _write(job_code_path, schema_name,
                            ext_lookup[code_type], schemas[schema_name], job_name)
             else:
-                _write(job_code_path, code_type, ext_lookup[
-                       code_type], code, job_name)
+                _write(job_code_path, code_type, ext_lookup[code_type], code, job_name)

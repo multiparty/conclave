@@ -1,7 +1,9 @@
 from . import part
-from salmon.dag import OpDag, Create
+from salmon.dag import OpDag, Create, Close, Open, UnaryOpNode
 from salmon.codegen import scotch
-from copy import deepcopy
+from copy import copy, deepcopy
+from salmon.codegen.scotch import ScotchCodeGen
+from salmon.codegen import CodeGenConfig
 
 
 def partDag(dag):
@@ -12,59 +14,123 @@ def partDag(dag):
     return best
 
 
-def heupart(dag):
-    # hack hack hack
+def heupart(dag, mpc_frameworks, local_frameworks):
 
-    def visit(node, collected, new_roots, mode):
+    def get_stored_with(node):
 
-        if node.isMPC == mode:
-            collected.append(node)
-            for child in node.children:
-                visit(child, collected, new_roots, mode)
+        if isinstance(node, Open):
+            return node.getInRel().storedWith
+        elif isinstance(node, Create):
+            return get_stored_with(next(iter(node.children)))
         else:
-            if node not in new_roots:
-                new_roots.append(node)
+            return node.outRel.storedWith
 
-    def split_dag(current_dag, mode):
+    def is_correct_mode(node, available, storedWith):
 
-        collected = []
+        # if node itself is stored with different set of parties it doesn't
+        # belong inside current dag
+        if get_stored_with(node) != storedWith:
+            return False
+        
+        # otherwise check parents
+        return node.parents.issubset(available) or not (node.parents or available)
+
+    def split_dag(current_dag, available):
+
+        # need topological ordering
+        ordered = current_dag.topSort()
+        # first node must always be create node
+        assert isinstance(ordered[0], Create)
+        # first node determines if we're in mpc mode or not        
+        storedWith = get_stored_with(ordered[0])
+
+        # available = set()
+        # can new roots be set?
         new_roots = []
 
-        # this will traverse into the current dag until all boundary nodes are
-        # hit
-        for root in current_dag.roots:
-            visit(root, collected, new_roots, mode)
+        # traverse current dag until all boundary nodes are hit
+        for node in ordered:
+            if is_correct_mode(node, available, storedWith):
+                available.add(node)
+            elif ((not node.parents) or (node.parents & available)):
+                if node not in new_roots:
+                    new_roots.append(node)
+            else:
+                pass
 
         for root in new_roots:
-            # boundary nodes are guaranteed to be unary (open and close) so we
-            # don't need to worry about multiple parents
-            parent = root.parent
-            if parent:
-                parent.children.remove(root)
-                # replace parent with create node of output relation
-                create_op = Create(parent.outRel)
-                # hack mpc flag
-                create_op.isMPC = not mode 
-                root.parent = create_op
-                create_op.children.add(root)
+            for parent in copy(root.parents):
+                if parent in available:
+                    parent.children.remove(root)
+                    # replace parent with create node of output relation
+                    create_op = Create(deepcopy(parent.outRel))
+                    # create op is in same mode as root
+                    create_op.isMPC = root.isMPC
+                    # create_op.outRel.storedWith = deepcopy(
+                    #     root.outRel.storedWith)
+                    # insert create op between parent and root
+                    root.replaceParent(parent, create_op)
+                    # connect create op with root
+                    create_op.children.add(root)
             if root in current_dag.roots:
                 current_dag.roots.remove(root)
-        # new roots are parent create nodes we inserted
-        parent_roots = [root.parent for root in new_roots]
-        # return subdag below boundary nodes
-        return OpDag(set(parent_roots))
 
+        parent_roots = set().union(*[root.parents for root in new_roots])
+        for root in new_roots:
+            if isinstance(root, Create):
+                parent_roots.add(root)
+
+        return OpDag(set(parent_roots)), available
+
+    def _merge_dags(left_dag, right_dag):
+
+        # to merge, we only need to combine roots
+        roots = left_dag.roots.union(right_dag.roots)
+        return OpDag(roots)
+
+    def merge_neighbor_dags(mapping):
+
+        updated_mapping = []
+        prev_fmwk, prev_subdag, stored_with = None, None, None
+        for fmwk, subdag, stored_with in mapping:
+            # we can merge neighboring subdags if they're mapped to the same
+            # framework and are stored by same parties
+            if fmwk == prev_fmwk and stored_with == prev_fmwk:
+                # merge dags together
+                merged_dag = _merge_dags(prev_subdag, subdag)
+                # pop previous subdag
+                updated_mapping = updated_mapping[:-1]
+                updated_mapping.append((fmwk, merged_dag, stored_with))
+            else:
+                # can't merge, so just add subdag to result
+                updated_mapping.append((fmwk, subdag, stored_with))
+            # keep track of previous values
+            prev_fmwk = fmwk
+            prev_subdag = subdag
+        return updated_mapping
+
+    assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
     nextdag = dag
-    mpcmode = False
     mapping = []
+    available = set()
+
+    local_fmwk = local_frameworks[0]
+    mpc_fmwk = mpc_frameworks[0]
 
     while nextdag.roots:
-        fmwk = "sharemind" if mpcmode else "spark"
+        first = nextdag.topSort()[0]
+        assert isinstance(first, Create)
+        storedWith = get_stored_with(first)
+        mpcmode = first.isMPC
+        # map to framework
+        fmwk = mpc_fmwk if mpcmode else local_fmwk
         # store subdag
-        mapping.append((fmwk, nextdag))
-        # partition of next subdag
-        nextdag = split_dag(nextdag, mpcmode)
-        # flip mode
-        mpcmode = not mpcmode
+        mapping.append((fmwk, nextdag, storedWith))
+        # partition next subdag
+        nextdag, available = split_dag(nextdag, available)
 
-    return mapping
+    # for fmwk, subdag, storedWith in mapping:
+    #     print(ScotchCodeGen(CodeGenConfig(), sd)._generate(0, 0))
+
+    merged = merge_neighbor_dags(mapping)
+    return merged

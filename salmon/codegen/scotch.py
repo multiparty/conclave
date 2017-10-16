@@ -148,21 +148,24 @@ class ScotchCodeGen(CodeGen):
 
     def _generateClose(self, close_op):
 
-        return "CLOSE {} INTO {}\n".format(
+        return "CLOSE{} {} INTO {}\n".format(
+            "MPC" if close_op.isMPC else "",
             close_op.getInRel().dbgStr(),
             close_op.outRel.dbgStr()
         )
 
     def _generateOpen(self, open_op):
 
-        return "OPEN {} INTO {}\n".format(
+        return "OPEN{} {} INTO {}\n".format(
+            "MPC" if open_op.isMPC else "",
             open_op.getInRel().dbgStr(),
             open_op.outRel.dbgStr()
         )
 
     def _generatePersist(self, persist_op):
 
-        return "PERSIST {} INTO {}\n".format(
+        return "PERSIST{} {} INTO {}\n".format(
+            "MPC" if persist_op.isMPC else "",
             persist_op.getInRel().dbgStr(),
             persist_op.outRel.dbgStr()
         )

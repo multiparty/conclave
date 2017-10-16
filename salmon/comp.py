@@ -114,6 +114,18 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
+    def _do_commute(self, top_op, bottom_op):
+
+        # TODO: over-simplified
+        # TODO: add rules for other ops
+        if isinstance(top_op, saldag.Aggregate):
+            if isinstance(bottom_op, saldag.Divide):
+                return True
+            else:
+                return False
+        else:
+            return False
+
     def _rewriteDefault(self, node):
 
         node.isMPC = node.requiresMPC()
@@ -122,11 +134,26 @@ class MPCPushDown(DagRewriter):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            # if we have an MPC parent we can try and pull it down
-            # the leaf condition is to avoid issues with storedWith
-            # getting overwritten
-            if isinstance(parent, saldag.Concat) and parent.isBoundary() and not node.isLeaf():
+            # if node is leaf stop 
+            if node.isLeaf():
+                node.isMPC = True
+                return
+            # node is not leaf
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 pushOpNodeDown(parent, node)
+            elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
+                agg_op = parent
+                agg_parent = agg_op.parent
+                if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
+                    concat_op = agg_parent
+                    assert len(concat_op.children) == 1
+                    pushOpNodeDown(agg_op, node)
+                    updated_node = agg_op.parent
+                    print(concat_op)
+                    pushOpNodeDown(concat_op, updated_node)
+                    print(concat_op.children)
+                else:
+                    node.isMPC = True
             else:
                 node.isMPC = True
         else:
@@ -364,13 +391,15 @@ class CollSetPropDown(DagRewriter):
         for inCol in leftInRel.columns:
             if inCol not in set(leftJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
         for inCol in rightInRel.columns:
             if inCol not in set(rightJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(keyColCollSets, inCol.collSets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
     def _rewriteConcat(self, node):
@@ -520,6 +549,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
                 # create and insert store node
                 storeOp = saldag.Open(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetweenChildren(node, storeOp)
             else:
                 raise Exception(
@@ -561,6 +591,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                 outRel.storedWith = copy.copy(combinedStoreWith)
                 # create and insert store node
                 storeOp = saldag.Close(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteHybridJoin(self, node):
@@ -581,6 +612,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                     outRel.storedWith = copy.copy(outStoredWith)
                     # create and insert store node
                     storeOp = saldag.Close(outRel, None)
+                    storeOp.isMPC = True
                     saldag.insertBetween(parent, node, storeOp)
                 else:
                     raise Exception(
@@ -600,6 +632,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                 outRel.storedWith = copy.copy(outStoredWith)
                 # create and insert close node
                 storeOp = saldag.Close(outRel, None)
+                storeOp.isMPC = True
                 saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteCreate(self, node):
@@ -663,6 +696,7 @@ class ExpandCompositeOps(DagRewriter):
 
         pass
 
+
 def rewriteDag(dag):
 
     MPCPushDown().rewrite(dag)
@@ -672,38 +706,6 @@ def rewriteDag(dag):
     HybridJoinOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps().rewrite(dag)
-    return dag
-
-
-def pruneDag(dag, party):
-    # given party and dag, remove all op nodes from dag that party
-    # is not involved in
-    ordered = dag.topSort()
-    for node in ordered:
-        parents = node.parents
-        inputStoredWith = set().union(
-            *[par.outRel.storedWith for par in parents])
-        inInput = party in inputStoredWith
-        inOutput = party in node.outRel.storedWith
-        if not (inInput or inOutput):
-            # prune
-            parents = node.parents
-            children = node.children
-            if node.isRoot():
-                dag.roots.remove(node)
-                dag.roots |= children
-                for child in children:
-                    child.parents.remove(node)
-            elif node.isLeaf():
-                for parent in parents:
-                    parent.children.remove(node)
-            else:
-                if (len(parents) > 1 or len(children) > 1):
-                    raise NotImplementedError()
-                else:
-                    parent = next(iter(parents))
-                    child = next(iter(children))
-                    saldag.removeBetween(parent, child, node)
     return dag
 
 
@@ -717,22 +719,23 @@ def scotch(f):
 
     return wrap
 
+
 def sharemind(f):
 
     from salmon.codegen import sharemind, CodeGenConfig
 
     def wrap():
-        code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)
+        code = sharemind.SharemindCodeGen(
+            CodeGenConfig(), f())._generate(None, None)
         return code
 
     return wrap
+
 
 def mpc(*args):
     def _mpc(f):
         def wrapper(*args, **kwargs):
             dag = rewriteDag(saldag.OpDag(f()))
-            if party:
-                dag = pruneDag(dag, party)
             return dag
         return wrapper
     if len(args) == 1 and callable(args[0]):
@@ -744,6 +747,7 @@ def mpc(*args):
         # This is just returning the decorator
         party = args[0]
         return _mpc
+
 
 def dagonly(f):
 

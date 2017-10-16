@@ -1,0 +1,43 @@
+import sys
+import re
+
+def write_rel(job_dir, rel_name, rel, schema_header):
+
+    print("Will write to {}/{}".format(job_dir, rel_name))
+    path = "{}/{}".format(job_dir, rel_name)
+    with open(path, "w") as f:
+        # hack header
+        f.write(schema_header + "\n")
+        for row in rel:
+            f.write(",".join([str(val) for val in row]) + "\n")
+
+def read_rel(path_to_rel):
+
+    rows = []
+    with open(path_to_rel, "r") as f:
+        for raw_row in f.readlines():
+            rows.append([int(val) for val in raw_row.split(",")])
+    return rows
+
+def project(rel, selected_cols):
+
+    return [[row[idx] for idx in selected_cols] for row in rel]
+
+def project_indeces(rel):
+
+    return [[idx] + rest for (idx, rest) in enumerate(rel)]
+
+def join(left, right, left_col, right_col):
+
+    joined = []
+    for left_row in left:
+        for right_row in right:
+            if left_row[left_col] == right_row[right_col]:
+                vals_from_left = [val for (idx, val) in enumerate(left_row) if idx != left_col]
+                vals_from_right = [val for (idx, val) in enumerate(right_row) if idx != right_col]
+                joined_row = [left_row[left_col]] + vals_from_left + vals_from_right
+                joined.append(joined_row)
+    return joined
+
+if __name__ == "__main__":
+{{{OP_CODE}}}

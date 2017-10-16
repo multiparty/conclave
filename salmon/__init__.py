@@ -15,8 +15,6 @@ def codegen(protocol, config):
 
     # apply optimizations
     dag = comp.rewriteDag(saldag.OpDag(protocol()))
-    # prune for party
-    pruned = comp.pruneDag(dag, cfg.pid)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag)
     # for each sub dag run code gen and add resulting job to job queue
