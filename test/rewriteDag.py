@@ -937,7 +937,6 @@ AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY 
 DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_2([companyID {3}, local_rev {3}]) {3}) AS scaled_down_0_2([companyID {3}, local_rev {3}]) {3}
 CLOSEMPC scaled_down_0_2([companyID {3}, local_rev {3}]) {3} INTO scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
 CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
-CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}
 AGGMPC [price, +] FROM (cab_data([companyID {1,2,3}, price {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [companyID -> companyID * 0] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
 MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
@@ -1001,7 +1000,6 @@ PROJECT [a, b] FROM (in3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
 AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
 DIVIDE [a -> a / 1] FROM (agg_2([a {3}, total_b {3}]) {3}) AS div_0_2([a {3}, total_b {3}]) {3}
 CLOSEMPC div_0_2([a {3}, total_b {3}]) {3} INTO div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}
-CONCATMPC [div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
 CONCATMPC [div_0_0_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_1_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
 AGGMPC [b, +] FROM (rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
 OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}

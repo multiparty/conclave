@@ -143,12 +143,15 @@ class MPCPushDown(DagRewriter):
                 pushOpNodeDown(parent, node)
             elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
-                agg_parent = copy.copy(agg_op.parent)
+                agg_parent = agg_op.parent
                 if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
                     concat_op = agg_parent
+                    assert len(concat_op.children) == 1
                     pushOpNodeDown(agg_op, node)
                     updated_node = agg_op.parent
+                    print(concat_op)
                     pushOpNodeDown(concat_op, updated_node)
+                    print(concat_op.children)
                 else:
                     node.isMPC = True
             else:
