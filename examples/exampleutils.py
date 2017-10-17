@@ -64,4 +64,4 @@ def check_res(expected, res_path):
 
     with open(res_path, "r") as f:
         actual = sorted(f.read().split("\n"))
-        assert expected == actual, print(actual)
+        assert expected == actual, actual

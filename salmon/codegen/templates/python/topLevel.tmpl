@@ -16,11 +16,13 @@ def read_rel(path_to_rel):
     rows = []
     with open(path_to_rel, "r") as f:
         it = iter(f.readlines())
-        # skip header
-        next(it)
         for raw_row in it:
-            split_row = raw_row.split(",")
-            rows.append([int(val) for val in split_row])
+            # TODO: only need to do this for first row
+            try:
+                split_row = [int(val) for val in raw_row.split(",")]
+                rows.append([int(val) for val in split_row])
+            except ValueError:
+                print("skipped header")
     return rows
 
 def project(rel, selected_cols):
@@ -32,7 +34,7 @@ def project_indeces(rel):
     return [[idx] + rest for (idx, rest) in enumerate(rel)]
 
 def join(left, right, left_col, right_col):
-
+    
     joined = []
     for left_row in left:
         for right_row in right:

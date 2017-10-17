@@ -100,6 +100,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generateCreate(node)
             elif isinstance(node, Divide):
                 miner_code += self._generateDivide(node)
+            elif isinstance(node, IndexJoin):
+                miner_code += self._generateIndexJoin(node)
             elif isinstance(node, Join):
                 miner_code += self._generateJoin(node)
             elif isinstance(node, Multiply):
@@ -349,6 +351,25 @@ class SharemindCodeGen(CodeGen):
             # hacking array brackets
             "OPERANDS": "{" + operands_str + "}",
             "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
+        }
+        return pystache.render(template, data)
+
+    def _generateIndexJoin(self, index_join_op):
+
+        template = open(
+            "{0}/indexJoin.tmpl".format(self.template_directory), 'r').read()
+        left_rel = index_join_op.leftParent.outRel
+        right_rel = index_join_op.rightParent.outRel
+        index_rel = index_join_op.indexRel.outRel
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": index_join_op.outRel.name,
+            "LEFT_IN_REL": index_join_op.getLeftInRel().name,
+            "LEFT_KEY_COLS": str(index_join_op.leftJoinCols[0].idx),
+            "RIGHT_IN_REL": index_join_op.getRightInRel().name,
+            "RIGHT_KEY_COLS": str(index_join_op.rightJoinCols[0].idx),
+            "INDEX_REL": index_rel.name
         }
         return pystache.render(template, data)
 
