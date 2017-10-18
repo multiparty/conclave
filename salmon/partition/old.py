@@ -65,22 +65,22 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 if parent in available:
                     create_op = None
                     if parent not in previous_parents:
+                        print("not in parents", parent)
+                        # define new create op
                         create_op = Create(deepcopy(parent.outRel))
                         # create op is in same mode as root
                         create_op.isMPC = root.isMPC
+                        # mark parent as visited and add create op to lookup
                         previous_parents.add(parent)
                         create_op_lookup[parent.outRel.name] = create_op
                     else:
+                        print("in parents", parent)
+                        # take already defined create op
                         create_op = create_op_lookup[parent.outRel.name]
-                    # unlink root from parent
-                    parent.children.remove(root)
                     # insert create op between parent and root
                     root.replaceParent(parent, create_op)
                     # connect create op with root
                     create_op.children.add(root)
-                    # keep track of parents we have already visited
-                    previous_parents.add(parent)
-                    create_op_lookup[create_op.outRel.name] = create_op
             if root in current_dag.roots:
                 current_dag.roots.remove(root)
 

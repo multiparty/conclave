@@ -48,6 +48,52 @@ def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, a
 
     return op
 
+def index_aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName, indexOp, distKeysOp):
+
+    agg_op = aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName)
+    idx_agg_op = dag.IndexAggregate.fromAggregate(agg_op, indexOp, distKeysOp)
+
+    inputOpNode.children.remove(agg_op)
+    inputOpNode.children.add(idx_agg_op)
+    
+    indexOp.children.add(idx_agg_op)
+    distKeysOp.children.add(idx_agg_op)
+
+    return idx_agg_op
+
+
+def flat_group(inputOpNode, outputName, groupColName, overColName, aggOutColName):
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and reset their collusion sets
+    inCols = inRel.columns
+    groupCol = utils.find(inCols, groupColName)
+    groupCol.collSets = set()
+    overCol = utils.find(inCols, overColName)
+    overCol.collSets = set()
+
+    # Create output relation. Default column order is
+    # key column first followed by column that will be
+    # aggregated. Note that we want copies as these are
+    # copies on the output relation and changes to them
+    # shouldn't affect the original columns
+    aggOutCol = copy.deepcopy(overCol)
+    aggOutCol.name = aggOutColName
+    outRelCols = [copy.deepcopy(groupCol)]
+    outRelCols.append(copy.deepcopy(aggOutCol))
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    # Create our operator node
+    op = dag.FlatGroup(outRel, inputOpNode, groupCol, overCol)
+
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
+
 
 def project(inputOpNode, outputName, selectedColNames):
 
@@ -77,6 +123,33 @@ def project(inputOpNode, outputName, selectedColNames):
 
     return op
 
+def distinct(inputOpNode, outputName, selectedColNames):
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    # Find all columns by name
+    selectedCols = [utils.find(inRel.columns, colName)
+                    for colName in selectedColNames]
+
+    outRelCols = copy.deepcopy(selectedCols)
+    for col in outRelCols:
+        col.collSets = set()
+
+    # Create output relation
+    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    # Create our operator node
+    op = dag.Distinct(outRel, inputOpNode, selectedCols)
+
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
 
 def divide(inputOpNode, outputName, targetColName, operands):
 

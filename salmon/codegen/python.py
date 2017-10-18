@@ -76,6 +76,16 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
+    def _generateDistinct(self, distinct_op):
+
+        selected_cols = [col.idx for col in distinct_op.selectedCols]
+        return "{}{} = distinct({}, {})\n".format(
+            self.space,
+            distinct_op.outRel.name,
+            distinct_op.getInRel().name,
+            selected_cols
+        )
+
     def _generateIndex(self, index_op):
 
         return "{}{} = project_indeces({})\n".format(

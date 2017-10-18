@@ -9,12 +9,11 @@ import shutil
 
 class SharemindCodeGenConfig(CodeGenConfig):
 
-    def __init__(self, job_name=None, home_path="/tmp", docker_id=None, use_hdfs=True):
+    def __init__(self, job_name=None, home_path="/tmp", use_docker=True, use_hdfs=True):
 
         super(SharemindCodeGenConfig, self).__init__(job_name)
         self.home_path = home_path
-        self.use_docker = True if docker_id else False
-        self.docker_id = docker_id
+        self.use_docker = use_docker
         self.use_hdfs = use_hdfs
 
 

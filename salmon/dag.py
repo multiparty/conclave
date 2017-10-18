@@ -322,7 +322,6 @@ class Concat(NaryOpNode):
 
         raise NotImplementedError()
 
-
 class Aggregate(UnaryOpNode):
 
     def __init__(self, outRel, parent, groupCols, aggCol, aggregator):
@@ -338,6 +337,34 @@ class Aggregate(UnaryOpNode):
         self.groupCols = [self.getInRel().columns[groupCol.idx]
                           for groupCol in self.groupCols]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
+
+class IndexAggregate(Aggregate):
+
+    def __init__(self, outRel, parent, groupCols, aggCol, aggregator, indexOp, distKeysOp):
+
+        super(IndexAggregate, self).__init__(outRel, parent, groupCols, aggCol, aggregator)
+        self.indexOp = indexOp
+        self.distKeysOp = distKeysOp
+
+    @classmethod
+    def fromAggregate(cls, aggOp, indexOp, distKeysOp):
+        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols, aggOp.aggCol, aggOp.aggregator, indexOp, distKeysOp)
+        return obj
+
+
+# class FlatGroup(UnaryOpNode):
+
+#     def __init__(self, outRel, parent, groupCol, aggCol):
+
+#         super(FlatGroup, self).__init__("flatGroup", outRel, parent)
+#         self.groupCol = groupCol
+#         self.aggCol = aggCol
+
+#     def updateOpSpecificCols(self):
+
+#         # TODO: do we need to copy here?
+#         self.groupCol = self.getInRel().columns[self.groupCol.idx]
+#         self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
 
 class Project(UnaryOpNode):
@@ -411,6 +438,20 @@ class Multiply(UnaryOpNode):
         self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in old_operands]
 
+
+class Distinct(UnaryOpNode):
+
+    def __init__(self, outRel, parent, selectedCols):
+
+        super(Distinct, self).__init__("distinct", outRel, parent)
+        self.selectedCols = selectedCols
+
+    def updateOpSpecificCols(self):
+
+        tempCols = self.getInRel().columns
+        old_operands = copy.copy(self.operands)
+        self.operands = [tempCols[col.idx] if isinstance(
+            col, rel.Column) else col for col in old_operands]
 
 class Divide(UnaryOpNode):
 
