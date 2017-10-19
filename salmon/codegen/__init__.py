@@ -73,9 +73,12 @@ class CodeGen:
         # topological traversal
         nodes = self.dag.topSort()
 
+        # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
-            if isinstance(node, Aggregate):
+            if isinstance(node, IndexAggregate):
+                op_code += self._generateIndexAggregate(node)
+            elif isinstance(node, Aggregate):
                 op_code += self._generateAggregate(node)
             elif isinstance(node, Concat):
                 op_code += self._generateConcat(node)
@@ -107,6 +110,8 @@ class CodeGen:
                 op_code += self._generateIndex(node)
             elif isinstance(node, Shuffle):
                 op_code += self._generateShuffle(node)
+            elif isinstance(node, Distinct):
+                op_code += self._generateDistinct(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

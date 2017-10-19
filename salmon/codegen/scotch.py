@@ -13,6 +13,17 @@ class ScotchCodeGen(CodeGen):
 
         return op_code
 
+    def _generateIndexAggregate(self, idx_agg_op):
+
+        return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
+            "MPC" if idx_agg_op.isMPC else "",
+            idx_agg_op.aggCol.getName(),
+            idx_agg_op.aggregator,
+            idx_agg_op.getInRel().dbgStr(),
+            ",".join([groupCol.getName() for groupCol in idx_agg_op.groupCols]),
+            idx_agg_op.outRel.dbgStr()
+        )
+
     def _generateAggregate(self, agg_op):
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
@@ -117,6 +128,17 @@ class ScotchCodeGen(CodeGen):
             selectedColsStr,
             project_op.getInRel().dbgStr(),
             project_op.outRel.dbgStr()
+        )
+
+    def _generateDistinct(self, distinct_op):
+
+        selectedColsStr = ", ".join([str(col)
+                                     for col in distinct_op.selectedCols])
+        return "DISTINCT{} [{}] FROM ({}) AS {}\n".format(
+            "MPC" if distinct_op.isMPC else "",
+            selectedColsStr,
+            distinct_op.getInRel().dbgStr(),
+            distinct_op.outRel.dbgStr()
         )
 
     def _generateFilter(self, filter_op):

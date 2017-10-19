@@ -45,6 +45,25 @@ def join(left, right, left_col, right_col):
                 joined.append(joined_row)
     return joined
 
+def index_agg(rel, over_col, distinct_keys, indeces, aggregator):
+
+    empty = 0
+    res = [[key[0], empty] for key in distinct_keys]
+    print("rel", rel)
+    print("res", res)
+    print("indeces", indeces)
+    for row_idx, key_idx in indeces:
+        res[key_idx][1] = aggregator(res[key_idx][1], rel[row_idx][over_col])
+    return res
+
+def distinct(rel, selected_cols):
+
+    # TODO: general case
+    assert len(selected_cols) == 1
+    only_selected = project(rel, selected_cols)
+    unwrapped = [row[0] for row in only_selected]
+    return [[key] for key in set(unwrapped)]
+
 if __name__ == "__main__":
     print("start python")
 {{{OP_CODE}}}

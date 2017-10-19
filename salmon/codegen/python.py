@@ -76,6 +76,16 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
+    def _generateDistinct(self, distinct_op):
+
+        selected_cols = [col.idx for col in distinct_op.selectedCols]
+        return "{}{} = distinct({}, {})\n".format(
+            self.space,
+            distinct_op.outRel.name,
+            distinct_op.getInRel().name,
+            selected_cols
+        )
+
     def _generateIndex(self, index_op):
 
         return "{}{} = project_indeces({})\n".format(
@@ -83,6 +93,19 @@ class PythonCodeGen(CodeGen):
             index_op.outRel.name,
             index_op.getInRel().name
         )
+
+    def _generateIndexAggregate(self, index_agg_op):
+
+        # TODO: generalize
+        return "{}{} = index_agg({}, {}, {}, {}, lambda x, y: x {} y)\n".format(
+            self.space,
+            index_agg_op.outRel.name,
+            index_agg_op.getInRel().name,
+            index_agg_op.aggCol.idx,
+            index_agg_op.distKeysOp.outRel.name,
+            index_agg_op.indexOp.outRel.name,
+            index_agg_op.aggregator
+        )        
 
     def _writeCode(self, code, job_name):
 

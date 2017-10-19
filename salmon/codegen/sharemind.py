@@ -9,12 +9,11 @@ import shutil
 
 class SharemindCodeGenConfig(CodeGenConfig):
 
-    def __init__(self, job_name=None, home_path="/tmp", docker_id=None, use_hdfs=True):
+    def __init__(self, job_name=None, home_path="/tmp", use_docker=True, use_hdfs=True):
 
         super(SharemindCodeGenConfig, self).__init__(job_name)
         self.home_path = home_path
-        self.use_docker = True if docker_id else False
-        self.docker_id = docker_id
+        self.use_docker = use_docker
         self.use_hdfs = use_hdfs
 
 
@@ -90,9 +89,12 @@ class SharemindCodeGen(CodeGen):
 
         # TODO: this code should be re-using base class _generate method
         # the code that will run on the miners
+        # TODO: handle subclassing more gracefully
         miner_code = ""
         for node in nodes:
-            if isinstance(node, Aggregate):
+            if isinstance(node, IndexAggregate):
+                miner_code += self._generateIndexAggregate(node)
+            elif isinstance(node, Aggregate):
                 miner_code += self._generateAggregate(node)
             elif isinstance(node, Concat):
                 miner_code += self._generateConcat(node)
@@ -278,6 +280,22 @@ class SharemindCodeGen(CodeGen):
             "AGG_COL_IDX": agg_op.aggCol.idx
         }
         return pystache.render(template, data)
+
+    def _generateIndexAggregate(self, idx_agg_op):
+
+        template = open(
+            "{0}/indexAggregateSum.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": idx_agg_op.outRel.name,
+            "IN_REL_NAME": idx_agg_op.getInRel().name,
+            "AGG_COL_IDX": idx_agg_op.aggCol.idx,
+            "KEYS_REL": idx_agg_op.distKeysOp.outRel.name,
+            "INDECES_REL": idx_agg_op.indexOp.outRel.name
+        }
+        return pystache.render(template, data)
+
 
     def _generateClose(self, close_op):
 

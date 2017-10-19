@@ -103,6 +103,8 @@ class DagRewriter:
                 self._rewriteOpen(node)
             elif isinstance(node, saldag.Create):
                 self._rewriteCreate(node)
+            elif isinstance(node, saldag.Distinct):
+                self._rewriteDistinct(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
