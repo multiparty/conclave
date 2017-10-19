@@ -1,6 +1,8 @@
+import sys, os
+from random import randint
+
 
 # Some adhoc utility functions
-
 
 def get_sharemind_config(pid, local=False):
 
@@ -91,3 +93,25 @@ def check_res(expected, res_path):
     with open(res_path, "r") as f:
         actual = sorted(f.read().split("\n"))
         assert expected == actual, actual
+
+
+def generate_input(out_path, num_cols, num_rows, col_names=''):
+    num_cols = int(num_cols)
+    num_rows = int(num_rows)
+
+    with_col_names = False
+    if col_names != '':
+        with_col_names = True
+
+    if with_col_names:
+        assert (len(col_names) == num_cols), \
+            'Number of columns is unequal to number of column names.'
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    with open(out_path, 'w') as f:
+        if with_col_names:
+            f.write(','.join(col_names) + '\n')
+        f.write('\n'.join([','.join([str(randint(0,9))
+                                     for i in range(num_cols)])
+                           for j in range(num_rows)]))
