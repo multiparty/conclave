@@ -351,22 +351,6 @@ class IndexAggregate(Aggregate):
         obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols, aggOp.aggCol, aggOp.aggregator, indexOp, distKeysOp)
         return obj
 
-
-# class FlatGroup(UnaryOpNode):
-
-#     def __init__(self, outRel, parent, groupCol, aggCol):
-
-#         super(FlatGroup, self).__init__("flatGroup", outRel, parent)
-#         self.groupCol = groupCol
-#         self.aggCol = aggCol
-
-#     def updateOpSpecificCols(self):
-
-#         # TODO: do we need to copy here?
-#         self.groupCol = self.getInRel().columns[self.groupCol.idx]
-#         self.aggCol = self.getInRel().columns[self.aggCol.idx]
-
-
 class Project(UnaryOpNode):
 
     def __init__(self, outRel, parent, selectedCols):

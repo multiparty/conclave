@@ -94,6 +94,19 @@ class PythonCodeGen(CodeGen):
             index_op.getInRel().name
         )
 
+    def _generateIndexAggregate(self, index_agg_op):
+
+        # TODO: generalize
+        return "{}{} = index_agg({}, {}, {}, {}, lambda x, y: x {} y)\n".format(
+            self.space,
+            index_agg_op.outRel.name,
+            index_agg_op.getInRel().name,
+            index_agg_op.aggCol.idx,
+            index_agg_op.distKeysOp.outRel.name,
+            index_agg_op.indexOp.outRel.name,
+            index_agg_op.aggregator
+        )        
+
     def _writeCode(self, code, job_name):
 
         os.makedirs("{}/{}".format(self.config.code_path,

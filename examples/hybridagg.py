@@ -52,7 +52,7 @@ def testHybridAggWorkflow():
         keys = sal._open(keysclosed, "keys", 1)
         keys.isMPC = True
         
-        indexed = sal.index(keys, "indexed", "tupleIndex")
+        indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
         indexed.outRel.storedWith = set([1])
         
@@ -69,7 +69,12 @@ def testHybridAggWorkflow():
         joinedindeces.isMPC = False
         joinedindeces.outRel.storedWith = set([1])
 
-        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", joinedindeces, distinctKeys)
+        indecesonly = sal.project(
+            joinedindeces, "indecesonly", ["rowIndex", "keyIndex"])
+        indecesonly.isMPC = False
+        indecesonly.outRel.storedWith = set([1])
+
+        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", indecesonly, distinctKeys)
 
         # closedDistinct = sal._close(distinctKeys, "closedDistinct", set([1, 2, 3]))
         # closedDistinct.isMPC = True
@@ -89,7 +94,7 @@ def testHybridAggWorkflow():
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
-    exampleutils.generate_data(pid, codegen_config.output_path)
+    exampleutils.generate_agg_data(pid, codegen_config.output_path)
 
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
@@ -109,11 +114,10 @@ def testHybridAggWorkflow():
     sharemind_config = exampleutils.get_sharemind_config(pid, True)
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
-    # if pid == 1:
-    #     expected = ['', '2,200,2001', '3,300,3001', '4,400,4001', '42,42,1001', '5,500,5001',
-    #                 '6,600,6001', '7,700,7001', '7,800,7001', '7,900,7001', '8,1000,8001', '9,1100,9001']
-    #     exampleutils.check_res(expected, "/mnt/shared/opened.csv")
-    #     print("Success")
+    if pid == 1:
+        expected = ['', '"a","b"', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
+        exampleutils.check_res(expected, "/mnt/shared/agg.csv")
+        print("Success")
 
 if __name__ == "__main__":
 

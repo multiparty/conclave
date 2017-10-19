@@ -59,6 +59,32 @@ def generate_data(pid, root_dir):
     with open(root_dir + "/" + "in" + str(pid) + ".csv", "w") as f:
         f.write(data[pid])
 
+def generate_agg_data(pid, root_dir):
+
+    data = {
+        1: '''"a","b"
+2,42
+2,200
+3,300
+1,400
+5,500
+1,600
+7,700
+7,800
+7,900
+1,1000
+9,1100''',
+        2: '''"c","d"
+1,1''',
+        3: '''"e","f"
+1,1
+'''
+    }
+
+    with open(root_dir + "/" + "in" + str(pid) + ".csv", "w") as f:
+        f.write(data[pid])
+
+
 
 def check_res(expected, res_path):
 
