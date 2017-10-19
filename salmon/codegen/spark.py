@@ -256,6 +256,19 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _generateDistinct(self, op):
+
+        template = open("{}/distinct.tmpl"
+                        .format(self.template_directory), 'r').read()
+
+        data = {
+            'OUTREL': op.outRel.name,
+            'INREL': op.getInRel().name,
+            'CACHE_VAR': cache_var(op)
+        }
+
+        return pystache.render(template, data)
+
     def _writeBash(self, job_name):
         roots, leaves = [], []
 

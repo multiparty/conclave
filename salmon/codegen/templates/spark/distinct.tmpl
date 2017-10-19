@@ -1,0 +1,7 @@
+
+{{{OUTREL}}} = {{{INREL}}} \
+    .flatMap(lambda x: x) \
+    .distinct() \
+    .map(lambda x: [x]) \
+    {{{CACHE_VAR}}}
+
