@@ -38,12 +38,12 @@ def testHybridAggWorkflow():
         shuffled.outRel.storedWith = set([1, 2, 3])
         shuffled.isMPC = True
 
-        persisted = sal._open(shuffled, "persisted", 1)
-        persisted.isMPC = True
-
-        # persisted = sal._persist(shuffled, "persisted")
-        # persisted.outRel.storedWith = set([1, 2, 3])
+        # persisted = sal._open(shuffled, "persisted", 1)
         # persisted.isMPC = True
+
+        persisted = sal._persist(shuffled, "persisted")
+        persisted.outRel.storedWith = set([1, 2, 3])
+        persisted.isMPC = True
         
         keysclosed = sal.project(shuffled, "keysclosed", ["a"])
         keysclosed.outRel.storedWith = set([1, 2, 3])
@@ -60,6 +60,12 @@ def testHybridAggWorkflow():
         distinctKeys.isMPC = False
         distinctKeys.outRel.storedWith = set([1])
 
+        # TODO: hack to get keys stored
+        # need to fix later!
+        fakeDistinctKeys = sal.distinct(keys, "distinctKeys", ["a"])
+        fakeDistinctKeys.isMPC = False
+        fakeDistinctKeys.outRel.storedWith = set([1])
+
         indexedDistinct = sal.index(distinctKeys, "indexedDistinct", "keyIndex")
         indexedDistinct.isMPC = False
         indexedDistinct.outRel.storedWith = set([1])
@@ -69,17 +75,20 @@ def testHybridAggWorkflow():
         joinedindeces.isMPC = False
         joinedindeces.outRel.storedWith = set([1])
 
+        # TODO: could project row indeces away too
         indecesonly = sal.project(
             joinedindeces, "indecesonly", ["rowIndex", "keyIndex"])
         indecesonly.isMPC = False
         indecesonly.outRel.storedWith = set([1])
 
-        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", indecesonly, distinctKeys)
+        closedDistinct = sal._close(distinctKeys, "closedDistinct", set([1, 2, 3]))
+        closedDistinct.isMPC = True
+        closedLookup = sal._close(indecesonly, "closedLookup", set([1, 2, 3]))
+        closedLookup.isMPC = True
 
-        # closedDistinct = sal._close(distinctKeys, "closedDistinct", set([1, 2, 3]))
-        # closedDistinct.isMPC = True
-        # closedLookup = sal._close(joinedindeces, "closedLookup", set([1, 2, 3]))
-        # closedLookup.isMPC = True
+        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedLookup, closedDistinct)
+        agg.isMPC = True
+        sal._open(agg, "opened", 1)
 
         # create dag
         return set([in1])
@@ -115,8 +124,8 @@ def testHybridAggWorkflow():
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
     if pid == 1:
-        expected = ['', '"a","b"', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
-        exampleutils.check_res(expected, "/mnt/shared/agg.csv")
+        expected = ['', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
+        exampleutils.check_res(expected, "/mnt/shared/opened.csv")
         print("Success")
 
 if __name__ == "__main__":

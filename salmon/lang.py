@@ -59,6 +59,9 @@ def index_aggregate(inputOpNode, outputName, groupColNames, overColName, aggrega
     indexOp.children.add(idx_agg_op)
     distKeysOp.children.add(idx_agg_op)
 
+    idx_agg_op.parents.add(indexOp)
+    idx_agg_op.parents.add(distKeysOp)
+
     return idx_agg_op
 
 

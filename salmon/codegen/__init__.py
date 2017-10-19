@@ -73,6 +73,7 @@ class CodeGen:
         # topological traversal
         nodes = self.dag.topSort()
 
+        # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
             if isinstance(node, IndexAggregate):
