@@ -6,8 +6,8 @@ new_col_flag = {{{NEWCOL_FLAG}}}
 
 if not new_col_flag:
     {{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: [float(x[j]) / (functools.reduce(operator.mul, \
-        [float(x[i]) for i in operands], 1)*scalar) \
+    .map(lambda x: [int(float(x[j]) / (functools.reduce(operator.mul, \
+        [float(x[i]) for i in operands], 1)*scalar)) \
         if j == target_id \
         else x[j] for j in range(len(x))]) \
     {{{CACHE_VAR}}}
