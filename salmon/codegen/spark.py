@@ -256,7 +256,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO: (ben) only supports single column operation 
+    # TODO: (ben) only supports single column operation
     def _generateDistinct(self, op):
 
         template = open("{}/distinct.tmpl"
