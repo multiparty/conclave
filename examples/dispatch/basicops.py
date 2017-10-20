@@ -139,7 +139,7 @@ def party_proc(pid):
 
     job = SharemindCodeGen(codegen_config, join(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
-    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
+    salmon.dispatch.dispatch_all(spark_master, peer, job_queue)
 
 if __name__ == "__main__":
 
