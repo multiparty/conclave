@@ -83,8 +83,8 @@ def testPublicJoinWorkflow():
             indecesonly, "indecesclosed", set([1, 2, 3]))
         indecesclosed.isMPC = True
 
-        joined = sal._index_join(persistedA, persistedB, "joined", [
-                                 "a"], ["c"], indecesclosed)
+        joined = sal._index_join(persistedA, persistedB, "joined",
+                                 ["a"], ["c"], indecesclosed)
         joined.isMPC = True
 
         sal._open(joined, "opened", 1)
