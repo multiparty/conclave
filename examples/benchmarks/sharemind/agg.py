@@ -32,7 +32,6 @@ def setup():
     cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
     cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
 
-    # TODO: (ben) do we need to concat first?
     rel = sal.concat([cl1, cl2, cl3], "rel")
 
     return set([in1, in2, in3]), rel
@@ -67,13 +66,13 @@ if __name__ == "__main__":
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
 
-    workflow_name = "agg_{}-{}".format(filesize, pid)
+    workflow_name = "agg_{}_{}".format(filesize, pid)
     sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "hdfs://{}/{}/{}".format(hdfs_namenode, hdfs_root, filesize)
-    codegen_config.output_path = "hdfs://{}/{}/agg-{}".format(hdfs_namenode, hdfs_root, filesize)
+    codegen_config.output_path = "hdfs://{}/{}/agg_{}".format(hdfs_namenode, hdfs_root, filesize)
     codegen_config.pid = pid
     codegen_config.name = workflow_name
 
