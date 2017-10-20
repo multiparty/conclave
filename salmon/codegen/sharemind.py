@@ -2,7 +2,7 @@ from salmon.codegen import CodeGen, CodeGenConfig
 from salmon.job import SharemindJob
 from salmon.dag import *
 from salmon.rel import *
-import os
+import os, sys
 import pystache
 import shutil
 
