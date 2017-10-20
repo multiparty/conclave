@@ -1,5 +1,5 @@
 from salmon.codegen import CodeGenConfig
-from salmon.codegen.sharemind import SharemindCodeGen
+from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 import salmon.dispatch
 import salmon.net
 from salmon.comp import dagonly
@@ -39,21 +39,43 @@ def setup():
 
 
 @dagonly
-def agg():
+def agg(config, sharemind_peer):
 
-    inputs, rel = setup()
-    res = sal.aggregate(rel, "agg", ["b"], "a", "+", "total")
+    def protocol():
 
-    opened = sal._open(res, "opened", 1)
+        inputs, rel = setup()
+        res = sal.aggregate(rel, "agg", ["b"], "a", "+", "total")
 
-    return inputs
+        opened = sal._open(res, "opened", 1)
+
+        return inputs
+
+    cg = SharemindCodeGen(config, protocol(), pid)
+    job = cg.generate("agg-" + str(pid), sharemind_home)
+    job_queue = [job]
+
+    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
-def party_proc():
+if __name__ == "__main__":
 
     pid = sys.argv[1]
+    hdfs_namenode = sys.argv[2]
+    hdfs_root = sys.argv[3]
+    # configurable benchmark size
+    filesize = sys.argv[4]
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
+
+    workflow_name = "agg_{}-{}".format(filesize, pid)
+    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
+    codegen_config = CodeGenConfig(
+        workflow_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + workflow_name
+    codegen_config.input_path = "hdfs://{}/{}/{}".format(hdfs_namenode, hdfs_root, filesize)
+    codegen_config.output_path = "hdfs://{}/{}/agg-{}".format(hdfs_namenode, hdfs_root, filesize)
+    codegen_config.pid = pid
+    codegen_config.name = workflow_name
 
     sharemind_config = {
         "pid": pid,
@@ -63,15 +85,10 @@ def party_proc():
             3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
-    peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
 
     codegen_config = CodeGenConfig()
 
-    cg = SharemindCodeGen(codegen_config, agg(), pid)
-    cg.generate("agg-" + str(pid), sharemind_home)
+    agg(codegen_config, sm_peer)
 
 
-if __name__ == "__main__":
-
-    party_proc()
-    agg()
