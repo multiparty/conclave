@@ -1,2 +1,3 @@
-docker exec -ti sharemind-client sh -c  "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd {{SHAREMIND_HOME}} && bash {{CODE_PATH}}/submitInner.sh"
+export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd {{SHAREMIND_HOME}} && bash {{CODE_PATH}}/submitInner.sh
+# docker exec -ti sharemind-client sh -c  "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd {{SHAREMIND_HOME}} && bash {{CODE_PATH}}/submitInner.sh"
 {{HDFS_CMDS}}

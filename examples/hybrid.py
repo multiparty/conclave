@@ -12,12 +12,12 @@ from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
 import exampleutils
+import salmon.dag as saldag
 
 
-def testHybridAggWorkflow():
+def testHybridJoinWorkflow():
 
-    @dagonly
-    def protocol():
+    def hybrid_join():
 
         # define inputs
         colsInA = [
@@ -31,10 +31,78 @@ def testHybridAggWorkflow():
         proja.isMPC = False
         proja.outRel.storedWith = set([1])
 
+        colsInB = [
+            defCol("c", "INTEGER", [1], [2]),
+            defCol("d", "INTEGER", [2])
+        ]
+        in2 = sal.create("in2", colsInB, set([2]))
+        in2.isMPC = False
+
+        projb = sal.project(in2, "projb", ["c", "d"])
+        projb.isMPC = False
+        projb.outRel.storedWith = set([2])
+
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
+        clB = sal._close(projb, "clB", set([1, 2, 3]))
+        clB.isMPC = True
 
-        shuffled = sal.shuffle(clA, "shuffled")
+        shuffledA = sal.shuffle(clA, "shuffledA")
+        shuffledA.isMPC = True
+        persistedA = sal._persist(shuffledA, "persistedA")
+        persistedA.isMPC = True
+        shuffledB = sal.shuffle(clB, "shuffledB")
+        shuffledB.isMPC = True
+        persistedB = sal._persist(shuffledB, "persistedB")
+        persistedB.isMPC = True
+
+        keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
+        keysaclosed.outRel.storedWith = set([1, 2, 3])
+        keysaclosed.isMPC = True
+        keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
+        keysbclosed.isMPC = True
+        keysbclosed.outRel.storedWith = set([1, 2, 3])
+
+        keysa = sal._open(keysaclosed, "keysa", 1)
+        keysa.isMPC = True
+        keysb = sal._open(keysbclosed, "keysb", 1)
+        keysb.isMPC = True
+
+        indexedA = sal.index(keysa, "indexedA", "indexA")
+        indexedA.isMPC = False
+        indexedA.outRel.storedWith = set([1])
+        indexedB = sal.index(keysb, "indexedB", "indexB")
+        indexedB.isMPC = False
+        indexedB.outRel.storedWith = set([1])
+
+        joinedindeces = sal.join(
+            indexedA, indexedB, "joinedindeces", ["a"], ["c"])
+        joinedindeces.isMPC = False
+        joinedindeces.outRel.storedWith = set([1])
+
+        indecesonly = sal.project(
+            joinedindeces, "indecesonly", ["indexA", "indexB"])
+        indecesonly.isMPC = False
+        indecesonly.outRel.storedWith = set([1])
+
+        indecesclosed = sal._close(
+            indecesonly, "indecesclosed", set([1, 2, 3]))
+        indecesclosed.isMPC = True
+
+        joined = sal._index_join(persistedA, persistedB, "joined", [
+                                 "a"], ["c"], indecesclosed)
+        joined.isMPC = True
+
+        # joinedres = sal._open(joined, "joinedres", 1)
+
+        return joined, set([in1, in2])
+
+    def hybrid_agg(in1):
+
+        mult = sal.multiply(
+            in1, "mult", "b", ["b", "d"])
+
+        shuffled = sal.shuffle(mult, "shuffled")
         shuffled.outRel.storedWith = set([1, 2, 3])
         shuffled.isMPC = True
 
@@ -85,13 +153,16 @@ def testHybridAggWorkflow():
 
         agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedLookup, closedDistinct)
         agg.isMPC = True
-        sal._open(agg, "opened", 1)
+        sal._open(agg, "aggopened", 1)
 
-        # create dag
-        return set([in1])
+    def protocol():
+
+        joinedres, inputs = hybrid_join()
+        hybrid_agg(joinedres)
+        return saldag.OpDag(inputs)
 
     pid = int(sys.argv[1])
-    workflow_name = "hybrid-agg-" + str(pid)
+    workflow_name = "hybrid-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
         workflow_name, "/mnt/shared", use_hdfs=False)
     codegen_config = CodeGenConfig(
@@ -100,7 +171,7 @@ def testHybridAggWorkflow():
     codegen_config.input_path = "/mnt/shared"
     codegen_config.output_path = "/mnt/shared"
 
-    exampleutils.generate_agg_data(pid, codegen_config.output_path)
+    exampleutils.generate_data(pid, codegen_config.output_path)
 
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
@@ -121,10 +192,10 @@ def testHybridAggWorkflow():
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
     if pid == 1:
-        expected = ['', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
-        exampleutils.check_res(expected, "/mnt/shared/opened.csv")
+        expected = ['', '2,400200', '3,900300', '4,1600400', '42,42042', '5,2500500', '6,3600600', '7,16802400', '8,8001000', '9,9901100']
+        exampleutils.check_res(expected, "/mnt/shared/aggopened.csv")
         print("Success")
 
 if __name__ == "__main__":
 
-    testHybridAggWorkflow()
+    testHybridJoinWorkflow()
