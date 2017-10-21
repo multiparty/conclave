@@ -18,9 +18,9 @@ def generate(out_path, num_cols, num_rows, col_names=None):
     with open(out_path, 'w') as f:
         if with_col_names:
             f.write(','.join(col_names) + '\n')
-        f.write('\n'.join([','.join([str(randint(0,9))
-                                     for i in range(num_cols)])
-                           for j in range(num_rows)]))
+        for j in range(num_rows):
+            f.write(','.join([str(randint(0,9)) for i in range(num_cols)]))
+            f.write("\n")
 
 if __name__ == "__main__":
 
