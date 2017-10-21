@@ -1,10 +1,12 @@
 import salmon.lang as sal
+import salmon.dispatch as dis
 from salmon.comp import dagonly
 from salmon.utils import *
 from salmon.codegen import CodeGenConfig, spark
+import sys
 
 
-def scalar_div():
+def scalar_div(namenode, root, f_size, master_url):
 
     @dagonly
     def protocol():
@@ -23,10 +25,26 @@ def scalar_div():
 
     dag = protocol()
     config = CodeGenConfig('scalar_div_spark')
+
+    config.code_path = "/mnt/shared/" + config.name
+    config.input_path = "hdfs://{}/{}/{}" \
+        .format(namenode, root, f_size)
+    config.output_path = "hdfs://{}/{}/scalar_div_sp{}" \
+        .format(namenode, root, f_size)
+
     cg = spark.SparkCodeGen(config, dag)
-    cg.generate('scalar_div_spark', '/tmp')
+    job = cg.generate(config.name, config.output_path)
+    job_queue = [job]
+
+    dis.dispatch_all(master_url, None, job_queue)
 
 if __name__ == "__main__":
 
-    scalar_div()
+    hdfs_namenode = sys.argv[1]
+    hdfs_root = sys.argv[2]
+    # configurable benchmark size
+    filesize = sys.argv[3]
+    spark_master_url = sys.argv[4]
+
+    scalar_div(hdfs_namenode, hdfs_root, filesize, spark_master_url)
 

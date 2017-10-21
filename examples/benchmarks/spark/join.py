@@ -1,10 +1,12 @@
 import salmon.lang as sal
+import salmon.dispatch as dis
 from salmon.comp import dagonly
 from salmon.utils import *
 from salmon.codegen import CodeGenConfig, spark
+import sys
 
 
-def join():
+def join(namenode, root, f_size, master_url):
 
     @dagonly
     def protocol():
@@ -31,10 +33,26 @@ def join():
 
     dag = protocol()
     config = CodeGenConfig('join_spark')
+
+    config.code_path = "/mnt/shared/" + config.name
+    config.input_path = "hdfs://{}/{}/{}" \
+        .format(namenode, root, f_size)
+    config.output_path = "hdfs://{}/{}/join_sp{}" \
+        .format(namenode, root, f_size)
+
     cg = spark.SparkCodeGen(config, dag)
-    cg.generate('join_spark', '/tmp')
+    job = cg.generate(config.name, config.output_path)
+    job_queue = [job]
+
+    dis.dispatch_all(master_url, None, job_queue)
 
 if __name__ == "__main__":
 
-    join()
+    hdfs_namenode = sys.argv[1]
+    hdfs_root = sys.argv[2]
+    # configurable benchmark size
+    filesize = sys.argv[3]
+    spark_master_url = sys.argv[4]
+
+    join(hdfs_namenode, hdfs_root, filesize, spark_master_url)
 
