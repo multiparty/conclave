@@ -32,7 +32,7 @@ def join(namenode, root, f_size, master_url):
         return set([in1])
 
     dag = protocol()
-    config = CodeGenConfig('join_spark')
+    config = CodeGenConfig('join_spark_{}'.format(f_size))
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}" \

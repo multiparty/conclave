@@ -21,10 +21,10 @@ def agg(namenode, root, f_size, master_url):
         in1 = sal.create("in1", colsInA, set([1]))
         agg1 = sal.aggregate(in1, 'agg1', ['a'], 'b', '+', 'b')
 
-        return set([in1])
+        return set([in1]), in1
 
     dag = protocol()
-    config = CodeGenConfig('agg_spark')
+    config = CodeGenConfig('agg_spark_{}'.format(f_size))
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}"\
@@ -48,5 +48,6 @@ if __name__ == "__main__":
     spark_master_url = sys.argv[4]
 
     agg(hdfs_namenode, hdfs_root, filesize, spark_master_url)
+
 
 

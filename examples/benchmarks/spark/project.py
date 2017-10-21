@@ -29,7 +29,7 @@ def project(namenode, root, f_size, master_url):
         return set([in1])
 
     dag = protocol()
-    config = CodeGenConfig('project_spark')
+    config = CodeGenConfig('project_spark_{}'.format(f_size))
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}" \

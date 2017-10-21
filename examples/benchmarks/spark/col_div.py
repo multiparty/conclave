@@ -24,7 +24,7 @@ def col_div(namenode, root, f_size, master_url):
         return set([in1])
 
     dag = protocol()
-    config = CodeGenConfig('col_div_spark')
+    config = CodeGenConfig('col_div_spark_{}'.format(f_size))
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}" \

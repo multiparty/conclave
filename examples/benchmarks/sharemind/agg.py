@@ -6,6 +6,7 @@ from salmon.comp import dagonly
 import salmon.lang as sal
 from salmon.utils import *
 import sys
+from random import shuffle
 
 
 def setup():
@@ -38,19 +39,78 @@ def setup():
 
 
 @dagonly
-def agg(config, sharemind_peer):
+def agg(pid, config, sharemind_peer, f_size):
 
     def protocol():
 
         inputs, rel = setup()
-        res = sal.aggregate(rel, "agg", ["b"], "a", "+", "total")
+        res = sal.aggregate(rel, "agg", ["a"], "b", "+", "total")
 
         opened = sal._open(res, "opened", 1)
 
         return inputs
 
     cg = SharemindCodeGen(config, protocol(), pid)
-    job = cg.generate("agg-" + str(pid), sharemind_home)
+    job = cg.generate("agg_{}".format(f_size) + str(pid), sharemind_home)
+    job_queue = [job]
+
+    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+
+
+@dagonly
+def col_div(pid, config, sharemind_peer, f_size):
+
+    def protocol():
+
+        inputs, rel = setup()
+        res = sal.divide(rel, 'div1', 'a', ['a', 'b'])
+
+        opened = sal._open(res, "opened", 1)
+
+        return inputs
+
+    cg = SharemindCodeGen(config, protocol(), pid)
+    job = cg.generate("col_div_{}".format(f_size) + str(pid), sharemind_home)
+    job_queue = [job]
+
+    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+
+
+@dagonly
+def col_mult(pid, config, sharemind_peer, f_size):
+
+    def protocol():
+
+        inputs, rel = setup()
+        res = sal.multiply(rel, 'mult1', 'a', ['a', 'b'])
+
+        opened = sal._open(res, "opened", 1)
+
+        return inputs
+
+    cg = SharemindCodeGen(config, protocol(), pid)
+    job = cg.generate("col_mult_{}".format(f_size) + str(pid), sharemind_home)
+    job_queue = [job]
+
+    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+
+
+@dagonly
+def project(pid, config, sharemind_peer, f_size):
+
+    def protocol():
+
+        inputs, rel = setup()
+
+        cols = ([column.name for column in rel.outRel.columns])
+        shuffle(cols)
+
+        res = sal.project(rel, "proja", cols)
+
+        opened = sal._open(res, "opened", 1)
+
+    cg = SharemindCodeGen(config, protocol(), pid)
+    job = cg.generate("project_{}".format(f_size) + str(pid), sharemind_home)
     job_queue = [job]
 
     salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
@@ -63,16 +123,19 @@ if __name__ == "__main__":
     hdfs_root = sys.argv[3]
     # configurable benchmark size
     filesize = sys.argv[4]
+    op = sys.argv[5]
 
     sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
 
-    workflow_name = "agg_{}_{}".format(filesize, pid)
+    workflow_name = "{}_{}_{}".format(op, filesize, pid)
     sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "hdfs://{}/{}/{}".format(hdfs_namenode, hdfs_root, filesize)
-    codegen_config.output_path = "hdfs://{}/{}/agg_{}".format(hdfs_namenode, hdfs_root, filesize)
+    codegen_config.input_path = "hdfs://{}/{}/{}"\
+        .format(hdfs_namenode, hdfs_root, filesize)
+    codegen_config.output_path = "hdfs://{}/{}/{}_{}"\
+        .format(hdfs_namenode, hdfs_root, op, filesize)
     codegen_config.pid = pid
     codegen_config.name = workflow_name
 
@@ -88,6 +151,14 @@ if __name__ == "__main__":
 
     codegen_config = CodeGenConfig()
 
-    agg(codegen_config, sm_peer)
+    if op == 'agg':
+        agg(pid, codegen_config, sm_peer, filesize)
+    elif op == 'col_div':
+        col_div(pid, codegen_config, sm_peer, filesize)
+    elif op == 'col_mult':
+        col_mult(pid, codegen_config, sm_peer, filesize)
+    elif op == 'project':
+        project(pid, codegen_config, sm_peer, filesize)
+
 
 

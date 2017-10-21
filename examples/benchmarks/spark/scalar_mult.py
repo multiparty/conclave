@@ -24,7 +24,7 @@ def scalar_mult(namenode, root, f_size, master_url):
         return set([in1])
 
     dag = protocol()
-    config = CodeGenConfig('scalar_mult_spark')
+    config = CodeGenConfig('scalar_mult_spark_{}'.format(f_size))
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}" \
