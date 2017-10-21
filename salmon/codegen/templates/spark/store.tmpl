@@ -2,3 +2,14 @@
 {{{RELATION_NAME}}} \
     .map(lambda x: '{{{DELIMITER}}}'.join(str(d) for d in x)) \
     .saveAsTextFile("{{{OUTPUT_PATH}}}/{{{RELATION_NAME}}}")
+
+end = time.time()
+dur = str(end-start)
+
+print('****************\n')
+print('****************\n')
+print('****************\n')
+print('Job completed in {} seconds'.format(dur))
+print('****************\n')
+print('****************\n')
+print('****************\n')
