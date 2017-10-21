@@ -21,7 +21,7 @@ def agg(namenode, root, f_size, master_url):
         in1 = sal.create("in1", colsInA, set([1]))
         agg1 = sal.aggregate(in1, 'agg1', ['a'], 'b', '+', 'b')
 
-        return set([in1]), in1
+        return set([in1])
 
     dag = protocol()
     config = CodeGenConfig('agg_spark_{}'.format(f_size))
