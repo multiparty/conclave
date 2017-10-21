@@ -276,10 +276,10 @@ class SparkCodeGen(CodeGen):
         nodes = self.dag.topSort()
         for node in nodes:
             if node.isRoot():
-                roots.append("{}/{}.csv"
+                roots.append("{}/{}"
                              .format(self.config.input_path, node.outRel.name))
             elif node.isLeaf():
-                leaves.append("{}/{}.csv"
+                leaves.append("{}/{}"
                               .format(self.config.input_path, node.outRel.name))
 
         template = open("{}/bash.tmpl"
