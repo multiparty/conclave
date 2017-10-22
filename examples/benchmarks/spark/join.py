@@ -8,7 +8,6 @@ import sys
 
 def join(namenode, root, f_size, master_url):
 
-    @dagonly
     def protocol():
 
         colsInA = [
