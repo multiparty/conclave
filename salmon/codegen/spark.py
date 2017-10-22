@@ -99,7 +99,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    # TODO: create.tmpl assumes the rows are tab-delimited right now
+    # TODO: uses 6 partitions, make configurable in future
     def _generateCreate(self, create_op):
 
         template = open("{}/create.tmpl"

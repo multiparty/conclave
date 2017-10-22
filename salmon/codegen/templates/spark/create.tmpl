@@ -4,5 +4,6 @@ inpt_idx += 1
 
 {{{RELATION_NAME}}} = in_f \
     .map(lambda line: line.split('{{{DELIMITER}}}')) \
+    .repartition(6) \
     {{{CACHE_VAR}}}
 
