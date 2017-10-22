@@ -86,7 +86,41 @@ def generate_agg_data(pid, root_dir):
     with open(root_dir + "/" + "in" + str(pid) + ".csv", "w") as f:
         f.write(data[pid])
 
+def generate_ssn_data(pid, root_dir):
 
+    data = {
+        1: '''"a","b"
+1,1
+2,2
+3,1
+4,2
+5,2
+6,2
+7,3
+7,2
+7,1
+8,3
+9,3''',
+        2: '''"c","d"
+1,10
+2,10
+3,10
+4,10
+5,10
+6,10
+7,10
+8,10
+9,10
+10,10
+10,10''',
+        3: '''"e","f"
+1,1
+'''
+    }
+
+    with open(root_dir + "/" + "in" + str(pid) + ".csv", "w") as f:
+        f.write(data[pid])
+    
 
 def check_res(expected, res_path):
 

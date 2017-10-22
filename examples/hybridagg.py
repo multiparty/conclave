@@ -93,7 +93,7 @@ def testHybridAggWorkflow():
     pid = int(sys.argv[1])
     workflow_name = "hybrid-agg-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name

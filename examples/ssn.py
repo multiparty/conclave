@@ -122,7 +122,7 @@ def testHybridJoinWorkflow():
 
         # TODO: hack to get keys stored
         # need to fix later!
-        fakeDistinctKeys = sal.distinct(keys, "distinctKeys", ["b"])
+        fakeDistinctKeys = sal.project(distinctKeys, "distinctKeys", ["b"])
         fakeDistinctKeys.isMPC = False
         fakeDistinctKeys.outRel.storedWith = set([1])
 

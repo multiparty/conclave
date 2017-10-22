@@ -180,8 +180,13 @@ class SharemindCodeGen(CodeGen):
                 close_op, output_directory, job_name)[:-1])
         input_code = "&&".join(import_statements)
         # expand top-level
-        top_level_template = open(
-            "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
+        # TODO: hack hack hack
+        if self.sm_config.use_docker:
+            top_level_template = open(
+                "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
+        else:
+            top_level_template = open(
+                "{0}/csvImportNoDocker.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
             "HDFS_IMPORTS": "\n".join(hdfs_import_statements),
@@ -212,8 +217,14 @@ class SharemindCodeGen(CodeGen):
         hdfs_cmds_str = "\n".join(hdfs_cmds)
 
         # code for submitting job to miners
-        template = open(
-            "{0}/submit.tmpl".format(self.template_directory), 'r').read()
+        template = None
+        # TODO: hack hack hack
+        if self.sm_config.use_docker:
+            template = open(
+                "{0}/submit.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/submitNoDocker.tmpl".format(self.template_directory), 'r').read()
         data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
             "CODE_PATH": code_path + "/" + job_name,
