@@ -32,7 +32,7 @@ def join(namenode, root, f_size, master_url):
         join1 = sal.join(in1, in2, 'join1', ['a', 'b'], ['a', 'b'])
         join1.isMPC = False
 
-        return set([in1])
+        return set([in1, in2])
 
     dag = protocol()
     config = CodeGenConfig('join_spark_{}'.format(f_size))
