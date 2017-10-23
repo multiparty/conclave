@@ -31,6 +31,7 @@ def project(rel, selected_cols):
 
 def project_indeces(rel):
 
+    print("project_indeces", len(rel))
     return [[idx] + rest for (idx, rest) in enumerate(rel)]
 
 def join(left, right, left_col, right_col):

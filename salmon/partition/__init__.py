@@ -137,7 +137,6 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         mapping.append((fmwk, nextdag, storedWith))
         # partition next subdag
         nextdag, available = split_dag(nextdag, available)
-
     for fmwk, subdag, storedWith in mapping:
         print(ScotchCodeGen(CodeGenConfig(), subdag)._generate(0, 0))
 

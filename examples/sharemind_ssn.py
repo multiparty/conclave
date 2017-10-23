@@ -1,0 +1,70 @@
+from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from salmon.codegen import CodeGenConfig
+import salmon.dispatch
+import salmon.net
+from salmon.comp import dagonly
+import salmon.lang as sal
+from salmon.utils import *
+import sys
+import exampleutils
+
+@dagonly
+def protocol():
+
+    # define inputs
+    colsIn1 = [
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1])
+    ]
+    in1 = sal.create("in1", colsIn1, set([1]))
+    colsIn2 = [
+        defCol("c", "INTEGER", [2]),
+        defCol("d", "INTEGER", [2])
+    ]
+    in2 = sal.create("in2", colsIn2, set([2]))
+    colsIn3 = [
+        defCol("c", "INTEGER", [3]),
+        defCol("d", "INTEGER", [3])
+    ]
+    in3 = sal.create("in3", colsIn3, set([3]))
+
+    cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
+    projA = sal.project(cl1, "projA", ["a", "b"])
+    cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
+    cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
+    right_rel = sal.concat([cl2, cl3], "right_rel")
+    projB = sal.project(right_rel, "projB", ["c", "d"])
+
+    joined = sal.join(projA, right_rel, "joined", ["a"], ["c"])
+    agg = sal.aggregate(joined, "agg", ["b"], "d", "+", "total")
+
+    opened = sal._open(agg, "opened", 1)
+    return set([in1, in2, in3])
+
+if __name__ == "__main__":
+
+    pid = int(sys.argv[1])
+    
+    workflow_name = "sharemind-ssn-" + str(pid)
+    sm_cg_config = SharemindCodeGenConfig(
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
+    codegen_config = CodeGenConfig(
+        workflow_name).with_sharemind_config(sm_cg_config)
+    codegen_config.code_path = "/mnt/shared/" + workflow_name
+    codegen_config.input_path = "/mnt/shared/100"
+    codegen_config.output_path = "/mnt/shared/100"
+
+    # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
+
+    job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
+        "sharemind-0", "")
+    job_queue = [job]
+    
+    sharemind_config = exampleutils.get_sharemind_config(pid, local=True)
+    sm_peer = salmon.net.setup_peer(sharemind_config)
+    salmon.dispatch.dispatch_all(None, sm_peer, job_queue)
+    # if pid == 1:
+    #     expected = ['', '1,30', '2,50', '3,30']
+    #     exampleutils.check_res(expected, "/mnt/shared/opened.csv")
+    #     print("Success")
+
