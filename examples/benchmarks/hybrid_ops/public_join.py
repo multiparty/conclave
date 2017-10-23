@@ -94,7 +94,7 @@ def testPublicJoinWorkflow():
         return set([in1, in2])
 
     pid = int(sys.argv[1])
-    workflow_name = "hybrid-join-" + str(pid)
+    workflow_name = "public-join-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
         workflow_name, "/mnt/shared", use_hdfs=False)
     codegen_config = CodeGenConfig(
