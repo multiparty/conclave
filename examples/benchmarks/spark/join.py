@@ -14,22 +14,18 @@ def join(namenode, root, f_size, master_url):
         colsInA = [
             defCol('a', 'INTEGER', [1]),
             defCol('b', 'INTEGER', [1]),
-            defCol('c', 'INTEGER', [1]),
-            defCol('d', 'INTEGER', [1])
         ]
 
         colsInB = [
             defCol('a', 'INTEGER', [1]),
             defCol('b', 'INTEGER', [1]),
-            defCol('c', 'INTEGER', [1]),
-            defCol('d', 'INTEGER', [1])
         ]
 
         in1 = sal.create("in1", colsInA, set([1]))
         in1.isMPC = False
         in2 = sal.create("in2", colsInB, set([1]))
         in2.isMPC = False
-        join1 = sal.join(in1, in2, 'join1', ['a', 'b'], ['a', 'b'])
+        join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
         join1.isMPC = False
 
         return set([in1, in2])
