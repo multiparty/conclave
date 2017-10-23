@@ -97,6 +97,15 @@ class VizCodeGen(CodeGen):
                 _nodeDescription(close_op, "CLOSE", "")
             )
 
+    def _generateDistinct(self, distinct_op):
+
+        colTypeStr = ", ".join([col.typeStr for col in distinct_op.outRel.columns])
+
+        return self._generateNode(
+                distinct_op,
+                _nodeDescription(distinct_op, "DISTINCT", "")
+            )
+
     def _generateDivide(self, div_op):
 
         return self._generateNode(
@@ -125,6 +134,18 @@ class VizCodeGen(CodeGen):
         return self._generateNode(
                 index_op,
                 _nodeDescription(index_op, "INDEX", "")
+            )
+
+    def _generateIndexAggregate(self, agg_op):
+
+        return self._generateNode(
+                agg_op,
+                _nodeDescription(agg_op, "INDEX AGG",
+                    "{}: {}({})".format(
+                        agg_op.outRel.columns[-1].name,
+                        agg_op.aggregator,
+                        agg_op.aggCol)
+                )
             )
 
     def _generateIndexJoin(self, join_op):
