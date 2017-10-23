@@ -195,5 +195,6 @@ class VizCodeGen(CodeGen):
 
     def _writeCode(self, code, job_name):
         # write code to a file
+        os.makedirs(self.config.code_path, exist_ok=True)
         outfile = open("{}/{}.gv".format(self.config.code_path, job_name), 'w')
         outfile.write(code)
