@@ -88,6 +88,15 @@ class VizCodeGen(CodeGen):
                 _nodeDescription(create_op, "CREATE", "")
             )
 
+    def _generateClose(self, close_op):
+
+        colTypeStr = ", ".join([col.typeStr for col in close_op.outRel.columns])
+
+        return self._generateNode(
+                close_op,
+                _nodeDescription(close_op, "CLOSE", "")
+            )
+
     def _generateDivide(self, div_op):
 
         return self._generateNode(
@@ -111,6 +120,26 @@ class VizCodeGen(CodeGen):
                 )
             )
 
+    def _generateIndex(self, index_op):
+
+        return self._generateNode(
+                index_op,
+                _nodeDescription(index_op, "INDEX", "")
+            )
+
+    def _generateIndexJoin(self, join_op):
+
+        return self._generateNode(
+                join_op,
+                _nodeDescription(join_op, "INDEX JOIN",
+                    "{} ⋈ {} <br />on: {} ⋈ {}" .format(
+                        join_op.getLeftInRel().name,
+                        join_op.getRightInRel().name,
+                        [c.name for c in join_op.leftJoinCols],
+                        [c.name for c in join_op.rightJoinCols])
+                )
+            )
+
     def _generateMultiply(self, mul_op):
 
         return self._generateNode(
@@ -121,6 +150,24 @@ class VizCodeGen(CodeGen):
                     ))
             )
 
+    def _generateOpen(self, open_op):
+
+        colTypeStr = ", ".join([col.typeStr for col in open_op.outRel.columns])
+
+        return self._generateNode(
+                open_op,
+                _nodeDescription(open_op, "OPEN", "")
+            )
+
+    def _generatePersist(self, persist_op):
+
+        colTypeStr = ", ".join([col.typeStr for col in persist_op.outRel.columns])
+
+        return self._generateNode(
+                persist_op,
+                _nodeDescription(persist_op, "PERSIST", "")
+            )
+
     def _generateProject(self, project_op):
 
         selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
@@ -128,6 +175,15 @@ class VizCodeGen(CodeGen):
         return self._generateNode(
                 project_op,
                 _nodeDescription(project_op, "PROJECT", "")
+            )
+
+    def _generateShuffle(self, shuffle_op):
+
+        colTypeStr = ", ".join([col.typeStr for col in shuffle_op.outRel.columns])
+
+        return self._generateNode(
+                shuffle_op,
+                _nodeDescription(shuffle_op, "SHUFFLE", "")
             )
 
     def _generateStore(self, store_op):
