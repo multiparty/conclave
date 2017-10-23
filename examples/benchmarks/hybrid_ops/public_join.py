@@ -7,6 +7,7 @@ from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
+from salmon.codegen.viz import VizCodeGen
 from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
@@ -105,6 +106,9 @@ def testPublicJoinWorkflow():
     exampleutils.generate_data(pid, codegen_config.output_path)
 
     dag = protocol()
+    vg = VizCodeGen(codegen_config, dag)
+    vg.generate("public_join", "/tmp/shared")
+
     mapping = part.heupart(dag, ["sharemind"], ["spark"])
     job_queue = []
     for idx, (fmwk, subdag, storedWith) in enumerate(mapping):
