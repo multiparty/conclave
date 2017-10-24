@@ -46,4 +46,3 @@ right = read_rel("/mnt/shared/1000/in2.csv") + read_rel("/mnt/shared/1000/in3.cs
 joined = join(left, right, 0, 0)
 agged = agg(joined, 1, 2)
 print(agged)
-

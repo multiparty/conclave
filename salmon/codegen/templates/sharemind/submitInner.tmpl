@@ -1,5 +1,1 @@
-if miner_output=$(./sm_compile_and_run_remote.sh {{CODE_PATH}}/miner.sc); then
-    printf '%s' "$miner_output" | python3 {{CODE_PATH}}/receive.py
-else
-    exit 1
-fi
+./sm_compile_to_remote.sh {{CODE_PATH}}/miner.sc && ./Submitter --bytecode miner.sb {{REL_NAMES}} {{NUM_COLS}} --output-path {{LOCAL_OUTPUT_PATH}}

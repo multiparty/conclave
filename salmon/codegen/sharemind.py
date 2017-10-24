@@ -233,7 +233,20 @@ class SharemindCodeGen(CodeGen):
         # inner template (separate shell script)
         templateInner = open(
             "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
-        dataInner = {"CODE_PATH": code_path + "/" + job_name}
+        # we need all open ops to get the size of the output rels
+        # for parsing
+        open_ops = list(filter(lambda op_node: isinstance(op_node, Open), nodes))
+        rel_names = ["--rels " + open_op.outRel.name for open_op in open_ops]
+        rel_names_str = " ".join(rel_names)
+        num_cols = ["--num-cols " + str(len(open_op.outRel.columns)) for open_op in open_ops]
+        num_cols_str = " ".join(num_cols)
+
+        dataInner = {
+            "CODE_PATH": code_path + "/" + job_name,
+            "REL_NAMES": rel_names_str,
+            "NUM_COLS": num_cols_str,
+            "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name
+        }
         return {
             "outer": pystache.render(template, data),
             "inner": pystache.render(templateInner, dataInner)
