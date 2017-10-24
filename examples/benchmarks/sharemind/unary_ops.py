@@ -6,7 +6,6 @@ from salmon.comp import dagonly
 import salmon.lang as sal
 from salmon.utils import *
 import sys
-from random import shuffle
 
 
 def setup():
@@ -192,26 +191,26 @@ def no_hdfs():
     op = sys.argv[3]
 
     # use if running locally
-    # sharemind_config = {
-    #     "pid": pid,
-    #     "parties": {
-    #         1: {"host": "localhost", "port": 9001},
-    #         2: {"host": "localhost", "port": 9002},
-    #         3: {"host": "localhost", "port": 9003}
-    #     }
-    # }
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
+    # sharemind_config = {
+    #     "pid": pid,
+    #     "parties": {
+    #         1: {"host": "ca-spark-node-0", "port": 9001},
+    #         2: {"host": "cb-spark-node-0", "port": 9002},
+    #         3: {"host": "cc-spark-node-0", "port": 9003}
+    #     }
+    # }
 
     workflow_name = "{}_{}_{}".format(op, num_tuples, pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
@@ -237,42 +236,6 @@ def no_hdfs():
     else:
         print("Unknown:", op)
 
-
-def old():
-
-    sharemind_home = "/home/sharemind/Sharemind-SDK/sharemind/client"
-    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
-
-    workflow_name = "{}_{}_{}".format(op, filesize, pid)
-    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
-    codegen_config = CodeGenConfig(
-        workflow_name).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "hdfs://{}/{}/{}"\
-        .format(hdfs_namenode, hdfs_root, filesize)
-    codegen_config.output_path = "hdfs://{}/{}/{}_{}"\
-        .format(hdfs_namenode, hdfs_root, op, filesize)
-    codegen_config.pid = pid
-    codegen_config.name = workflow_name
-
-    sharemind_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
-        }
-    }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
-
-    if op == 'agg':
-        agg(pid, codegen_config, sm_peer, filesize)
-    elif op == 'col_div':
-        col_div(pid, codegen_config, sm_peer, filesize)
-    elif op == 'col_mult':
-        col_mult(pid, codegen_config, sm_peer, filesize)
-    elif op == 'project':
-        project(pid, codegen_config, sm_peer, filesize)
 
 if __name__ == "__main__":
 

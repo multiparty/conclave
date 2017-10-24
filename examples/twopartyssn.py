@@ -42,33 +42,16 @@ def testHybridJoinWorkflow():
         projb.isMPC = False
         projb.outRel.storedWith = set([2])
 
-        colsInC = [
-            defCol("c", "INTEGER", [1], [3]),
-            defCol("d", "INTEGER", [3])
-        ]
-        in3 = sal.create("in3", colsInC, set([3]))
-        in3.isMPC = False
-
-        projc = sal.project(in3, "projc", ["c", "d"])
-        projc.isMPC = False
-        projc.outRel.storedWith = set([3])
-
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
         clB = sal._close(projb, "clB", set([1, 2, 3]))
         clB.isMPC = True
-        clC = sal._close(projc, "clC", set([1, 2, 3]))
-        clC.isMPC = True
-
-        rightClosed = sal.concat([clB, clC], "clD")
-        rightClosed.isMPC = True
-        rightClosed.outRel.storedWith = set([1, 2, 3])
 
         shuffledA = sal.shuffle(clA, "shuffledA")
         shuffledA.isMPC = True
         persistedA = sal._persist(shuffledA, "persistedA")
         persistedA.isMPC = True
-        shuffledB = sal.shuffle(rightClosed, "shuffledB")
+        shuffledB = sal.shuffle(clB, "shuffledB")
         shuffledB.isMPC = True
         persistedB = sal._persist(shuffledB, "persistedB")
         persistedB.isMPC = True
@@ -110,7 +93,7 @@ def testHybridJoinWorkflow():
                                  "a"], ["c"], indecesclosed)
         joined.isMPC = True
 
-        return joined, set([in1, in2, in3])
+        return joined, set([in1, in2])
 
     def hybrid_agg(in1):
 
@@ -148,13 +131,13 @@ def testHybridJoinWorkflow():
         indexedDistinct.outRel.storedWith = set([1])
 
         joinedindeces = sal.join(
-            indexed, indexedDistinct, "joinedindecesb", ["b"], ["b"])
+            indexed, indexedDistinct, "joinedindeces", ["b"], ["b"])
         joinedindeces.isMPC = False
         joinedindeces.outRel.storedWith = set([1])
 
         # TODO: could project row indeces away too
         indecesonly = sal.project(
-            joinedindeces, "indecesonlyb", ["rowIndex", "keyIndex"])
+            joinedindeces, "indecesonly", ["rowIndex", "keyIndex"])
         indecesonly.isMPC = False
         indecesonly.outRel.storedWith = set([1])
 
@@ -180,12 +163,10 @@ def testHybridJoinWorkflow():
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    # codegen_config.input_path = "/mnt/shared"
-    # codegen_config.output_path = "/mnt/shared"
-    codegen_config.input_path = "/mnt/shared/1000"
-    codegen_config.output_path = "/mnt/shared/1000"
+    codegen_config.input_path = "/mnt/shared"
+    codegen_config.output_path = "/mnt/shared"
 
-    # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
+    exampleutils.generate_ssn_data(pid, codegen_config.output_path)
 
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
@@ -205,10 +186,10 @@ def testHybridJoinWorkflow():
     sharemind_config = exampleutils.get_sharemind_config(pid, True)
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
-    # if pid == 1:
-    #     expected = ['', '1,30', '2,50', '3,30']
-    #     exampleutils.check_res(expected, "/mnt/shared/aggopened.csv")
-    #     print("Success")
+    if pid == 1:
+        expected = ['', '1,30', '2,50', '3,30']
+        exampleutils.check_res(expected, "/mnt/shared/aggopened.csv")
+        print("Success")
 
 if __name__ == "__main__":
 

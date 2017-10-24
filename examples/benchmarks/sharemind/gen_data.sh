@@ -1,7 +1,7 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-SIZES=(10 100 1000 10000 100000)
+SIZES=(10 100 1000 5000 10000 100000)
 PLAYERS=(1 2 3)
 
 for SIZE in ${SIZES[@]}; do
