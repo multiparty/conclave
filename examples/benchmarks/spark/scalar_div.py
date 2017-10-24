@@ -17,7 +17,7 @@ def scalar_div(namenode, root, f_size, master_url):
         ]
 
         in1 = sal.create("in1", colsInA, set([1]))
-        div1 = sal.divide(in1, 'div1', 'a', [5])
+        div1 = sal.divide(in1, 'div1', 'a', ['a', 5])
 
         return set([in1])
 
