@@ -14,8 +14,6 @@ def col_div(namenode, root, f_size, master_url):
         colsInA = [
             defCol('a', 'INTEGER', [1]),
             defCol('b', 'INTEGER', [1]),
-            defCol('c', 'INTEGER', [1]),
-            defCol('d', 'INTEGER', [1])
         ]
 
         in1 = sal.create("in1", colsInA, set([1]))
