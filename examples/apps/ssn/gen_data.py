@@ -47,7 +47,7 @@ def main(argv):
         ccf = open("{}/company{}.csv".format(FLAGS.output, c), "w")
         for i in range(FLAGS.scale):
             ssn = random.sample(ssns, 1)[0]
-            rating = 800
+            rating = random.randint(400, 800)
             if FLAGS.realistic:
                 ccf.write("{},{},{}\n".format(ssn, f.credit_card_number(), rating))
             else:
