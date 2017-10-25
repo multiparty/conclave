@@ -121,18 +121,18 @@ def testHybridJoinWorkflow():
         persisted = sal._persist(shuffled, "persisted")
         persisted.outRel.storedWith = set([1, 2, 3])
         persisted.isMPC = True
-        
+
         keysclosed = sal.project(shuffled, "keysclosed", ["b"])
         keysclosed.outRel.storedWith = set([1, 2, 3])
         keysclosed.isMPC = True
-        
+
         keys = sal._open(keysclosed, "keys", 1)
         keys.isMPC = True
-        
+
         indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
         indexed.outRel.storedWith = set([1])
-        
+
         distinctKeys = sal.distinct(keys, "distinctKeys", ["b"])
         distinctKeys.isMPC = False
         distinctKeys.outRel.storedWith = set([1])
