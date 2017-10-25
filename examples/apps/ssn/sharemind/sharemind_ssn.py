@@ -16,17 +16,17 @@ def protocol():
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1])
     ]
-    in1 = sal.create("in1", colsIn1, set([1]))
+    in1 = sal.create("govreg", colsIn1, set([1]))
     colsIn2 = [
         defCol("c", "INTEGER", [2]),
         defCol("d", "INTEGER", [2])
     ]
-    in2 = sal.create("in2", colsIn2, set([2]))
+    in2 = sal.create("company0", colsIn2, set([2]))
     colsIn3 = [
         defCol("c", "INTEGER", [3]),
         defCol("d", "INTEGER", [3])
     ]
-    in3 = sal.create("in3", colsIn3, set([3]))
+    in3 = sal.create("company1", colsIn3, set([3]))
 
     cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
     projA = sal.project(cl1, "projA", ["a", "b"])
@@ -51,8 +51,8 @@ if __name__ == "__main__":
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "/mnt/shared/100"
-    codegen_config.output_path = "/mnt/shared/100"
+    codegen_config.input_path = "/mnt/shared/ssn-data"
+    codegen_config.output_path = "/mnt/shared/ssn-data"
 
     # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
 
