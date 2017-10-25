@@ -6,6 +6,7 @@ from faker import Faker
 
 FLAGS = gflags.FLAGS
 gflags.DEFINE_bool('realistic', True, 'Realistic output data.')
+gflags.DEFINE_bool('headers', True, 'Add column headers.')
 gflags.DEFINE_integer('companies', 2, 'Number of credit card companies.')
 gflags.DEFINE_integer('scale', 1000, 'Scale factor.')
 gflags.DEFINE_string('output', 'ssn_data', 'Output file prefix.')
@@ -25,6 +26,8 @@ def main(argv):
     f.seed(42)
     # regulator data: (name, address, zip, ssn)
     rf = open("{}/govreg.csv".format(FLAGS.output), "w")
+    if FLAGS.headers:
+        rf.write("a,b\n")
     ssns = set()
     for i in range(int(FLAGS.scale * 1.5)):
         if FLAGS.realistic:
@@ -47,6 +50,8 @@ def main(argv):
     # credit card company data
     for c in range(FLAGS.companies):
         ccf = open("{}/company{}.csv".format(FLAGS.output, c), "w")
+        if FLAGS.headers:
+            ccf.write("c,d\n")
         for i in range(FLAGS.scale):
             ssn = random.sample(ssns, 1)[0]
             rating = random.randint(400, 800)
