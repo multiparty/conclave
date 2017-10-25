@@ -22,7 +22,7 @@ def main(argv):
 
     f = Faker()
     # regulator data: (name, address, zip, ssn)
-    rf = open("{}/regulator.csv".format(FLAGS.output), "w")
+    rf = open("{}/govreg.csv".format(FLAGS.output), "w")
     ssns = set()
     for i in range(int(FLAGS.scale * 1.5)):
         if FLAGS.realistic:
