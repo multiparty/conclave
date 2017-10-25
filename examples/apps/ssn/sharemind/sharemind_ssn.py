@@ -6,7 +6,6 @@ from salmon.comp import dagonly
 import salmon.lang as sal
 from salmon.utils import *
 import sys
-import exampleutils
 
 @dagonly
 def protocol():
@@ -54,17 +53,18 @@ if __name__ == "__main__":
     codegen_config.input_path = "/mnt/shared/ssn-data"
     codegen_config.output_path = "/mnt/shared/ssn-data"
 
-    # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
-
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
         "sharemind-0", "")
     job_queue = [job]
     
-    sharemind_config = exampleutils.get_sharemind_config(pid, local=True)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
     sm_peer = salmon.net.setup_peer(sharemind_config)
     salmon.dispatch.dispatch_all(None, sm_peer, job_queue)
-    # if pid == 1:
-    #     expected = ['', '1,30', '2,50', '3,30']
-    #     exampleutils.check_res(expected, "/mnt/shared/opened.csv")
-    #     print("Success")
 
