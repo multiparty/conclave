@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import gflags, sys
 import random
+random.seed(42)
 from faker import Faker
 
 FLAGS = gflags.FLAGS
