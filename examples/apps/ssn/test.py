@@ -33,7 +33,7 @@ def agg(rel, group_by, over):
 		if key not in aggs:
 			aggs[key] = 0
 		aggs[key] = aggs[key] + row[over]
-	return "\n".join(sorted([str(k) + "," + str(v) for k, v in aggs.items()]))
+	return "\n".join([str(k) + "," + str(v) for k, v in sorted(aggs.items(), key=lambda x: x[0])])
 
 root = "/mnt/shared"
 
