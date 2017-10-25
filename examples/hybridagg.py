@@ -105,7 +105,7 @@ def testHybridAggWorkflow():
 
     dag = protocol()
     vg = VizCodeGen(codegen_config, dag)
-    vg.generate("hybrid_agg", "/tmp/shared")
+    vg.generate("hybrid_agg", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []

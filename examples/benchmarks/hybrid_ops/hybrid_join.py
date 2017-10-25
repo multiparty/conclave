@@ -113,7 +113,7 @@ def testHybridJoinWorkflow():
 
     dag = protocol()
     vg = VizCodeGen(codegen_config, dag)
-    vg.generate("hybrid_join", "/tmp/shared")
+    vg.generate("hybrid_join", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["spark"])
     job_queue = []

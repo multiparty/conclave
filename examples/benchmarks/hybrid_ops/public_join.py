@@ -107,7 +107,7 @@ def testPublicJoinWorkflow():
 
     dag = protocol()
     vg = VizCodeGen(codegen_config, dag)
-    vg.generate("public_join", "/tmp/shared")
+    vg.generate("public_join", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["spark"])
     job_queue = []
