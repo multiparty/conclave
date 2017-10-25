@@ -14,12 +14,10 @@ def scalar_mult(namenode, root, f_size, master_url):
         colsInA = [
             defCol('a', 'INTEGER', [1]),
             defCol('b', 'INTEGER', [1]),
-            defCol('c', 'INTEGER', [1]),
-            defCol('d', 'INTEGER', [1])
         ]
 
         in1 = sal.create("in1", colsInA, set([1]))
-        mult1 = sal.multiply(in1, 'mult1', 'a', [5])
+        mult1 = sal.multiply(in1, 'mult1', 'a', ['a', 5])
 
         return set([in1])
 

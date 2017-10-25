@@ -7,6 +7,7 @@ from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
+from salmon.codegen.viz import VizCodeGen
 from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
@@ -121,18 +122,18 @@ def testHybridJoinWorkflow():
         persisted = sal._persist(shuffled, "persisted")
         persisted.outRel.storedWith = set([1, 2, 3])
         persisted.isMPC = True
-        
+
         keysclosed = sal.project(shuffled, "keysclosed", ["b"])
         keysclosed.outRel.storedWith = set([1, 2, 3])
         keysclosed.isMPC = True
-        
+
         keys = sal._open(keysclosed, "keys", 1)
         keys.isMPC = True
-        
+
         indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
         indexed.outRel.storedWith = set([1])
-        
+
         distinctKeys = sal.distinct(keys, "distinctKeys", ["b"])
         distinctKeys.isMPC = False
         distinctKeys.outRel.storedWith = set([1])
@@ -188,6 +189,9 @@ def testHybridJoinWorkflow():
     # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
 
     dag = protocol()
+    vg = VizCodeGen(codegen_config, dag)
+    vg.generate("ssn", "/mnt/shared")
+
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
     for idx, (fmwk, subdag, storedWith) in enumerate(mapping):
