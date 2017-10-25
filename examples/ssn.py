@@ -206,7 +206,7 @@ def testHybridJoinWorkflow():
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+    sharemind_config = exampleutils.get_sharemind_config(pid, False)
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
     # if pid == 1:
