@@ -22,6 +22,7 @@ def main(argv):
         sys.exit(1)
 
     f = Faker()
+    f.seed(42)
     # regulator data: (name, address, zip, ssn)
     rf = open("{}/govreg.csv".format(FLAGS.output), "w")
     ssns = set()
