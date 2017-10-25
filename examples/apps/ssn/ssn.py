@@ -205,8 +205,8 @@ def testHybridJoinWorkflow():
         "pid": pid,
         "parties": {
             1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-1", "port": 9002},
-            3: {"host": "cc-spark-node-2", "port": 9003}
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
     sm_peer = setup_peer(sharemind_config)
