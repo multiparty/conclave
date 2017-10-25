@@ -236,15 +236,14 @@ class SharemindCodeGen(CodeGen):
         # we need all open ops to get the size of the output rels
         # for parsing
         open_ops = list(filter(lambda op_node: isinstance(op_node, Open), nodes))
-        rel_names = ["--rels " + open_op.outRel.name for open_op in open_ops]
-        rel_names_str = " ".join(rel_names)
-        num_cols = ["--num-cols " + str(len(open_op.outRel.columns)) for open_op in open_ops]
-        num_cols_str = " ".join(num_cols)
+        rel_names = [open_op.outRel.name for open_op in open_ops]
+        num_cols = [str(len(open_op.outRel.columns)) for open_op in open_ops]
+        rels_meta_str = " ".join(["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
+        print("rels_meta_str: ", rels_meta_str)
 
         dataInner = {
             "CODE_PATH": code_path + "/" + job_name,
-            "REL_NAMES": rel_names_str,
-            "NUM_COLS": num_cols_str,
+            "RELS_META": rels_meta_str,
             "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name
         }
         return {

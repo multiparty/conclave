@@ -182,8 +182,8 @@ def testHybridJoinWorkflow():
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     # codegen_config.input_path = "/mnt/shared"
     # codegen_config.output_path = "/mnt/shared"
-    codegen_config.input_path = "/mnt/shared/1000"
-    codegen_config.output_path = "/mnt/shared/1000"
+    codegen_config.input_path = "/mnt/shared/100"
+    codegen_config.output_path = "/mnt/shared/100"
 
     # exampleutils.generate_ssn_data(pid, codegen_config.output_path)
 
