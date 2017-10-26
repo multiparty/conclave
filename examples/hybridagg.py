@@ -54,39 +54,28 @@ def testHybridAggWorkflow():
         indexed.isMPC = False
         indexed.outRel.storedWith = set([1])
 
-        distinctKeys = sal.distinct(keys, "distinctKeys", ["a"])
-        distinctKeys.isMPC = False
-        distinctKeys.outRel.storedWith = set([1])
+        sortedByKey = sal.sort_by(indexed, "sortedByKey", "a")
+        sortedByKey.isMPC = False
+        sortedByKey.outRel.storedWith = set([1])
+
+        eqFlags = sal._comp_neighs(sortedByKey, "eqFlags", "a")
+        eqFlags.isMPC = False
+        eqFlags.outRel.storedWith = set([1])
 
         # TODO: hack to get keys stored
         # need to fix later!
-        fakeDistinctKeys = sal.distinct(keys, "distinctKeys", ["a"])
-        fakeDistinctKeys.isMPC = False
-        fakeDistinctKeys.outRel.storedWith = set([1])
+        sortedByKey = sal.project(sortedByKey, "sortedByKey", ["rowIndex", "a"])
+        sortedByKey.isMPC = False
+        sortedByKey.outRel.storedWith = set([1])
 
-        indexedDistinct = sal.index(distinctKeys, "indexedDistinct", "keyIndex")
-        indexedDistinct.isMPC = False
-        indexedDistinct.outRel.storedWith = set([1])
-
-        joinedindeces = sal.join(
-            indexed, indexedDistinct, "joinedindeces", ["a"], ["a"])
-        joinedindeces.isMPC = False
-        joinedindeces.outRel.storedWith = set([1])
-
-        # TODO: could project row indeces away too
-        indecesonly = sal.project(
-            joinedindeces, "indecesonly", ["rowIndex", "keyIndex"])
-        indecesonly.isMPC = False
-        indecesonly.outRel.storedWith = set([1])
-
-        closedDistinct = sal._close(distinctKeys, "closedDistinct", set([1, 2, 3]))
-        closedDistinct.isMPC = True
-        closedLookup = sal._close(indecesonly, "closedLookup", set([1, 2, 3]))
-        closedLookup.isMPC = True
-
-        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedLookup, closedDistinct)
+        closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
+        closedEqFlags.isMPC = True
+        closedSortedByKey = sal._close(sortedByKey, "closedSortedByKey", set([1, 2, 3]))
+        closedSortedByKey.isMPC = True
+        
+        agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedEqFlags, closedSortedByKey)
         agg.isMPC = True
-        sal._open(agg, "opened", 1)
+        sal._open(agg, "op", 1)
 
         # create dag
         return set([in1])
@@ -104,8 +93,8 @@ def testHybridAggWorkflow():
     exampleutils.generate_agg_data(pid, codegen_config.output_path)
 
     dag = protocol()
-    vg = VizCodeGen(codegen_config, dag)
-    vg.generate("hybrid_agg", "/mnt/shared")
+    # vg = VizCodeGen(codegen_config, dag)
+    # vg.generate("hybrid_agg", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
@@ -126,7 +115,7 @@ def testHybridAggWorkflow():
     dispatch_all(None, sm_peer, job_queue)
     if pid == 1:
         expected = ['', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
-        exampleutils.check_res(expected, "/mnt/shared/opened.csv")
+        exampleutils.check_res(expected, "/mnt/shared/op.csv")
         print("Success")
 
 if __name__ == "__main__":

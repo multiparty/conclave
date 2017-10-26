@@ -1,1 +1,1 @@
-    pd_shared3p {{TYPE}} [[2]] {{OUT_REL_NAME}} = indexAggregateSum({{IN_REL_NAME}}, (uint){{AGG_COL_IDX}}, {{KEYS_REL}}, declassify({{INDECES_REL}}));
+    pd_shared3p {{TYPE}} [[2]] {{OUT_REL_NAME}} = indexAggregateNonLeaky({{IN_REL_NAME}}, (uint){{GROUP_COL_IDX}}, (uint){{AGG_COL_IDX}}, {{EQ_FLAG_REL}}, {{SORTED_KEYS_REL}});

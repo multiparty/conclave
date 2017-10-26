@@ -21,7 +21,7 @@ D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
         (xor_uint32) leftRel,
         leftJoinCols[0],
         (xor_uint32) rightRel,
-        leftJoinCols[0]
+        rightJoinCols[0]
     );
     return project(res, colsToKeep);
 }
@@ -44,6 +44,60 @@ D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
         D uint32[[1]] right = sorted[r + 1,:];
         D uint32 eqFlag = eqFlags[r];
 
+
+        D uint32 leftVal = left[1];
+        D uint32 rightVal = right[1];
+        sorted[r, 1] = leftVal * (1 - eqFlag);
+        sorted[r + 1,1] = rightVal + leftVal * (eqFlag);
+    }
+
+    D uint32[[1]] zeroValFlags = (uint32)(sorted[:,1] != 0);
+    D uint32 [[2]] result(nrows,ncols + 1);
+    result[:,0] = sorted[:,0];
+    result[:,1] = sorted[:,1];
+    result[:,2] = zeroValFlags[:];
+    D uint32 [[2]] shuffled = shuffleRows(result);
+
+    uint32 [[1]] keepFlags = declassify(shuffled[:,2]);
+    uint numResultRows = 0;
+    for (uint r = 0; r < nrows; r+=1) {
+        if (keepFlags[r] == 1) {
+            numResultRows++;
+        }
+    }
+    D uint32 [[2]] finalResult(numResultRows,ncols);
+    uint resIdx = 0;
+    for (uint r = 0; r < nrows; r+=1) {
+        if (keepFlags[r] == 1) {
+            finalResult[resIdx,0] = shuffled[r,0];
+            finalResult[resIdx,1] = shuffled[r,1];
+            resIdx++;
+        }
+    }
+    return finalResult;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] indexAggregateNonLeaky(D uint32[[2]] rows, uint keyCol, uint valCol,
+        D uint32[[2]] wrappedEqFlags, D uint32[[2]] keysWithIndeces) {
+    uint nrows = shape(rows)[0];
+    uint ncols = 2;
+
+    D uint32 [[2]] input(nrows, ncols);
+    input[:,0] = rows[:,keyCol];
+    input[:,1] = rows[:,valCol];
+
+    D uint32 [[1]] eqFlags = wrappedEqFlags[:,0];
+    uint32 [[1]] newIndeces = declassify(keysWithIndeces[:,0]);
+    D uint32 [[2]] sorted(nrows, ncols);
+    for (uint r = 0; r < nrows; r+=1) {
+        sorted[r,:] = input[(uint)newIndeces[r],:];
+    }
+
+    for (uint r = 0; r < nrows - 1; r+=1) {
+        D uint32[[1]] left = sorted[r,:];
+        D uint32[[1]] right = sorted[r + 1,:];
+        D uint32 eqFlag = eqFlags[r];
 
         D uint32 leftVal = left[1];
         D uint32 rightVal = right[1];

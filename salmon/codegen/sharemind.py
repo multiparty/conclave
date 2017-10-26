@@ -313,9 +313,10 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL_NAME": idx_agg_op.outRel.name,
             "IN_REL_NAME": idx_agg_op.getInRel().name,
+            "GROUP_COL_IDX": idx_agg_op.groupCols[0].idx,
             "AGG_COL_IDX": idx_agg_op.aggCol.idx,
-            "KEYS_REL": idx_agg_op.distKeysOp.outRel.name,
-            "INDECES_REL": idx_agg_op.indexOp.outRel.name
+            "EQ_FLAG_REL": idx_agg_op.eqFlagOp.outRel.name,
+            "SORTED_KEYS_REL": idx_agg_op.sortedKeysOp.outRel.name
         }
         return pystache.render(template, data)
 

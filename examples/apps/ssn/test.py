@@ -10,7 +10,8 @@ def read_rel(path_to_rel):
                 split_row = [int(val) for val in raw_row.split(",")]
                 rows.append([int(val) for val in split_row])
             except ValueError:
-                print("skipped header")
+                pass
+                # print("skipped header")
     return rows
 
 def join(left, right, left_col, right_col):

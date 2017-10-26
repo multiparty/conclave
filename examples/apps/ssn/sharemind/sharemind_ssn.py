@@ -46,7 +46,7 @@ if __name__ == "__main__":
     
     workflow_name = "sharemind-ssn-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
@@ -60,9 +60,9 @@ if __name__ == "__main__":
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)

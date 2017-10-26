@@ -141,6 +141,24 @@ class ScotchCodeGen(CodeGen):
             distinct_op.outRel.dbgStr()
         )
 
+    def _generateSortBy(self, sort_by_op):
+
+        return "SORTBY{} {} FROM ({}) AS {}\n".format(
+            "MPC" if sort_by_op.isMPC else "",
+            sort_by_op.sortByCol.name,
+            sort_by_op.getInRel().dbgStr(),
+            sort_by_op.outRel.dbgStr()
+        )
+
+    def _generateCompNeighs(self, comp_neighs_op):
+
+        return "COMPNEIGHS{} {} FROM ({}) AS {}\n".format(
+            "MPC" if comp_neighs_op.isMPC else "",
+            comp_neighs_op.compCol.name,
+            comp_neighs_op.getInRel().dbgStr(),
+            comp_neighs_op.outRel.dbgStr()
+        )
+
     def _generateFilter(self, filter_op):
 
         filterStr = "{} {} {}".format(filter_op.targetCol,

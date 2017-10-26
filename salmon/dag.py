@@ -340,15 +340,16 @@ class Aggregate(UnaryOpNode):
 
 class IndexAggregate(Aggregate):
 
-    def __init__(self, outRel, parent, groupCols, aggCol, aggregator, indexOp, distKeysOp):
+    def __init__(self, outRel, parent, groupCols, aggCol, aggregator, eqFlagOp, sortedKeysOp):
 
         super(IndexAggregate, self).__init__(outRel, parent, groupCols, aggCol, aggregator)
-        self.indexOp = indexOp
-        self.distKeysOp = distKeysOp
+        self.eqFlagOp = eqFlagOp
+        self.sortedKeysOp = sortedKeysOp
 
     @classmethod
-    def fromAggregate(cls, aggOp, indexOp, distKeysOp):
-        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols, aggOp.aggCol, aggOp.aggregator, indexOp, distKeysOp)
+    def fromAggregate(cls, aggOp, eqFlagOp, sortedKeysOp):
+        
+        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols, aggOp.aggCol, aggOp.aggregator, eqFlagOp, sortedKeysOp)
         return obj
 
 class Project(UnaryOpNode):
@@ -422,6 +423,29 @@ class Multiply(UnaryOpNode):
         self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in old_operands]
 
+class SortBy(UnaryOpNode):
+
+    def __init__(self, outRel, parent, sortByCol):
+
+        super(SortBy, self).__init__("sortBy", outRel, parent)
+        self.sortByCol = sortByCol
+
+    def updateOpSpecificCols(self):
+
+        self.sortByCol = self.getInRel().columns[self.sortByCol.idx]
+
+
+class CompNeighs(UnaryOpNode):
+
+    def __init__(self, outRel, parent, compCol):
+
+        super(CompNeighs, self).__init__("compNeighs", outRel, parent)
+        self.compCol = compCol
+
+    def updateOpSpecificCols(self):
+
+        self.compCol = self.getInRel().columns[self.compCol.idx]
+        
 
 class Distinct(UnaryOpNode):
 

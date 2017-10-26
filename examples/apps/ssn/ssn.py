@@ -133,39 +133,29 @@ def testHybridJoinWorkflow():
         indexed.isMPC = False
         indexed.outRel.storedWith = set([1])
 
-        distinctKeys = sal.distinct(keys, "distinctKeys", ["b"])
-        distinctKeys.isMPC = False
-        distinctKeys.outRel.storedWith = set([1])
+        sortedByKey = sal.sort_by(indexed, "sortedByKey", "b")
+        sortedByKey.isMPC = False
+        sortedByKey.outRel.storedWith = set([1])
+
+        eqFlags = sal._comp_neighs(sortedByKey, "eqFlags", "b")
+        eqFlags.isMPC = False
+        eqFlags.outRel.storedWith = set([1])
 
         # TODO: hack to get keys stored
         # need to fix later!
-        fakeDistinctKeys = sal.project(distinctKeys, "distinctKeys", ["b"])
-        fakeDistinctKeys.isMPC = False
-        fakeDistinctKeys.outRel.storedWith = set([1])
+        sortedByKey = sal.project(sortedByKey, "sortedByKey", ["rowIndex", "b"])
+        sortedByKey.isMPC = False
+        sortedByKey.outRel.storedWith = set([1])
 
-        indexedDistinct = sal.index(distinctKeys, "indexedDistinct", "keyIndex")
-        indexedDistinct.isMPC = False
-        indexedDistinct.outRel.storedWith = set([1])
-
-        joinedindeces = sal.join(
-            indexed, indexedDistinct, "joinedindecesb", ["b"], ["b"])
-        joinedindeces.isMPC = False
-        joinedindeces.outRel.storedWith = set([1])
-
-        # TODO: could project row indeces away too
-        indecesonly = sal.project(
-            joinedindeces, "indecesonlyb", ["rowIndex", "keyIndex"])
-        indecesonly.isMPC = False
-        indecesonly.outRel.storedWith = set([1])
-
-        closedDistinct = sal._close(distinctKeys, "closedDistinct", set([1, 2, 3]))
-        closedDistinct.isMPC = True
-        closedLookup = sal._close(indecesonly, "closedLookup", set([1, 2, 3]))
-        closedLookup.isMPC = True
-
-        agg = sal.index_aggregate(persisted, "agg", ["b"], "d", "+", "d", closedLookup, closedDistinct)
+        closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
+        closedEqFlags.isMPC = True
+        closedSortedByKey = sal._close(sortedByKey, "closedSortedByKey", set([1, 2, 3]))
+        closedSortedByKey.isMPC = True
+        
+        agg = sal.index_aggregate(persisted, "agg", ["b"], "d", "+", "d", closedEqFlags, closedSortedByKey)
         agg.isMPC = True
-        sal._open(agg, "aggopened", 1)
+        sal._open(agg, "ssnopened", 1)
+
 
     def protocol():
 
@@ -176,7 +166,7 @@ def testHybridJoinWorkflow():
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
@@ -184,8 +174,8 @@ def testHybridJoinWorkflow():
     codegen_config.output_path = "/mnt/shared/ssn-data"
 
     dag = protocol()
-    vg = VizCodeGen(codegen_config, dag)
-    vg.generate("ssn", "/mnt/shared")
+    # vg = VizCodeGen(codegen_config, dag)
+    # vg.generate("ssn", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
@@ -204,9 +194,9 @@ def testHybridJoinWorkflow():
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
     sm_peer = setup_peer(sharemind_config)

@@ -48,55 +48,47 @@ def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, a
 
     return op
 
-def index_aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName, indexOp, distKeysOp):
+def index_aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName, eqFlagOp, sortedKeysOp):
 
     agg_op = aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName)
-    idx_agg_op = dag.IndexAggregate.fromAggregate(agg_op, indexOp, distKeysOp)
+    idx_agg_op = dag.IndexAggregate.fromAggregate(agg_op, eqFlagOp, sortedKeysOp)
 
     inputOpNode.children.remove(agg_op)
     inputOpNode.children.add(idx_agg_op)
     
-    indexOp.children.add(idx_agg_op)
-    distKeysOp.children.add(idx_agg_op)
+    eqFlagOp.children.add(idx_agg_op)
+    sortedKeysOp.children.add(idx_agg_op)
 
-    idx_agg_op.parents.add(indexOp)
-    idx_agg_op.parents.add(distKeysOp)
+    idx_agg_op.parents.add(eqFlagOp)
+    idx_agg_op.parents.add(sortedKeysOp)
 
     return idx_agg_op
 
 
-def flat_group(inputOpNode, outputName, groupColName, overColName, aggOutColName):
+def sort_by(inputOpNode, outputName, sortByColName):
 
     # Get input relation from input node
     inRel = inputOpNode.outRel
 
-    # Get relevant columns and reset their collusion sets
-    inCols = inRel.columns
-    groupCol = utils.find(inCols, groupColName)
-    groupCol.collSets = set()
-    overCol = utils.find(inCols, overColName)
-    overCol.collSets = set()
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
 
-    # Create output relation. Default column order is
-    # key column first followed by column that will be
-    # aggregated. Note that we want copies as these are
-    # copies on the output relation and changes to them
-    # shouldn't affect the original columns
-    aggOutCol = copy.deepcopy(overCol)
-    aggOutCol.name = aggOutColName
-    outRelCols = [copy.deepcopy(groupCol)]
-    outRelCols.append(copy.deepcopy(aggOutCol))
+    sortByCol = utils.find(inRel.columns, sortByColName)
+
+    for col in outRelCols:
+        col.collSets = set()
+
+    # Create output relation
     outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
     outRel.updateColumns()
 
     # Create our operator node
-    op = dag.FlatGroup(outRel, inputOpNode, groupCol, overCol)
+    op = dag.SortBy(outRel, inputOpNode, sortByCol)
 
     # Add it as a child to input node
     inputOpNode.children.add(op)
 
     return op
-
 
 def project(inputOpNode, outputName, selectedColNames):
 
@@ -437,6 +429,32 @@ def collect(inputOpNode, targetParty):
 
 # Below functions are NOT part of the public API! Only used to simplify
 # codegen testing
+
+def _comp_neighs(inputOpNode, outputName, compColName):
+
+    # Get input relation from input node
+    inRel = inputOpNode.outRel
+
+    # Get relevant columns and create copies
+    outRelCols = copy.deepcopy(inRel.columns)
+
+    compCol = utils.find(inRel.columns, compColName)
+    compCol.storedWith = set()
+
+    for col in outRelCols:
+        col.collSets = set()
+
+    # Create output relation
+    outRel = rel.Relation(outputName, [copy.deepcopy(compCol)], copy.copy(inRel.storedWith))
+    outRel.updateColumns()
+
+    # Create our operator node
+    op = dag.CompNeighs(outRel, inputOpNode, compCol)
+
+    # Add it as a child to input node
+    inputOpNode.children.add(op)
+
+    return op
 
 def _index_join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames, indexOpNode):
 

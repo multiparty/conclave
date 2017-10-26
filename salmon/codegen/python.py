@@ -86,6 +86,24 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
+    def _generateSortBy(self, sort_by_op):
+
+        return "{}{} = sort_by({}, {})\n".format(
+            self.space,
+            sort_by_op.outRel.name,
+            sort_by_op.getInRel().name,
+            sort_by_op.sortByCol.idx
+        )
+
+    def _generateCompNeighs(self, comp_neighs_op):
+
+        return "{}{} = comp_neighs({}, {})\n".format(
+            self.space,
+            comp_neighs_op.outRel.name,
+            comp_neighs_op.getInRel().name,
+            comp_neighs_op.compCol.idx
+        )
+
     def _generateIndex(self, index_op):
 
         return "{}{} = project_indeces({})\n".format(

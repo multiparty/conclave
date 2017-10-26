@@ -112,6 +112,10 @@ class CodeGen:
                 op_code += self._generateShuffle(node)
             elif isinstance(node, Distinct):
                 op_code += self._generateDistinct(node)
+            elif isinstance(node, SortBy):
+                op_code += self._generateSortBy(node)
+            elif isinstance(node, CompNeighs):
+                op_code += self._generateCompNeighs(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
