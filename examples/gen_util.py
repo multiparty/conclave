@@ -21,7 +21,7 @@ def generate(out_path, num_cols, num_rows, inpt_range, col_names=None):
         if with_col_names:
             f.write(','.join(col_names) + '\n')
         for j in range(num_rows):
-            f.write(','.join([str(randint(0,int(inpt_range))) for i in range(num_cols)]))
+            f.write(','.join([str(randint(1,int(inpt_range))) for i in range(num_cols)]))
             f.write("\n")
 
 if __name__ == "__main__":
