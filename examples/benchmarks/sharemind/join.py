@@ -43,7 +43,7 @@ def no_hdfs():
     pid = int(sys.argv[1])
     num_tuples = sys.argv[2]
 
-    workflow_name = "{}_{}_{}".format(op, num_tuples, pid)
+    workflow_name = "sharemind_join_{}_{}".format(num_tuples, pid)
     sm_cg_config = SharemindCodeGenConfig(
         workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
