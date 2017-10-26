@@ -191,22 +191,22 @@ def no_hdfs():
     op = sys.argv[3]
 
     # use if running locally
+    #sharemind_config = {
+    #    "pid": pid,
+    #    "parties": {
+    #        1: {"host": "localhost", "port": 9001},
+    #        2: {"host": "localhost", "port": 9002},
+    #        3: {"host": "localhost", "port": 9003}
+    #    }
+    #}
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
-    # sharemind_config = {
-    #     "pid": pid,
-    #     "parties": {
-    #         1: {"host": "ca-spark-node-0", "port": 9001},
-    #         2: {"host": "cb-spark-node-0", "port": 9002},
-    #         3: {"host": "cc-spark-node-0", "port": 9003}
-    #     }
-    # }
 
     workflow_name = "{}_{}_{}".format(op, num_tuples, pid)
     sm_cg_config = SharemindCodeGenConfig(
