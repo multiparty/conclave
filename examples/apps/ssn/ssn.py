@@ -166,7 +166,7 @@ def testHybridJoinWorkflow():
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
@@ -194,9 +194,9 @@ def testHybridJoinWorkflow():
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
     sm_peer = setup_peer(sharemind_config)
