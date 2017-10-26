@@ -60,9 +60,9 @@ if __name__ == "__main__":
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
     sm_peer = salmon.net.setup_peer(sharemind_config)
