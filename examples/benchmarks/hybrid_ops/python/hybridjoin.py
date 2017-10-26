@@ -112,7 +112,7 @@ def testHybridJoinWorkflow():
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "/mnt/shared/hybridjoin/" + size
-    codegen_config.output_path = "/mnt/shared/hybridjoin" + size
+    codegen_config.output_path = "/mnt/shared/hybridjoin/" + size
 
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
