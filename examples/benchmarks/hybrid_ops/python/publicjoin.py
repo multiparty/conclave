@@ -7,12 +7,10 @@ from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
-from salmon.codegen.viz import VizCodeGen
 from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
-import exampleutils
 
 
 def testPublicJoinWorkflow():
@@ -49,7 +47,9 @@ def testPublicJoinWorkflow():
         clB.isMPC = True
 
         persistedA = sal._persist(clA, "persistedA")
+        persistedA.isMPC = True
         persistedB = sal._persist(clB, "persistedB")
+        persistedB.isMPC = True
 
         keysaclosed = sal.project(clA, "keysaclosed", ["a"])
         keysaclosed.outRel.storedWith = set([1, 2, 3])
@@ -84,8 +84,9 @@ def testPublicJoinWorkflow():
             indecesonly, "indecesclosed", set([1, 2, 3]))
         indecesclosed.isMPC = True
 
-        joined = sal._index_join(persistedA, persistedB, "joined",
-                                 ["a"], ["c"], indecesclosed)
+        joined = sal._index_join(persistedA, persistedB, "joined", [
+                                 "a"], ["c"], indecesclosed)
+        joined.outRel.storedWith = set([1, 2, 3])
         joined.isMPC = True
 
         sal._open(joined, "opened", 1)
@@ -94,36 +95,40 @@ def testPublicJoinWorkflow():
         return set([in1, in2])
 
     pid = int(sys.argv[1])
+    size = sys.argv[2]
+
     workflow_name = "public-join-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "/mnt/shared"
-    codegen_config.output_path = "/mnt/shared"
-
-    exampleutils.generate_data(pid, codegen_config.output_path)
+    codegen_config.input_path = "/mnt/shared/" + size
+    codegen_config.output_path = "/mnt/shared/" + size
 
     dag = protocol()
-    vg = VizCodeGen(codegen_config, dag)
-    vg.generate("public_join", "/mnt/shared")
-
-    mapping = part.heupart(dag, ["sharemind"], ["spark"])
+    mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
     for idx, (fmwk, subdag, storedWith) in enumerate(mapping):
         if fmwk == "sharemind":
             job = SharemindCodeGen(codegen_config, subdag, pid).generate(
                 "sharemind-" + str(idx), None)
         else:
-            job = SparkCodeGen(codegen_config, subdag).generate(
-                "spark-" + str(idx), None)
+            job = PythonCodeGen(codegen_config, subdag).generate(
+                "python-" + str(idx), None)
         # TODO: this probably doesn't belong here
         if not pid in storedWith:
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
 
