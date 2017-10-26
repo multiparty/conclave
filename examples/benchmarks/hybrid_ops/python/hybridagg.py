@@ -12,8 +12,6 @@ from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
-import exampleutils
-
 
 def testHybridAggWorkflow():
 
@@ -32,10 +30,44 @@ def testHybridAggWorkflow():
         proja.isMPC = False
         proja.outRel.storedWith = set([1])
 
+        # define inputs
+        colsInB = [
+            defCol("a", "INTEGER", [2]),
+            defCol("b", "INTEGER", [2]),
+        ]
+        in2 = sal.create("in2", colsInB, set([2]))
+        in2.isMPC = False
+
+        projb = sal.project(in2, "projb", ["a", "b"])
+        projb.isMPC = False
+        projb.outRel.storedWith = set([2])
+
+        # define inputs
+        colsInC = [
+            defCol("a", "INTEGER", [3]),
+            defCol("b", "INTEGER", [3]),
+        ]
+        in3 = sal.create("in3", colsInC, set([3]))
+        in3.isMPC = False
+
+        projc = sal.project(in3, "projc", ["a", "b"])
+        projc.isMPC = False
+        projc.outRel.storedWith = set([3])
+
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
 
-        shuffled = sal.shuffle(clA, "shuffled")
+        clB = sal._close(projb, "clB", set([1, 2, 3]))
+        clB.isMPC = True
+
+        clC = sal._close(projc, "clC", set([1, 2, 3]))
+        clC.isMPC = True
+
+        comb = sal.concat([clA, clB, clC], "comb")
+        comb.outRel.storedWith = set([1, 2, 3])
+        comb.isMPC = True
+
+        shuffled = sal.shuffle(comb, "shuffled")
         shuffled.outRel.storedWith = set([1, 2, 3])
         shuffled.isMPC = True
 
@@ -74,27 +106,27 @@ def testHybridAggWorkflow():
         closedSortedByKey.isMPC = True
         
         agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedEqFlags, closedSortedByKey)
+        agg.outRel.storedWith = set([1, 2, 3])
         agg.isMPC = True
-        sal._open(agg, "op", 1)
+
+        sal._open(agg, "opened", 1)
 
         # create dag
-        return set([in1])
+        return set([in1, in2, in3])
 
     pid = int(sys.argv[1])
+    size = sys.argv[2]
+
     workflow_name = "hybrid-agg-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "/mnt/shared"
-    codegen_config.output_path = "/mnt/shared"
-
-    exampleutils.generate_agg_data(pid, codegen_config.output_path)
+    codegen_config.input_path = "/mnt/shared/" + size
+    codegen_config.output_path = "/mnt/shared/" + size
 
     dag = protocol()
-    # vg = VizCodeGen(codegen_config, dag)
-    # vg.generate("hybrid_agg", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
@@ -110,14 +142,17 @@ def testHybridAggWorkflow():
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
-    if pid == 1:
-        expected = ['', '1,2000', '2,242', '3,300', '5,500', '7,2400', '9,1100']
-        exampleutils.check_res(expected, "/mnt/shared/op.csv")
-        print("Success")
-
+    
 if __name__ == "__main__":
 
     testHybridAggWorkflow()

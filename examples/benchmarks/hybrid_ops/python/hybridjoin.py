@@ -11,7 +11,6 @@ from salmon import codegen
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
-import exampleutils
 
 
 def testHybridJoinWorkflow():
@@ -91,24 +90,29 @@ def testHybridJoinWorkflow():
 
         joined = sal._index_join(persistedA, persistedB, "joined", [
                                  "a"], ["c"], indecesclosed)
+        joined.outRel.storedWith = set([1, 2, 3])
         joined.isMPC = True
 
-        sal._open(joined, "opened", 1)
+        shuffledres = sal.shuffle(joined, "shuffledres")
+        shuffledres.outRel.storedWith = set([1, 2, 3])
+        shuffledres.isMPC = True
+
+        sal._open(shuffledres, "opened", 1)
 
         # create dag
         return set([in1, in2])
 
     pid = int(sys.argv[1])
+    size = sys.argv[2]
+
     workflow_name = "hybrid-join-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=False)
+        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "/mnt/shared"
-    codegen_config.output_path = "/mnt/shared"
-
-    exampleutils.generate_data(pid, codegen_config.output_path)
+    codegen_config.input_path = "/mnt/shared/" + size
+    codegen_config.output_path = "/mnt/shared/" + size
 
     dag = protocol()
     mapping = part.heupart(dag, ["sharemind"], ["python"])
@@ -125,15 +129,17 @@ def testHybridJoinWorkflow():
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = exampleutils.get_sharemind_config(pid, True)
+    sharemind_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
-    if pid == 1:
-        expected = ['', '2,200,2001', '3,300,3001', '4,400,4001', '42,42,1001', '5,500,5001',
-                    '6,600,6001', '7,700,7001', '7,800,7001', '7,900,7001', '8,1000,8001', '9,1100,9001']
-        exampleutils.check_res(expected, "/mnt/shared/opened.csv")
-        print("Success")
-
+    
 if __name__ == "__main__":
 
     testHybridJoinWorkflow()
