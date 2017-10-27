@@ -35,15 +35,25 @@ def project_indeces(rel):
     return [[idx] + rest for (idx, rest) in enumerate(rel)]
 
 def join(left, right, left_col, right_col):
-    
-    joined = []
+
+    left_row_map = dict()
     for left_row in left:
-        for right_row in right:
-            if left_row[left_col] == right_row[right_col]:
+        key = left_row[left_col]
+        if key not in left_row_map:
+            left_row_map[key] = []        
+        left_row_map[key].append(left_row)
+
+    joined = []
+    for right_row in right:
+        right_key = right_row[right_col]
+        if right_key in left_row_map:
+            left_rows = left_row_map[right_key]
+            for left_row in left_rows:
                 vals_from_left = [val for (idx, val) in enumerate(left_row) if idx != left_col]
                 vals_from_right = [val for (idx, val) in enumerate(right_row) if idx != right_col]
-                joined_row = [left_row[left_col]] + vals_from_left + vals_from_right
+                joined_row = [right_key] + vals_from_left + vals_from_right
                 joined.append(joined_row)
+
     return joined
 
 def index_agg(rel, over_col, distinct_keys, indeces, aggregator):
