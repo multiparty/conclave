@@ -6,7 +6,7 @@ setup(
     packages         = ['conclave',],
     install_requires = [],
     license          = 'MIT',
-	  url              = 'https://github.com/multiparty/conclave',
+	url              = 'https://github.com/multiparty/conclave',
     description      = 'Infrastructure for defining and running large data workflows against multiple backends.',
     long_description = open('README.rst').read(),
     test_suite       = 'nose.collector',
