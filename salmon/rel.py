@@ -13,9 +13,9 @@ class Column():
         """Initialize object."""
         self.relName = relName
         self.name = name
-        self.idx = idx
-        self.typeStr = typeStr
-        self.collSets = collSets
+        self.idx = idx # Integer index of the column in the relation.
+        self.typeStr = typeStr # Currently can only be "INTEGER".
+        self.collSets = collSets # Record of all sets of parties that can collude together to recover values in this column.
 
     def getName(self):
         """Return column name."""
@@ -31,7 +31,7 @@ class Column():
         return self.getName() + " " + collSetStr
 
     def mergeCollSetsIn(self, otherCollSets):
-        """Merge ??? into column."""
+        """Merge collusion sets into column."""
         self.collSets = utils.mergeCollSets(self.collSets, otherCollSets)
 
     def __str__(self):
@@ -48,7 +48,7 @@ class Relation():
         """Initialize object."""
         self.name = name
         self.columns = columns
-        self.storedWith = storedWith
+        self.storedWith = storedWith # Ownership of this data set. Does this refer to secret shares or open data?
 
     def rename(self, newName):
         """Rename relation."""

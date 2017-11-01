@@ -1,5 +1,7 @@
 """
-Various utility functions used throughout the library.
+Functions for working with collusion set annotations.
+
+TODO: Turn this into a dedicated module for working with collusion sets.
 """
 import functools
 import copy
@@ -7,21 +9,16 @@ import copy
 
 def mergeCollSets(left, right):
     """
-    Merge two column sets if possible.
-    :param left: ???
-    :param right: ???
-    :returns: set of ???
+    Merge two collusion records if possible.
+    :param left: collusion record
+    :param right: collusion record
+    :returns: all combinations of collusion sets from records
     """
-    res = set()
     if not left:
         return copy.copy(right)
     elif not right:
         return copy.copy(left)
-    for leftCollSet in left:
-        for rightCollSet in right:
-            res.add(leftCollSet | rightCollSet)
-    return res
-
+    return {l | r for l in left for r in right}
 
 def collSetsFromColumns(columns):
     """
