@@ -1,33 +1,38 @@
-from salmon import rel
-import copy
+"""
+Data structure for representing a workflow directed acyclic graph (DAG).
+"""
 
+import copy
+from salmon import rel
 
 class Node():
+    """
+    Graph node data structure.
+    """
 
     def __init__(self, name):
-
+        """Initalize graph node object."""
         self.name = name
         self.children = set()
         self.parents = set()
 
     def debugStr(self):
-
+        """Return extended string representation for debugging."""
         childrenStr = str([n.name for n in self.children])
         parentStr = str([n.name for n in self.parents])
         return self.name + " children: " + childrenStr + " parents: " + parentStr
 
     def isLeaf(self):
-
+        """Return whether node is a leaf."""
         return len(self.children) == 0
 
     def isRoot(self):
-
+        """Return whether node is a root."""
         return len(self.parents) == 0
 
     def __str__(self):
-
+        """Return string representation of node."""
         return self.name
-
 
 class OpNode(Node):
 
@@ -211,9 +216,9 @@ class NaryOpNode(OpNode):
 
         # Returning a set here to emphasize that the order of
         # the returned relations is meaningless (since the parent-set
-        # where we're getting the relations from isn't ordered)
+        # where we're getting the relations from isn't ordered).
         # If we want operators with multiple input relations where
-        # the order matters, we do implement it as a separate class
+        # the order matters, we do implement it as a separate class.
         return set([parent.outRel for parent in self.parents])
 
     def requiresMPC(self):
