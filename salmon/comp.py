@@ -1,3 +1,6 @@
+"""
+Workflow graph optimizations and transformations.
+"""
 import copy
 import salmon.utils as utils
 import salmon.dag as saldag

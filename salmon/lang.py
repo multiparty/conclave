@@ -1,3 +1,6 @@
+"""
+Embedded language for relational workflows.
+"""
 import copy
 from salmon import rel
 from salmon import dag
