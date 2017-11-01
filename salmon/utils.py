@@ -1,9 +1,9 @@
 """
 Various utility functions used throughout the library.
 """
-
 import functools
 import copy
+
 
 def mergeCollSets(left, right):
     """
@@ -22,12 +22,14 @@ def mergeCollSets(left, right):
             res.add(leftCollSet | rightCollSet)
     return res
 
+
 def collSetsFromColumns(columns):
     """
     ???
     """
     collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns]
     return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
+
 
 def find(columns, colName):
     """
@@ -42,6 +44,7 @@ def find(columns, colName):
     except StopIteration:
         print("column '{}' not found in {}".format(colName, [c.getName() for c in columns]))
         return None
+
 
 def defCol(name, tpy, *collSets):
     """

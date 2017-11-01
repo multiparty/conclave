@@ -1,9 +1,9 @@
 """
 Data structure for representing a workflow directed acyclic graph (DAG).
 """
-
 import copy
 from salmon import rel
+
 
 class Node():
     """
@@ -33,6 +33,7 @@ class Node():
     def __str__(self):
         """Return string representation of node."""
         return self.name
+
 
 class OpNode(Node):
 
