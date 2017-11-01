@@ -216,17 +216,16 @@ def test_partition_ssn():
         eqFlags.isMPC = False
         eqFlags.outRel.storedWith = set([1])
 
-        # TODO: hack to get keys stored
-        # need to fix later!
-        sortedByKey = sal.project(
-            sortedByKey, "sortedByKey", ["rowIndex", "b"])
-        sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        # TODO: should be a persist op
+        sortedByKeyStored = sal.project(
+            sortedByKey, "sortedByKeyStored", ["rowIndex", "b"])
+        sortedByKeyStored.isMPC = False
+        sortedByKeyStored.outRel.storedWith = set([1])
 
         closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
         closedEqFlags.isMPC = True
         closedSortedByKey = sal._close(
-            sortedByKey, "closedSortedByKey", set([1, 2, 3]))
+            sortedByKeyStored, "closedSortedByKey", set([1, 2, 3]))
         closedSortedByKey.isMPC = True
 
         agg = sal.index_aggregate(
@@ -275,11 +274,11 @@ projectmpc->keysclosed,
 openmpc->keys{1, 2, 3}###pythoncreate->keys,
 index->indexed,
 sortBy->sortedByKey,
-project->sortedByKey,
-compNeighs->eqFlags{1}###sharemindcreatempc->eqFlags,
+compNeighs->eqFlags,
+project->sortedByKeyStored{1}###sharemindcreatempc->eqFlags,
 closempc->closedEqFlags,
 creatempc->persisted,
-creatempc->sortedByKey,
+creatempc->sortedByKeyStored,
 closempc->closedSortedByKey,
 aggregationmpc->agg,
 openmpc->ssnopened{1, 2, 3}'''
@@ -288,7 +287,7 @@ openmpc->ssnopened{1, 2, 3}'''
     assert expected == actual, actual
 
 
-def test_partition_broken():
+def test_inputs_out_of_order():
 
     def protocol():
 
@@ -359,6 +358,5 @@ openmpc->ssnopened{1, 2, 3}'''
 if __name__ == "__main__":
 
     test_partition_taxi()
-    # Ignore until another hack is fixed
-    # test_partition_ssn()
-    test_partition_broken()
+    test_partition_ssn()
+    test_inputs_out_of_order()

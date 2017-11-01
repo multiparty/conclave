@@ -141,15 +141,15 @@ def testHybridJoinWorkflow():
         eqFlags.isMPC = False
         eqFlags.outRel.storedWith = set([1])
 
-        # TODO: hack to get keys stored
-        # need to fix later!
-        sortedByKey = sal.project(sortedByKey, "sortedByKey", ["rowIndex", "b"])
-        sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        # TODO: should be a persist op
+        sortedByKeyStored = sal.project(
+            sortedByKey, "sortedByKeyStored", ["rowIndex", "b"])
+        sortedByKeyStored.isMPC = False
+        sortedByKeyStored.outRel.storedWith = set([1])
 
         closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
         closedEqFlags.isMPC = True
-        closedSortedByKey = sal._close(sortedByKey, "closedSortedByKey", set([1, 2, 3]))
+        closedSortedByKey = sal._close(sortedByKeyStored, "closedSortedByKey", set([1, 2, 3]))
         closedSortedByKey.isMPC = True
         
         agg = sal.index_aggregate(persisted, "agg", ["b"], "d", "+", "d", closedEqFlags, closedSortedByKey)
@@ -194,9 +194,9 @@ def testHybridJoinWorkflow():
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
     sm_peer = setup_peer(sharemind_config)
