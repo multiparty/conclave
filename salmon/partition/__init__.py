@@ -1,5 +1,5 @@
 from . import part
-from salmon.dag import OpDag, Create, Close, Open, UnaryOpNode
+from salmon.dag import OpDag, Dag, Create, Close, Open, UnaryOpNode, Persist
 from salmon.codegen import scotch
 from copy import copy, deepcopy
 from salmon.codegen.scotch import ScotchCodeGen
@@ -31,32 +31,31 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         # belong inside current dag
         if get_stored_with(node) != storedWith:
             return False
-        
+
         # otherwise check parents
         return node.parents.issubset(available) or not (node.parents or available)
 
-    def split_dag(current_dag, available):
+    def can_partition(dag, storedWith, top_available):
 
-        # need topological ordering
-        ordered = current_dag.topSort()
-        # first node must always be create node
-        assert isinstance(ordered[0], Create)
-        # first node determines if we're in mpc mode or not        
-        storedWith = get_stored_with(ordered[0])
+        # copy so we don't overwrite global available nodes in this pass
+        available = deepcopy(top_available)
+        ordered = dag.topSort()
+        unavailable = set()
 
-        # available = set()
-        # can new roots be set?
-        new_roots = []
-
-        # traverse current dag until all boundary nodes are hit
         for node in ordered:
+            if node in unavailable and get_stored_with(node) == storedWith:
+                for parent in node.parents:
+                    if parent in available and not isinstance(parent, Persist):
+                        return False
             if is_correct_mode(node, available, storedWith):
                 available.add(node)
-            elif ((not node.parents) or (node.parents & available)):
-                if node not in new_roots:
-                    new_roots.append(node)
             else:
-                pass
+                # mark all descendants as unavailable
+                descendants = Dag(set([node])).getAllNodes()
+                unavailable = unavailable.union(descendants)
+        return True
+
+    def disconnect_at_roots(current_dag, available, new_roots):
 
         previous_parents = set()
         create_op_lookup = dict()
@@ -91,11 +90,48 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         return OpDag(set(parent_roots)), available
 
+    def find_new_roots(current_dag, available, storedWith):
+
+        # need topological ordering
+        ordered = current_dag.topSort()
+        
+        # roots of the next subdag, i.e., where the current subdag will end
+        new_roots = []
+
+        # traverse current dag until all boundary nodes are hit
+        for node in ordered:
+            if is_correct_mode(node, available, storedWith):
+                available.add(node)
+            elif ((not node.parents) or (node.parents & available)):
+                if node not in new_roots:
+                    new_roots.append(node)
+        
+        # roots of the next subdag
+        return new_roots
+
+    def next_partition(nextdag, available, holding_parties):
+
+        # roots of the next subdag
+        new_roots = find_new_roots(nextdag, available, holding_parties)
+        # disconnect current dags at new root nodes and return the disconnected
+        # bottom dag
+        return disconnect_at_roots(nextdag, available, new_roots)
+
     def _merge_dags(left_dag, right_dag):
 
+        # TODO: should go inside dagutils, once dagutils exists
         # to merge, we only need to combine roots
         roots = left_dag.roots.union(right_dag.roots)
         return OpDag(roots)
+
+    def next_holding_ps(nextdag, available):
+
+        roots = nextdag.roots
+        for root in sorted(roots, key=lambda node: node.outRel.name):
+            holding_ps = get_stored_with(root)
+            if can_partition(nextdag, holding_ps, available):
+                return holding_ps, root.isMPC
+        raise Exception("Found no roots to partition on")
 
     def merge_neighbor_dags(mapping):
 
@@ -123,20 +159,26 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     mapping = []
     available = set()
 
+    iterations = 0
+    iteration_limit = 100
+
     local_fmwk = local_frameworks[0]
     mpc_fmwk = mpc_frameworks[0]
 
     while nextdag.roots:
-        first = nextdag.topSort()[0]
-        assert isinstance(first, Create)
-        storedWith = get_stored_with(first)
-        mpcmode = first.isMPC
-        # map to framework
+        if iterations > iteration_limit:
+            raise Exception("Reached iteration limit while partitioning")
+        # find holding set and mpc mode of next valid partition
+        holding_ps, mpcmode = next_holding_ps(nextdag, available)
+        # select framework
         fmwk = mpc_fmwk if mpcmode else local_fmwk
-        # store subdag
-        mapping.append((fmwk, nextdag, storedWith))
+        # store mapping
+        mapping.append((fmwk, nextdag, holding_ps))
         # partition next subdag
-        nextdag, available = split_dag(nextdag, available)
+        nextdag, available = next_partition(nextdag, available, holding_ps)
+        # increment iteration count
+        iterations += 1
+    
     for fmwk, subdag, storedWith in mapping:
         print(ScotchCodeGen(CodeGenConfig(), subdag)._generate(0, 0))
 
