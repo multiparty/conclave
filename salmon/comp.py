@@ -258,26 +258,7 @@ class MPCPushUp(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        if node.isLowerBoundary():
-            leftStoredWith = node.getLeftInRel().storedWith
-            rightStoredWith = node.getRightInRel().storedWith
-            outStoredWith = node.outRel.storedWith
-
-            revealJoinOp = None
-            if outStoredWith == leftStoredWith:
-                # sanity check
-                assert outStoredWith != rightStoredWith
-                revealJoinOp = saldag.RevealJoin.fromJoin(
-                    node, node.getLeftInRel(), outStoredWith)
-            elif outStoredWith == rightStoredWith:
-                revealJoinOp = saldag.RevealJoin.fromJoin(
-                    node, node.getLeftInRel(), outStoredWith)
-
-            # TODO: update storedWith on revealJoin
-            if revealJoinOp:
-                parents = revealJoinOp.parents
-                for par in parents:
-                    par.replaceChild(node, revealJoinOp)
+        pass
 
     def _rewriteConcat(self, node):
 
@@ -544,7 +525,7 @@ class InsertOpenAndCloseOps(DagRewriter):
             if (node.isLowerBoundary()):
                 # input is stored with one set of parties
                 # but output must be stored with another so we
-                # need a store operation
+                # need an open operation
                 outRel = copy.deepcopy(node.outRel)
                 outRel.rename(outRel.name + "_open")
                 # reset storedWith on parent so input matches output
@@ -645,7 +626,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
 class ExpandCompositeOps(DagRewriter):
     """Replaces operator nodes that correspond to composite operations
-    for example hybrid joins into subdags of primitive operators"""
+    (for example hybrid joins) into subdags of primitive operators"""
 
     def __init__(self):
 
@@ -677,7 +658,7 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewriteHybridJoin(self, node):
 
-        pass
+        node.expand()
 
     def _rewriteJoin(self, node):
 

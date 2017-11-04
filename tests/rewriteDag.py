@@ -244,7 +244,8 @@ FILTERMPC [a = 42] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) AS filtered([a {1,2}, b
 OPENMPC filtered([a {1,2}, b {1,2}]) {1, 2} INTO filtered_open([a {1,2}, b {1,2}]) {1}
 """
     actual = protocol()
-    assert expected == actual, "\nexpected:\n{}actual:\n{}".format(expected, actual)
+    assert expected == actual, "\nexpected:\n{}actual:\n{}".format(
+        expected, actual)
 
 
 def testMultByZero():
@@ -729,40 +730,6 @@ PROJECT [rel_0, rel_1] FROM (rel {1}) AS projB {1}
     assert expected == actual, actual
 
 
-def testRevealJoinOpt():
-
-    @scotch
-    @mpc
-    def protocol():
-        # define inputs
-        colsInA = [
-            defCol("a", "INTEGER", [1]),
-            defCol("b", "INTEGER", [1]),
-        ]
-        inA = sal.create("inA", colsInA, set([1]))
-
-        colsInB = [
-            defCol("c", "INTEGER", [2]),
-            defCol("d", "INTEGER", [2])
-        ]
-        inB = sal.create("inB", colsInB, set([2]))
-
-        joined = sal.join(inA, inB, "joined", ["a"], ["c"])
-
-        sal.collect(joined, 1)
-        # create dag
-        return set([inA, inB])
-
-    expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
-CREATE RELATION inB([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC inB([c {2}, d {2}]) {2} INTO inB_close([c {2}, d {2}]) {1, 2}
-(inA_close([a {1}, b {1}]) {1, 2}) REVEALJOIN (inB_close([c {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2}, b {1,2}, d {1,2}]) {1}
-"""
-    actual = protocol()
-    assert expected == actual, actual
-
-
 def testHybridJoinOpt():
 
     @scotch
@@ -793,45 +760,22 @@ def testHybridJoinOpt():
 CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
 CREATE RELATION inB([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSEMPC inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
-(inA_close([a {1}, b {1}]) {1, 2}) HYBRIDJOIN (inB_close([c {1} {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1, 2}
-AGGMPC [b, +] FROM (joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1, 2}) GROUP BY [a] AS agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2}
+SHUFFLEMPC (inA_close([a {1}, b {1}]) {1, 2}) AS shuffledA([a {1}, b {1}]) {1, 2}
+PERSISTMPC shuffledA([a {1}, b {1}]) {1, 2} INTO persistedA([a {1}, b {1}]) {1, 2}
+PROJECTMPC [a] FROM (shuffledA([a {1}, b {1}]) {1, 2}) AS keysaclosed([a ]) {1, 2}
+OPENMPC keysaclosed([a ]) {1, 2} INTO keysa([a ]) {1}
+INDEX (keysa([a ]) {1}) AS indexedA([indexA , a ]) {1}
+SHUFFLEMPC (inB_close([c {1} {2}, d {2}]) {1, 2}) AS shuffledB([c {1} {2}, d {2}]) {1, 2}
+PERSISTMPC shuffledB([c {1} {2}, d {2}]) {1, 2} INTO persistedB([c {1} {2}, d {2}]) {1, 2}
+PROJECTMPC [c] FROM (shuffledB([c {1} {2}, d {2}]) {1, 2}) AS keysbclosed([c ]) {1, 2}
+OPENMPC keysbclosed([c ]) {1, 2} INTO keysb([c ]) {1}
+INDEX (keysb([c ]) {1}) AS indexedB([indexB , c ]) {1}
+(indexedA([indexA , a ]) {1}) JOIN (indexedB([indexB , c ]) {1}) ON [a] AND [c] AS joinedindeces([a , indexA , indexB ]) {1}
+PROJECT [indexA, indexB] FROM (joinedindeces([a , indexA , indexB ]) {1}) AS indecesonly([indexA , indexB ]) {1}
+CLOSEMPC indecesonly([indexA , indexB ]) {1} INTO indecesclosed([indexA , indexB ]) {1, 2}
+(persistedA([a {1}, b {1}]) {1, 2}) IDXJOINMPC (persistedB([c {1} {2}, d {2}]) {1, 2}) WITH INDECES (indecesclosed([indexA , indexB ]) {1, 2}) ON [a] AND [c] AS joined([a , b , d ]) {1, 2}
+AGGMPC [b, +] FROM (joined([a , b , d ]) {1, 2}) GROUP BY [a] AS agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2}
 OPENMPC agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2} INTO agg_open([a {1,2} {1}, total_b {1,2} {1}]) {1}
-"""
-    actual = protocol()
-    assert expected == actual, actual
-
-
-def testHybridAndRevealJoinOpt():
-    # Note: for now I'm assuming that we don't overwrite a reveal join
-    # with a hybrid join
-
-    @scotch
-    @mpc
-    def protocol():
-        # define inputs
-        colsInA = [
-            defCol("a", "INTEGER", [1]),
-            defCol("b", "INTEGER", [1]),
-        ]
-        inA = sal.create("inA", colsInA, set([1]))
-
-        colsInB = [
-            defCol("c", "INTEGER", [1], [2]),
-            defCol("d", "INTEGER", [2])
-        ]
-        inB = sal.create("inB", colsInB, set([2]))
-
-        joined = sal.join(inA, inB, "joined", ["a"], ["c"])
-
-        sal.collect(joined, 1)
-        # create dag
-        return set([inA, inB])
-
-    expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC inA([a {1}, b {1}]) {1} INTO inA_close([a {1}, b {1}]) {1, 2}
-CREATE RELATION inB([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC inB([c {1} {2}, d {2}]) {2} INTO inB_close([c {1} {2}, d {2}]) {1, 2}
-(inA_close([a {1}, b {1}]) {1, 2}) REVEALJOIN (inB_close([c {1} {2}, d {2}]) {1, 2}) ON a AND c AS joined([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -950,6 +894,7 @@ OPENMPC hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID
     actual = protocol()
     assert expected == actual, actual
 
+
 def testAggPushdown():
 
     @scotch
@@ -1019,9 +964,8 @@ if __name__ == "__main__":
     testMultByZero()
     testAggProj()
     testConcatPushdown()
-    testRevealJoinOpt()
     testHybridJoinOpt()
-    testHybridAndRevealJoinOpt()
-    testJoin()
-    testTaxi()
-    testAggPushdown()
+    # testHybridAndRevealJoinOpt()
+    # testJoin()
+    # testTaxi()
+    # testAggPushdown()

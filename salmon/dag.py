@@ -3,6 +3,7 @@ Data structure for representing a workflow directed acyclic graph (DAG).
 """
 import copy
 from salmon import rel
+import salmon.lang as sal
 
 
 class Node():
@@ -86,6 +87,7 @@ class OpNode(Node):
 
     def makeOrphan(self):
 
+        # TODO: set self.parent = None?
         self.parents = set()
 
     def removeParent(self, parent):
@@ -328,6 +330,7 @@ class Concat(NaryOpNode):
 
         raise NotImplementedError()
 
+
 class Aggregate(UnaryOpNode):
 
     def __init__(self, outRel, parent, groupCols, aggCol, aggregator):
@@ -344,19 +347,23 @@ class Aggregate(UnaryOpNode):
                           for groupCol in self.groupCols]
         self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
+
 class IndexAggregate(Aggregate):
 
     def __init__(self, outRel, parent, groupCols, aggCol, aggregator, eqFlagOp, sortedKeysOp):
 
-        super(IndexAggregate, self).__init__(outRel, parent, groupCols, aggCol, aggregator)
+        super(IndexAggregate, self).__init__(
+            outRel, parent, groupCols, aggCol, aggregator)
         self.eqFlagOp = eqFlagOp
         self.sortedKeysOp = sortedKeysOp
 
     @classmethod
     def fromAggregate(cls, aggOp, eqFlagOp, sortedKeysOp):
-        
-        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols, aggOp.aggCol, aggOp.aggregator, eqFlagOp, sortedKeysOp)
+
+        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols,
+                  aggOp.aggCol, aggOp.aggregator, eqFlagOp, sortedKeysOp)
         return obj
+
 
 class Project(UnaryOpNode):
 
@@ -429,6 +436,7 @@ class Multiply(UnaryOpNode):
         self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in old_operands]
 
+
 class SortBy(UnaryOpNode):
 
     def __init__(self, outRel, parent, sortByCol):
@@ -451,7 +459,7 @@ class CompNeighs(UnaryOpNode):
     def updateOpSpecificCols(self):
 
         self.compCol = self.getInRel().columns[self.compCol.idx]
-        
+
 
 class Distinct(UnaryOpNode):
 
@@ -466,6 +474,7 @@ class Distinct(UnaryOpNode):
         old_operands = copy.copy(self.operands)
         self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in old_operands]
+
 
 class Divide(UnaryOpNode):
 
@@ -513,10 +522,6 @@ class Join(BinaryOpNode):
         self.rightJoinCols = rightJoinCols
 
     def updateOpSpecificCols(self):
-
-        print(self)
-        print("self.leftJoinCols", self.leftJoinCols, self.leftJoinCols[0].idx)
-        print("self.getLeftInRel().columns", self.getLeftInRel().columns)
 
         self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx]
                              for leftJoinCol in copy.copy(self.leftJoinCols)]
@@ -580,12 +585,15 @@ class RevealJoin(Join):
                               for c in self.rightJoinCols]
 
 
-class HybridMultiPartyJoin(Join):
-    # TODO
-    pass
+class CompositeOperator():
+    """Marker class for composite operators such as the hybrid join."""
+
+    def expand(self):
+
+        raise NotImplementedError()
 
 
-class HybridJoin(Join):
+class HybridJoin(Join, CompositeOperator):
     """Join Optimization
 
     applies when there exists a singleton collusion set on both
@@ -607,15 +615,73 @@ class HybridJoin(Join):
         obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
                   joinOp.leftJoinCols, joinOp.rightJoinCols, trustedParty)
         obj.children = joinOp.children
+        for child in obj.children:
+            child.replaceParent(joinOp, obj)
         return obj
 
-    # TODO: remove?
-    def updateOpSpecificCols(self):
+    def expand(self):
 
-        self.leftJoinCols = [self.getLeftInRel().columns[c.idx]
-                             for c in self.leftJoinCols]
-        self.rightJoinCols = [self.getRightInRel().columns[c.idx]
-                              for c in self.rightJoinCols]
+        # TODO
+        suffix = "rand"
+
+        # in left parents' children, replace self with first primitive operator
+        # in expanded subdag
+        shuffledA = sal.shuffle(self.leftParent, "shuffledA")
+        shuffledA.isMPC = True
+        self.leftParent.children.remove(self)
+
+        # same for right parent
+        shuffledB = sal.shuffle(self.rightParent, "shuffledB")
+        shuffledB.isMPC = True
+        self.rightParent.children.remove(self)
+
+        persistedB = sal._persist(shuffledB, "persistedB")
+        persistedB.isMPC = True
+        persistedA = sal._persist(shuffledA, "persistedA")
+        persistedA.isMPC = True
+
+        keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
+        keysaclosed.isMPC = True
+        keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
+        keysbclosed.isMPC = True
+
+        keysa = sal._open(keysaclosed, "keysa", 1)
+        keysa.isMPC = True
+        keysb = sal._open(keysbclosed, "keysb", 1)
+        keysb.isMPC = True
+
+        indexedA = sal.index(keysa, "indexedA", "indexA")
+        indexedA.isMPC = False
+        # indexedA.outRel.storedWith = set([1])
+        indexedB = sal.index(keysb, "indexedB", "indexB")
+        indexedB.isMPC = False
+        # indexedB.outRel.storedWith = set([1])
+
+        joinedindeces = sal.join(
+            indexedA, indexedB, "joinedindeces", ["a"], ["c"])
+        joinedindeces.isMPC = False
+        # joinedindeces.outRel.storedWith = set([1])
+
+        indecesonly = sal.project(
+            joinedindeces, "indecesonly", ["indexA", "indexB"])
+        indecesonly.isMPC = False
+        # indecesonly.outRel.storedWith = set([1])
+
+        # TODO: update storedWith to use union of parent outRel storedWith sets
+        indecesclosed = sal._close(
+            indecesonly, "indecesclosed", set([1, 2]))
+        indecesclosed.isMPC = True
+
+        joined = sal._index_join(persistedA, persistedB, "joined", [
+                                 "a"], ["c"], indecesclosed)
+        # joined.outRel.storedWith = set([1, 2])
+        joined.isMPC = True
+
+        # replace self with leaf of expanded subdag in each child node
+        for child in self.getSortedChildren():
+            child.replaceParent(self, joined)
+        # add former children to children of leaf
+        joined.children = self.children
 
 
 class Dag():
@@ -733,10 +799,10 @@ def removeBetween(parent, child, other):
 
 def insertBetweenChildren(parent, other):
 
-    assert(not other.children)
-    assert(not other.parents)
+    assert not other.children
+    assert not other.parents
     # only dealing with unary nodes for now
-    assert(isinstance(other, UnaryOpNode))
+    assert isinstance(other, UnaryOpNode)
 
     other.parent = parent
     other.parents.add(parent)

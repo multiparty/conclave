@@ -7,9 +7,11 @@ from salmon import codegen
 from salmon.utils import *
 import sys
 
+
 def taxi(config, spark_master, sharemind_peer):
 
     def protocol():
+
         colsIn1 = [
             defCol("companyID", "INTEGER", [1]),
             defCol("price", "INTEGER", [1])
@@ -84,8 +86,10 @@ if __name__ == "__main__":
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
-    codegen_config.output_path = "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root)
+    codegen_config.input_path = "hdfs://{}/{}/taxi".format(
+        hdfs_namenode, hdfs_root)
+    codegen_config.output_path = "hdfs://{}/{}/taxi".format(
+        hdfs_namenode, hdfs_root)
     codegen_config.pid = pid
     codegen_config.name = workflow_name
 
