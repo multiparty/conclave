@@ -4,6 +4,7 @@ Workflow graph optimizations and transformations.
 import copy
 import salmon.utils as utils
 import salmon.dag as saldag
+import salmon.lang as sal
 import warnings
 
 
@@ -139,7 +140,7 @@ class MPCPushDown(DagRewriter):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            # if node is leaf stop 
+            # if node is leaf stop
             if node.isLeaf():
                 node.isMPC = True
                 return
@@ -225,6 +226,7 @@ class MPCPushUp(DagRewriter):
 
         par = next(iter(node.parents))
         if node.isReversible() and node.isLowerBoundary() and not par.isRoot():
+            print("lower boundary", node)
             node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
             node.isMPC = False
 
@@ -346,10 +348,6 @@ class CollSetPropDown(DagRewriter):
             if inCol != targetCol:
                 outCol.collSets |= copy.deepcopy(inCol.collSets)
 
-    def _rewriteRevealJoin(self, node):
-
-        self._rewriteJoin(node)
-
     def _rewriteHybridJoin(self, node):
 
         raise Exception("HybridJoin encountered during CollSetPropDown")
@@ -395,50 +393,6 @@ class CollSetPropDown(DagRewriter):
         for idx, col in enumerate(outRelCols):
             columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
             col.collSets = utils.collSetsFromColumns(columnsAtIdx)
-
-    def _rewriteCreate(self, node):
-
-        pass
-
-
-class CollSetPropUp(DagRewriter):
-
-    def __init__(self):
-
-        super(CollSetPropUp, self).__init__()
-        self.reverse = True
-
-    def _rewriteAggregate(self, node):
-
-        pass
-
-    def _rewriteDivide(self, node):
-
-        pass
-
-    def _rewriteProject(self, node):
-
-        pass
-
-    def _rewriteMultiply(self, node):
-
-        pass
-
-    def _rewriteRevealJoin(self, node):
-
-        pass
-
-    def _rewriteHybridJoin(self, node):
-
-        pass
-
-    def _rewriteJoin(self, node):
-
-        pass
-
-    def _rewriteConcat(self, node):
-
-        pass
 
     def _rewriteCreate(self, node):
 
@@ -559,25 +513,6 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         self._rewriteDefaultUnary(node)
 
-    def _rewriteRevealJoin(self, node):
-
-        # TODO: should use storedWith for this, not upperBoundary
-        if node.isUpperBoundary():
-            # need to secret-share before reveal join in
-            # upper boundary case
-            leftStoredWith = node.getLeftInRel().storedWith
-            rightStoredWith = node.getRightInRel().storedWith
-            combinedStoreWith = leftStoredWith | rightStoredWith
-            orderedPars = node.getSortedParents()
-            for parent in orderedPars:
-                outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_close")
-                outRel.storedWith = copy.copy(combinedStoreWith)
-                # create and insert store node
-                storeOp = saldag.Close(outRel, None)
-                storeOp.isMPC = True
-                saldag.insertBetween(parent, node, storeOp)
-
     def _rewriteHybridJoin(self, node):
 
         self._rewriteJoin(node)
@@ -586,21 +521,29 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         outStoredWith = node.outRel.storedWith
         orderedPars = [node.leftParent, node.rightParent]
+        
+        leftStoredWith = node.getLeftInRel().storedWith
+        rightStoredWith = node.getRightInRel().storedWith
+        inStoredWith = leftStoredWith | rightStoredWith
+                    
         for parent in orderedPars:
-            parStoredWith = parent.outRel.storedWith
-            if parStoredWith != outStoredWith:
-                if (node.isUpperBoundary()):
-                    # Entering mpc mode so need to secret-share before op
-                    outRel = copy.deepcopy(parent.outRel)
-                    outRel.rename(outRel.name + "_close")
-                    outRel.storedWith = copy.copy(outStoredWith)
-                    # create and insert store node
-                    storeOp = saldag.Close(outRel, None)
-                    storeOp.isMPC = True
-                    saldag.insertBetween(parent, node, storeOp)
-                else:
-                    raise Exception(
-                        "different storedWith on non-upper-boundary join", node.debugStr())
+            if (node.isUpperBoundary()):
+                # Entering mpc mode so need to secret-share before op
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_close")
+                outRel.storedWith = copy.copy(inStoredWith)
+                # create and insert close node
+                closeOp = saldag.Close(outRel, None)
+                closeOp.isMPC = True
+                saldag.insertBetween(parent, node, closeOp)
+            # else:
+            #     raise Exception(
+            #         "different storedWith on non-upper-boundary join", node.debugStr())
+        if node.isLeaf():
+            if len(inStoredWith) > 1 and len(outStoredWith) == 1:
+                targetParty = next(iter(outStoredWith))
+                node.outRel.storedWith = copy.copy(inStoredWith)
+                sal._open(node, node.outRel.name + "_open", targetParty)
 
     def _rewriteConcat(self, node):
 

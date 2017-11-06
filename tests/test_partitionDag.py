@@ -355,8 +355,64 @@ openmpc->ssnopened{1, 2, 3}'''
                          for (fmwk, subdag, parties) in mapping])
     assert expected == actual, actual
 
+def test_partition_hybrid_join():
+    
+    @mpc(1)
+    def protocol():
+
+        colsInA = [
+            defCol("a", "INTEGER", [1]),
+            defCol("b", "INTEGER", [1]),
+        ]
+        inA = sal.create("inA", colsInA, set([1]))
+        projA = sal.project(inA, "projA", ["a", "b"])
+
+        colsInB = [
+            defCol("c", "INTEGER", [1], [2]),
+            defCol("d", "INTEGER", [2])
+        ]
+        inB = sal.create("inB", colsInB, set([2]))
+        projB = sal.project(inB, "projB", ["c", "d"])
+
+        joined = sal.join(projA, projB, "joined", ["a"], ["c"])
+        sal.collect(joined, 1)
+
+        return set([inA, inB])
+
+    dag = protocol()
+    mapping = part.heupart(dag, ["sharemind"], ["python"])
+    expected = '''pythoncreate->inA,
+project->projA{1}###pythoncreate->inB,
+project->projB{2}###sharemindcreatempc->projA,
+closempc->projA_close,
+creatempc->projB,
+closempc->projB_close,
+shufflempc->shuffledA,
+persistmpc->persistedA,
+projectmpc->keysaclosed,
+openmpc->keysa,
+shufflempc->shuffledB,
+persistmpc->persistedB,
+projectmpc->keysbclosed,
+openmpc->keysb{1, 2}###pythoncreate->keysa,
+index->indexedA,
+create->keysb,
+index->indexedB,
+join->joinedindeces,
+project->indecesonly{1}###sharemindcreatempc->indecesonly,
+closempc->indecesclosed,
+creatempc->persistedA,
+creatempc->persistedB,
+indexJoinmpc->joined,
+openmpc->joined_open{1, 2}'''
+    actual = "###".join([fmwk + str(subdag) + str(parties)
+                         for (fmwk, subdag, parties) in mapping])
+    assert expected == actual, actual
+
+
 if __name__ == "__main__":
 
     test_partition_taxi()
     test_partition_ssn()
     test_inputs_out_of_order()
+    test_partition_hybrid_join()

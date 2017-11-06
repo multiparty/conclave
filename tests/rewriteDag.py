@@ -749,10 +749,8 @@ def testHybridJoinOpt():
         inB = sal.create("inB", colsInB, set([2]))
 
         joined = sal.join(inA, inB, "joined", ["a"], ["c"])
-        # need the agg to prevent joined from being converted to a RevealJoin
-        agg = sal.aggregate(joined, "agg", ["a"], "b", "+", "total_b")
-
-        sal.collect(agg, 1)
+        
+        sal.collect(joined, 1)
         # create dag
         return set([inA, inB])
 
@@ -774,8 +772,7 @@ INDEX (keysb([c ]) {1}) AS indexedB([indexB , c ]) {1}
 PROJECT [indexA, indexB] FROM (joinedindeces([a , indexA , indexB ]) {1}) AS indecesonly([indexA , indexB ]) {1}
 CLOSEMPC indecesonly([indexA , indexB ]) {1} INTO indecesclosed([indexA , indexB ]) {1, 2}
 (persistedA([a {1}, b {1}]) {1, 2}) IDXJOINMPC (persistedB([c {1} {2}, d {2}]) {1, 2}) WITH INDECES (indecesclosed([indexA , indexB ]) {1, 2}) ON [a] AND [c] AS joined([a , b , d ]) {1, 2}
-AGGMPC [b, +] FROM (joined([a , b , d ]) {1, 2}) GROUP BY [a] AS agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2}
-OPENMPC agg([a {1,2} {1}, total_b {1,2} {1}]) {1, 2} INTO agg_open([a {1,2} {1}, total_b {1,2} {1}]) {1}
+OPENMPC joined([a , b , d ]) {1, 2} INTO joined_open([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -791,6 +788,7 @@ def testJoin():
             defCol("b", "INTEGER", [1]),
         ]
         inA = sal.create("inA", colsInA, set([1]))
+
         colsInB = [
             defCol("c", "INTEGER", [2]),
             defCol("d", "INTEGER", [2])
@@ -799,8 +797,7 @@ def testJoin():
         projB = sal.project(inB, "projB", ["c", "d"])
 
         joined = sal.join(inA, projB, "joined", ["a"], ["c"])
-        mult = sal.multiply(joined, "mult", "a", ["a", 0])
-        sal.collect(mult, 1)
+        sal.collect(joined, 1)
         return set([inA, inB])
 
     expected = """CREATE RELATION inA([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
@@ -809,8 +806,7 @@ CREATE RELATION inB([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [c, d] FROM (inB([c {2}, d {2}]) {2}) AS projB([c {2}, d {2}]) {2}
 CLOSEMPC projB([c {2}, d {2}]) {2} INTO projB_close([c {2}, d {2}]) {1, 2}
 (inA_close([a {1}, b {1}]) {1, 2}) JOINMPC (projB_close([c {2}, d {2}]) {1, 2}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
-MULTIPLYMPC [a -> a * 0] FROM (joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}) AS mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
-OPENMPC mult([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO mult_open([a {1,2}, b {1,2}, d {1,2}]) {1}
+OPENMPC joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO joined_open([a {1,2}, b {1,2}, d {1,2}]) {1}
 """
     actual = protocol()
     assert expected == actual, actual
@@ -966,6 +962,6 @@ if __name__ == "__main__":
     testConcatPushdown()
     testHybridJoinOpt()
     # testHybridAndRevealJoinOpt()
-    # testJoin()
-    # testTaxi()
-    # testAggPushdown()
+    testJoin()
+    testTaxi()
+    testAggPushdown()

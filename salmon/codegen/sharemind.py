@@ -239,7 +239,6 @@ class SharemindCodeGen(CodeGen):
         rel_names = [open_op.outRel.name for open_op in open_ops]
         num_cols = [str(len(open_op.outRel.columns)) for open_op in open_ops]
         rels_meta_str = " ".join(["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
-        print("rels_meta_str: ", rels_meta_str)
 
         dataInner = {
             "CODE_PATH": code_path + "/" + job_name,

@@ -52,6 +52,7 @@ def testHybridJoinWorkflow():
         workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
+    codegen_config.pid = pid
     codegen_config.code_path = "/mnt/shared/" + workflow_name
     codegen_config.input_path = "/mnt/shared/hybridjoin/" + size
     codegen_config.output_path = "/mnt/shared/hybridjoin/" + size
