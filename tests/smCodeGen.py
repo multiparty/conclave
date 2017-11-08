@@ -213,9 +213,8 @@ def testDiv():
 
 if __name__ == "__main__":
 
-    pass
-    # testSimple()
-    # testClose()
+
+    testClose()
     # testAgg()
     # testConcatTwo()
     # testConcatMore()

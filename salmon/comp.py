@@ -727,6 +727,10 @@ def sharemind(f):
 
     from salmon.codegen import sharemind, CodeGenConfig
 
+    # TODO: (ben) missing args to SharemindCodeGen, as
+    # well as a call to with_sharemind_config. Also have
+    # to figure out where to place with_sharemind_config
+    # call (not here).
     def wrap():
         code = sharemind.SharemindCodeGen(
             CodeGenConfig(), f())._generate(None, None)
