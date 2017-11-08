@@ -70,12 +70,11 @@ class SharemindCodeGen(CodeGen):
             miner_code = self._generate_miner_code(nodes)
             # code to submit the job and receive the output
             # (currently assumes there is only one output party)
-            submit_code, receive_code = self._generate_controller_code(
+            submit_code = self._generate_controller_code(
                 nodes, job_name, self.config.code_path)
             op_code["miner"] = miner_code
             op_code["submit"] = submit_code["outer"]
             op_code["submitInner"] = submit_code["inner"]
-            op_code["receive"] = receive_code
 
         # create job
         job = SharemindJob(job_name, self.config.code_path + "/" + job_name,
@@ -137,7 +136,7 @@ class SharemindCodeGen(CodeGen):
         # only support one output party
         assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
-        return next(iter(output_parties))  # pop
+        return next(iter(output_parties)) # pop
 
     def _get_input_parties(self, nodes):
 
@@ -250,42 +249,11 @@ class SharemindCodeGen(CodeGen):
             "inner": pystache.render(templateInner, dataInner)
         }
 
-    def _generate_receive_code(self, nodes, job_name, output_directory):
-
-        def _generate_rel_meta(open_op):
-
-            # length lookup for relation
-            name = open_op.outRel.name
-            num_vals = len(open_op.outRel.columns)
-            template = open(
-                "{0}/relMetaDef.tmpl".format(self.template_directory), 'r').read()
-            return pystache.render(template, {
-                "REL_NAME": name,
-                "REL_LEN": num_vals
-            })
-
-        # code for parsing results received by controller
-        template = open(
-            "{0}/receive.tmpl".format(self.template_directory), 'r').read()
-        # we need all open ops to get the size of the output rels
-        # for parsing
-        open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
-        rels_meta_defs = [_generate_rel_meta(open_op) for open_op in open_ops]
-        rels_meta_str = "\n".join(rels_meta_defs)
-        data = {
-            "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name,
-            "RELS_META": rels_meta_str,
-            "DELIMITER": self.config.delimiter
-        }
-        return pystache.render(template, data)
-
     def _generate_controller_code(self, nodes, job_name, output_directory):
 
         submit_code = self._generate_submit_code(
             nodes, job_name, output_directory)
-        receive_code = self._generate_receive_code(
-            nodes, job_name, output_directory)
-        return submit_code, receive_code
+        return submit_code
 
     def _generateAggregate(self, agg_op):
 
@@ -584,7 +552,6 @@ class SharemindCodeGen(CodeGen):
             "input": "sh",
             "submit": "sh",
             "submitInner": "sh",
-            "receive": "py",
             "miner": "sc"
         }
 
