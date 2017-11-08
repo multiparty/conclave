@@ -34,11 +34,9 @@ def testHybridJoinWorkflow():
         proj2 = sal.project(in2, "proj2", ["c", "d"])
 
         res = sal.join(proj1, proj2, "res", ["a"], ["c"])
-        # need the agg to prevent joined from being converted to a RevealJoin
-        agg = sal.aggregate(res, "agg", ["a"], "b", "+", "total_b")
 
         # open result to party 1
-        sal.collect(agg, 1)
+        sal.collect(res, 1)
         # sal.collect(res, 1)
 
         # return roots of dag
@@ -61,9 +59,9 @@ def testHybridJoinWorkflow():
     sharemind_config = {
         "pid": pid,
         "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
+            1: {"host": "localhost", "port": 9001},
+            2: {"host": "localhost", "port": 9002},
+            3: {"host": "localhost", "port": 9003}
         }
     }
     sm_peer = setup_peer(sharemind_config)
