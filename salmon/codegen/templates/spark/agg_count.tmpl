@@ -1,9 +1,0 @@
-k_id = int({{{KEYCOL_ID}}})
-a_id = int({{{AGGCOL_ID}}})
-
-{{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: (x[k_id], 1)) \
-    .aggregateByKey(0, \
-        lambda acc, val: acc + val, \
-        lambda acc1, acc2: acc1 + acc2) \
-    .cache()

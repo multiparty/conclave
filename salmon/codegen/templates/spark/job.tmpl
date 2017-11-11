@@ -1,9 +1,13 @@
-from pyspark import SparkContext, SparkConf
+import pyspark.sql as psql
+from pyspark.conf import SparkConf
 import numpy, functools, operator, sys
 import time
 
-conf = SparkConf().setAppName("{{{JOB_NAME}}}")
-sc = SparkContext(conf=conf)
+conf = SparkConf().appName("{{{JOB_NAME}}}")
+sp = psql.SparkSession.builder.config(conf=conf).getOrCreate()
+
+def union_all(dfs):
+    return functools.reduce(psql.DataFrame.unionAll, dfs)
 
 start = time.time()
 
@@ -12,3 +16,4 @@ inpt_idx = 1
 {{{OP_CODE}}}
 
 sc.stop()
+
