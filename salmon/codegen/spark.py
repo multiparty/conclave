@@ -65,25 +65,28 @@ class SparkCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
+        # inrel_name = agg_op.getInRel().name
+
         # TODO: (ben) ask about switching sum aggregator in scripts from '+' to 'sum'
         if agg_op.aggregator == '+':
             aggregator = 'sum'
         else:
-            # e.g. - 'max', 'min', 'avg', 'count'
+            # e.g. - 'max', 'min', 'avg', 'count', 'sum'
             aggregator = agg_op.aggregator
 
         store_code = self._generateStore(agg_op)
 
-        # TODO: (ben) will only have to modify this if we want multiple aggcols in future
+        # TODO: (ben) will only have to modify this line if we want multiple aggcols in future
         # codegen can take strings like {'c':'sum', 'd':'sum'}
-        aggcol_str = '{' + agg_op.aggCol.name + ':' + aggregator + '}'
+        # this is also very hacky
+        aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
-        template = open("{0}.tmpl"
-                        .format(self.template_directory), 'r').read()
+        template = open("{0}/{1}.tmpl"
+                        .format(self.template_directory, 'agg'), 'r').read()
 
         data = {
-            'GROUPCOL_IDS': ",".join(groupCol.name for groupCol in agg_op.groupCols),
-            'AGGCOL_IDS': aggcol_str,
+            'GROUPCOLS': ",".join("'" + groupCol.name + "'" for groupCol in agg_op.groupCols),
+            'AGGCOLS': aggcol_str,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name,
             'CACHE_VAR': cache_var(agg_op)
@@ -241,6 +244,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    # TODO:(ben) incorporate selected cols
     def _generateDistinct(self, op):
 
         template = open("{}/distinct.tmpl"
