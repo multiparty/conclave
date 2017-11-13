@@ -8,6 +8,11 @@ Purpose
 -------
 This framework allows users to define data analysis workflows in familiar frontend languages and then execute them on multiple data storage and processing backends (including privacy-preserving backend services that support secure multi-party computation).
 
+Dependencies
+------------
+
+Conclave requires a Python 3.x environment. On Ubuntu (14.04+), installing the `python3`, `python3-pystache`, and `python3-nose` should get everything that's needed.
+
 Testing
 -------
 
