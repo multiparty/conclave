@@ -46,6 +46,8 @@ class SparkCodeGen(CodeGen):
 
         return store_code
 
+    # TODO: (ben) find way to do this without converting to RDD first
+    # (monotonically_increasing_id doesn't give sequential indices)
     def _generateIndex(self, index_op):
 
         store_code = self._generateStore(index_op)
@@ -61,20 +63,30 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-
-    # TODO: (ben) only agg_+.tmpl is updated for multiple group cols right now
     def _generateAggregate(self, agg_op):
+
+        # inrel_name = agg_op.getInRel().name
+
+        # TODO: (ben) ask about switching sum aggregator in scripts from '+' to 'sum'
+        if agg_op.aggregator == '+':
+            aggregator = 'sum'
+        else:
+            # e.g. - 'max', 'min', 'avg', 'count', 'sum'
+            aggregator = agg_op.aggregator
 
         store_code = self._generateStore(agg_op)
 
-        agg_type = 'agg_' + agg_op.aggregator
+        # TODO: (ben) will only have to modify this line if we want multiple aggcols in future
+        # codegen can take strings like {'c':'sum', 'd':'sum'}
+        # this is also very hacky
+        aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
         template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, agg_type), 'r').read()
+                        .format(self.template_directory, 'agg'), 'r').read()
 
         data = {
-            'GROUPCOL_IDS': [groupCol.idx for groupCol in agg_op.groupCols],
-            'AGGCOL_IDS': [agg_op.aggCol.idx],
+            'GROUPCOLS': ",".join("'" + groupCol.name + "'" for groupCol in agg_op.groupCols),
+            'AGGCOLS': aggcol_str,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name,
             'CACHE_VAR': cache_var(agg_op)
@@ -83,6 +95,10 @@ class SparkCodeGen(CodeGen):
         return pystache.render(template, data) + store_code
 
     def _generateConcat(self, concat_op):
+
+        all_rels = concat_op.getInRels
+        test = len(all_rels[0].columns)
+        assert(all(test == len(rel.columns) for rel in all_rels))
 
         store_code = ''
         if concat_op.isLeaf():
@@ -108,7 +124,6 @@ class SparkCodeGen(CodeGen):
         data = {
             'RELATION_NAME': create_op.outRel.name,
             'INPUT_PATH': self.config.input_path,
-            'DELIMITER': self.config.delimiter,
             'CACHE_VAR': cache_var(create_op)
         }
 
@@ -120,19 +135,18 @@ class SparkCodeGen(CodeGen):
         if join_op.isLeaf():
             store_code += self._generateStore(join_op)
 
-        leftName = join_op.getLeftInRel().name
-        rightName = join_op.getRightInRel().name
-
-        leftJoinCols, rightJoinCols = join_op.leftJoinCols, join_op.rightJoinCols
+        # TODO: (ben) should we assume this is always true?
+        # (pyspark's join function only takes 1 list of column names as an argument)
+        assert(sorted(join_op.leftJoinCols) == sorted(join_op.rightJoinCols))
+        join_cols = join_op.leftJoinCols
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'join'), 'r').read()
 
         data = {
-            'LEFT_PARENT': leftName,
-            'RIGHT_PARENT': rightName,
-            'LEFT_COLS': [leftJoinCol.idx for leftJoinCol in leftJoinCols],
-            'RIGHT_COLS': [rightJoinCol.idx for rightJoinCol in rightJoinCols],
+            'LEFT_PARENT': join_op.getLeftInRel().name,
+            'RIGHT_PARENT': join_op.getRightInRel().name,
+            'JOIN_COLS': [join_col.name for join_col in join_cols],
             'OUTREL': join_op.outRel.name,
             'CACHE_VAR': cache_var(join_op)
         }
@@ -151,7 +165,7 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory, 'project'), 'r').read()
 
         data = {
-            'COL_IDS': [c.idx for c in cols],
+            'COLS': [c.name for c in cols],
             'INREL': project_op.getInRel().name,
             'OUTREL': project_op.outRel.name,
             'CACHE_VAR': cache_var(project_op)
@@ -165,35 +179,22 @@ class SparkCodeGen(CodeGen):
             store_code += self._generateStore(mult_op)
 
         op_cols = mult_op.operands
-        targetCol = mult_op.targetCol
         operands = []
         scalar = 1
 
-        if targetCol.name == op_cols[0].name:
-            new_col = False
-            # targetCol is at op_cols[0]
-            for op_col in op_cols:
-                if hasattr(op_col, 'idx'):
-                    if op_col.idx != targetCol.idx:
-                        operands.append(op_col.idx)
-                else:
-                    scalar = op_col
-        else:
-            new_col = True
-            for op_col in op_cols:
-                if hasattr(op_col, 'idx'):
-                    operands.append(op_col.idx)
-                else:
-                    scalar = op_col
+        for op_col in op_cols:
+            if hasattr(op_col, 'name'):
+                operands.append(op_col.name)
+            else:
+                scalar = op_col
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'multiply'), 'r').read()
 
         data = {
-            'NEWCOL_FLAG': new_col,
-            'OPERANDS': [idx for idx in operands],
+            'OPERANDS': '*'.join(c for c in operands),
             'SCALAR': scalar,
-            'TARGET_ID': targetCol.idx,
+            'TARGET': mult_op.targetCol.name,
             'INREL': mult_op.getInRel().name,
             'OUTREL': mult_op.outRel.name,
             'CACHE_VAR': cache_var(mult_op)
@@ -208,35 +209,22 @@ class SparkCodeGen(CodeGen):
             store_code += self._generateStore(div_op)
 
         op_cols = div_op.operands
-        targetCol = div_op.targetCol
         operands = []
         scalar = 1
 
-        if targetCol.name == op_cols[0].name:
-            new_col = False
-            # targetCol is at op_cols[0]
-            for op_col in op_cols:
-                if hasattr(op_col, 'idx'):
-                    if op_col.idx != targetCol.idx:
-                        operands.append(op_col.idx)
-                else:
-                    scalar = op_col
-        else:
-            new_col = True
-            for op_col in op_cols:
-                if hasattr(op_col, 'idx'):
-                    operands.append(op_col.idx)
-                else:
-                    scalar = op_col
+        for op_col in op_cols:
+            if hasattr(op_col, 'name'):
+                operands.append(op_col.name)
+            else:
+                scalar = op_col
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'divide'), 'r').read()
 
         data = {
-            'NEWCOL_FLAG': new_col,
-            'OPERANDS': [idx for idx in operands],
+            'OPERANDS': '*'.join(c for c in operands),
             'SCALAR': scalar,
-            'TARGET_ID': div_op.targetCol.idx,
+            'TARGET': div_op.targetCol.name,
             'INREL': div_op.getInRel().name,
             'OUTREL': div_op.outRel.name,
             'CACHE_VAR': cache_var(div_op)
@@ -256,7 +244,7 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO: (ben) only supports single column operation
+    # TODO:(ben) incorporate selected cols
     def _generateDistinct(self, op):
 
         template = open("{}/distinct.tmpl"

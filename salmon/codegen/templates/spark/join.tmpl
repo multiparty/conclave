@@ -1,17 +1,5 @@
-lCol = {{{LEFT_COLS}}}
-rCol = {{{RIGHT_COLS}}}
 
-l = {{{LEFT_PARENT}}} \
-    .map(lambda x: (tuple([str(x[i]) for i in lCol]), \
-        [str(x[i]) for i in range(len(x)) if i not in set(lCol)]))
-
-r = {{{RIGHT_PARENT}}} \
-    .map(lambda x: (tuple([str(x[i]) for i in rCol]), \
-        [str(x[i]) for i in range(len(x)) if i not in set(rCol)]))
-
-{{{OUTREL}}} = l \
-    .join(r) \
-    .map(lambda x: numpy.hstack( \
-        [elem for tupl in x for elem in numpy.array(tupl, dtype='O')]) \
-        .tolist()) \
+{{{OUTREL}}} = {{{LEFT_PARENT}}} \
+    .join({{{RIGHT_PARENT}}}, {{{JOIN_COLS}}}) \
     {{{CACHE_VAR}}}
+

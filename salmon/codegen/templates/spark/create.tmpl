@@ -1,9 +1,7 @@
 
-in_f = sc.textFile(sys.argv[inpt_idx])
-inpt_idx += 1
-
-{{{RELATION_NAME}}} = in_f \
-    .map(lambda line: line.split('{{{DELIMITER}}}')) \
-    .repartition(6) \
+{{{RELATION_NAME}}} = sp.read.csv(
+    '{{{INPUT_PATH}}}',
+    inferSchema=True,
+    header=True) \
     {{{CACHE_VAR}}}
 

@@ -1,7 +1,0 @@
-k_id = int({{{KEYCOL_ID}}})
-a_id = int({{{AGGCOL_ID}}})
-
-{{{OUTREL}}} = {{{INREL}}} \
-    .map(lambda x: (x[k_id], x[a_id])) \
-    .reduceByKey(max) \
-    .cache()
