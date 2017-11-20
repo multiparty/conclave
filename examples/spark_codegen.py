@@ -42,6 +42,8 @@ def concat():
 
     cc = sal.concat([in1, in2], "cc")
 
+    out = sal.collect(cc, 1)
+
     return set([in1, in2])
 
 
@@ -63,6 +65,8 @@ def divide():
 
     div = sal.divide(in1, "div", "d", ["a", "b"])
 
+    out = sal.collect(div, 1)
+
     return set([in1])
 
 
@@ -73,6 +77,8 @@ def multiply():
 
     mult = sal.multiply(in1, "mult", "d", ["a", "b"])
 
+    out = sal.collect(mult, 1)
+
     return set([in1])
 
 
@@ -82,6 +88,8 @@ def project():
     in1 = setup()[0]
 
     proj = sal.project(in1, "proj", ["a", "b"])
+
+    out = sal.collect(proj, 1)
 
     return set([in1])
 
@@ -94,6 +102,8 @@ def join():
 
     join = sal.join(in1, in2, "join", ["a", "b"], ["a", "b"])
 
+    out = sal.collect(join, 1)
+
     return set([in1])
 
 
@@ -104,13 +114,35 @@ if __name__ == "__main__":
     cg_agg = SparkCodeGen(cfg_agg, dag_agg)
     cg_agg.generate('agg', '/tmp')
 
-    '''
-    concat = concat()
-    distinct = distinct()
-    div = divide()
-    mult = multiply()
-    proj = project()
-    join = join()
-    '''
+    dag_cc = concat()
+    cfg_cc = CodeGenConfig('cc')
+    cg_cc = SparkCodeGen(cfg_cc, dag_cc)
+    cg_cc.generate('cc', '/tmp')
+
+    dag_distinct = distinct()
+    cfg_distinct = CodeGenConfig('distinct')
+    cg_distinct = SparkCodeGen(cfg_distinct, dag_distinct)
+    cg_distinct.generate('distinct', '/tmp')
+
+    dag_div = divide()
+    cfg_div = CodeGenConfig('div')
+    cg_div = SparkCodeGen(cfg_div, dag_div)
+    cg_div.generate('div', '/tmp')
+
+    dag_mult = multiply()
+    cfg_mult = CodeGenConfig('mult')
+    cg_mult = SparkCodeGen(cfg_mult, dag_mult)
+    cg_mult.generate('mult', '/tmp')
+
+    dag_proj = project()
+    cfg_proj = CodeGenConfig('proj')
+    cg_proj = SparkCodeGen(cfg_proj, dag_proj)
+    cg_proj.generate('proj', '/tmp')
+
+    dag_join = join()
+    cfg_join = CodeGenConfig('join')
+    cg_join = SparkCodeGen(cfg_join, dag_join)
+    cg_join.generate('join', '/tmp')
+
 
 
