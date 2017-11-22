@@ -96,7 +96,7 @@ class SparkCodeGen(CodeGen):
 
     def _generateConcat(self, concat_op):
 
-        all_rels = concat_op.getInRels
+        all_rels = concat_op.getInRels()
         test = len(all_rels[0].columns)
         assert(all(test == len(rel.columns) for rel in all_rels))
 
@@ -137,7 +137,9 @@ class SparkCodeGen(CodeGen):
 
         # TODO: (ben) should we assume this is always true?
         # (pyspark's join function only takes 1 list of column names as an argument)
-        assert(sorted(join_op.leftJoinCols) == sorted(join_op.rightJoinCols))
+        left_names = [col.name for col in join_op.leftJoinCols]
+        right_names = [col.name for col in join_op.rightJoinCols]
+        assert(sorted(left_names) == sorted(right_names))
         join_cols = join_op.leftJoinCols
 
         template = open("{0}/{1}.tmpl"
@@ -222,7 +224,7 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory, 'divide'), 'r').read()
 
         data = {
-            'OPERANDS': '*'.join(c for c in operands),
+            'OPERANDS': '/'.join(c for c in operands),
             'SCALAR': scalar,
             'TARGET': div_op.targetCol.name,
             'INREL': div_op.getInRel().name,
