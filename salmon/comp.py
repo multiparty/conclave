@@ -601,7 +601,63 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewriteHybridJoin(self, node):
 
-        node.expand()
+        # TODO
+        suffix = "rand"
+
+        # in left parents' children, replace self with first primitive operator
+        # in expanded subdag
+        shuffledA = sal.shuffle(node.leftParent, "shuffledA")
+        shuffledA.isMPC = True
+        node.leftParent.children.remove(node)
+
+        # same for right parent
+        shuffledB = sal.shuffle(node.rightParent, "shuffledB")
+        shuffledB.isMPC = True
+        node.rightParent.children.remove(node)
+
+        persistedB = sal._persist(shuffledB, "persistedB")
+        persistedB.isMPC = True
+        persistedA = sal._persist(shuffledA, "persistedA")
+        persistedA.isMPC = True
+
+        keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
+        keysaclosed.isMPC = True
+        keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
+        keysbclosed.isMPC = True
+
+        keysa = sal._open(keysaclosed, "keysa", 1)
+        keysa.isMPC = True
+        keysb = sal._open(keysbclosed, "keysb", 1)
+        keysb.isMPC = True
+
+        indexedA = sal.index(keysa, "indexedA", "indexA")
+        indexedA.isMPC = False
+
+        indexedB = sal.index(keysb, "indexedB", "indexB")
+        indexedB.isMPC = False
+
+        joinedindeces = sal.join(
+            indexedA, indexedB, "joinedindeces", ["a"], ["c"])
+        joinedindeces.isMPC = False
+
+        indecesonly = sal.project(
+            joinedindeces, "indecesonly", ["indexA", "indexB"])
+        indecesonly.isMPC = False
+
+        # TODO: update storedWith to use union of parent outRel storedWith sets
+        indecesclosed = sal._close(
+            indecesonly, "indecesclosed", set([1, 2]))
+        indecesclosed.isMPC = True
+
+        joined = sal._index_join(persistedA, persistedB, "joined", [
+                                 "a"], ["c"], indecesclosed)
+        joined.isMPC = True
+
+        # replace self with leaf of expanded subdag in each child node
+        for child in node.getSortedChildren():
+            child.replaceParent(node, joined)
+        # add former children to children of leaf
+        joined.children = node.children
 
     def _rewriteJoin(self, node):
 

@@ -37,7 +37,6 @@ def testHybridJoinWorkflow():
 
         # open result to party 1
         sal.collect(res, 1)
-        # sal.collect(res, 1)
 
         # return roots of dag
         return set([in1, in2])
