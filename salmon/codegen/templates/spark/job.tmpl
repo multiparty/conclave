@@ -10,6 +10,10 @@ sp = psql \
     .appName("{{{JOB_NAME}}}") \
     .getOrCreate()
 
+log4jLogger = sp._jvm.org.apache.log4j
+log = log4jLogger.LogManager.getLogger(__name__)
+log.warn("Hello World!")
+
 job_name = '{{{JOB_NAME}}}'
 
 def union_all(dfs):
@@ -23,7 +27,6 @@ inpt_idx = 1
 
 end = time.time()
 dur = str(end-start)
-
 
 f = open('/tmp/bench.txt', 'w')
 f.write("{0} - {1} seconds + \n".format(job_name, dur))
