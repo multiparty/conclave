@@ -25,7 +25,7 @@ end = time.time()
 dur = str(end-start)
 
 
-f = open('bench.txt', 'w')
+f = open('/tmp/bench.txt', 'w')
 f.write("{0} - {1} seconds + \n".format(job_name, dur))
 
 sp.stop()
