@@ -10,6 +10,8 @@ sp = psql \
     .appName("{{{JOB_NAME}}}") \
     .getOrCreate()
 
+job_name = '{{{JOB_NAME}}}'
+
 def union_all(dfs):
     return functools.reduce(psql.DataFrame.unionAll, dfs)
 
@@ -18,6 +20,13 @@ start = time.time()
 inpt_idx = 1
 
 {{{OP_CODE}}}
+
+end = time.time()
+dur = str(end-start)
+
+
+f = open('bench.txt', 'w')
+f.write("{0} - {1} seconds + \n".format(job_name, dur))
 
 sp.stop()
 
