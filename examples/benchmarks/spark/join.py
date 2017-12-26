@@ -18,7 +18,7 @@ def join(namenode, root, f_size, master_url):
 
         colsInB = [
             defCol('a', 'INTEGER', [1]),
-            defCol('b', 'INTEGER', [1]),
+            defCol('c', 'INTEGER', [1]),
         ]
 
         in1 = sal.create("in1", colsInA, set([1]))

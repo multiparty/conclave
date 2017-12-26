@@ -65,8 +65,6 @@ class SparkCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        # inrel_name = agg_op.getInRel().name
-
         # TODO: (ben) ask about switching sum aggregator in scripts from '+' to 'sum'
         if agg_op.aggregator == '+':
             aggregator = 'sum'
@@ -78,7 +76,6 @@ class SparkCodeGen(CodeGen):
 
         # TODO: (ben) will only have to modify this line if we want multiple aggcols in future
         # codegen can take strings like {'c':'sum', 'd':'sum'}
-        # this is also very hacky
         aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
         template = open("{0}/{1}.tmpl"
@@ -115,7 +112,6 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    # TODO: uses 6 partitions, make configurable in future
     def _generateCreate(self, create_op):
 
         template = open("{}/create.tmpl"
@@ -123,7 +119,7 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'RELATION_NAME': create_op.outRel.name,
-            'INPUT_PATH': self.config.input_path,
+            'INPUT_PATH': self.config.input_path + '/' + create_op.outRel.name,
             'CACHE_VAR': cache_var(create_op)
         }
 
