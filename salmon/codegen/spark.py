@@ -182,7 +182,7 @@ class SparkCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'name'):
-                operands.append(op_col.name)
+                operands.append(mult_op.getInRel().name + '.' + op_col.name)
             else:
                 scalar = op_col
 
@@ -212,7 +212,7 @@ class SparkCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'name'):
-                operands.append(op_col.name)
+                operands.append(div_op.getInRel().name + '.' + op_col.name)
             else:
                 scalar = op_col
 
