@@ -1,7 +1,6 @@
 import pyspark.sql as psql
 from pyspark.conf import SparkConf
 import numpy, functools, operator, sys
-import time
 
 conf = SparkConf()
 sp = psql \
@@ -10,26 +9,12 @@ sp = psql \
     .appName("{{{JOB_NAME}}}") \
     .getOrCreate()
 
-log4jLogger = sp._jvm.org.apache.log4j
-log = log4jLogger.LogManager.getLogger(__name__)
-log.warn("Hello World!")
-
-job_name = '{{{JOB_NAME}}}'
-
 def union_all(dfs):
     return functools.reduce(psql.DataFrame.unionAll, dfs)
-
-start = time.time()
 
 inpt_idx = 1
 
 {{{OP_CODE}}}
-
-end = time.time()
-dur = str(end-start)
-
-f = open('/tmp/bench.txt', 'w')
-f.write("{0} - {1} seconds + \n".format(job_name, dur))
 
 sp.stop()
 
