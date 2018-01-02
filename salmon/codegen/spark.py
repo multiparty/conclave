@@ -242,13 +242,13 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO:(ben) incorporate selected cols
     def _generateDistinct(self, op):
 
         template = open("{}/distinct.tmpl"
                         .format(self.template_directory), 'r').read()
 
         data = {
+            'COLS': [c.name for c in op.selectedCols],
             'OUTREL': op.outRel.name,
             'INREL': op.getInRel().name,
             'CACHE_VAR': cache_var(op)
