@@ -65,7 +65,6 @@ class SparkCodeGen(CodeGen):
 
     def _generateAggregate(self, agg_op):
 
-        # TODO: (ben) ask about switching sum aggregator in scripts from '+' to 'sum'
         if agg_op.aggregator == '+':
             aggregator = 'sum'
         else:
