@@ -2,40 +2,39 @@
 Workflow graph optimizations and transformations.
 """
 import copy
-import salmon.utils as utils
-import salmon.dag as saldag
-import salmon.lang as sal
 import warnings
 
+import salmon.dag as saldag
+import salmon.lang as sal
+import salmon.utils as utils
 
-def pushOpNodeDown(topNode, bottomNode):
 
+def push_op_node_down(top_node, bottom_node):
     # only dealing with one grandchild case for now
-    assert(len(bottomNode.children) <= 1)
-    child = next(iter(bottomNode.children), None)
+    assert (len(bottom_node.children) <= 1)
+    child = next(iter(bottom_node.children), None)
 
     # remove bottom node between the bottom node's child
     # and the top node
-    saldag.removeBetween(topNode, child, bottomNode)
+    saldag.removeBetween(top_node, child, bottom_node)
 
     # we need all parents of the parent node
-    grandParents = copy.copy(topNode.getSortedParents())
+    grandParents = copy.copy(top_node.getSortedParents())
 
     # we will insert the removed bottom node between
     # each parent of the top node and the top node
     for idx, grandParent in enumerate(grandParents):
-        toInsert = copy.deepcopy(bottomNode)
+        toInsert = copy.deepcopy(bottom_node)
         toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
         toInsert.parents = set()
         toInsert.children = set()
-        saldag.insertBetween(grandParent, topNode, toInsert)
+        saldag.insertBetween(grandParent, top_node, toInsert)
         toInsert.updateStoredWith()
 
 
 def splitNode(node):
-
     # Only dealing with single child case for now
-    assert(len(node.children) <= 1)
+    assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
     clone.outRel.rename(node.outRel.name + "_obl")
     clone.parents = set()
@@ -46,7 +45,6 @@ def splitNode(node):
 
 
 def forkNode(node):
-
     # we can skip the first child
     childIt = enumerate(copy.copy(node.getSortedChildren()))
     next(childIt)
@@ -146,16 +144,16 @@ class MPCPushDown(DagRewriter):
                 return
             # node is not leaf
             if isinstance(parent, saldag.Concat) and parent.isBoundary():
-                pushOpNodeDown(parent, node)
+                push_op_node_down(parent, node)
             elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
                 if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
                     concat_op = agg_parent
                     assert len(concat_op.children) == 1
-                    pushOpNodeDown(agg_op, node)
+                    push_op_node_down(agg_op, node)
                     updated_node = agg_op.parent
-                    pushOpNodeDown(concat_op, updated_node)
+                    push_op_node_down(concat_op, updated_node)
                 else:
                     node.isMPC = True
             else:
@@ -169,7 +167,7 @@ class MPCPushDown(DagRewriter):
         if parent.isMPC:
             if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 splitNode(node)
-                pushOpNodeDown(parent, node)
+                push_op_node_down(parent, node)
             else:
                 node.isMPC = True
         else:
@@ -521,11 +519,11 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         outStoredWith = node.outRel.storedWith
         orderedPars = [node.leftParent, node.rightParent]
-        
+
         leftStoredWith = node.getLeftInRel().storedWith
         rightStoredWith = node.getRightInRel().storedWith
         inStoredWith = leftStoredWith | rightStoredWith
-                    
+
         for parent in orderedPars:
             if (node.isUpperBoundary()):
                 # Entering mpc mode so need to secret-share before op
@@ -547,7 +545,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
     def _rewriteConcat(self, node):
 
-        assert(not node.isLowerBoundary())
+        assert (not node.isLowerBoundary())
 
         outStoredWith = node.outRel.storedWith
         orderedPars = node.getSortedParents()
@@ -572,35 +570,27 @@ class ExpandCompositeOps(DagRewriter):
     (for example hybrid joins) into subdags of primitive operators"""
 
     def __init__(self):
-
         super(ExpandCompositeOps, self).__init__()
 
     def _rewriteAggregate(self, node):
-
         pass
 
     def _rewriteDivide(self, node):
-
         pass
 
     def _rewriteProject(self, node):
-
         pass
 
     def _rewriteFilter(self, node):
-
         pass
 
     def _rewriteMultiply(self, node):
-
         pass
 
     def _rewriteRevealJoin(self, node):
-
         pass
 
     def _rewriteHybridJoin(self, node):
-
         # TODO
         suffix = "rand"
 
@@ -650,7 +640,7 @@ class ExpandCompositeOps(DagRewriter):
         indecesclosed.isMPC = True
 
         joined = sal._index_join(persistedA, persistedB, "joined", [
-                                 "a"], ["c"], indecesclosed)
+            "a"], ["c"], indecesclosed)
         joined.isMPC = True
 
         # replace self with leaf of expanded subdag in each child node
@@ -660,28 +650,22 @@ class ExpandCompositeOps(DagRewriter):
         joined.children = node.children
 
     def _rewriteJoin(self, node):
-
         pass
 
     def _rewriteConcat(self, node):
-
         pass
 
     def _rewriteCreate(self, node):
-
         pass
 
     def _rewriteOpen(self, node):
-
         pass
 
     def _rewriteClose(self, node):
-
         pass
 
 
 def rewriteDag(dag):
-
     MPCPushDown().rewrite(dag)
     # ironic?
     MPCPushUp().rewrite(dag)
@@ -693,7 +677,6 @@ def rewriteDag(dag):
 
 
 def scotch(f):
-
     from salmon.codegen import scotch, CodeGenConfig
 
     def wrap():
@@ -704,7 +687,6 @@ def scotch(f):
 
 
 def sharemind(f):
-
     from salmon.codegen import sharemind, CodeGenConfig
 
     # TODO: (ben) missing args to SharemindCodeGen, as
@@ -724,7 +706,9 @@ def mpc(*args):
         def wrapper(*args, **kwargs):
             dag = rewriteDag(saldag.OpDag(f()))
             return dag
+
         return wrapper
+
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
         # Set default values for the arguments
@@ -737,7 +721,7 @@ def mpc(*args):
 
 
 def dagonly(f):
-
     def wrap():
         return saldag.OpDag(f())
+
     return wrap
