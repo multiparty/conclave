@@ -73,7 +73,6 @@ class SparkCodeGen(CodeGen):
 
         store_code = self._generateStore(agg_op)
 
-        # TODO: (ben) will only have to modify this line if we want multiple aggcols in future
         # codegen can take strings like {'c':'sum', 'd':'sum'}
         aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
