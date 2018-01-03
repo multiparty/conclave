@@ -104,7 +104,7 @@ def join():
 
     out = sal.collect(join, 1)
 
-    return set([in1])
+    return set([in1, in2])
 
 
 if __name__ == "__main__":

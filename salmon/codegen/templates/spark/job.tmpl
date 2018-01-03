@@ -1,7 +1,6 @@
 import pyspark.sql as psql
 from pyspark.conf import SparkConf
 import numpy, functools, operator, sys
-import time
 
 conf = SparkConf()
 sp = psql \
@@ -12,8 +11,6 @@ sp = psql \
 
 def union_all(dfs):
     return functools.reduce(psql.DataFrame.unionAll, dfs)
-
-start = time.time()
 
 inpt_idx = 1
 
