@@ -7,251 +7,258 @@ from salmon import dag
 import salmon.utils as utils
 
 
-def create(relName, columns, storedWith):
+def create(rel_name, columns, stored_with):
 
-    columns = [rel.Column(relName, colName, idx, typeStr, collusionSet)
-               for idx, (colName, typeStr, collusionSet) in enumerate(columns)]
-    outRel = rel.Relation(relName, columns, storedWith)
-    op = dag.Create(outRel)
+    columns = [rel.Column(rel_name, col_name, idx, type_str, collusion_set)
+               for idx, (col_name, type_str, collusion_set) in enumerate(columns)]
+    out_rel = rel.Relation(rel_name, columns, stored_with)
+    op = dag.Create(out_rel)
     return op
 
 
-def aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName):
+def aggregate(input_op_node, output_name, group_col_names,
+              over_col_name, aggregator, agg_out_col_name):
 
-    assert isinstance(groupColNames, list)
+    assert isinstance(group_col_names, list)
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and reset their collusion sets
-    inCols = inRel.columns
-    groupCols = [utils.find(inCols, groupColName)
-                 for groupColName in groupColNames]
-    for groupCol in groupCols:
-        groupCol.collSets = set()
-    overCol = utils.find(inCols, overColName)
-    overCol.collSets = set()
+    in_cols = in_rel.columns
+    group_cols = [utils.find(in_cols, group_col_name)
+                  for group_col_name in group_col_names]
+    for group_col in group_cols:
+        group_col.coll_sets = set()
+    over_col = utils.find(in_cols, over_col_name)
+    over_col.coll_sets = set()
 
     # Create output relation. Default column order is
     # key column first followed by column that will be
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
-    aggOutCol = copy.deepcopy(overCol)
-    aggOutCol.name = aggOutColName
-    outRelCols = [copy.deepcopy(groupCol) for groupCol in groupCols]
-    outRelCols.append(copy.deepcopy(aggOutCol))
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    agg_out_col = copy.deepcopy(over_col)
+    agg_out_col.name = agg_out_col_name
+    out_rel_cols = [copy.deepcopy(group_col) for group_col in group_cols]
+    out_rel_cols.append(copy.deepcopy(agg_out_col))
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Aggregate(outRel, inputOpNode, groupCols, overCol, aggregator)
+    op = dag.Aggregate(out_rel, input_op_node, group_cols, over_col, aggregator)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
-def index_aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName, eqFlagOp, sortedKeysOp):
 
-    agg_op = aggregate(inputOpNode, outputName, groupColNames, overColName, aggregator, aggOutColName)
-    idx_agg_op = dag.IndexAggregate.fromAggregate(agg_op, eqFlagOp, sortedKeysOp)
+def index_aggregate(input_op_node, output_name, group_col_names, over_col_name,
+                    aggregator, agg_out_col_name, eq_flag_op, sorted_keys_op):
 
-    inputOpNode.children.remove(agg_op)
-    inputOpNode.children.add(idx_agg_op)
+    agg_op = aggregate(input_op_node, output_name, group_col_names,
+                       over_col_name, aggregator, agg_out_col_name)
+    idx_agg_op = dag.IndexAggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
+
+    input_op_node.children.remove(agg_op)
+    input_op_node.children.add(idx_agg_op)
     
-    eqFlagOp.children.add(idx_agg_op)
-    sortedKeysOp.children.add(idx_agg_op)
+    eq_flag_op.children.add(idx_agg_op)
+    sorted_keys_op.children.add(idx_agg_op)
 
-    idx_agg_op.parents.add(eqFlagOp)
-    idx_agg_op.parents.add(sortedKeysOp)
+    idx_agg_op.parents.add(eq_flag_op)
+    idx_agg_op.parents.add(sorted_keys_op)
 
     return idx_agg_op
 
 
-def sort_by(inputOpNode, outputName, sortByColName):
+def sort_by(input_op_node, output_name, sort_by_col_name):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
-    sortByCol = utils.find(inRel.columns, sortByColName)
+    sort_by_col = utils.find(in_rel.columns, sort_by_col_name)
 
-    for col in outRelCols:
-        col.collSets = set()
+    for col in out_rel_cols:
+        col.coll_sets = set()
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.SortBy(outRel, inputOpNode, sortByCol)
+    op = dag.SortBy(out_rel, input_op_node, sort_by_col)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
-def project(inputOpNode, outputName, selectedColNames):
+
+def project(input_op_node, output_name, selected_col_names):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Find all columns by name
-    selectedCols = [utils.find(inRel.columns, colName)
-                    for colName in selectedColNames]
+    selected_cols = [utils.find(in_rel.columns, col_name)
+                     for col_name in selected_col_names]
 
-    outRelCols = copy.deepcopy(selectedCols)
-    for col in outRelCols:
-        col.collSets = set()
+    out_rel_cols = copy.deepcopy(selected_cols)
+    for col in out_rel_cols:
+        col.coll_sets = set()
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Project(outRel, inputOpNode, selectedCols)
+    op = dag.Project(out_rel, input_op_node, selected_cols)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
-def distinct(inputOpNode, outputName, selectedColNames):
+
+def distinct(input_op_node, output_name, selected_col_names):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Find all columns by name
-    selectedCols = [utils.find(inRel.columns, colName)
-                    for colName in selectedColNames]
+    selected_cols = [utils.find(in_rel.columns, col_name)
+                     for col_name in selected_col_names]
 
-    outRelCols = copy.deepcopy(selectedCols)
-    for col in outRelCols:
-        col.collSets = set()
+    out_rel_cols = copy.deepcopy(selected_cols)
+    for col in out_rel_cols:
+        col.coll_sets = set()
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Distinct(outRel, inputOpNode, selectedCols)
+    op = dag.Distinct(out_rel, input_op_node, selected_cols)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
-def divide(inputOpNode, outputName, targetColName, operands):
+
+def divide(input_op_node, output_name, target_col_name, operands):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Replace all column names with corresponding columns.
-    operands = [utils.find(inRel.columns, op) if isinstance(
+    operands = [utils.find(in_rel.columns, op) if isinstance(
         op, str) else op for op in operands]
     for operand in operands:
-        if hasattr(operand, "collSets"):
-            operand.collSets = set()
+        if hasattr(operand, "coll_sets"):
+            operand.coll_sets = set()
 
-    # if targetCol already exists, it will be at the 0th index of operands
-    if targetColName == operands[0].name:
-        targetColumn = utils.find(inRel.columns, targetColName)
-        targetColumn.collSets = set()
+    # if target_col already exists, it will be at the 0th index of operands
+    if target_col_name == operands[0].name:
+        targetColumn = utils.find(in_rel.columns, target_col_name)
+        targetColumn.coll_sets = set()
     else:
-        # TODO: figure out new column's collSets
+        # TODO: figure out new column's coll_sets
         targetColumn = rel.Column(
-            outputName, targetColName, len(inRel.columns), "INTEGER", set())
-        outRelCols.append(targetColumn)
+            output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
+        out_rel_cols.append(targetColumn)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Divide(outRel, inputOpNode, targetColumn, operands)
+    op = dag.Divide(out_rel, input_op_node, targetColumn, operands)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
 
-def filter(inputOpNode, outputName, filterColName, operator, filterExpr):
+def filter(input_op_node, output_name, filterColName, operator, filter_expr):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Get index of filter column
-    filterCol = utils.find(inRel.columns, filterColName)
-    filterCol.collSets = set()
+    filterCol = utils.find(in_rel.columns, filterColName)
+    filterCol.coll_sets = set()
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Filter(outRel, inputOpNode, filterCol, operator, filterExpr)
+    op = dag.Filter(out_rel, input_op_node, filterCol, operator, filter_expr)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
 
-def multiply(inputOpNode, outputName, targetColName, operands):
+def multiply(input_op_node, output_name, target_col_name, operands):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Replace all column names with corresponding columns.
-    operands = [utils.find(inRel.columns, op) if isinstance(
+    operands = [utils.find(in_rel.columns, op) if isinstance(
         op, str) else op for op in operands]
     for operand in operands:
-        if hasattr(operand, "collSets"):
-            operand.collSets = set()
+        if hasattr(operand, "coll_sets"):
+            operand.coll_sets = set()
 
-    # if targetCol already exists, it will be at the 0th index of operands
-    if targetColName == operands[0].name:
-        targetColumn = utils.find(inRel.columns, targetColName)
-        targetColumn.collSets = set()
+    # if target_col already exists, it will be at the 0th index of operands
+    if target_col_name == operands[0].name:
+        targetColumn = utils.find(in_rel.columns, target_col_name)
+        targetColumn.coll_sets = set()
     else:
-        # TODO: figure out new column's collSets
+        # TODO: figure out new column's coll_sets
         targetColumn = rel.Column(
-            outputName, targetColName, len(inRel.columns), "INTEGER", set())
-        outRelCols.append(targetColumn)
+            output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
+        out_rel_cols.append(targetColumn)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Multiply(outRel, inputOpNode, targetColumn, operands)
+    op = dag.Multiply(out_rel, input_op_node, targetColumn, operands)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
 
 # TODO: is a self-join a problem?
-def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames):
+def join(leftInputNode, rightInputNode, output_name, leftColNames, rightColNames):
 
     # TODO: technically this should take in a start index as well
     # This helper method takes in a relation, the key column of the join
@@ -266,7 +273,7 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
             # Exclude key columns and add num from enumerate to start index
             if col.idx not in set(keyColIdxs):
                 newCol = rel.Column(
-                    outputName, col.getName(), num + startIdx - len(keyColIdxs), col.typeStr, set())
+                    output_name, col.getName(), num + startIdx - len(keyColIdxs), col.type_str, set())
                 resultCols.append(newCol)
 
         return resultCols
@@ -275,28 +282,28 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
     assert isinstance(rightColNames, list)
 
     # Get input relation from input nodes
-    leftInRel = leftInputNode.outRel
-    rightInRel = rightInputNode.outRel
+    leftInRel = leftInputNode.out_rel
+    rightInRel = rightInputNode.out_rel
 
     # Get columns from both relations
     leftCols = leftInRel.columns
     rightCols = rightInRel.columns
 
     # Get columns we will join on
-    leftJoinCols = [utils.find(leftCols, leftColName)
+    left_join_cols = [utils.find(leftCols, leftColName)
                     for leftColName in leftColNames]
-    rightJoinCols = [utils.find(rightCols, rightColName)
+    right_join_cols = [utils.find(rightCols, rightColName)
                      for rightColName in rightColNames]
 
     # # Get the key columns' merged collusion set
     # keyCollusionSet = utils.mergeCollusionSets(
-    #     leftJoinCol.collusionSet, rightJoinCol.collusionSet)
+    #     left_join_col.collusion_set, right_join_col.collusion_set)
 
     # Create new key columns
     outKeyCols = []
-    for i in range(len(leftJoinCols)):
+    for i in range(len(left_join_cols)):
         outKeyCols.append(
-            rel.Column(outputName, leftJoinCols[i].getName(), i, leftJoinCols[i].typeStr, set()))
+            rel.Column(output_name, left_join_cols[i].getName(), i, left_join_cols[i].type_str, set()))
 
     # Define output relation columns.
     # These will be the key columns followed
@@ -304,30 +311,30 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
     # and right (again excluding join columns)
 
     startIdx = len(outKeyCols)
-    # continueIdx will be (startIdx + len(leftInRel.columns) - len(leftJoinCols)),
+    # continueIdx will be (startIdx + len(leftInRel.columns) - len(left_join_cols)),
     # which is just len(leftInRel.columns)
     continueIdx = len(leftInRel.columns)
-    outRelCols = outKeyCols \
+    out_rel_cols = outKeyCols \
         + _colsFromRel(
-            startIdx, leftInRel, [leftJoinCol.idx for leftJoinCol in leftJoinCols]) \
+            startIdx, leftInRel, [left_join_col.idx for left_join_col in left_join_cols]) \
         + _colsFromRel(
-            continueIdx, rightInRel, [rightJoinCol.idx for rightJoinCol in rightJoinCols])
+            continueIdx, rightInRel, [right_join_col.idx for right_join_col in right_join_cols])
 
     # The result of the join will be stored with the union
     # of the parties storing left and right
-    outStoredWith = leftInRel.storedWith.union(rightInRel.storedWith)
+    outStoredWith = leftInRel.stored_with.union(rightInRel.stored_with)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, outStoredWith)
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, outStoredWith)
+    out_rel.update_columns()
 
     # Create join operator
     op = dag.Join(
-        outRel,
+        out_rel,
         leftInputNode,
         rightInputNode,
-        leftJoinCols,
-        rightJoinCols
+        left_join_cols,
+        right_join_cols
     )
 
     # Add it as a child to both input nodes
@@ -337,133 +344,133 @@ def join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames)
     return op
 
 
-def concat(inputOpNodes, outputName, columnNames=None):
+def concat(input_op_nodes, output_name, columnNames=None):
 
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
-    assert(len(inputOpNodes) >= 2)
+    assert(len(input_op_nodes) >= 2)
 
     # Get input relations from input nodes
-    inRels = [inputOpNode.outRel for inputOpNode in inputOpNodes]
+    in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
 
     # Ensure that all input relations have same
     # number of columns
-    numCols = len(inRels[0].columns)
-    for inRel in inRels:
-        assert(len(inRel.columns) == numCols)
+    numCols = len(in_rels[0].columns)
+    for in_rel in in_rels:
+        assert(len(in_rel.columns) == numCols)
     if columnNames is not None:
         assert(len(columnNames) == numCols)
 
     # Copy over columns from existing relation
-    outRelCols = copy.deepcopy(inRels[0].columns)
-    for (i, col) in enumerate(outRelCols):
+    out_rel_cols = copy.deepcopy(in_rels[0].columns)
+    for (i, col) in enumerate(out_rel_cols):
         if columnNames is not None:
             col.name = columnNames[i]
         else:
             # we use the column names from the first input
             pass
-        col.collSets = set()
+        col.coll_sets = set()
 
     # The result of the concat will be stored with the union
     # of the parties storing the input relations
-    inStoredWith = [inRel.storedWith for inRel in inRels]
+    inStoredWith = [in_rel.stored_with for in_rel in in_rels]
     outStoredWith = set().union(*inStoredWith)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, outStoredWith)
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, outStoredWith)
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.Concat(outRel, inputOpNodes)
+    op = dag.Concat(out_rel, input_op_nodes)
 
     # Add it as a child to each input node
-    for inputOpNode in inputOpNodes:
-        inputOpNode.children.add(op)
+    for input_op_node in input_op_nodes:
+        input_op_node.children.add(op)
 
     return op
 
 
-def index(inputOpNode, outputName, idxColName="index"):
+def index(input_op_node, output_name, idxColName="index"):
 
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Copy over columns from existing relation
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     indexCol = rel.Column(
-        outputName, idxColName, len(inRel.columns), "INTEGER", set())
-    outRelCols = [indexCol] + outRelCols
+        output_name, idxColName, len(in_rel.columns), "INTEGER", set())
+    out_rel_cols = [indexCol] + out_rel_cols
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
-    op = dag.Index(outRel, inputOpNode)
+    op = dag.Index(out_rel, input_op_node)
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
 
-def shuffle(inputOpNode, outputName):
+def shuffle(input_op_node, output_name):
 
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Copy over columns from existing relation
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Create output relation
-    outRel = rel.Relation(outputName, outRelCols, copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
-    op = dag.Shuffle(outRel, inputOpNode)
+    op = dag.Shuffle(out_rel, input_op_node)
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
 
-def collect(inputOpNode, targetParty):
+def collect(input_op_node, targetParty):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
-    inRel.storedWith = set([targetParty])
+    in_rel = input_op_node.out_rel
+    in_rel.stored_with = set([targetParty])
 
 
 # Below functions are NOT part of the public API! Only used to simplify
 # codegen testing
 
-def _comp_neighs(inputOpNode, outputName, compColName):
+def _comp_neighs(input_op_node, output_name, compColName):
 
     # Get input relation from input node
-    inRel = inputOpNode.outRel
+    in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
-    outRelCols = copy.deepcopy(inRel.columns)
+    out_rel_cols = copy.deepcopy(in_rel.columns)
 
-    compCol = utils.find(inRel.columns, compColName)
-    compCol.storedWith = set()
+    compCol = utils.find(in_rel.columns, compColName)
+    compCol.stored_with = set()
 
-    for col in outRelCols:
-        col.collSets = set()
+    for col in out_rel_cols:
+        col.coll_sets = set()
 
     # Create output relation
-    outRel = rel.Relation(outputName, [copy.deepcopy(compCol)], copy.copy(inRel.storedWith))
-    outRel.updateColumns()
+    out_rel = rel.Relation(output_name, [copy.deepcopy(compCol)], copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
 
     # Create our operator node
-    op = dag.CompNeighs(outRel, inputOpNode, compCol)
+    op = dag.CompNeighs(out_rel, input_op_node, compCol)
 
     # Add it as a child to input node
-    inputOpNode.children.add(op)
+    input_op_node.children.add(op)
 
     return op
 
-def _index_join(leftInputNode, rightInputNode, outputName, leftColNames, rightColNames, indexOpNode):
+def _index_join(leftInputNode, rightInputNode, output_name, leftColNames, rightColNames, indexOpNode):
 
     join_op = join(leftInputNode, rightInputNode,
-                   outputName, leftColNames, rightColNames)
-    idx_join_op = dag.IndexJoin.fromJoin(join_op, indexOpNode)
+                   output_name, leftColNames, rightColNames)
+    idx_join_op = dag.IndexJoin.from_join(join_op, indexOpNode)
 
     leftInputNode.children.remove(join_op)
     rightInputNode.children.remove(join_op)
@@ -475,30 +482,30 @@ def _index_join(leftInputNode, rightInputNode, outputName, leftColNames, rightCo
     return idx_join_op
 
 
-def _persist(inputOpNode, outputName):
+def _persist(input_op_node, output_name):
 
-    outRel = copy.deepcopy(inputOpNode.outRel)
-    outRel.rename(outputName)
-    persistOp = dag.Persist(outRel, inputOpNode)
-    inputOpNode.children.add(persistOp)
+    out_rel = copy.deepcopy(input_op_node.out_rel)
+    out_rel.rename(output_name)
+    persistOp = dag.Persist(out_rel, input_op_node)
+    input_op_node.children.add(persistOp)
     return persistOp
 
 
-def _close(inputOpNode, outputName, targetParties):
+def _close(input_op_node, output_name, targetParties):
 
-    outRel = copy.deepcopy(inputOpNode.outRel)
-    outRel.storedWith = targetParties
-    outRel.rename(outputName)
-    closeOp = dag.Close(outRel, inputOpNode)
-    inputOpNode.children.add(closeOp)
+    out_rel = copy.deepcopy(input_op_node.out_rel)
+    out_rel.stored_with = targetParties
+    out_rel.rename(output_name)
+    closeOp = dag.Close(out_rel, input_op_node)
+    input_op_node.children.add(closeOp)
     return closeOp
 
 
-def _open(inputOpNode, outputName, targetParty):
+def _open(input_op_node, output_name, targetParty):
 
-    outRel = copy.deepcopy(inputOpNode.outRel)
-    outRel.storedWith = set([targetParty])
-    outRel.rename(outputName)
-    openOp = dag.Open(outRel, inputOpNode)
-    inputOpNode.children.add(openOp)
+    out_rel = copy.deepcopy(input_op_node.out_rel)
+    out_rel.stored_with = set([targetParty])
+    out_rel.rename(output_name)
+    openOp = dag.Open(out_rel, input_op_node)
+    input_op_node.children.add(openOp)
     return openOp

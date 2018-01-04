@@ -13,15 +13,15 @@ domain pd_shared3p shared3p;
 
 // relational operators and helper functions that don't come with vanilla sharemind
 template <domain D : shared3p>
-D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
-    D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
+D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] left_join_cols,
+    D uint32[[2]] rightRel, uint[[1]] right_join_cols, uint[[1]] colsToKeep) {
     // TODO: assert join cols are singletons
     // perform native join
     D uint32[[2]] res = (uint32) tableJoinAes128(
         (xor_uint32) leftRel,
-        leftJoinCols[0],
+        left_join_cols[0],
         (xor_uint32) rightRel,
-        rightJoinCols[0]
+        right_join_cols[0]
     );
     return project(res, colsToKeep);
 }
@@ -132,12 +132,12 @@ D uint32[[2]] indexAggregateNonLeaky(D uint32[[2]] rows, uint keyCol, uint valCo
 }
 
 template <domain D : shared3p>
-D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
+D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selected_cols) {
     uint nrows = shape(rows)[0];
-    uint ncols = size(selectedCols);
+    uint ncols = size(selected_cols);
     D uint32 [[2]] projected(nrows, ncols);
     for (uint c = 0; c < ncols; ++c) {
-        projected[:, c] = rows[:, selectedCols[c]];
+        projected[:, c] = rows[:, selected_cols[c]];
     }
     return projected;
 }
@@ -230,8 +230,8 @@ void persist(string ds, string tableName, D uint32[[2]] rows) {
 }
 
 template <domain D : shared3p>
-D uint32[[2]] indexJoin(D uint32[[2]] leftRel, uint leftJoinCol, D uint32[[2]] rightRel,
-        uint rightJoinCol, uint32[[2]] indeces) {
+D uint32[[2]] indexJoin(D uint32[[2]] leftRel, uint left_join_col, D uint32[[2]] rightRel,
+        uint right_join_col, uint32[[2]] indeces) {
     uint nrows = shape(indeces)[0];
     uint ncolsLeft = shape(leftRel)[1];
     uint ncolsRight = shape(rightRel)[1];
@@ -246,7 +246,7 @@ D uint32[[2]] indexJoin(D uint32[[2]] leftRel, uint leftJoinCol, D uint32[[2]] r
         uint offset = ncolsLeft;
         uint nextIdx = 0;
         for (uint c = 0; c < ncolsRight; ++c) {
-            if (c != rightJoinCol) {
+            if (c != right_join_col) {
                 result[r,nextIdx + offset] = rightRel[ridx,c];
                 nextIdx++;
             }

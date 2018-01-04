@@ -20,31 +20,31 @@ def mergeCollSets(left, right):
         return copy.copy(left)
     return {l | r for l in left for r in right}
 
-def collSetsFromColumns(columns):
+def coll_setsFromColumns(columns):
     """
     ???
     """
-    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns]
-    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
+    coll_sets = [col.coll_sets if hasattr(col, "coll_sets") else set() for col in columns]
+    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), coll_sets)
 
 
-def find(columns, colName):
+def find(columns, col_name):
     """
     Retrieve column by name.
     :param columns: ??? of columns
-    :param colName: name of column to return
+    :param col_name: name of column to return
     :returns: column
     :raises StopIteration: if column is not found
     """
     try:
-        return next(iter([col for col in columns if col.getName() == colName]))
+        return next(iter([col for col in columns if col.getName() == col_name]))
     except StopIteration:
-        print("column '{}' not found in {}".format(colName, [c.getName() for c in columns]))
+        print("column '{}' not found in {}".format(col_name, [c.getName() for c in columns]))
         return None
 
 
-def defCol(name, tpy, *collSets):
+def defCol(name, tpy, *coll_sets):
     """
     ???
     """
-    return (name, tpy, set([frozenset(collSet) for collSet in collSets]))
+    return (name, tpy, set([frozenset(collSet) for collSet in coll_sets]))

@@ -9,13 +9,13 @@ class Column():
     Column data structure.
     """
 
-    def __init__(self, relName, name, idx, typeStr, collSets):
+    def __init__(self, rel_name, name, idx, type_str, coll_sets):
         """Initialize object."""
-        self.relName = relName
+        self.rel_name = rel_name
         self.name = name
-        self.idx = idx # Integer index of the column in the relation.
-        self.typeStr = typeStr # Currently can only be "INTEGER".
-        self.collSets = collSets # Record of all sets of parties that can collude together to recover values in this column.
+        self.idx = idx  # Integer index of the column in the relation.
+        self.type_str = type_str  # Currently can only be "INTEGER".
+        self.coll_sets = coll_sets  # All sets of parties that can collude together to recover values in this column.
 
     def getName(self):
         """Return column name."""
@@ -27,12 +27,12 @@ class Column():
 
     def dbgStr(self):
         """Return column identifier."""
-        collSetStr = " ".join(sorted(["{" + ",".join([str(p) for p in collSet]) + "}" for collSet in self.collSets]))
+        collSetStr = " ".join(sorted(["{" + ",".join([str(p) for p in collSet]) + "}" for collSet in self.coll_sets]))
         return self.getName() + " " + collSetStr
 
     def mergeCollSetsIn(self, otherCollSets):
         """Merge collusion sets into column."""
-        self.collSets = utils.mergeCollSets(self.collSets, otherCollSets)
+        self.coll_sets = utils.mergeCollSets(self.coll_sets, otherCollSets)
 
     def __str__(self):
         """Return string representation of column object."""
@@ -44,21 +44,21 @@ class Relation():
     Relation data structure.
     """
 
-    def __init__(self, name, columns, storedWith):
+    def __init__(self, name, columns, stored_with):
         """Initialize object."""
         self.name = name
         self.columns = columns
-        self.storedWith = storedWith # Ownership of this data set. Does this refer to secret shares or open data?
+        self.stored_with = stored_with # Ownership of this data set. Does this refer to secret shares or open data?
 
     def rename(self, newName):
         """Rename relation."""
         self.name = newName
         for col in self.columns:
-            col.relName = newName
+            col.rel_name = newName
 
-    def isShared(self):
+    def is_shared(self):
         """Determine if this relation is shared."""
-        return len(self.storedWith) > 1
+        return len(self.stored_with) > 1
 
     def updateColumnIndexes(self):
         """
@@ -69,16 +69,16 @@ class Relation():
         for idx, col in enumerate(self.columns):
             col.idx = idx
 
-    def updateColumns(self):
+    def update_columns(self):
         """Update relation name in relation column objects."""
         self.updateColumnIndexes()
         for col in self.columns:
-            col.relName = self.name
+            col.rel_name = self.name
 
     def dbgStr(self):
         """Return extended string representation for debugging."""
         colStr = ", ".join([col.dbgStr() for col in self.columns])
-        return "{}([{}]) {}".format(self.name, colStr, self.storedWith)
+        return "{}([{}]) {}".format(self.name, colStr, self.stored_with)
 
     def __str__(self):
         """Return string representation of relation."""
