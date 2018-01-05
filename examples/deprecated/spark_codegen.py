@@ -1,10 +1,8 @@
 import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen import CodeGenConfig
-import sys
 from salmon.utils import *
 from salmon.comp import dagonly
-
 
 def setup():
 
