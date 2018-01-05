@@ -15,61 +15,61 @@ class BeerCodeGen(CodeGen):
     def _generateAggregate(self, agg_op):
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
-                "MPC" if agg_op.is_mpc else "",
-                agg_op.agg_col.getName(),
+                "MPC" if agg_op.isMPC else "",
+                agg_op.aggCol.getName(),
                 agg_op.aggregator,
-                agg_op.get_in_rel().name,
-                [group_col.getName() for group_col in agg_op.group_cols],
-                agg_op.out_rel.name
+                agg_op.getInRel().name,
+                [groupCol.getName() for groupCol in agg_op.groupCols],
+                agg_op.outRel.name
             )
 
     def _generateConcat(self, concat_op):
 
-        inRelStr = ", ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
+        inRelStr = ", ".join([inRel.name for inRel in concat_op.getInRels()])
 
         return "CONCAT{} [{}] AS {}\n".format(
-                "MPC" if self.is_mpc else "",
+                "MPC" if self.isMPC else "",
                 inRelStr,
-                concat_op.out_rel.name
+                concat_op.outRel.name
             )
 
     def _generateCreate(self, create_op):
 
-        colTypeStr = ", ".join([col.type_str for col in create_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in create_op.outRel.columns])
 
         return "CREATE RELATION {} WITH COLUMNS ({})\n".format(
-                create_op.out_rel.name,
+                create_op.outRel.name,
                 colTypeStr
             )
 
     def _generateJoin(self, join_op):
 
         return "({}) JOIN{} ({}) ON {} AND {} AS {}\n".format(
-                join_op.get_left_in_rel().name,
-                "MPC" if join_op.is_mpc else "",
-                join_op.get_right_in_rel().name,
-                str(join_op.left_join_col),
-                str(join_op.right_join_col),
-                join_op.out_rel.name
+                join_op.getLeftInRel().name,
+                "MPC" if join_op.isMPC else "",
+                join_op.getRightInRel().name,
+                str(join_op.leftJoinCol),
+                str(join_op.rightJoinCol),
+                join_op.outRel.name
             )
 
     def _generateProject(self, project_op):
 
-        selectedColsStr = ", ".join([str(col) for col in project_op.selected_cols])
+        selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
 
         return "PROJECT{} [{}] FROM ({}) AS {}\n".format(
-                "MPC" if project_op.is_mpc else "",
+                "MPC" if project_op.isMPC else "",
                 selectedColsStr,
-                project_op.get_in_rel().name,
-                project_op.out_rel.name
+                project_op.getInRel().name,
+                project_op.outRel.name
             )
 
     def _generateStore(self, store_op):
 
         return "STORE RELATION {} INTO {} AS {}\n".format(
-                store_op.get_in_rel().name,
-                store_op.out_rel.getCombinedCollusionSet(),
-                store_op.out_rel.name
+                store_op.getInRel().name,
+                store_op.outRel.getCombinedCollusionSet(),
+                store_op.outRel.name
             )
 
     def _writeCode(self, code, job_name):

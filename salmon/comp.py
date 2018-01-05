@@ -16,44 +16,44 @@ def push_op_node_down(top_node, bottom_node):
 
     # remove bottom node between the bottom node's child
     # and the top node
-    saldag.remove_between(top_node, child, bottom_node)
+    saldag.removeBetween(top_node, child, bottom_node)
 
     # we need all parents of the parent node
-    grand_parents = copy.copy(top_node.get_sorted_parents())
+    grandParents = copy.copy(top_node.getSortedParents())
 
     # we will insert the removed bottom node between
     # each parent of the top node and the top node
-    for idx, grand_parent in enumerate(grand_parents):
-        to_insert = copy.deepcopy(bottom_node)
-        to_insert.out_rel.rename(to_insert.out_rel.name + "_" + str(idx))
-        to_insert.parents = set()
-        to_insert.children = set()
-        saldag.insert_between(grand_parent, top_node, to_insert)
-        to_insert.update_stored_with()
+    for idx, grandParent in enumerate(grandParents):
+        toInsert = copy.deepcopy(bottom_node)
+        toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
+        toInsert.parents = set()
+        toInsert.children = set()
+        saldag.insertBetween(grandParent, top_node, toInsert)
+        toInsert.updateStoredWith()
 
 
-def split_node(node):
+def splitNode(node):
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
-    clone.out_rel.rename(node.out_rel.name + "_obl")
+    clone.outRel.rename(node.outRel.name + "_obl")
     clone.parents = set()
     clone.children = set()
-    clone.is_mpc = True
+    clone.isMPC = True
     child = next(iter(node.children), None)
-    saldag.insert_between(node, child, clone)
+    saldag.insertBetween(node, child, clone)
 
 
-def fork_node(node):
+def forkNode(node):
     # we can skip the first child
-    child_it = enumerate(copy.copy(node.get_sorted_children()))
-    next(child_it)
+    childIt = enumerate(copy.copy(node.getSortedChildren()))
+    next(childIt)
     # clone node for each of the remaining children
-    for idx, child in child_it:
+    for idx, child in childIt:
         # create clone and rename output relation to
         # avoid identical relation names for different nodes
         clone = copy.deepcopy(node)
-        clone.out_rel.rename(node.out_rel.name + "_" + str(idx))
+        clone.outRel.rename(node.outRel.name + "_" + str(idx))
         clone.parents = copy.copy(node.parents)
         warnings.warn("hacky forkNode")
         clone.ordered = copy.copy(node.ordered)
@@ -62,8 +62,8 @@ def fork_node(node):
             parent.children.add(clone)
         node.children.remove(child)
         # make cloned node the child's new parent
-        child.replace_parent(node, clone)
-        child.update_op_specific_cols()
+        child.replaceParent(node, clone)
+        child.updateOpSpecificCols()
 
 
 class DagRewriter:
@@ -75,12 +75,12 @@ class DagRewriter:
 
     def rewrite(self, dag):
 
-        ordered = dag.top_sort()
+        ordered = dag.topSort()
         if self.reverse:
             ordered = ordered[::-1]
 
         for node in ordered:
-            print(type(self).__name__, "rewriting", node.out_rel.name)
+            print(type(self).__name__, "rewriting", node.outRel.name)
             if isinstance(node, saldag.Aggregate):
                 self._rewriteAggregate(node)
             elif isinstance(node, saldag.Divide):
@@ -132,44 +132,44 @@ class MPCPushDown(DagRewriter):
 
     def _rewriteDefault(self, node):
 
-        node.is_mpc = node.requires_mpc()
+        node.isMPC = node.requiresMPC()
 
     def _rewriteUnaryDefault(self, node):
 
         parent = next(iter(node.parents))
-        if parent.is_mpc:
+        if parent.isMPC:
             # if node is leaf stop
-            if node.is_leaf():
-                node.is_mpc = True
+            if node.isLeaf():
+                node.isMPC = True
                 return
             # node is not leaf
-            if isinstance(parent, saldag.Concat) and parent.is_boundary():
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 push_op_node_down(parent, node)
             elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
-                if isinstance(agg_parent, saldag.Concat) and agg_parent.is_boundary():
+                if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
                     concat_op = agg_parent
                     assert len(concat_op.children) == 1
                     push_op_node_down(agg_op, node)
                     updated_node = agg_op.parent
                     push_op_node_down(concat_op, updated_node)
                 else:
-                    node.is_mpc = True
+                    node.isMPC = True
             else:
-                node.is_mpc = True
+                node.isMPC = True
         else:
             pass
 
     def _rewriteAggregate(self, node):
 
         parent = next(iter(node.parents))
-        if parent.is_mpc:
-            if isinstance(parent, saldag.Concat) and parent.is_boundary():
+        if parent.isMPC:
+            if isinstance(parent, saldag.Concat) and parent.isBoundary():
                 splitNode(node)
                 push_op_node_down(parent, node)
             else:
-                node.is_mpc = True
+                node.isMPC = True
         else:
             pass
 
@@ -203,9 +203,9 @@ class MPCPushDown(DagRewriter):
 
     def _rewriteConcat(self, node):
 
-        if node.requires_mpc():
-            node.is_mpc = True
-            if len(node.children) > 1 and node.is_boundary():
+        if node.requiresMPC():
+            node.isMPC = True
+            if len(node.children) > 1 and node.isBoundary():
                 forkNode(node)
 
     def _rewriteCreate(self, node):
@@ -223,10 +223,10 @@ class MPCPushUp(DagRewriter):
     def _rewriteUnaryDefault(self, node):
 
         par = next(iter(node.parents))
-        if node.is_reversible() and node.is_lower_boundary() and not par.is_root():
+        if node.isReversible() and node.isLowerBoundary() and not par.isRoot():
             print("lower boundary", node)
-            node.get_in_rel().stored_with = copy.copy(node.out_rel.stored_with)
-            node.is_mpc = False
+            node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
+            node.isMPC = False
 
     def _rewriteAggregate(self, node):
 
@@ -264,13 +264,13 @@ class MPCPushUp(DagRewriter):
 
         # concats are always reversible so we just need to know
         # if we're dealing with a boundary node
-        if node.is_lower_boundary():
+        if node.isLowerBoundary():
 
-            outStoredWith = node.out_rel.stored_with
+            outStoredWith = node.outRel.storedWith
             for par in node.parents:
-                if not par.is_root():
-                    par.out_rel.stored_with = copy.copy(outStoredWith)
-            node.is_mpc = False
+                if not par.isRoot():
+                    par.outRel.storedWith = copy.copy(outStoredWith)
+            node.isMPC = False
 
     def _rewriteCreate(self, node):
 
@@ -285,66 +285,66 @@ class CollSetPropDown(DagRewriter):
 
     def _rewriteAggregate(self, node):
 
-        inGroupCols = node.group_cols
-        outGroupCols = node.out_rel.columns[:-1]
+        inGroupCols = node.groupCols
+        outGroupCols = node.outRel.columns[:-1]
         # TODO: (ben/malte) is the collSet propagation a 1:1 mapping here,
         # or is there a relationship between the collusion set associated
         # with two keyCols i & j?
         for i in range(len(outGroupCols)):
-            outGroupCols[i].coll_sets |= copy.deepcopy(inGroupCols[i].coll_sets)
-        inAggCol = node.agg_col
-        outAggCol = node.out_rel.columns[-1]
-        outAggCol.coll_sets |= copy.deepcopy(inAggCol.coll_sets)
+            outGroupCols[i].collSets |= copy.deepcopy(inGroupCols[i].collSets)
+        inAggCol = node.aggCol
+        outAggCol = node.outRel.columns[-1]
+        outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
 
     def _rewriteDivide(self, node):
 
-        out_rel_cols = node.out_rel.columns
+        outRelCols = node.outRel.columns
         operands = node.operands
-        target_col = node.target_col
+        targetCol = node.targetCol
 
         # Update target column collusion set
-        targetColOut = out_rel_cols[target_col.idx]
+        targetColOut = outRelCols[targetCol.idx]
 
-        targetColOut.coll_sets |= utils.coll_setsFromColumns(operands)
+        targetColOut.collSets |= utils.collSetsFromColumns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
-        for inCol, outCol in zip(node.get_in_rel().columns, out_rel_cols):
-            if inCol != target_col:
-                outCol.coll_sets |= copy.deepcopy(inCol.coll_sets)
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
+            if inCol != targetCol:
+                outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteProject(self, node):
 
-        in_cols = node.get_in_rel().columns
-        selected_cols = node.selected_cols
+        inCols = node.getInRel().columns
+        selectedCols = node.selectedCols
 
-        for inCol, outCol in zip(selected_cols, node.out_rel.columns):
-            outCol.coll_sets |= copy.deepcopy(inCol.coll_sets)
+        for inCol, outCol in zip(selectedCols, node.outRel.columns):
+            outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteFilter(self, node):
 
-        in_cols = node.get_in_rel().columns
-        out_rel_cols = node.out_rel.columns
+        inCols = node.getInRel().columns
+        outRelCols = node.outRel.columns
 
-        for inCol, outCol in zip(node.get_in_rel().columns, out_rel_cols):
-            outCol.coll_sets |= copy.deepcopy(inCol.coll_sets)
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
+            outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteMultiply(self, node):
 
-        out_rel_cols = node.out_rel.columns
+        outRelCols = node.outRel.columns
         operands = node.operands
-        target_col = node.target_col
+        targetCol = node.targetCol
 
         # Update target column collusion set
-        targetColOut = out_rel_cols[target_col.idx]
+        targetColOut = outRelCols[targetCol.idx]
 
-        targetColOut.coll_sets |= utils.collSetsFromColumns(operands)
+        targetColOut.collSets |= utils.collSetsFromColumns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
-        for inCol, outCol in zip(node.get_in_rel().columns, out_rel_cols):
-            if inCol != target_col:
-                outCol.coll_sets |= copy.deepcopy(inCol.coll_sets)
+        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
+            if inCol != targetCol:
+                outCol.collSets |= copy.deepcopy(inCol.collSets)
 
     def _rewriteHybridJoin(self, node):
 
@@ -352,45 +352,45 @@ class CollSetPropDown(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        leftInRel = node.get_left_in_rel()
-        rightInRel = node.get_right_in_rel()
+        leftInRel = node.getLeftInRel()
+        rightInRel = node.getRightInRel()
 
-        left_join_cols = node.left_join_cols
-        right_join_cols = node.right_join_cols
+        leftJoinCols = node.leftJoinCols
+        rightJoinCols = node.rightJoinCols
 
-        numJoinCols = len(left_join_cols)
+        numJoinCols = len(leftJoinCols)
 
-        outJoinCols = node.out_rel.columns[:numJoinCols]
+        outJoinCols = node.outRel.columns[:numJoinCols]
         keyColsCollSets = []
-        for i in range(len(left_join_cols)):
+        for i in range(len(leftJoinCols)):
             keyColsCollSets.append(utils.mergeCollSets(
-                left_join_cols[i].coll_sets, right_join_cols[i].coll_sets))
-            outJoinCols[i].coll_sets = keyColsCollSets[i]
+                leftJoinCols[i].collSets, rightJoinCols[i].collSets))
+            outJoinCols[i].collSets = keyColsCollSets[i]
 
-        absIdx = len(left_join_cols)
+        absIdx = len(leftJoinCols)
         for inCol in leftInRel.columns:
-            if inCol not in set(left_join_cols):
+            if inCol not in set(leftJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.out_rel.columns[absIdx].coll_sets = utils.mergeCollSets(
-                        keyColCollSets, inCol.coll_sets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
         for inCol in rightInRel.columns:
-            if inCol not in set(right_join_cols):
+            if inCol not in set(rightJoinCols):
                 for keyColCollSets in keyColsCollSets:
-                    node.out_rel.columns[absIdx].coll_sets = utils.mergeCollSets(
-                        keyColCollSets, inCol.coll_sets)
+                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
+                        keyColCollSets, inCol.collSets)
                 absIdx += 1
 
     def _rewriteConcat(self, node):
 
         # Copy over columns from existing relation
-        out_rel_cols = node.out_rel.columns
+        outRelCols = node.outRel.columns
 
         # Combine per-column collusion sets
-        for idx, col in enumerate(out_rel_cols):
-            columnsAtIdx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]
-            col.coll_sets = utils.coll_setsFromColumns(columnsAtIdx)
+        for idx, col in enumerate(outRelCols):
+            columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
+            col.collSets = utils.collSetsFromColumns(columnsAtIdx)
 
     def _rewriteCreate(self, node):
 
@@ -434,21 +434,21 @@ class HybridJoinOpt(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        if node.is_mpc:
-            out_rel = node.out_rel
+        if node.isMPC:
+            outRel = node.outRel
             keyColIdx = 0
             # oversimplifying here. what if there are multiple singleton
-            # coll_sets?
+            # collSets?
             singletonCollSets = filter(
                 lambda s: len(s) == 1,
-                out_rel.columns[keyColIdx].coll_sets)
+                outRel.columns[keyColIdx].collSets)
             singletonCollSets = sorted(list(singletonCollSets))
             if singletonCollSets:
-                trusted_party = next(iter(singletonCollSets[0]))
-                hybridJoinOp = saldag.HybridJoin.from_join(node, trusted_party)
+                trustedParty = next(iter(singletonCollSets[0]))
+                hybridJoinOp = saldag.HybridJoin.fromJoin(node, trustedParty)
                 parents = hybridJoinOp.parents
                 for par in parents:
-                    par.replace_child(node, hybridJoinOp)
+                    par.replaceChild(node, hybridJoinOp)
 
     def _rewriteConcat(self, node):
 
@@ -469,27 +469,27 @@ class InsertOpenAndCloseOps(DagRewriter):
     def _rewriteDefaultUnary(self, node):
 
         # TODO: can there be a case when children have different
-        # stored_with sets?
+        # storedWith sets?
         warnings.warn("hacky insert store ops")
-        inStoredWith = node.get_in_rel().stored_with
-        outStoredWith = node.out_rel.stored_with
+        inStoredWith = node.getInRel().storedWith
+        outStoredWith = node.outRel.storedWith
         if inStoredWith != outStoredWith:
-            if (node.is_lower_boundary()):
+            if (node.isLowerBoundary()):
                 # input is stored with one set of parties
                 # but output must be stored with another so we
                 # need an open operation
-                out_rel = copy.deepcopy(node.out_rel)
-                out_rel.rename(out_rel.name + "_open")
-                # reset stored_with on parent so input matches output
-                node.out_rel.stored_with = copy.copy(inStoredWith)
+                outRel = copy.deepcopy(node.outRel)
+                outRel.rename(outRel.name + "_open")
+                # reset storedWith on parent so input matches output
+                node.outRel.storedWith = copy.copy(inStoredWith)
 
                 # create and insert store node
-                storeOp = saldag.Open(out_rel, None)
-                storeOp.is_mpc = True
-                saldag.insert_between_children(node, storeOp)
+                storeOp = saldag.Open(outRel, None)
+                storeOp.isMPC = True
+                saldag.insertBetweenChildren(node, storeOp)
             else:
                 raise Exception(
-                    "different stored_with on non-lower-boundary unary op", node)
+                    "different storedWith on non-lower-boundary unary op", node)
 
     def _rewriteAggregate(self, node):
 
@@ -517,48 +517,48 @@ class InsertOpenAndCloseOps(DagRewriter):
 
     def _rewriteJoin(self, node):
 
-        outStoredWith = node.out_rel.stored_with
-        orderedPars = [node.left_parent, node.right_parent]
+        outStoredWith = node.outRel.storedWith
+        orderedPars = [node.leftParent, node.rightParent]
 
-        left_stored_with = node.get_left_in_rel().stored_with
-        right_stored_with = node.get_right_in_rel().stored_with
-        inStoredWith = left_stored_with | right_stored_with
+        leftStoredWith = node.getLeftInRel().storedWith
+        rightStoredWith = node.getRightInRel().storedWith
+        inStoredWith = leftStoredWith | rightStoredWith
 
         for parent in orderedPars:
-            if (node.is_upper_boundary()):
+            if (node.isUpperBoundary()):
                 # Entering mpc mode so need to secret-share before op
-                out_rel = copy.deepcopy(parent.out_rel)
-                out_rel.rename(out_rel.name + "_close")
-                out_rel.stored_with = copy.copy(inStoredWith)
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_close")
+                outRel.storedWith = copy.copy(inStoredWith)
                 # create and insert close node
-                closeOp = saldag.Close(out_rel, None)
-                closeOp.is_mpc = True
-                saldag.insert_between(parent, node, closeOp)
+                closeOp = saldag.Close(outRel, None)
+                closeOp.isMPC = True
+                saldag.insertBetween(parent, node, closeOp)
             # else:
             #     raise Exception(
-            #         "different stored_with on non-upper-boundary join", node.debug_str())
-        if node.is_leaf():
+            #         "different storedWith on non-upper-boundary join", node.debugStr())
+        if node.isLeaf():
             if len(inStoredWith) > 1 and len(outStoredWith) == 1:
                 targetParty = next(iter(outStoredWith))
-                node.out_rel.stored_with = copy.copy(inStoredWith)
-                sal._open(node, node.out_rel.name + "_open", targetParty)
+                node.outRel.storedWith = copy.copy(inStoredWith)
+                sal._open(node, node.outRel.name + "_open", targetParty)
 
     def _rewriteConcat(self, node):
 
-        assert (not node.is_lower_boundary())
+        assert (not node.isLowerBoundary())
 
-        outStoredWith = node.out_rel.stored_with
-        orderedPars = node.get_sorted_parents()
+        outStoredWith = node.outRel.storedWith
+        orderedPars = node.getSortedParents()
         for parent in orderedPars:
-            parStoredWith = parent.out_rel.stored_with
+            parStoredWith = parent.outRel.storedWith
             if parStoredWith != outStoredWith:
-                out_rel = copy.deepcopy(parent.out_rel)
-                out_rel.rename(out_rel.name + "_close")
-                out_rel.stored_with = copy.copy(outStoredWith)
+                outRel = copy.deepcopy(parent.outRel)
+                outRel.rename(outRel.name + "_close")
+                outRel.storedWith = copy.copy(outStoredWith)
                 # create and insert close node
-                storeOp = saldag.Close(out_rel, None)
-                storeOp.is_mpc = True
-                saldag.insert_between(parent, node, storeOp)
+                storeOp = saldag.Close(outRel, None)
+                storeOp.isMPC = True
+                saldag.insertBetween(parent, node, storeOp)
 
     def _rewriteCreate(self, node):
 
@@ -596,56 +596,56 @@ class ExpandCompositeOps(DagRewriter):
 
         # in left parents' children, replace self with first primitive operator
         # in expanded subdag
-        shuffledA = sal.shuffle(node.left_parent, "shuffledA")
-        shuffledA.is_mpc = True
-        node.left_parent.children.remove(node)
+        shuffledA = sal.shuffle(node.leftParent, "shuffledA")
+        shuffledA.isMPC = True
+        node.leftParent.children.remove(node)
 
         # same for right parent
-        shuffledB = sal.shuffle(node.right_parent, "shuffledB")
-        shuffledB.is_mpc = True
-        node.right_parent.children.remove(node)
+        shuffledB = sal.shuffle(node.rightParent, "shuffledB")
+        shuffledB.isMPC = True
+        node.rightParent.children.remove(node)
 
         persistedB = sal._persist(shuffledB, "persistedB")
-        persistedB.is_mpc = True
+        persistedB.isMPC = True
         persistedA = sal._persist(shuffledA, "persistedA")
-        persistedA.is_mpc = True
+        persistedA.isMPC = True
 
         keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
-        keysaclosed.is_mpc = True
+        keysaclosed.isMPC = True
         keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
-        keysbclosed.is_mpc = True
+        keysbclosed.isMPC = True
 
         keysa = sal._open(keysaclosed, "keysa", 1)
-        keysa.is_mpc = True
+        keysa.isMPC = True
         keysb = sal._open(keysbclosed, "keysb", 1)
-        keysb.is_mpc = True
+        keysb.isMPC = True
 
         indexedA = sal.index(keysa, "indexedA", "indexA")
-        indexedA.is_mpc = False
+        indexedA.isMPC = False
 
         indexedB = sal.index(keysb, "indexedB", "indexB")
-        indexedB.is_mpc = False
+        indexedB.isMPC = False
 
         joinedindeces = sal.join(
             indexedA, indexedB, "joinedindeces", ["a"], ["c"])
-        joinedindeces.is_mpc = False
+        joinedindeces.isMPC = False
 
         indecesonly = sal.project(
             joinedindeces, "indecesonly", ["indexA", "indexB"])
-        indecesonly.is_mpc = False
+        indecesonly.isMPC = False
 
-        # TODO: update stored_with to use union of parent out_rel stored_with sets
+        # TODO: update storedWith to use union of parent outRel storedWith sets
         indecesclosed = sal._close(
             indecesonly, "indecesclosed", set([1, 2]))
-        indecesclosed.is_mpc = True
+        indecesclosed.isMPC = True
 
         joined = sal._index_join(persistedA, persistedB, "joined", [
             "a"], ["c"], indecesclosed)
-        joined.is_mpc = True
+        joined.isMPC = True
 
         # replace self with leaf of expanded subdag in each child node
-        for child in node.get_sorted_children():
-            child.replace_parent(node, joined)
+        for child in node.getSortedChildren():
+            child.replaceParent(node, joined)
         # add former children to children of leaf
         joined.children = node.children
 

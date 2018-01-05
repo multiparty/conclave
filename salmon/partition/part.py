@@ -16,19 +16,19 @@ class SubDag(Dag):
         self.roots = self.findRoots()
         self.leaves = self.findLeaves()
         # change naming in the future
-        self.name = self.debug_str()
+        self.name = self.debugStr()
         super(SubDag, self).__init__(self.roots)
 
     def findLeaves(self):
 
-        def is_local_leaf(current_node, all_nodes):
+        def isLocalLeaf(current_node, all_nodes):
             return len(set.intersection(current_node.children, set(all_nodes))) == 0
 
         leaves = []
 
         for node in self.nodes:
-            if not node.is_leaf():
-                if is_local_leaf(node, self.nodes):
+            if not node.isLeaf():
+                if isLocalLeaf(node, self.nodes):
                     node.children = set()
                     leaves.append(node)
 
@@ -36,14 +36,14 @@ class SubDag(Dag):
 
     def findRoots(self):
 
-        def is_localRoot(current_node, all_nodes):
+        def isLocalRoot(current_node, all_nodes):
             return len(set.intersection(current_node.parents, set(all_nodes))) == 0
 
         roots = []
 
         for node in self.nodes:
-            if not node.is_root():
-                if is_localRoot(node, self.nodes):
+            if not node.isRoot():
+                if isLocalRoot(node, self.nodes):
                     roots.append(node)
 
         return roots
@@ -53,8 +53,8 @@ class SubDag(Dag):
     def getCost(self):
         return inf
 
-    def debug_str(self):
-        return "{" + ", ".join([node.out_rel.name for node in self.nodes]) + "}"
+    def debugStr(self):
+        return "{" + ", ".join([node.outRel.name for node in self.nodes]) + "}"
 
 
 def getBestPartition(nodes):
@@ -139,7 +139,7 @@ def measureCost(nodes, fmwk):
     cost = 0
     if fmwk == 'spark':
         for node in nodes:
-            if node.is_mpc:
+            if node.isMPC:
                 # can't use inf bc it tries to index the job_cost list at inf
                 cost += 1000
             else:

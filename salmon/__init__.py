@@ -18,30 +18,33 @@ def codegen(protocol, config, mpc_frameworks, local_frameworks):
         cfg = CodeGenConfig.from_dict(config)
 
     # apply optimizations
-    dag = comp.rewrite_dag(saldag.OpDag(protocol()))
+    dag = comp.rewriteDag(saldag.OpDag(protocol()))
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
     # for each sub dag run code gen and add resulting job to job queue
     jobqueue = []
-    for job_num, (fmwk, subdag, stored_with) in enumerate(mapping):
+    for job_num, (fmwk, subdag, storedWith) in enumerate(mapping):
         print(job_num, fmwk)
         if fmwk == "sharemind":
             name = "{}-sharemind-job-{}".format(cfg.name, job_num)
-            job = SharemindCodeGen(cfg, subdag, cfg.pid).generate(name, cfg.output_path)
+            job = SharemindCodeGen(cfg, subdag, cfg.pid).generate(
+                name, cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "spark":
             name = "{}-spark-job-{}".format(cfg.name, job_num)
-            job = SparkCodeGen(cfg, subdag).generate(name, cfg.output_path)
+            job = SparkCodeGen(cfg, subdag).generate(name,
+                                                     cfg.output_path)
             jobqueue.append(job)
         elif fmwk == "python":
             name = "{}-python-job-{}".format(cfg.name, job_num)
-            job = PythonCodeGen(cfg, subdag).generate(name, cfg.output_path)
+            job = PythonCodeGen(cfg, subdag).generate(name,
+                                                      cfg.output_path)
             jobqueue.append(job)
         else:
             raise Exception("Unknown framework: " + fmwk)
         
         # TODO: this probably doesn't belong here
-        if not config.pid in stored_with:
+        if not config.pid in storedWith:
             job.skip = True
     # return job
     return jobqueue

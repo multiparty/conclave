@@ -16,17 +16,17 @@ class Node():
         self.children = set()
         self.parents = set()
 
-    def debug_str(self):
+    def debugStr(self):
         """Return extended string representation for debugging."""
-        children_str = str([n.name for n in self.children])
-        parent_str = str([n.name for n in self.parents])
-        return self.name + " children: " + children_str + " parents: " + parent_str
+        childrenStr = str([n.name for n in self.children])
+        parentStr = str([n.name for n in self.parents])
+        return self.name + " children: " + childrenStr + " parents: " + parentStr
 
-    def is_leaf(self):
+    def isLeaf(self):
         """Return whether node is a leaf."""
         return len(self.children) == 0
 
-    def is_root(self):
+    def isRoot(self):
         """Return whether node is a root."""
         return len(self.parents) == 0
 
@@ -37,366 +37,365 @@ class Node():
 
 class OpNode(Node):
 
-    def __init__(self, name, out_rel):
+    def __init__(self, name, outRel):
 
         super(OpNode, self).__init__(name)
-        self.out_rel = out_rel
+        self.outRel = outRel
         # By default we assume that the operator requires data
         # to cross party boundaries. Override this for operators
         # where this is not the case
-        self.is_local = False
-        self.is_mpc = False
+        self.isLocal = False
+        self.isMPC = False
 
     # Indicates whether a node is at the boundary of MPC
     # i.e. if nodes above it are local (there are operators
     # such as aggregations that override this method since
     # other rules apply there)
-    def is_boundary(self):
-        # TODO: could this be (self.is_upper_boundary() or
-        # self.is_lower_boundary())?
-        return self.is_upper_boundary()
+    def isBoundary(self):
+        # TODO: could this be (self.isUpperBoundary() or
+        # self.isLowerBoundary())?
+        return self.isUpperBoundary()
 
-    def is_upper_boundary(self):
+    def isUpperBoundary(self):
 
-        return self.is_mpc and not any([par.is_mpc and not isinstance(par, Close) for par in self.parents])
+        return self.isMPC and not any([par.isMPC and not isinstance(par, Close) for par in self.parents])
 
-    def is_lower_boundary(self):
+    def isLowerBoundary(self):
 
-        return self.is_mpc and not any([child.is_mpc and not isinstance(child, Open) for child in self.children])
+        return self.isMPC and not any([child.isMPC and not isinstance(child, Open) for child in self.children])
 
     # By default operations are not reversible, i.e., given
     # the output of the operation we cannot learn the input
     # Note: for now we are only considering whether an entire relation
     # is reversible as opposed to column level reversibility
-    def is_reversible(self):
+    def isReversible(self):
 
         return False
 
-    def requires_mpc(self):
+    def requiresMPC(self):
 
         return True
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
         return
 
-    def update_stored_with(self):
+    def updateStoredWith(self):
 
         return
 
-    def make_orphan(self):
+    def makeOrphan(self):
 
         # TODO: set self.parent = None?
         self.parents = set()
 
-    def remove_parent(self, parent):
+    def removeParent(self, parent):
 
         self.parents.remove(parent)
 
-    def replace_parent(self, old_parent, new_parent):
+    def replaceParent(self, oldParent, newParent):
 
-        self.parents.remove(old_parent)
-        self.parents.add(new_parent)
+        self.parents.remove(oldParent)
+        self.parents.add(newParent)
 
-    def replace_child(self, old_child, new_child):
+    def replaceChild(self, oldChild, newChild):
 
-        self.children.remove(old_child)
-        self.children.add(new_child)
+        self.children.remove(oldChild)
+        self.children.add(newChild)
 
-    def get_sorted_children(self):
+    def getSortedChildren(self):
 
-        return sorted(list(self.children), key=lambda x: x.out_rel.name)
+        return sorted(list(self.children), key=lambda x: x.outRel.name)
 
-    def get_sorted_parents(self):
+    def getSortedParents(self):
 
-        return sorted(list(self.parents), key=lambda x: x.out_rel.name)
+        return sorted(list(self.parents), key=lambda x: x.outRel.name)
 
     def __str__(self):
 
         return "{}{}->{}".format(
             super(OpNode, self).__str__(),
-            "mpc" if self.is_mpc else "",
-            self.out_rel.name
+            "mpc" if self.isMPC else "",
+            self.outRel.name
         )
 
 
 class UnaryOpNode(OpNode):
 
-    def __init__(self, name, out_rel, parent):
+    def __init__(self, name, outRel, parent):
 
-        super(UnaryOpNode, self).__init__(name, out_rel)
+        super(UnaryOpNode, self).__init__(name, outRel)
         self.parent = parent
         if self.parent:
             self.parents.add(parent)
 
-    def get_in_rel(self):
+    def getInRel(self):
 
-        return self.parent.out_rel
+        return self.parent.outRel
 
-    def requires_mpc(self):
+    def requiresMPC(self):
 
-        return self.get_in_rel().is_shared() and not self.is_local
+        return self.getInRel().isShared() and not self.isLocal
 
-    def update_stored_with(self):
+    def updateStoredWith(self):
 
-        self.out_rel.stored_with = copy.copy(self.get_in_rel().stored_with)
+        self.outRel.storedWith = copy.copy(self.getInRel().storedWith)
 
-    def make_orphan(self):
+    def makeOrphan(self):
 
-        super(UnaryOpNode, self).make_orphan()
+        super(UnaryOpNode, self).makeOrphan()
         self.parent = None
 
-    def replace_parent(self, old_parent, new_parent):
+    def replaceParent(self, oldParent, newParent):
 
-        super(UnaryOpNode, self).replace_parent(old_parent, new_parent)
-        self.parent = new_parent
+        super(UnaryOpNode, self).replaceParent(oldParent, newParent)
+        self.parent = newParent
 
-    def remove_parent(self, parent):
+    def removeParent(self, parent):
 
-        super(UnaryOpNode, self).remove_parent(parent)
+        super(UnaryOpNode, self).removeParent(parent)
         self.parent = None
 
 
 class BinaryOpNode(OpNode):
 
-    def __init__(self, name, out_rel, left_parent, right_parent):
+    def __init__(self, name, outRel, leftParent, rightParent):
 
-        super(BinaryOpNode, self).__init__(name, out_rel)
-        self.left_parent = left_parent
-        self.right_parent = right_parent
-        if self.left_parent:
-            self.parents.add(left_parent)
-        if self.right_parent:
-            self.parents.add(right_parent)
+        super(BinaryOpNode, self).__init__(name, outRel)
+        self.leftParent = leftParent
+        self.rightParent = rightParent
+        if self.leftParent:
+            self.parents.add(leftParent)
+        if self.rightParent:
+            self.parents.add(rightParent)
 
-    def get_left_in_rel(self):
+    def getLeftInRel(self):
 
-        return self.left_parent.out_rel
+        return self.leftParent.outRel
 
-    def get_right_in_rel(self):
+    def getRightInRel(self):
 
-        return self.right_parent.out_rel
+        return self.rightParent.outRel
 
-    def requires_mpc(self):
+    def requiresMPC(self):
 
-        left_stored_with = self.get_left_in_rel().stored_with
-        right_stored_with = self.get_right_in_rel().stored_with
-        combined = left_stored_with.union(right_stored_with)
-        return (len(combined) > 1) and not self.is_local
+        leftStoredWith = self.getLeftInRel().storedWith
+        rightStoredWith = self.getRightInRel().storedWith
+        combined = leftStoredWith.union(rightStoredWith)
+        return (len(combined) > 1) and not self.isLocal
 
-    def make_orphan(self):
+    def makeOrphan(self):
 
-        super(UnaryOpNode, self).make_orphan()
-        self.left_parent = None
-        self.right_parent = None
+        super(UnaryOpNode, self).makeOrphan()
+        self.leftParent = None
+        self.rightParent = None
 
-    def replace_parent(self, old_parent, new_parent):
+    def replaceParent(self, oldParent, newParent):
 
-        super(BinaryOpNode, self).replace_parent(old_parent, new_parent)
-        if self.left_parent == old_parent:
-            self.left_parent = new_parent
-        elif self.right_parent == old_parent:
-            self.right_parent = new_parent
+        super(BinaryOpNode, self).replaceParent(oldParent, newParent)
+        if self.leftParent == oldParent:
+            self.leftParent = newParent
+        elif self.rightParent == oldParent:
+            self.rightParent = newParent
 
-    def remove_parent(self, parent):
+    def removeParent(self, parent):
 
-        super(BinaryOpNode, self).remove_parent(parent)
-        if self.left_parent == parent:
-            self.left_parent = None
-        elif self.right_parent == parent:
-            self.right_parent = None
+        super(BinaryOpNode, self).removeParent(parent)
+        if self.leftParent == parent:
+            self.leftParent = None
+        elif self.rightParent == parent:
+            self.rightParent = None
 
 
 class NaryOpNode(OpNode):
 
-    def __init__(self, name, out_rel, parents):
+    def __init__(self, name, outRel, parents):
 
-        super(NaryOpNode, self).__init__(name, out_rel)
+        super(NaryOpNode, self).__init__(name, outRel)
         self.parents = parents
 
-    def get_in_rels(self):
+    def getInRels(self):
 
         # Returning a set here to emphasize that the order of
         # the returned relations is meaningless (since the parent-set
         # where we're getting the relations from isn't ordered).
         # If we want operators with multiple input relations where
         # the order matters, we do implement it as a separate class.
-        return set([parent.out_rel for parent in self.parents])
+        return set([parent.outRel for parent in self.parents])
 
-    def requires_mpc(self):
+    def requiresMPC(self):
 
-        in_coll_sets = [in_rel.stored_with for in_rel in self.get_in_rels()]
-        in_rels_shared = len(set().union(*in_coll_sets)) > 1
-        return in_rels_shared and not self.is_local
+        inCollSets = [inRel.storedWith for inRel in self.getInRels()]
+        inRelsShared = len(set().union(*inCollSets)) > 1
+        return inRelsShared and not self.isLocal
 
 
 class Create(UnaryOpNode):
 
-    def __init__(self, out_rel):
+    def __init__(self, outRel):
 
-        super(Create, self).__init__("create", out_rel, None)
+        super(Create, self).__init__("create", outRel, None)
         # Input can be done by parties locally
-        self.is_local = True
+        self.isLocal = True
 
-    def requires_mpc(self):
+    def requiresMPC(self):
 
         return False
 
 
 class Store(UnaryOpNode):
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Store, self).__init__("store", out_rel, parent)
+        super(Store, self).__init__("store", outRel, parent)
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
 
 class Persist(UnaryOpNode):
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Persist, self).__init__("persist", out_rel, parent)
+        super(Persist, self).__init__("persist", outRel, parent)
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
 
 class Open(UnaryOpNode):
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Open, self).__init__("open", out_rel, parent)
-        self.is_mpc = True
+        super(Open, self).__init__("open", outRel, parent)
+        self.isMPC = True
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
 
 class Close(UnaryOpNode):
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Close, self).__init__("close", out_rel, parent)
-        self.is_mpc = True
+        super(Close, self).__init__("close", outRel, parent)
+        self.isMPC = True
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
 
 class Send(UnaryOpNode):
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Send, self).__init__("send", out_rel, parent)
+        super(Send, self).__init__("send", outRel, parent)
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
 
 class Concat(NaryOpNode):
 
-    def __init__(self, out_rel, parents):
+    def __init__(self, outRel, parents):
 
-        parent_set = set(parents)
+        parentSet = set(parents)
         # sanity check for now
-        assert(len(parents) == len(parent_set))
-        super(Concat, self).__init__("concat", out_rel, parent_set)
+        assert(len(parents) == len(parentSet))
+        super(Concat, self).__init__("concat", outRel, parentSet)
         self.ordered = parents
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
-    def get_in_rels(self):
+    def getInRels(self):
 
-        return [parent.out_rel for parent in self.ordered]
+        return [parent.outRel for parent in self.ordered]
 
-    def replace_parent(self, old_parent, new_parent):
+    def replaceParent(self, oldParent, newParent):
 
-        super(Concat, self).replace_parent(old_parent, new_parent)
-        # this will throw if old_parent not in list
-        idx = self.ordered.index(old_parent)
-        self.ordered[idx] = new_parent
+        super(Concat, self).replaceParent(oldParent, newParent)
+        # this will throw if oldParent not in list
+        idx = self.ordered.index(oldParent)
+        self.ordered[idx] = newParent
 
-    def remove_parent(self, parent):
+    def removeParent(self, parent):
 
         raise NotImplementedError()
 
 
 class Aggregate(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, group_cols, agg_col, aggregator):
+    def __init__(self, outRel, parent, groupCols, aggCol, aggregator):
 
-        super(Aggregate, self).__init__("aggregation", out_rel, parent)
-        self.group_cols = group_cols
-        self.agg_col = agg_col
+        super(Aggregate, self).__init__("aggregation", outRel, parent)
+        self.groupCols = groupCols
+        self.aggCol = aggCol
         self.aggregator = aggregator
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
         # TODO: do we need to copy here?
-        self.group_cols = \
-            [self.get_in_rel().columns[group_col.idx] for group_col in self.group_cols]
-        self.agg_col = \
-            self.get_in_rel().columns[self.agg_col.idx]
+        self.groupCols = [self.getInRel().columns[groupCol.idx]
+                          for groupCol in self.groupCols]
+        self.aggCol = self.getInRel().columns[self.aggCol.idx]
 
 
 class IndexAggregate(Aggregate):
 
-    def __init__(self, out_rel, parent, group_cols, agg_col, aggregator, eq_flag_op, sorted_keys_op):
+    def __init__(self, outRel, parent, groupCols, aggCol, aggregator, eqFlagOp, sortedKeysOp):
 
         super(IndexAggregate, self).__init__(
-            out_rel, parent, group_cols, agg_col, aggregator)
-        self.eq_flag_op = eq_flag_op
-        self.sorted_keys_op = sorted_keys_op
+            outRel, parent, groupCols, aggCol, aggregator)
+        self.eqFlagOp = eqFlagOp
+        self.sortedKeysOp = sortedKeysOp
 
     @classmethod
-    def from_aggregate(cls, agg_op, eq_flag_op, sorted_keys_op):
+    def fromAggregate(cls, aggOp, eqFlagOp, sortedKeysOp):
 
-        obj = cls(agg_op.out_rel, agg_op.parent, agg_op.group_cols,
-                  agg_op.agg_col, agg_op.aggregator, eq_flag_op, sorted_keys_op)
+        obj = cls(aggOp.outRel, aggOp.parent, aggOp.groupCols,
+                  aggOp.aggCol, aggOp.aggregator, eqFlagOp, sortedKeysOp)
         return obj
 
 
 class Project(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, selected_cols):
+    def __init__(self, outRel, parent, selectedCols):
 
-        super(Project, self).__init__("project", out_rel, parent)
+        super(Project, self).__init__("project", outRel, parent)
         # Projections can be done by parties locally
-        self.is_local = True
-        self.selected_cols = selected_cols
+        self.isLocal = True
+        self.selectedCols = selectedCols
 
-    def is_reversible(self):
+    def isReversible(self):
 
         # slightly oversimplified but basically if we have
         # re-ordered the input columns without dropping any cols
         # then this is reversible
-        return len(self.selected_cols) == len(self.get_in_rel().columns)
+        return len(self.selectedCols) == len(self.getInRel().columns)
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        temp_cols = self.get_in_rel().columns
-        self.selected_cols = [temp_cols[col.idx] for col in temp_cols]
+        tempCols = self.getInRel().columns
+        self.selectedCols = [tempCols[col.idx] for col in tempCols]
 
 
 class Index(UnaryOpNode):
     """Add a column with row indeces to relation"""
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Index, self).__init__("index", out_rel, parent)
+        super(Index, self).__init__("index", outRel, parent)
         # Indexing needs parties to communicate size
-        self.is_local = False
+        self.isLocal = False
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
@@ -404,153 +403,149 @@ class Index(UnaryOpNode):
 class Shuffle(UnaryOpNode):
     """Randomly permute rows of relation"""
 
-    def __init__(self, out_rel, parent):
+    def __init__(self, outRel, parent):
 
-        super(Shuffle, self).__init__("shuffle", out_rel, parent)
-        self.is_local = False
+        super(Shuffle, self).__init__("shuffle", outRel, parent)
+        self.isLocal = False
 
-    def is_reversible(self):
+    def isReversible(self):
         # Order is broken, but all the values are still there
         return True
 
 
 class Multiply(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, target_col, operands):
+    def __init__(self, outRel, parent, targetCol, operands):
 
-        super(Multiply, self).__init__("multiply", out_rel, parent)
+        super(Multiply, self).__init__("multiply", outRel, parent)
         self.operands = operands
-        self.target_col = target_col
-        self.is_local = True
+        self.targetCol = targetCol
+        self.isLocal = True
 
-    def is_reversible(self):
+    def isReversible(self):
 
         # A multiplication is reversible unless one of the operands is 0
         # TODO: is this true?
         return all([op != 0 for op in self.operands])
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        temp_cols = self.get_in_rel().columns
+        tempCols = self.getInRel().columns
         old_operands = copy.copy(self.operands)
-        self.operands = \
-            [temp_cols[col.idx]
-             if isinstance(col, rel.Column)
-             else col for col in old_operands]
+        self.operands = [tempCols[col.idx] if isinstance(
+            col, rel.Column) else col for col in old_operands]
 
 
 class SortBy(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, sort_by_col):
+    def __init__(self, outRel, parent, sortByCol):
 
-        super(SortBy, self).__init__("sortBy", out_rel, parent)
-        self.sort_by_col = sort_by_col
+        super(SortBy, self).__init__("sortBy", outRel, parent)
+        self.sortByCol = sortByCol
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        self.sort_by_col = self.get_in_rel().columns[self.sort_by_col.idx]
+        self.sortByCol = self.getInRel().columns[self.sortByCol.idx]
 
 
 class CompNeighs(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, compCol):
+    def __init__(self, outRel, parent, compCol):
 
-        super(CompNeighs, self).__init__("compNeighs", out_rel, parent)
+        super(CompNeighs, self).__init__("compNeighs", outRel, parent)
         self.compCol = compCol
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        self.compCol = self.get_in_rel().columns[self.compCol.idx]
+        self.compCol = self.getInRel().columns[self.compCol.idx]
 
 
 class Distinct(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, selected_cols):
+    def __init__(self, outRel, parent, selectedCols):
 
-        super(Distinct, self).__init__("distinct", out_rel, parent)
-        self.selected_cols = selected_cols
+        super(Distinct, self).__init__("distinct", outRel, parent)
+        self.selectedCols = selectedCols
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        temp_cols = self.get_in_rel().columns
+        tempCols = self.getInRel().columns
         old_operands = copy.copy(self.operands)
-        self.operands = [temp_cols[col.idx] if isinstance(
+        self.operands = [tempCols[col.idx] if isinstance(
             col, rel.Column) else col for col in old_operands]
 
 
 class Divide(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, target_col, operands):
+    def __init__(self, outRel, parent, targetCol, operands):
 
-        super(Divide, self).__init__("divide", out_rel, parent)
+        super(Divide, self).__init__("divide", outRel, parent)
         self.operands = operands
-        self.target_col = target_col
-        self.is_local = True
+        self.targetCol = targetCol
+        self.isLocal = True
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return True
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        temp_cols = self.get_in_rel().columns
+        tempCols = self.getInRel().columns
         old_operands = copy.copy(self.operands)
-        self.operands = \
-            [temp_cols[col.idx]
-             if isinstance(col, rel.Column)
-             else col for col in old_operands]
+        self.operands = [tempCols[col.idx] if isinstance(
+            col, rel.Column) else col for col in old_operands]
 
 
 class Filter(UnaryOpNode):
 
-    def __init__(self, out_rel, parent, target_col, operator, expr):
+    def __init__(self, outRel, parent, targetCol, operator, expr):
 
-        super(Filter, self).__init__("filter", out_rel, parent)
+        super(Filter, self).__init__("filter", outRel, parent)
         self.operator = operator
-        self.filter_expr = expr
-        self.target_col = target_col
-        self.is_local = True
+        self.filterExpr = expr
+        self.targetCol = targetCol
+        self.isLocal = True
 
-    def is_reversible(self):
+    def isReversible(self):
 
         return False
 
 
 class Join(BinaryOpNode):
 
-    def __init__(self, out_rel, left_parent,
-                 right_parent, left_join_cols, right_join_cols):
+    def __init__(self, outRel, leftParent,
+                 rightParent, leftJoinCols, rightJoinCols):
 
-        super(Join, self).__init__("join", out_rel, left_parent, right_parent)
-        self.left_join_cols = left_join_cols
-        self.right_join_cols = right_join_cols
+        super(Join, self).__init__("join", outRel, leftParent, rightParent)
+        self.leftJoinCols = leftJoinCols
+        self.rightJoinCols = rightJoinCols
 
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        self.left_join_cols = [self.get_left_in_rel().columns[left_join_col.idx]
-                               for left_join_col in copy.copy(self.left_join_cols)]
-        self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
-                                for right_join_col in copy.copy(self.right_join_cols)]
+        self.leftJoinCols = [self.getLeftInRel().columns[leftJoinCol.idx]
+                             for leftJoinCol in copy.copy(self.leftJoinCols)]
+        self.rightJoinCols = [self.getRightInRel().columns[rightJoinCol.idx]
+                              for rightJoinCol in copy.copy(self.rightJoinCols)]
 
 
 class IndexJoin(Join):
     """TODO"""
 
-    def __init__(self, out_rel, left_parent, right_parent,
-                 left_join_cols, right_join_cols, index_rel):
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCols, rightJoinCols, indexRel):
 
-        super(IndexJoin, self).__init__(out_rel, left_parent, right_parent,
-                                        left_join_cols, right_join_cols)
+        super(IndexJoin, self).__init__(outRel, leftParent,
+                                        rightParent, leftJoinCols, rightJoinCols)
         self.name = "indexJoin"
-        self.index_rel = index_rel
+        self.indexRel = indexRel
         # index rel is also a parent
-        self.parents.add(index_rel)
-        self.is_mpc = True
+        self.parents.add(indexRel)
+        self.isMPC = True
 
     @classmethod
-    def from_join(cls, join_op, index_rel):
-        obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
-                  join_op.left_join_cols, join_op.right_join_cols, index_rel)
+    def fromJoin(cls, joinOp, indexRel):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, indexRel)
         return obj
 
 
@@ -564,30 +559,29 @@ class RevealJoin(Join):
     provided that their key column a key in P's input.
     """
 
-    def __init__(self, out_rel, left_parent, right_parent,
-                 left_join_cols, right_join_cols, revealed_in_rel, recepient):
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCols, rightJoinCols, revealedInRel, recepient):
 
-        super(RevealJoin, self).__init__(out_rel, left_parent, right_parent,
-                                         left_join_cols, right_join_cols)
+        super(RevealJoin, self).__init__(outRel, leftParent,
+                                         rightParent, leftJoinCols, rightJoinCols)
         self.name = "revealJoin"
-        self.revealed_in_rel = revealed_in_rel
+        self.revealedInRel = revealedInRel
         self.recepient = recepient
-        self.is_mpc = True
+        self.isMPC = True
 
     @classmethod
-    def from_join(cls, join_op, revealed_in_rel, recepient):
-        obj = cls(join_op.out_rel, join_op.left_parent,
-                  join_op.right_parent, join_op.left_join_cols,
-                  join_op.right_join_cols, revealed_in_rel, recepient)
+    def fromJoin(cls, joinOp, revealedInRel, recepient):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, revealedInRel, recepient)
         return obj
 
     # TODO: remove?
-    def update_op_specific_cols(self):
+    def updateOpSpecificCols(self):
 
-        self.left_join_cols = [self.get_left_in_rel().columns[c.idx]
-                             for c in self.left_join_cols]
-        self.right_join_cols = [self.get_right_in_rel().columns[c.idx]
-                              for c in self.right_join_cols]
+        self.leftJoinCols = [self.getLeftInRel().columns[c.idx]
+                             for c in self.leftJoinCols]
+        self.rightJoinCols = [self.getRightInRel().columns[c.idx]
+                              for c in self.rightJoinCols]
 
 
 class HybridJoin(Join):
@@ -598,22 +592,22 @@ class HybridJoin(Join):
     in both key columns
     """
 
-    def __init__(self, out_rel, left_parent, right_parent,
-                 left_join_cols, right_join_cols, trusted_party):
+    def __init__(self, outRel, leftParent, rightParent,
+                 leftJoinCols, rightJoinCols, trustedParty):
 
-        super(HybridJoin, self).__init__(out_rel, left_parent, right_parent,
-                                         left_join_cols, right_join_cols)
+        super(HybridJoin, self).__init__(outRel, leftParent,
+                                         rightParent, leftJoinCols, rightJoinCols)
         self.name = "hybridJoin"
-        self.trusted_party = trusted_party
-        self.is_mpc = True
+        self.trustedParty = trustedParty
+        self.isMPC = True
 
     @classmethod
-    def from_join(cls, join_op, trusted_party):
-        obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
-                  join_op.left_join_cols, join_op.right_join_cols, trusted_party)
-        obj.children = join_op.children
+    def fromJoin(cls, joinOp, trustedParty):
+        obj = cls(joinOp.outRel, joinOp.leftParent, joinOp.rightParent,
+                  joinOp.leftJoinCols, joinOp.rightJoinCols, trustedParty)
+        obj.children = joinOp.children
         for child in obj.children:
-            child.replace_parent(join_op, obj)
+            child.replaceParent(joinOp, obj)
         return obj
 
 
@@ -623,76 +617,79 @@ class Dag():
 
         self.roots = roots
 
-    def _dfs_visit(self, node, visitor, visited):
+    def _dfsVisit(self, node, visitor, visited):
 
         visitor(node)
         visited.add(node)
         for child in node.children:
             if child not in visited:
-                self._dfs_visit(child, visitor, visited)
+                self._dfsVisit(child, visitor, visited)
 
-    def dfs_visit(self, visitor):
+    def dfsVisit(self, visitor):
 
         visited = set()
 
         for root in self.roots:
-            self._dfs_visit(root, visitor, visited)
+            self._dfsVisit(root, visitor, visited)
 
         return visited
 
-    def dfs_print(self):
+    def dfsPrint(self):
 
-        self.dfs_visit(print)
+        self.dfsVisit(print)
 
-    def get_all_nodes(self):
+    def getAllNodes(self):
 
-        return self.dfs_visit(lambda node: node)
+        return self.dfsVisit(lambda node: node)
 
     # Note: not optimized at all but we're dealing with very small
     # graphs so performance shouldn't be a problem
     # Side-effects on all inputs other than node
-    def _top_sort_visit(self, node, marked, temp_marked,
-                        unmarked, ordered, deterministic=True):
+    def _topSortVisit(self, node, marked, tempMarked,
+                      unmarked, ordered, deterministic=True):
 
-        if node in temp_marked:
+        # print("Visiting", node)
+
+        if node in tempMarked:
             raise Exception("Not a Dag!")
 
         if node not in marked:
             if node in unmarked:
                 unmarked.remove(node)
-            temp_marked.add(node)
+            tempMarked.add(node)
 
             children = node.children
             if deterministic:
-                children = sorted(list(children), key=lambda x: x.out_rel.name)
-            for other_node in children:
-                self._top_sort_visit(
-                    other_node, marked, temp_marked, unmarked, ordered)
+                children = sorted(list(children), key=lambda x: x.outRel.name)
+            for otherNode in children:
+                self._topSortVisit(
+                    otherNode, marked, tempMarked, unmarked, ordered)
 
             marked.add(node)
             if deterministic:
                 unmarked.append(node)
             else:
                 unmarked.add(node)
-            temp_marked.remove(node)
+            tempMarked.remove(node)
             ordered.insert(0, node)
 
-    # TODO: the deterministic flag is a hack, come up with something more elegant
-    def top_sort(self, deterministic=True):
+    # TODO: the deterministic flag is a hack, come up with something more
+    # elegant
+    def topSort(self, deterministic=True):
 
-        unmarked = self.get_all_nodes()
+        unmarked = self.getAllNodes()
         # print("start visit")
 
         if deterministic:
-            unmarked = sorted(list(unmarked), key=lambda x: x.out_rel.name)
+            unmarked = sorted(list(unmarked), key=lambda x: x.outRel.name)
         marked = set()
-        temp_marked = set()
+        tempMarked = set()
         ordered = []
 
         while unmarked:
 
             node = unmarked.pop()
-            self._top_sort_visit(node, marked, temp_marked, unmarked, ordered)
+            self._topSortVisit(node, marked, tempMarked, unmarked, ordered)
 
         return ordered
 
@@ -705,11 +702,11 @@ class OpDag(Dag):
 
     def __str__(self):
 
-        order = self.top_sort()
+        order = self.topSort()
         return ",\n".join(str(node) for node in order)
 
 
-def remove_between(parent, child, other):
+def removeBetween(parent, child, other):
 
     assert len(other.children) < 2
     assert len(other.parents) < 2
@@ -717,17 +714,17 @@ def remove_between(parent, child, other):
     assert isinstance(other, UnaryOpNode)
 
     if child:
-        child.replace_parent(other, parent)
-        child.update_op_specific_cols()
-        parent.replace_child(other, child)
+        child.replaceParent(other, parent)
+        child.updateOpSpecificCols()
+        parent.replaceChild(other, child)
     else:
         parent.children.remove(other)
 
-    other.make_orphan()
+    other.makeOrphan()
     other.children = set()
 
 
-def insert_between_children(parent, other):
+def insertBetweenChildren(parent, other):
 
     assert not other.children
     assert not other.parents
@@ -739,16 +736,16 @@ def insert_between_children(parent, other):
 
     children = copy.copy(parent.children)
     for child in children:
-        child.replace_parent(parent, other)
+        child.replaceParent(parent, other)
         if child in parent.children:
             parent.children.remove(child)
-        child.update_op_specific_cols()
+        child.updateOpSpecificCols()
         other.children.add(child)
 
     parent.children.add(other)
 
 
-def insert_between(parent, child, other):
+def insertBetween(parent, child, other):
 
     # called with grandParent, topNode, toInsert
     assert(not other.children)
@@ -760,12 +757,12 @@ def insert_between(parent, child, other):
     other.parents.add(parent)
     other.parent = parent
     parent.children.add(other)
-    other.update_op_specific_cols()
+    other.updateOpSpecificCols()
 
     # Remove child from parent
     if child:
-        child.replace_parent(parent, other)
+        child.replaceParent(parent, other)
         if child in parent.children:
             parent.children.remove(child)
-        child.update_op_specific_cols()
+        child.updateOpSpecificCols()
         other.children.add(child)

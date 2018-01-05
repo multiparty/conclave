@@ -5,20 +5,20 @@ import os, pystache
 # helper to extract column list
 def _columnList(op):
 
-    return ", <BR/>".join([col.name for col in op.out_rel.columns])
+    return ", <BR/>".join([col.name for col in op.outRel.columns])
 
 
 def _nodeDescription(op, kind, inner):
 
     if inner:
         return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} | {} }}".format(
-                op.out_rel.name,
+                op.outRel.name,
                 kind,
                 inner,
                 _columnList(op))
     else:
         return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} }}".format(
-                op.out_rel.name,
+                op.outRel.name,
                 kind,
                 _columnList(op))
 
@@ -33,20 +33,20 @@ class VizCodeGen(CodeGen):
     def _generateEdges(self):
         edges_code = ""
 
-        nodes = self.dag.top_sort()
+        nodes = self.dag.topSort()
         for node in nodes:
             for c in node.children:
-                edges_code += "{} -> {}\n".format(node.out_rel.name, c.out_rel.name)
+                edges_code += "{} -> {}\n".format(node.outRel.name, c.outRel.name)
         return edges_code
 
     def _generateNode(self, op, descr):
 
-        if op.is_mpc:
+        if op.isMPC:
             c = 1
         else:
             c = 2
         return "{} [style=\"filled\", fillcolor=\"/set312/{}\",  \
-                label=<{}>]\n".format(op.out_rel.name, c, descr)
+                label=<{}>]\n".format(op.outRel.name, c, descr)
 
     def _generateJob(self, job_name, output_directory, op_code):
 
@@ -64,15 +64,15 @@ class VizCodeGen(CodeGen):
                 agg_op,
                 _nodeDescription(agg_op, "AGG",
                     "{}: {}({})".format(
-                        agg_op.out_rel.columns[-1].name,
+                        agg_op.outRel.columns[-1].name,
                         agg_op.aggregator,
-                        agg_op.agg_col)
+                        agg_op.aggCol)
                 )
             )
 
     def _generateConcat(self, concat_op):
 
-        inRelStr = ", ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
+        inRelStr = ", ".join([inRel.name for inRel in concat_op.getInRels()])
 
         return self._generateNode(
                 concat_op,
@@ -81,7 +81,7 @@ class VizCodeGen(CodeGen):
 
     def _generateCreate(self, create_op):
 
-        colTypeStr = ", ".join([col.type_str for col in create_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in create_op.outRel.columns])
 
         return self._generateNode(
                 create_op,
@@ -90,7 +90,7 @@ class VizCodeGen(CodeGen):
 
     def _generateClose(self, close_op):
 
-        colTypeStr = ", ".join([col.type_str for col in close_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in close_op.outRel.columns])
 
         return self._generateNode(
                 close_op,
@@ -99,7 +99,7 @@ class VizCodeGen(CodeGen):
 
     def _generateDistinct(self, distinct_op):
 
-        colTypeStr = ", ".join([col.type_str for col in distinct_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in distinct_op.outRel.columns])
 
         return self._generateNode(
                 distinct_op,
@@ -111,7 +111,7 @@ class VizCodeGen(CodeGen):
         return self._generateNode(
                 div_op,
                 _nodeDescription(div_op, "DIV", "{}: {}".format(
-                    div_op.target_col.name,
+                    div_op.targetCol.name,
                     " / ".join([str(o) for o in div_op.operands]),
                     ))
             )
@@ -122,10 +122,10 @@ class VizCodeGen(CodeGen):
                 join_op,
                 _nodeDescription(join_op, "JOIN",
                     "{} ⋈ {} <br />on: {} ⋈ {}" .format(
-                        join_op.get_left_in_rel().name,
-                        join_op.get_right_in_rel().name,
-                        [c.name for c in join_op.left_join_cols],
-                        [c.name for c in join_op.right_join_cols])
+                        join_op.getLeftInRel().name,
+                        join_op.getRightInRel().name,
+                        [c.name for c in join_op.leftJoinCols],
+                        [c.name for c in join_op.rightJoinCols])
                 )
             )
 
@@ -142,9 +142,9 @@ class VizCodeGen(CodeGen):
                 agg_op,
                 _nodeDescription(agg_op, "INDEX AGG",
                     "{}: {}({})".format(
-                        agg_op.out_rel.columns[-1].name,
+                        agg_op.outRel.columns[-1].name,
                         agg_op.aggregator,
-                        agg_op.agg_col)
+                        agg_op.aggCol)
                 )
             )
 
@@ -154,10 +154,10 @@ class VizCodeGen(CodeGen):
                 join_op,
                 _nodeDescription(join_op, "INDEX JOIN",
                     "{} ⋈ {} <br />on: {} ⋈ {}" .format(
-                        join_op.get_left_in_rel().name,
-                        join_op.get_right_in_rel().name,
-                        [c.name for c in join_op.left_join_cols],
-                        [c.name for c in join_op.right_join_cols])
+                        join_op.getLeftInRel().name,
+                        join_op.getRightInRel().name,
+                        [c.name for c in join_op.leftJoinCols],
+                        [c.name for c in join_op.rightJoinCols])
                 )
             )
 
@@ -166,14 +166,14 @@ class VizCodeGen(CodeGen):
         return self._generateNode(
                 mul_op,
                 _nodeDescription(mul_op, "MUL", "{}: {}".format(
-                    mul_op.target_col.name,
+                    mul_op.targetCol.name,
                     " * ".join([str(o) for o in mul_op.operands]),
                     ))
             )
 
     def _generateOpen(self, open_op):
 
-        colTypeStr = ", ".join([col.type_str for col in open_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in open_op.outRel.columns])
 
         return self._generateNode(
                 open_op,
@@ -182,7 +182,7 @@ class VizCodeGen(CodeGen):
 
     def _generatePersist(self, persist_op):
 
-        colTypeStr = ", ".join([col.type_str for col in persist_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in persist_op.outRel.columns])
 
         return self._generateNode(
                 persist_op,
@@ -191,7 +191,7 @@ class VizCodeGen(CodeGen):
 
     def _generateProject(self, project_op):
 
-        selectedColsStr = ", ".join([str(col) for col in project_op.selected_cols])
+        selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
 
         return self._generateNode(
                 project_op,
@@ -200,7 +200,7 @@ class VizCodeGen(CodeGen):
 
     def _generateShuffle(self, shuffle_op):
 
-        colTypeStr = ", ".join([col.type_str for col in shuffle_op.out_rel.columns])
+        colTypeStr = ", ".join([col.typeStr for col in shuffle_op.outRel.columns])
 
         return self._generateNode(
                 shuffle_op,

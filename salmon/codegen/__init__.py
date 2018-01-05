@@ -71,7 +71,7 @@ class CodeGen:
         op_code = ""
 
         # topological traversal
-        nodes = self.dag.top_sort()
+        nodes = self.dag.topSort()
 
         # TODO: handle subclassing more gracefully
         # for each op
