@@ -1,21 +1,17 @@
+import sys
+
+import salmon.dag as saldag
 import salmon.lang as sal
-from salmon.comp import dagonly
-from salmon.utils import *
 import salmon.partition as part
-from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen.spark import SparkCodeGen
+from salmon import CodeGenConfig
 from salmon.codegen.python import PythonCodeGen
-from salmon.codegen.viz import VizCodeGen
-from salmon import codegen, CodeGenConfig
+from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
-import sys
-import salmon.dag as saldag
+from salmon.utils import *
 
 
-def testHybridJoinWorkflow():
-
+def run_ssn_workflow():
     def hybrid_join():
 
         # define inputs
@@ -106,7 +102,7 @@ def testHybridJoinWorkflow():
         indecesclosed.isMPC = True
 
         joined = sal._index_join(persistedA, persistedB, "joined", [
-                                 "a"], ["c"], indecesclosed)
+            "a"], ["c"], indecesclosed)
         joined.isMPC = True
 
         return joined, set([in1, in2, in3])
@@ -150,57 +146,55 @@ def testHybridJoinWorkflow():
         closedEqFlags.isMPC = True
         closedSortedByKey = sal._close(sortedByKeyStored, "closedSortedByKey", set([1, 2, 3]))
         closedSortedByKey.isMPC = True
-        
+
         agg = sal.index_aggregate(persisted, "agg", ["b"], "d", "+", "d", closedEqFlags, closedSortedByKey)
         agg.isMPC = True
         sal._open(agg, "ssnopened", 1)
 
-
     def protocol():
 
-        joinedres, inputs = hybrid_join()
-        hybrid_agg(joinedres)
+        joined_res, inputs = hybrid_join()
+        hybrid_agg(joined_res)
         return saldag.OpDag(inputs)
 
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
-    sm_cg_config = SharemindCodeGenConfig(
+
+    sm_config = SharemindCodeGenConfig(
         workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
-    codegen_config = CodeGenConfig(
-        workflow_name).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "/mnt/shared/ssn-data"
-    codegen_config.output_path = "/mnt/shared/ssn-data"
+    conclave_config = CodeGenConfig(
+        workflow_name).with_sharemind_config(sm_config)
+    conclave_config.code_path = "/mnt/shared/" + workflow_name
+    conclave_config.input_path = "/mnt/shared/ssn-data-small"
+    conclave_config.output_path = "/mnt/shared/ssn-data-small"
+    network_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
+    conclave_config.with_network_config(network_config)
 
     dag = protocol()
-    # vg = VizCodeGen(codegen_config, dag)
-    # vg.generate("ssn", "/mnt/shared")
 
     mapping = part.heupart(dag, ["sharemind"], ["python"])
     job_queue = []
     for idx, (fmwk, subdag, storedWith) in enumerate(mapping):
         if fmwk == "sharemind":
-            job = SharemindCodeGen(codegen_config, subdag, pid).generate(
+            job = SharemindCodeGen(conclave_config, subdag, pid).generate(
                 "sharemind-" + str(idx), None)
         else:
-            job = PythonCodeGen(codegen_config, subdag).generate(
+            job = PythonCodeGen(conclave_config, subdag).generate(
                 "python-" + str(idx), None)
-        # TODO: this probably doesn't belong here
-        if not pid in storedWith:
+        if pid not in storedWith:
             job.skip = True
         job_queue.append(job)
 
-    sharemind_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "localhost", "port": 9001},
-            2: {"host": "localhost", "port": 9002},
-            3: {"host": "localhost", "port": 9003}
-        }
-    }
-    sm_peer = setup_peer(sharemind_config)
-    dispatch_all(None, sm_peer, job_queue)
+    net_peer = setup_peer(conclave_config.network_config)
+    dispatch_all(None, net_peer, job_queue)
+
 
 if __name__ == "__main__":
-
-    testHybridJoinWorkflow()
+    run_ssn_workflow()

@@ -17,6 +17,14 @@ class CodeGenConfig:
         self.output_path = '/tmp'
         self.system_configs = {}
         self.pid = 1
+        self.network_config = {
+            "pid": self.pid,
+            "parties": {
+                1: {"host": "localhost", "port": 9001},
+                2: {"host": "localhost", "port": 9002},
+                3: {"host": "localhost", "port": 9003}
+            }
+        }
 
     def with_pid(self, pid):
         if not self.inited:
@@ -36,6 +44,13 @@ class CodeGenConfig:
         if not self.inited:
             self.__init__()
         self.system_configs['sharemind'] = cfg
+
+        return self
+
+    def with_network_config(self, cfg):
+        if not self.inited:
+            self.__init__()
+        self.network_config = cfg
 
         return self
 
