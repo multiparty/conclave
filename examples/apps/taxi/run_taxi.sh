@@ -1,7 +1,7 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-export PYTHONPATH=${HOME}/salmon
+export PYTHONPATH=${HOME}/conclave
 export PATH=${PATH}:${HOME}/spark-2.2.0-bin-hadoop2.6/bin
 
 if [[ $# -lt 2 ]]; then
