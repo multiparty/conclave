@@ -15,17 +15,17 @@ def taxi(config, spark_master, sharemind_peer):
             defCol("companyID", "INTEGER", [1]),
             defCol("price", "INTEGER", [1])
         ]
-        in1 = sal.create("green1", colsIn1, set([1]))
+        in1 = sal.create("in1", colsIn1, set([1]))
         colsIn2 = [
             defCol("companyID", "INTEGER", [2]),
             defCol("price", "INTEGER", [2])
         ]
-        in2 = sal.create("green2", colsIn2, set([2]))
+        in2 = sal.create("in2", colsIn2, set([2]))
         colsIn3 = [
             defCol("companyID", "INTEGER", [3]),
             defCol("price", "INTEGER", [3])
         ]
-        in3 = sal.create("green3", colsIn3, set([3]))
+        in3 = sal.create("in3", colsIn3, set([3]))
 
         cab_data = sal.concat([in1, in2, in3], "cab_data")
 
