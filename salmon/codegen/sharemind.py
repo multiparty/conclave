@@ -1,11 +1,11 @@
-from salmon.codegen import CodeGen, CodeGenConfig
+from salmon.codegen import CodeGen
+from salmon.config import CodeGenConfig
 from salmon.job import SharemindJob
 from salmon.dag import *
 from salmon.rel import *
-import os, sys
+import os
+import sys
 import pystache
-import shutil
-
 
 class SharemindCodeGenConfig(CodeGenConfig):
 

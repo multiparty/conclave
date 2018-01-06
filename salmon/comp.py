@@ -677,7 +677,8 @@ def rewriteDag(dag):
 
 
 def scotch(f):
-    from salmon.codegen import scotch, CodeGenConfig
+    from salmon.codegen import scotch
+    from salmon import CodeGenConfig
 
     def wrap():
         code = scotch.ScotchCodeGen(CodeGenConfig(), f())._generate(None, None)
@@ -687,7 +688,8 @@ def scotch(f):
 
 
 def sharemind(f):
-    from salmon.codegen import sharemind, CodeGenConfig
+    from salmon.codegen import sharemind
+    from salmon import CodeGenConfig
 
     # TODO: (ben) missing args to SharemindCodeGen, as
     # well as a call to with_sharemind_config. Also have

@@ -1,9 +1,8 @@
 from . import part
-from salmon.dag import OpDag, Dag, Create, Close, Open, UnaryOpNode, Persist
-from salmon.codegen import scotch
+from salmon.dag import OpDag, Dag, Create, Open, Persist
 from copy import copy, deepcopy
 from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen import CodeGenConfig
+from salmon.config import CodeGenConfig
 
 
 def partDag(dag):

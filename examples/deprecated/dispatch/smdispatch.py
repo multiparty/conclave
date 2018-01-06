@@ -1,5 +1,5 @@
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen import CodeGenConfig
+from salmon import CodeGenConfig
 import salmon.dispatch
 import salmon.net
 from salmon.comp import dagonly

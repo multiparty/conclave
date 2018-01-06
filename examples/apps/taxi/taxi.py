@@ -1,9 +1,8 @@
 import salmon.dispatch
 import salmon.net
 import salmon.lang as sal
-from salmon.codegen import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon import codegen
+from salmon import codegen, CodeGenConfig
 from salmon.utils import *
 import sys
 

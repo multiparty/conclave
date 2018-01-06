@@ -4,10 +4,9 @@ from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen import CodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
-from salmon import codegen
+from salmon import codegen, CodeGenConfig
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys

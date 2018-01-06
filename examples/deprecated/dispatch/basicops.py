@@ -1,4 +1,4 @@
-from salmon.codegen import CodeGenConfig
+from salmon import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 import salmon.dispatch
 import salmon.net

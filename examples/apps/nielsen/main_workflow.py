@@ -1,6 +1,7 @@
 import salmon.lang as sal
 from salmon.comp import dagonly
-from salmon.codegen import spark, viz, CodeGenConfig
+from salmon.codegen import spark, viz
+from salmon import CodeGenConfig
 from salmon.utils import *
 
 

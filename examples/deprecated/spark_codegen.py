@@ -1,6 +1,6 @@
 import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
-from salmon.codegen import CodeGenConfig
+from salmon import CodeGenConfig
 from salmon.utils import *
 from salmon.comp import dagonly
 
