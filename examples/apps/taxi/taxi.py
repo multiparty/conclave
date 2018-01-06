@@ -73,14 +73,6 @@ if __name__ == "__main__":
     spark_master_url = sys.argv[4]
 
     workflow_name = "job-" + str(pid)
-    config = {
-        "name": "taxi",
-        "pid": pid,
-        "delimiter": ",",
-        "code_path": "/mnt/shared/" + workflow_name,
-        "input_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
-        "output_path": "hdfs://{}/{}/taxi".format(hdfs_namenode, hdfs_root),
-    }
     sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
