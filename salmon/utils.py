@@ -13,6 +13,13 @@ def mergeCollSets(left, right):
     :param left: collusion record
     :param right: collusion record
     :returns: all combinations of collusion sets from records
+    
+    >>> left = set([frozenset([1, 2]), frozenset([3, 4])])
+    >>> right = set([frozenset([5, 6]), frozenset([7])])
+    >>> actual = mergeCollSets(left, right)
+    >>> expected = {frozenset({1, 2, 5, 6}), frozenset({1, 2, 7}), frozenset({3, 4, 5, 6}), frozenset({3, 4, 7})}
+    >>> actual == expected
+    True
     """
     if not left:
         return copy.copy(right)
@@ -46,5 +53,10 @@ def find(columns, colName):
 def defCol(name, tpy, *collSets):
     """
     ???
+    
+    >>> actual = defCol("a", "INTEGER", [1], [2], [1, 2, 3])
+    >>> expected = ('a', 'INTEGER', {frozenset({1, 2, 3}), frozenset({2}), frozenset({1})})
+    >>> actual == expected
+    True
     """
     return (name, tpy, set([frozenset(collSet) for collSet in collSets]))
