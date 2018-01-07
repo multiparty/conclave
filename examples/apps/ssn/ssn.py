@@ -153,8 +153,7 @@ def run_ssn_workflow():
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
 
-    sm_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
+    sm_config = SharemindCodeGenConfig("/mnt/shared", use_hdfs=False, use_docker=True)
     conclave_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_config)
     conclave_config.pid = pid

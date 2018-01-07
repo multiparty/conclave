@@ -66,10 +66,10 @@ if __name__ == "__main__":
     spark_master_url = sys.argv[4]
 
     workflow_name = "job-" + str(pid)
-    sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
+    sm_config = SharemindCodeGenConfig("/mnt/shared")
     spark_config = SparkConfig(spark_master_url)
     conclave_config = CodeGenConfig(workflow_name) \
-        .with_sharemind_config(sm_cg_config) \
+        .with_sharemind_config(sm_config) \
         .with_spark_config(spark_config)
     conclave_config.code_path = "/mnt/shared/" + workflow_name
     conclave_config.input_path = "hdfs://{}/{}/taxi".format(
