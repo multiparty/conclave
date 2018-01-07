@@ -7,7 +7,7 @@ from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
 from salmon.codegen.viz import VizCodeGen
-from salmon import codegen, CodeGenConfig
+from salmon import generate_code, CodeGenConfig
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys

@@ -2,7 +2,7 @@ import salmon.dispatch
 import salmon.net
 import salmon.lang as sal
 from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon import codegen, CodeGenConfig
+from salmon import generate_code, CodeGenConfig
 from salmon.utils import *
 import sys
 
@@ -55,10 +55,10 @@ def taxi(config, spark_master, sharemind_peer):
         # return root nodes
         return set([in1, in2, in3])
 
-    jobqueue = codegen(protocol, config, ["sharemind"], ["spark"])
-    print(jobqueue)
+    job_queue = generate_code(protocol, config, ["sharemind"], ["spark"])
+    print(job_queue)
 
-    salmon.dispatch.dispatch_all(spark_master, sharemind_peer, jobqueue)
+    salmon.dispatch.dispatch_all(spark_master, sharemind_peer, job_queue)
 
 
 if __name__ == "__main__":

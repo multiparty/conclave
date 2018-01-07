@@ -59,4 +59,4 @@ def defCol(name, tpy, *collSets):
     >>> actual == expected
     True
     """
-    return (name, tpy, set([frozenset(collSet) for collSet in collSets]))
+    return name, tpy, set([frozenset(collSet) for collSet in collSets])

@@ -3,34 +3,37 @@ import functools
 import pickle
 
 
-class IAMMsg():
+class IAMMsg:
+    """Message identifying peer."""
 
     def __init__(self, pid):
-
         self.pid = pid
 
     def __str__(self):
-
         return "IAMMsg({})".format(self.pid)
 
-class DoneMsg():
+
+class DoneMsg:
+    """Message signifying that peer has finished a task."""
 
     def __init__(self, pid, task_name):
-
         self.pid = pid
         self.task_name = task_name
 
     def __str__(self):
-
         return "DoneMsg({})".format(self.pid)
 
-class FailMsg():
+
+class FailMsg:
+    """Message signifying that peer failed to complete a task."""
     # TODO
     pass
 
 
 class SalmonProtocol(asyncio.Protocol):
-    # defines what messages salmon peers can send to each other
+    """
+    The Salmon network protocol defines what messages salmon peers can send each other and how to interpret these.
+    """
 
     def __init__(self, peer):
 
@@ -99,8 +102,9 @@ class SalmonProtocol(asyncio.Protocol):
                 print("failed to parse line:", line)
 
 
-class SalmonPeer():
-    # handles communication with other peers
+class SalmonPeer:
+    """A salmon network peer exposes networking functionality. Used to transfer messages to other peers and forward the
+    received messages to the other peers."""
 
     def __init__(self, loop, config):
 
@@ -128,7 +132,6 @@ class SalmonPeer():
             if isinstance(msg, DoneMsg):
                 self.dispatcher.receive_msg(msg)
         self.msg_buffer = [msg for msg in self.msg_buffer if isinstance(msg, DoneMsg)]
-
 
     def connect_to_others(self):
 
@@ -199,7 +202,11 @@ class SalmonPeer():
 
 
 def setup_peer(config):
-
+    """
+    Creates a peer and connects peer to all other peers. Blocks until connection succeeds.
+    :param config: network configuration
+    :return: connected peer
+    """
     loop = asyncio.get_event_loop()
     peer = SalmonPeer(loop, config)
     loop.run_until_complete(peer.server)

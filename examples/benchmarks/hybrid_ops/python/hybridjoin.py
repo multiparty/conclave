@@ -7,7 +7,7 @@ from salmon.codegen.scotch import ScotchCodeGen
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.codegen.spark import SparkCodeGen
 from salmon.codegen.python import PythonCodeGen
-from salmon import codegen, CodeGenConfig
+from salmon import generate_code, CodeGenConfig
 from salmon.dispatch import dispatch_all
 from salmon.net import setup_peer
 import sys
@@ -53,7 +53,7 @@ def testHybridJoinWorkflow():
     codegen_config.input_path = "/mnt/shared/hybridjoin/" + size
     codegen_config.output_path = "/mnt/shared/hybridjoin/" + size
 
-    jobqueue = codegen(protocol, codegen_config, ["sharemind"], ["python"])
+    jobqueue = generate_code(protocol, codegen_config, ["sharemind"], ["python"])
     sharemind_config = {
         "pid": pid,
         "parties": {
