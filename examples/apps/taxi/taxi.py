@@ -1,64 +1,57 @@
-import salmon.dispatch
-import salmon.net
-import salmon.lang as sal
-from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon import generate_code, CodeGenConfig
-from salmon.utils import *
 import sys
 
+import salmon.lang as sal
+from salmon import CodeGenConfig
+from salmon import generate_and_dispatch
+from salmon.codegen.sharemind import SharemindCodeGenConfig
+from salmon.codegen.spark import SparkConfig
+from salmon.utils import *
 
-def taxi(config, spark_master, sharemind_peer):
 
-    def protocol():
+def protocol():
+    cols_in_1 = [
+        defCol("companyID", "INTEGER", [1]),
+        defCol("price", "INTEGER", [1])
+    ]
+    in1 = sal.create("in1", cols_in_1, {1})
+    cols_in_2 = [
+        defCol("companyID", "INTEGER", [2]),
+        defCol("price", "INTEGER", [2])
+    ]
+    in2 = sal.create("in2", cols_in_2, {2})
+    cols_in_3 = [
+        defCol("companyID", "INTEGER", [3]),
+        defCol("price", "INTEGER", [3])
+    ]
+    in3 = sal.create("in3", cols_in_3, {3})
 
-        colsIn1 = [
-            defCol("companyID", "INTEGER", [1]),
-            defCol("price", "INTEGER", [1])
-        ]
-        in1 = sal.create("in1", colsIn1, set([1]))
-        colsIn2 = [
-            defCol("companyID", "INTEGER", [2]),
-            defCol("price", "INTEGER", [2])
-        ]
-        in2 = sal.create("in2", colsIn2, set([2]))
-        colsIn3 = [
-            defCol("companyID", "INTEGER", [3]),
-            defCol("price", "INTEGER", [3])
-        ]
-        in3 = sal.create("in3", colsIn3, set([3]))
+    cab_data = sal.concat([in1, in2, in3], "cab_data")
 
-        cab_data = sal.concat([in1, in2, in3], "cab_data")
+    selected_input = sal.project(
+        cab_data, "selected_input", ["companyID", "price"])
+    local_rev = sal.aggregate(selected_input, "local_rev", [
+        "companyID"], "price", "+", "local_rev")
+    scaled_down = sal.divide(
+        local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
+    first_val_blank = sal.multiply(
+        scaled_down, "first_val_blank", "companyID", ["companyID", 0])
+    local_rev_scaled = sal.multiply(
+        first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
+    total_rev = sal.aggregate(first_val_blank, "total_rev", [
+        "companyID"], "local_rev", "+", "global_rev")
+    local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", [
+        "companyID"], ["companyID"])
+    market_share = sal.divide(local_total_rev, "market_share", "local_rev", [
+        "local_rev", "global_rev"])
+    market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
+                                        ["local_rev", "local_rev", 1])
+    hhi = sal.aggregate(market_share_squared, "hhi", [
+        "companyID"], "local_rev", "+", "hhi")
 
-        selected_input = sal.project(
-            cab_data, "selected_input", ["companyID", "price"])
-        local_rev = sal.aggregate(selected_input, "local_rev", [
-                                  "companyID"], "price", "+", "local_rev")
-        scaled_down = sal.divide(
-            local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
-        first_val_blank = sal.multiply(
-            scaled_down, "first_val_blank", "companyID", ["companyID", 0])
-        local_rev_scaled = sal.multiply(
-            first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
-        total_rev = sal.aggregate(first_val_blank, "total_rev", [
-                                  "companyID"], "local_rev", "+", "global_rev")
-        local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", [
-                                   "companyID"], ["companyID"])
-        market_share = sal.divide(local_total_rev, "market_share", "local_rev", [
-                                  "local_rev", "global_rev"])
-        market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
-                                            ["local_rev", "local_rev", 1])
-        hhi = sal.aggregate(market_share_squared, "hhi", [
-                            "companyID"], "local_rev", "+", "hhi")
+    sal.collect(hhi, 1)
 
-        sal.collect(hhi, 1)
-
-        # return root nodes
-        return set([in1, in2, in3])
-
-    job_queue = generate_code(protocol, config, ["sharemind"], ["spark"])
-    print(job_queue)
-
-    salmon.dispatch.dispatch_all(spark_master, sharemind_peer, job_queue)
+    # return root nodes
+    return {in1, in2, in3}
 
 
 if __name__ == "__main__":
@@ -74,24 +67,16 @@ if __name__ == "__main__":
 
     workflow_name = "job-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(workflow_name, "/mnt/shared")
-    codegen_config = CodeGenConfig(
-        workflow_name).with_sharemind_config(sm_cg_config)
-    codegen_config.code_path = "/mnt/shared/" + workflow_name
-    codegen_config.input_path = "hdfs://{}/{}/taxi".format(
+    spark_config = SparkConfig(spark_master_url)
+    conclave_config = CodeGenConfig(workflow_name) \
+        .with_sharemind_config(sm_cg_config) \
+        .with_spark_config(spark_config)
+    conclave_config.code_path = "/mnt/shared/" + workflow_name
+    conclave_config.input_path = "hdfs://{}/{}/taxi".format(
         hdfs_namenode, hdfs_root)
-    codegen_config.output_path = "hdfs://{}/{}/taxi".format(
+    conclave_config.output_path = "hdfs://{}/{}/taxi".format(
         hdfs_namenode, hdfs_root)
-    codegen_config.pid = pid
-    codegen_config.name = workflow_name
+    conclave_config.pid = pid
+    conclave_config.name = workflow_name
 
-    sharemind_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
-        }
-    }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
-
-    taxi(codegen_config, spark_master_url, sm_peer)
+    generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])

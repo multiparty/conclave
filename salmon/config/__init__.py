@@ -44,7 +44,14 @@ class CodeGenConfig:
     def with_sharemind_config(self, cfg):
         if not self.inited:
             self.__init__()
-        self.system_configs['sharemind'] = cfg
+        self.system_configs["sharemind"] = cfg
+
+        return self
+
+    def with_spark_config(self, cfg):
+        if not self.inited:
+            self.__init__()
+        self.system_configs["spark"] = cfg
 
         return self
 

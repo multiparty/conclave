@@ -3,6 +3,15 @@ from salmon.codegen import CodeGen
 import os, pystache
 
 
+class SparkConfig:
+    """
+    Spark configuration.
+    """
+
+    def __init__(self, spark_master_url):
+        self.spark_master_url = spark_master_url
+
+
 def cache_var(op_node):
     if len(op_node.children) > 1:
         return ".cache()"

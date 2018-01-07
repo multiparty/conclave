@@ -1,17 +1,17 @@
-from salmon.codegen import CodeGen
-from salmon.config import CodeGenConfig
-from salmon.job import SharemindJob
-from salmon.dag import *
-from salmon.rel import *
 import os
 import sys
+
 import pystache
 
-class SharemindCodeGenConfig(CodeGenConfig):
+from salmon.codegen import CodeGen
+from salmon.dag import *
+from salmon.job import SharemindJob
+from salmon.rel import *
 
-    def __init__(self, job_name=None, home_path="/tmp", use_docker=True, use_hdfs=True):
 
-        super(SharemindCodeGenConfig, self).__init__(job_name)
+class SharemindCodeGenConfig():
+
+    def __init__(self, home_path="/tmp", use_docker=True, use_hdfs=True):
         self.home_path = home_path
         self.use_docker = use_docker
         self.use_hdfs = use_hdfs
@@ -136,7 +136,7 @@ class SharemindCodeGen(CodeGen):
         # only support one output party
         assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
-        return next(iter(output_parties)) # pop
+        return next(iter(output_parties))  # pop
 
     def _get_input_parties(self, nodes):
 
@@ -170,9 +170,9 @@ class SharemindCodeGen(CodeGen):
                     close_op, header, job_name)[:-1])
             else:
                 hdfs_import_statements.append("cp {} {}".format(
-                        self.config.output_path + "/" + name + ".csv",
-                        self.config.code_path + "/" + job_name + "/" + name + ".csv"
-                    )
+                    self.config.output_path + "/" + name + ".csv",
+                    self.config.code_path + "/" + job_name + "/" + name + ".csv"
+                )
                 )
             # generate csv import code
             import_statements.append(self._generateCSVImport(
@@ -204,14 +204,14 @@ class SharemindCodeGen(CodeGen):
             # TODO: hack hack hack
             if self.sm_config.use_hdfs:
                 hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
-                    code_path + "/" + job_name + "/" + name, 
-                    self.config.output_path + "/"  + name
+                    code_path + "/" + job_name + "/" + name,
+                    self.config.output_path + "/" + name
                 )
             else:
                 hdfs_cmd = "cp {}.csv {}.csv".format(
-                    code_path + "/" + job_name + "/" + name, 
-                    self.config.output_path + "/"  + name
-                )    
+                    code_path + "/" + job_name + "/" + name,
+                    self.config.output_path + "/" + name
+                )
             hdfs_cmds.append(hdfs_cmd)
         hdfs_cmds_str = "\n".join(hdfs_cmds)
 
@@ -237,7 +237,8 @@ class SharemindCodeGen(CodeGen):
         open_ops = list(filter(lambda op_node: isinstance(op_node, Open), nodes))
         rel_names = [open_op.outRel.name for open_op in open_ops]
         num_cols = [str(len(open_op.outRel.columns)) for open_op in open_ops]
-        rels_meta_str = " ".join(["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
+        rels_meta_str = " ".join(
+            ["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
 
         dataInner = {
             "CODE_PATH": code_path + "/" + job_name,
@@ -287,7 +288,6 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-
     def _generateClose(self, close_op):
 
         template = open(
@@ -298,7 +298,7 @@ class SharemindCodeGen(CodeGen):
             "IN_REL_NAME": close_op.getInRel().name
         }
         return pystache.render(template, data)
-        
+
     def _generateConcat(self, concat_op):
 
         inRels = concat_op.getInRels()

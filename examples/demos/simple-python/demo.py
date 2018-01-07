@@ -22,7 +22,7 @@ def protocol():
     # square column_b, i.e., compute (column_a, column_b) -> (column_a, column_b * column_b)
     squared = lang.multiply(input_relation, "squared", "column_b", ["column_b", "column_b"])
     # sum group by column_a on column_b and rename group-over column to summed
-    aggregated = lang.aggregate(squared, "aggregated", ["column_a"], "column_b", "+", "summed")
+    lang.aggregate(squared, "aggregated", ["column_a"], "column_b", "+", "summed")
     # leaf nodes are automatically written to file so aggregated will be written to ./data/aggregated.csv
 
     # return all input relations
