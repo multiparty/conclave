@@ -10,7 +10,7 @@ from salmon.net import SalmonPeer
 from salmon.net import setup_peer
 
 
-def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks):
+def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, apply_optimizations=True):
     """
     Applies optimization rewrite passes to protocol, partitions resulting dag, and generates backend specific code for
     each sub-dag.
@@ -18,6 +18,7 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks):
     :param conclave_config: conclave configuration
     :param mpc_frameworks: available mpc backend frameworks
     :param local_frameworks: available local-processing backend frameworks
+    :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to dag
     :return: queue of job objects to be executed by dispatcher
     """
     # currently only allow one local and one mpc framework
@@ -30,7 +31,10 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks):
         cfg = CodeGenConfig.from_dict(conclave_config)
 
     # apply optimizations
-    dag = comp.rewriteDag(saldag.OpDag(protocol()))
+    dag = saldag.OpDag(protocol())
+    # only apply optimizations if required
+    if apply_optimizations:
+        dag = comp.rewriteDag(dag)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
     # for each sub dag run code gen and add resulting job to job queue
@@ -76,12 +80,12 @@ def dispatch_jobs(job_queue, conclave_config):
 
 
 def generate_and_dispatch(protocol, conclave_config, mpc_frameworks,
-                          local_frameworks):
+                          local_frameworks, apply_optimizations=True):
     """
     Calls generate_code to generate code from protocol and :func:`~salmon.__init__.dispatch_jobs` to
     dispatch it.
     """
-    job_queue = generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks)
+    job_queue = generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, apply_optimizations)
     dispatch_jobs(job_queue, conclave_config)
 
 
