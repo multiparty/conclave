@@ -78,5 +78,14 @@ if __name__ == "__main__":
         hdfs_namenode, hdfs_root)
     conclave_config.pid = pid
     conclave_config.name = workflow_name
+    network_config = {
+        "pid": pid,
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
+    conclave_config.with_network_config(network_config)
 
     generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
