@@ -29,9 +29,23 @@ def project(rel, selected_cols):
 
     return [[row[idx] for idx in selected_cols] for row in rel]
 
+# TODO handle multi-column case and aggregators other than sum
+def aggregate(rel, group_by_idx, over_idx, aggregator):
+
+    acc = {}
+    for row in rel:
+        key = row[group_by_idx]
+        if key not in acc:
+            acc[key] = 0
+        acc[key] += row[over_idx]
+    return [[key, value] for key, value in acc.items()]
+
+def arithmetic_project(rel, target_col_idx, f):
+
+    return [[value if idx != target_col_idx else f(row) for idx, value in enumerate(row)] for row in rel]
+
 def project_indeces(rel):
 
-    print("project_indeces", len(rel))
     return [[idx] + rest for (idx, rest) in enumerate(rel)]
 
 def join(left, right, left_col, right_col):

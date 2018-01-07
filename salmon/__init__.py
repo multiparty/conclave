@@ -68,9 +68,9 @@ def dispatch_jobs(job_queue, conclave_config):
     :param job_queue: jobs to dispatch
     :param conclave_config: conclave configuration
     """
-    # if more than one party is involved in the protocol, we need a networked peer
     networked_peer = None
-    if len(conclave_config.network_config["parties"].keys()) > 1:
+    # if more than one party is involved in the protocol, we need a networked peer
+    if len(conclave_config.all_pids) > 1:
         networked_peer = _setup_networked_peer(conclave_config.network_config)
     dispatch_all(None, networked_peer, job_queue)
 
@@ -82,7 +82,7 @@ def generate_and_dispatch(protocol, conclave_config, mpc_frameworks,
     dispatch it.
     """
     job_queue = generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks)
-    dispatch_jobs(job_queue)
+    dispatch_jobs(job_queue, conclave_config)
 
 
 def _setup_networked_peer(network_config):

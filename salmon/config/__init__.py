@@ -17,6 +17,7 @@ class CodeGenConfig:
         self.output_path = '/tmp'
         self.system_configs = {}
         self.pid = 1
+        self.all_pids = [1, 2, 3]
         self.network_config = {
             "pid": self.pid,
             "parties": {
