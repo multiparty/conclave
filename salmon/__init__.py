@@ -62,7 +62,7 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks):
     return job_queue
 
 
-def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig) -> None:
+def dispatch_jobs(job_queue, conclave_config):
     """
     Dispatches jobs to respective backends.
     :param job_queue: jobs to dispatch
@@ -75,8 +75,8 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig) -> None:
     dispatch_all(None, networked_peer, job_queue)
 
 
-def generate_and_dispatch(protocol: function, conclave_config: CodeGenConfig, mpc_frameworks: list,
-                          local_frameworks: list) -> None:
+def generate_and_dispatch(protocol, conclave_config, mpc_frameworks,
+                          local_frameworks):
     """
     Calls generate_code to generate code from protocol and :func:`~salmon.__init__.dispatch_jobs` to
     dispatch it.
@@ -85,5 +85,5 @@ def generate_and_dispatch(protocol: function, conclave_config: CodeGenConfig, mp
     dispatch_jobs(job_queue)
 
 
-def _setup_networked_peer(network_config: CodeGenConfig) -> SalmonPeer:
+def _setup_networked_peer(network_config):
     return setup_peer(network_config)
