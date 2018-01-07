@@ -4,10 +4,9 @@ import salmon.dag as saldag
 import salmon.lang as sal
 import salmon.partition as part
 from salmon import CodeGenConfig
+from salmon import dispatch_jobs
 from salmon.codegen.python import PythonCodeGen
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.dispatch import dispatch_all
-from salmon.net import setup_peer
 from salmon.utils import *
 
 
@@ -192,8 +191,7 @@ def run_ssn_workflow():
             job.skip = True
         job_queue.append(job)
 
-    net_peer = setup_peer(conclave_config.network_config)
-    dispatch_all(None, net_peer, job_queue)
+    dispatch_jobs(job_queue, conclave_config)
 
 
 if __name__ == "__main__":
