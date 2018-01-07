@@ -157,6 +157,8 @@ def run_ssn_workflow():
         workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
     conclave_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_config)
+    conclave_config.pid = pid
+    conclave_config.all_pids = [1, 2, 3]
     conclave_config.code_path = "/mnt/shared/" + workflow_name
     conclave_config.input_path = "/mnt/shared/ssn-data-small"
     conclave_config.output_path = "/mnt/shared/ssn-data-small"
