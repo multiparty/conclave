@@ -95,6 +95,11 @@ class SparkCodeGen(CodeGen):
         # codegen can take strings like {'c':'sum', 'd':'sum'}
         aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
+        # TODO: this renaming convention will only work if we stick to general aggregations (sum, min, max, etc.)
+        old = aggregator + '(' + agg_op.aggCol.name + ')'
+        new = agg_op.outRel.columns[-1].name
+        # TODO: (ben) find renamed col name
+
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'agg'), 'r').read()
 
@@ -103,7 +108,9 @@ class SparkCodeGen(CodeGen):
             'AGGCOLS': aggcol_str,
             'INREL': agg_op.getInRel().name,
             'OUTREL': agg_op.outRel.name,
-            'CACHE_VAR': cache_var(agg_op)
+            'CACHE_VAR': cache_var(agg_op),
+            'OLD': old,
+            'NEW': new
         }
 
         return pystache.render(template, data) + store_code
