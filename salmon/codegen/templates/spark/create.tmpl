@@ -1,7 +1,9 @@
 
+schema = {{{SCHEMA}}}
+
 {{{RELATION_NAME}}} = sp.read.csv(
     '{{{INPUT_PATH}}}',
-    inferSchema=True,
-    header=True) \
+    schema=schema,
+    header=False) \
     {{{CACHE_VAR}}}
 

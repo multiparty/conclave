@@ -19,6 +19,15 @@ def cache_var(op_node):
         return ''
 
 
+def convert_type(type_str):
+    if type_str == "INTEGER":
+        return "IntegerType()"
+    elif type_str == "STRING":
+        return "StringType()"
+    else:
+        raise Exception("Unsupported Column Data Type")
+
+
 class SparkCodeGen(CodeGen):
 
     def __init__(self, config, dag,
@@ -51,6 +60,7 @@ class SparkCodeGen(CodeGen):
                 'RELATION_NAME': op.outRel.name,
                 'OUTPUT_PATH': self.config.output_path,
             }
+
             store_code += pystache.render(template, data)
 
         return store_code
@@ -124,8 +134,12 @@ class SparkCodeGen(CodeGen):
         template = open("{}/create.tmpl"
                         .format(self.template_directory), 'r').read()
 
+        schema = ["StructField('{0}', {1}, True)".format(
+            col.name, convert_type(col.typeStr)) for col in create_op.outRel.columns]
+
         data = {
             'RELATION_NAME': create_op.outRel.name,
+            'SCHEMA': 'StructType([' + ','.join(schema) + '])',
             'INPUT_PATH': self.config.input_path + '/' + create_op.outRel.name,
             'CACHE_VAR': cache_var(create_op)
         }

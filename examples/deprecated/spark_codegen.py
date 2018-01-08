@@ -98,7 +98,9 @@ def join():
     inpts = setup()
     in1, in2 = inpts[0], inpts[1]
 
-    join = sal.join(in1, in2, "join", ["a", "b"], ["a", "b"])
+    proj_a = sal.project(in1, "proj", ["a", "b"])
+
+    join = sal.join(proj_a, in2, "join", ["a", "b"], ["a", "b"])
 
     out = sal.collect(join, 1)
 
