@@ -98,7 +98,6 @@ class SparkCodeGen(CodeGen):
         # TODO: this renaming convention will only work if we stick to general aggregations (sum, min, max, etc.)
         old = aggregator + '(' + agg_op.aggCol.name + ')'
         new = agg_op.outRel.columns[-1].name
-        # TODO: (ben) find renamed col name
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'agg'), 'r').read()
@@ -147,7 +146,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'RELATION_NAME': create_op.outRel.name,
             'SCHEMA': 'StructType([' + ','.join(schema) + '])',
-            'INPUT_PATH': self.config.input_path + '/' + create_op.outRel.name,
+            'INPUT_PATH': self.config.input_path + '/' + create_op.outRel.name + '.csv',
             'CACHE_VAR': cache_var(create_op)
         }
 
