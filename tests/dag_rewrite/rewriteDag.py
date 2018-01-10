@@ -1,6 +1,7 @@
 import salmon.lang as sal
 from salmon.comp import mpc, scotch
 from salmon.utils import *
+import os
 
 
 def testSingleConcat():
@@ -34,14 +35,13 @@ def testSingleConcat():
         # return root nodes
         return set([in1, in2, in3])
 
-    expected = """CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CREATE RELATION in2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC in2([a {2}, b {2}]) {2} INTO in2_close([a {2}, b {2}]) {1}
-CREATE RELATION in3([a {3}, b {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC in3([a {3}, b {3}]) {3} INTO in3_close([a {3}, b {3}]) {1}
-CONCAT [in1([a {1}, b {1}]) {1}, in2_close([a {2}, b {2}]) {1}, in3_close([a {3}, b {3}]) {1}] AS rel([a {1,2,3}, b {1,2,3}]) {1}
-"""
     actual = protocol()
+
+    expected_rootdir = "{}/rewrite_expected".format(os.path.dirname(os.path.realpath(__file__)))
+    # uncomment this to regenerate (needed if .tmpl files change)
+    # open(expected_rootdir + '/{}'.format('concat'), 'w').write(actual)
+
+    expected = open(expected_rootdir + '/{}'.format('concat'), 'r').read()
     assert expected == actual, actual
 
 
@@ -951,6 +951,7 @@ MULTIPLY [a -> a * 1] FROM (agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}) AS m
 
 if __name__ == "__main__":
 
+    '''
     testSingleConcat()
     testSingleAgg()
     testSingleProj()
@@ -961,7 +962,18 @@ if __name__ == "__main__":
     testAggProj()
     testConcatPushdown()
     testHybridJoinOpt()
-    # testHybridAndRevealJoinOpt()
+    #testHybridAndRevealJoinOpt()
     testJoin()
     testTaxi()
     testAggPushdown()
+    '''
+
+    # doesn't work:
+
+    # testSingle()
+    # testMultiple()
+    # testMultAgg()
+    # testJoinConcat()
+    # testJoinConcat2()
+    # testInternalAgg()
+    # testAgg()
