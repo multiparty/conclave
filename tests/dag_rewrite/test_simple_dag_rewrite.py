@@ -6,11 +6,14 @@ from salmon.utils import *
 import os
 
 
+# suppresses annoying warnings about open files
 def ignore_resource_warnings(test_func):
+
     def do_test(self, *args, **kwargs):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
             test_func(self, *args, **kwargs)
+
     return do_test
 
 
@@ -22,6 +25,7 @@ class TestConclave(TestCase):
 
         # uncomment this to regenerate (needed if rewrite logic changes)
         # open(expected_rootdir + '/{}'.format(name), 'w').write(code)
+
         expected = open(expected_rootdir + '/{}'.format(name), 'r').read()
         self.assertEqual(expected, code)
 
