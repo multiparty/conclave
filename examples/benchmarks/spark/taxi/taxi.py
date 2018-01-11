@@ -18,12 +18,12 @@ def protocol():
         defCol("companyID", "INTEGER", [1]),
         defCol("price", "INTEGER", [1])
     ]
-    yellow2 = sal.create("yellow2", cols_in_2, {1})
+    yellow2 = sal.create("yellow2", cols_in_2, {2})
     cols_in_3 = [
         defCol("companyID", "INTEGER", [1]),
         defCol("price", "INTEGER", [1])
     ]
-    yellow3 = sal.create("yellow3", cols_in_3, {1})
+    yellow3 = sal.create("yellow3", cols_in_3, {3})
 
     cab_data = sal.concat([yellow1, yellow2, yellow3], "cab_data")
 
