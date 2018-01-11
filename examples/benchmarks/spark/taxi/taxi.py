@@ -29,7 +29,7 @@ def protocol():
     cab_data = sal.concat([yellow1, yellow2, yellow3], "cab_data")
     '''
     cab_data = yellow1
-    
+
     selected_input = sal.project(
         cab_data, "selected_input", ["companyID", "price"])
     local_rev = sal.aggregate(selected_input, "local_rev", [

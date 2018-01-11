@@ -1,3 +1,6 @@
+"""
+Generates Spark code
+"""
 from salmon.job import SparkJob
 from salmon.codegen import CodeGen
 import os, pystache
@@ -13,6 +16,9 @@ class SparkConfig:
 
 
 def cache_var(op_node):
+    """
+    Determines whether a Spark Dataframe should be cached or not
+    """
     if len(op_node.children) > 1:
         return ".cache()"
     else:
@@ -20,6 +26,9 @@ def cache_var(op_node):
 
 
 def convert_type(type_str):
+    """
+    Converts Conclave type strings to Spark code
+    """
     if type_str == "INTEGER":
         return "IntegerType()"
     elif type_str == "STRING":
@@ -29,6 +38,9 @@ def convert_type(type_str):
 
 
 class SparkCodeGen(CodeGen):
+    """
+    Spark Code Generation Data Structure
+    """
 
     def __init__(self, config, dag,
             template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
@@ -36,6 +48,14 @@ class SparkCodeGen(CodeGen):
         self.template_directory = template_directory
 
     def _generateJob(self, job_name, code_directory, op_code):
+        """
+        Top level CodeGen template
+
+        :param job_name: Name of job, derived from config
+        :param code_directory: Code storage filepath, derived from config
+        :param op_code: Recursively generated code string
+        :return: <SparkJob>, <CodeString> tuple
+        """
 
         template = open("{}/job.tmpl"
                         .format(self.template_directory), 'r').read()
@@ -51,6 +71,11 @@ class SparkCodeGen(CodeGen):
         return job, op_code
 
     def _generateStore(self, op):
+        """
+        Generates code for storing output of a Spark operation
+        :param op: Store Node
+        :return: String generated from store.tmpl and Node attributes.
+        """
 
         store_code = ''
         if op.isLeaf():
