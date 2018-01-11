@@ -1,3 +1,6 @@
+"""
+Simple example workflow for MOC deployment of Conclave
+"""
 import salmon.lang as sal
 import salmon.dispatch as dis
 from salmon.comp import dagonly
@@ -46,9 +49,8 @@ def join(namenode, root, master_url):
     config.output_path = "hdfs://{}/{}/join_out" \
         .format(namenode, root)
 
-    # call Spark codegen directly, rather than the top level codegen
-    # class
     cg = spark.SparkCodeGen(config, dag)
+    # generate spark code directly, rather than top level codegen class
     job = cg.generate(config.name, config.output_path)
     job_queue = [job]
 
