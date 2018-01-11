@@ -13,19 +13,19 @@ def protocol():
         defCol("companyID", "INTEGER", [1]),
         defCol("price", "INTEGER", [1])
     ]
-    in1 = sal.create("in1", cols_in_1, {1})
+    yellow1 = sal.create("yellow1", cols_in_1, {1})
     cols_in_2 = [
         defCol("companyID", "INTEGER", [1]),
         defCol("price", "INTEGER", [1])
     ]
-    in2 = sal.create("in2", cols_in_2, {1})
+    yellow2 = sal.create("yellow2", cols_in_2, {1})
     cols_in_3 = [
         defCol("companyID", "INTEGER", [1]),
         defCol("price", "INTEGER", [1])
     ]
-    in3 = sal.create("in3", cols_in_3, {1})
+    yellow3 = sal.create("yellow3", cols_in_3, {1})
 
-    cab_data = sal.concat([in1, in2, in3], "cab_data")
+    cab_data = sal.concat([yellow1, yellow2, yellow3], "cab_data")
 
     selected_input = sal.project(
         cab_data, "selected_input", ["companyID", "price"])
@@ -51,7 +51,7 @@ def protocol():
     sal.collect(hhi, 1)
 
     # return root nodes
-    return {in1, in2, in3}
+    return {yellow1, yellow2, yellow3}
 
 
 if __name__ == "__main__":
