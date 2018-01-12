@@ -36,7 +36,7 @@ def protocol():
     out = sal.collect(join2, 1)
 
     # return root nodes
-    return {[in1, in2, in3]}
+    return {in1, in2, in3}
 
 
 if __name__ == "__main__":
