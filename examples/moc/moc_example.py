@@ -42,7 +42,7 @@ def protocol():
 if __name__ == "__main__":
 
     if len(sys.argv) < 5:
-        print("usage: taxi.py <HDFS master node:port> <HDFS root dir> <Spark master url> <party_id>")
+        print("usage: moc_example.py <HDFS master node:port> <HDFS root dir> <Spark master url> <party_id>")
         sys.exit(1)
 
     hdfs_namenode = sys.argv[1]

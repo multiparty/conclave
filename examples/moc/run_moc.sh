@@ -11,4 +11,4 @@ fi
 
 hadoop fs -rm -r /home/ubuntu/taxi/join2
 
-python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+python3 ${DIR}/moc_example.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
