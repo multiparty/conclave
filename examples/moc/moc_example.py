@@ -26,9 +26,9 @@ def protocol():
     ]
 
     # instantiate input columns
-    in1 = sal.create("in1", cols_in_a, {[1]})
-    in2 = sal.create("in2", cols_in_b, {[1]})
-    in3 = sal.create("in3", cols_in_c, {[1]})
+    in1 = sal.create("in1", cols_in_a, {1})
+    in2 = sal.create("in2", cols_in_b, {1})
+    in3 = sal.create("in3", cols_in_c, {1})
 
     # operate on columns
     join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
