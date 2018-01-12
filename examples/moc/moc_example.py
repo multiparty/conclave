@@ -42,13 +42,13 @@ def protocol():
 if __name__ == "__main__":
 
     if len(sys.argv) < 5:
-        print("usage: moc_example.py <HDFS master node:port> <HDFS root dir> <Spark master url> <party_id>")
+        print("usage: moc_example.py <party_id> <HDFS master node:port> <HDFS root dir> <Spark master url>")
         sys.exit(1)
 
-    hdfs_namenode = sys.argv[1]
-    hdfs_root = sys.argv[2]
-    spark_master_url = sys.argv[3]
-    pid = sys.argv[4]
+    pid = int(sys.argv[1])
+    hdfs_namenode = sys.argv[2]
+    hdfs_root = sys.argv[3]
+    spark_master_url = sys.argv[4]
 
     workflow_name = "job-" + str(pid)
 
