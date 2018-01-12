@@ -82,7 +82,7 @@ if __name__ == "__main__":
     generate_and_dispatch(
         protocol,
         conclave_config,
-        mpc_frameworks=None,
+        mpc_frameworks=["sharemind"],
         local_frameworks=["spark"]
     )
 

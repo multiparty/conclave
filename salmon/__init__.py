@@ -21,8 +21,8 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, a
     :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to dag
     :return: queue of job objects to be executed by dispatcher
     """
-    # TODO: removed constraint that sharemind fmwk must be included
-    # assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
+    # currently only allow one local and one mpc framework
+    assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
 
     # set up code gen config object
     if isinstance(conclave_config, CodeGenConfig):
