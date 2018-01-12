@@ -5,7 +5,7 @@ export PYTHONPATH=${HOME}/conclave
 export PATH=${PATH}:${HOME}/spark-2.2.0-bin-hadoop2.6/bin
 
 if [[ $# -lt 2 ]]; then
-  echo "usage: run-taxi.sh <party ID> <cluster prefix>"
+  echo "usage: run-moc.sh <party ID> <cluster prefix>"
   exit 1
 fi
 
