@@ -9,61 +9,62 @@ import salmon.lang as sal
 import salmon.utils as utils
 
 
-def push_op_node_down(top_node, bottom_node):
+def push_op_node_down(top_node: saldag.OpNode, bottom_node: saldag.OpNode):
     # only dealing with one grandchild case for now
     assert (len(bottom_node.children) <= 1)
     child = next(iter(bottom_node.children), None)
 
     # remove bottom node between the bottom node's child
     # and the top node
-    saldag.removeBetween(top_node, child, bottom_node)
+    saldag.remove_between(top_node, child, bottom_node)
 
     # we need all parents of the parent node
-    grandParents = copy.copy(top_node.getSortedParents())
+    grand_parents = copy.copy(top_node.get_sorted_parents())
 
     # we will insert the removed bottom node between
     # each parent of the top node and the top node
-    for idx, grandParent in enumerate(grandParents):
-        toInsert = copy.deepcopy(bottom_node)
-        toInsert.outRel.rename(toInsert.outRel.name + "_" + str(idx))
-        toInsert.parents = set()
-        toInsert.children = set()
-        saldag.insertBetween(grandParent, top_node, toInsert)
-        toInsert.updateStoredWith()
+    for idx, grand_parent in enumerate(grand_parents):
+        to_insert = copy.deepcopy(bottom_node)
+        to_insert.out_rel.rename(to_insert.out_rel.name + "_" + str(idx))
+        to_insert.parents = set()
+        to_insert.children = set()
+        saldag.insert_between(grand_parent, top_node, to_insert)
+        to_insert.update_stored_with()
 
 
-def splitNode(node):
+def split_node(node: saldag.OpNode):
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
-    clone.outRel.rename(node.outRel.name + "_obl")
+    clone.out_rel.rename(node.out_rel.name + "_obl")
     clone.parents = set()
     clone.children = set()
-    clone.isMPC = True
+    clone.is_mpc = True
     child = next(iter(node.children), None)
-    saldag.insertBetween(node, child, clone)
+    saldag.insert_between(node, child, clone)
 
 
-def forkNode(node):
+# TODO: (ben) verify that setting the node type as OpNode here is OK for calls like node.ordered
+def fork_node(node: saldag.OpNode):
     # we can skip the first child
-    childIt = enumerate(copy.copy(node.getSortedChildren()))
-    next(childIt)
+    child_it = enumerate(copy.copy(node.get_sorted_children()))
+    next(child_it)
     # clone node for each of the remaining children
-    for idx, child in childIt:
+    for idx, child in child_it:
         # create clone and rename output relation to
         # avoid identical relation names for different nodes
         clone = copy.deepcopy(node)
-        clone.outRel.rename(node.outRel.name + "_" + str(idx))
+        clone.out_rel.rename(node.out_rel.name + "_" + str(idx))
         clone.parents = copy.copy(node.parents)
-        warnings.warn("hacky forkNode")
+        warnings.warn("hacky fork_node")
         clone.ordered = copy.copy(node.ordered)
-        clone.children = set([child])
+        clone.children = {child}
         for parent in clone.parents:
             parent.children.add(clone)
         node.children.remove(child)
         # make cloned node the child's new parent
-        child.replaceParent(node, clone)
-        child.updateOpSpecificCols()
+        child.replace_parent(node, clone)
+        child.update_op_specific_cols()
 
 
 class DagRewriter:
@@ -73,16 +74,16 @@ class DagRewriter:
         # If true we visit topological ordering of dag in reverse
         self.reverse = False
 
-    def rewrite(self, dag):
+    def rewrite(self, dag: saldag.OpDag):
 
-        ordered = dag.topSort()
+        ordered = dag.top_sort()
         if self.reverse:
             ordered = ordered[::-1]
 
         for node in ordered:
-            print(type(self).__name__, "rewriting", node.outRel.name)
+            print(type(self).__name__, "rewriting", node.out_rel.name)
             if isinstance(node, saldag.Aggregate):
-                self._rewriteAggregate(node)
+                self._rewrite_Aggregate(node)
             elif isinstance(node, saldag.Divide):
                 self._rewriteDivide(node)
             elif isinstance(node, saldag.Project):
@@ -118,7 +119,7 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
-    def _do_commute(self, top_op, bottom_op):
+    def _do_commute(self, top_op: saldag.OpNode, bottom_op: saldag.OpNode):
 
         # TODO: over-simplified
         # TODO: add rules for other ops
@@ -130,25 +131,25 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewriteDefault(self, node):
+    def _rewrite_default(self, node: saldag.OpNode):
 
-        node.isMPC = node.requiresMPC()
+        node.is_mpc = node.requires_mpc()
 
-    def _rewriteUnaryDefault(self, node):
+    def _rewrite_unary_default(self, node: saldag.OpNode):
 
         parent = next(iter(node.parents))
-        if parent.isMPC:
+        if parent.is_mpc:
             # if node is leaf stop
-            if node.isLeaf():
-                node.isMPC = True
+            if node.is_leaf():
+                node.is_mpc = True
                 return
             # node is not leaf
-            if isinstance(parent, saldag.Concat) and parent.isBoundary():
+            if isinstance(parent, saldag.Concat) and parent.is_boundary():
                 push_op_node_down(parent, node)
             elif isinstance(parent, saldag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
-                if isinstance(agg_parent, saldag.Concat) and agg_parent.isBoundary():
+                if isinstance(agg_parent, saldag.Concat) and agg_parent.is_boundary():
                     concat_op = agg_parent
                     assert len(concat_op.children) == 1
                     push_op_node_down(agg_op, node)
@@ -161,54 +162,54 @@ class MPCPushDown(DagRewriter):
         else:
             pass
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
-            if isinstance(parent, saldag.Concat) and parent.isBoundary():
-                splitNode(node)
+            if isinstance(parent, saldag.Concat) and parent.is_boundary():
+                split_node(node)
                 push_op_node_down(parent, node)
             else:
                 node.isMPC = True
         else:
             pass
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteRevealJoin(self, node):
+    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
 
         raise Exception("RevealJoin encountered during MPCPushDown")
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
         raise Exception("HybridJoin encountered during MPCPushDown")
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
 
-        self._rewriteDefault(node)
+        self._rewrite_default(node)
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
 
-        if node.requiresMPC():
-            node.isMPC = True
-            if len(node.children) > 1 and node.isBoundary():
-                forkNode(node)
+        if node.requires_mpc():
+            node.is_mpc = True
+            if len(node.children) > 1 and node.is_boundary():
+                fork_node(node)
 
-    def _rewriteCreate(self, node):
+    def _rewriteCreate(self, node: saldag.Create):
 
         pass
 
@@ -220,59 +221,59 @@ class MPCPushUp(DagRewriter):
         super(MPCPushUp, self).__init__()
         self.reverse = True
 
-    def _rewriteUnaryDefault(self, node):
+    def _rewrite_unary_default(self, node: saldag.UnaryOpNode):
 
         par = next(iter(node.parents))
-        if node.isReversible() and node.isLowerBoundary() and not par.isRoot():
+        if node.is_reversible() and node.is_lower_boundary() and not par.is_root():
             print("lower boundary", node)
-            node.getInRel().storedWith = copy.copy(node.outRel.storedWith)
-            node.isMPC = False
+            node.get_in_rel().stored_with = copy.copy(node.out_rel.stored_with)
+            node.is_mpc = False
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
 
         pass
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
 
-        self._rewriteUnaryDefault(node)
+        self._rewrite_unary_default(node)
 
-    def _rewriteRevealJoin(self, node):
+    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
 
         raise Exception("RevealJoin encountered during MPCPushUp")
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
         raise Exception("HybridJoin encountered during MPCPushUp")
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
 
         pass
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
 
         # concats are always reversible so we just need to know
         # if we're dealing with a boundary node
-        if node.isLowerBoundary():
+        if node.is_lower_boundary():
 
-            outStoredWith = node.outRel.storedWith
+            out_stored_with = node.out_rel.stored_with
             for par in node.parents:
-                if not par.isRoot():
-                    par.outRel.storedWith = copy.copy(outStoredWith)
-            node.isMPC = False
+                if not par.is_root():
+                    par.out_rel.stored_with = copy.copy(out_stored_with)
+            node.is_mpc = False
 
-    def _rewriteCreate(self, node):
+    def _rewrite_create(self, node: saldag.Create):
 
         pass
 
@@ -283,116 +284,111 @@ class CollSetPropDown(DagRewriter):
 
         super(CollSetPropDown, self).__init__()
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
-        inGroupCols = node.groupCols
-        outGroupCols = node.outRel.columns[:-1]
-        # TODO: (ben/malte) is the collSet propagation a 1:1 mapping here,
-        # or is there a relationship between the collusion set associated
-        # with two keyCols i & j?
-        for i in range(len(outGroupCols)):
-            outGroupCols[i].collSets |= copy.deepcopy(inGroupCols[i].collSets)
-        inAggCol = node.aggCol
-        outAggCol = node.outRel.columns[-1]
-        outAggCol.collSets |= copy.deepcopy(inAggCol.collSets)
+        in_group_cols = node.group_cols
+        out_group_cols = node.out_rel.columns[:-1]
+        for i in range(len(out_group_cols)):
+            out_group_cols[i].coll_sets |= copy.deepcopy(in_group_cols[i].coll_sets)
+        in_agg_col = node.agg_col
+        out_agg_col = node.out_rel.columns[-1]
+        out_agg_col.coll_sets |= copy.deepcopy(in_agg_col.coll_sets)
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
 
-        outRelCols = node.outRel.columns
+        out_rel_cols = node.out_rel.columns
         operands = node.operands
-        targetCol = node.targetCol
+        target_col = node.target_col
 
         # Update target column collusion set
-        targetColOut = outRelCols[targetCol.idx]
+        target_col_out = out_rel_cols[target_col.idx]
 
-        targetColOut.collSets |= utils.collSetsFromColumns(operands)
+        target_col_out.coll_sets |= utils.coll_sets_from_columns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
-        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
-            if inCol != targetCol:
-                outCol.collSets |= copy.deepcopy(inCol.collSets)
+        for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
+            if in_col != target_col:
+                out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
 
-        inCols = node.getInRel().columns
-        selectedCols = node.selectedCols
+        selected_cols = node.selected_cols
 
-        for inCol, outCol in zip(selectedCols, node.outRel.columns):
-            outCol.collSets |= copy.deepcopy(inCol.collSets)
+        for in_col, out_col in zip(selected_cols, node.out_rel.columns):
+            out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
 
-        inCols = node.getInRel().columns
-        outRelCols = node.outRel.columns
+        out_rel_cols = node.out_rel.columns
 
-        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
-            outCol.collSets |= copy.deepcopy(inCol.collSets)
+        for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
+            out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
 
-        outRelCols = node.outRel.columns
+        out_rel_cols = node.out_rel.columns
         operands = node.operands
-        targetCol = node.targetCol
+        target_col = node.target_col
 
         # Update target column collusion set
-        targetColOut = outRelCols[targetCol.idx]
+        target_col_out = out_rel_cols[target_col.idx]
 
-        targetColOut.collSets |= utils.collSetsFromColumns(operands)
+        target_col_out.coll_sets |= utils.coll_sets_from_columns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
-        for inCol, outCol in zip(node.getInRel().columns, outRelCols):
-            if inCol != targetCol:
-                outCol.collSets |= copy.deepcopy(inCol.collSets)
+        for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
+            if in_col != target_col:
+                out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
         raise Exception("HybridJoin encountered during CollSetPropDown")
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
 
-        leftInRel = node.getLeftInRel()
-        rightInRel = node.getRightInRel()
+        left_in_rel = node.get_left_in_rel()
+        right_in_rel = node.get_right_in_rel()
 
-        leftJoinCols = node.leftJoinCols
-        rightJoinCols = node.rightJoinCols
+        left_join_cols = node.left_join_cols
+        right_join_cols = node.right_join_cols
 
-        numJoinCols = len(leftJoinCols)
+        num_join_cols = len(left_join_cols)
 
-        outJoinCols = node.outRel.columns[:numJoinCols]
-        keyColsCollSets = []
-        for i in range(len(leftJoinCols)):
-            keyColsCollSets.append(utils.mergeCollSets(
-                leftJoinCols[i].collSets, rightJoinCols[i].collSets))
-            outJoinCols[i].collSets = keyColsCollSets[i]
+        out_join_cols = node.out_rel.columns[:num_join_cols]
+        key_cols_coll_sets = []
+        for i in range(len(left_join_cols)):
+            key_cols_coll_sets.append(utils.merge_coll_sets(
+                left_join_cols[i].coll_sets, right_join_cols[i].coll_sets))
+            out_join_cols[i].coll_sets = key_cols_coll_sets[i]
 
-        absIdx = len(leftJoinCols)
-        for inCol in leftInRel.columns:
-            if inCol not in set(leftJoinCols):
-                for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                        keyColCollSets, inCol.collSets)
-                absIdx += 1
+        abs_idx = len(left_join_cols)
+        for in_col in left_in_rel.columns:
+            if in_col not in set(left_join_cols):
+                for key_col_coll_sets in key_cols_coll_sets:
+                    node.out_rel.columns[abs_idx].coll_sets = \
+                        utils.merge_coll_sets(key_col_coll_sets, in_col.coll_sets)
+                abs_idx += 1
 
-        for inCol in rightInRel.columns:
-            if inCol not in set(rightJoinCols):
-                for keyColCollSets in keyColsCollSets:
-                    node.outRel.columns[absIdx].collSets = utils.mergeCollSets(
-                        keyColCollSets, inCol.collSets)
-                absIdx += 1
+        for in_col in right_in_rel.columns:
+            if in_col not in set(right_join_cols):
+                for key_col_coll_sets in key_cols_coll_sets:
+                    node.out_rel.columns[abs_idx].coll_sets = \
+                        utils.merge_coll_sets(key_col_coll_sets, in_col.coll_sets)
+                abs_idx += 1
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
 
         # Copy over columns from existing relation
-        outRelCols = node.outRel.columns
+        out_rel_cols = node.out_rel.columns
 
         # Combine per-column collusion sets
-        for idx, col in enumerate(outRelCols):
-            columnsAtIdx = [inRel.columns[idx] for inRel in node.getInRels()]
-            col.collSets = utils.collSetsFromColumns(columnsAtIdx)
+        for idx, col in enumerate(out_rel_cols):
+            columns_at_idx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]
+            col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
 
-    def _rewriteCreate(self, node):
+    def _rewrite_create(self, node: saldag.Create):
 
         pass
 
@@ -403,58 +399,58 @@ class HybridJoinOpt(DagRewriter):
 
         super(HybridJoinOpt, self).__init__()
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
 
         pass
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
 
         pass
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
 
         pass
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
 
         pass
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
 
         pass
 
-    def _rewriteRevealJoin(self, node):
+    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
 
         # TODO
         pass
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
         raise Exception("HybridJoin encountered during HybridJoinOpt")
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
 
-        if node.isMPC:
-            outRel = node.outRel
-            keyColIdx = 0
+        if node.is_mpc:
+            out_rel = node.out_rel
+            key_col_idx = 0
             # oversimplifying here. what if there are multiple singleton
-            # collSets?
-            singletonCollSets = filter(
+            # coll_sets?
+            singleton_coll_sets = filter(
                 lambda s: len(s) == 1,
-                outRel.columns[keyColIdx].collSets)
-            singletonCollSets = sorted(list(singletonCollSets))
-            if singletonCollSets:
-                trustedParty = next(iter(singletonCollSets[0]))
-                hybridJoinOp = saldag.HybridJoin.fromJoin(node, trustedParty)
-                parents = hybridJoinOp.parents
+                out_rel.columns[key_col_idx].coll_sets)
+            singleton_coll_sets = sorted(list(singleton_coll_sets))
+            if singleton_coll_sets:
+                trusted_party = next(iter(singleton_coll_sets[0]))
+                hybrid_join_op = saldag.HybridJoin.from_join(node, trusted_party)
+                parents = hybrid_join_op.parents
                 for par in parents:
-                    par.replaceChild(node, hybridJoinOp)
+                    par.replace_child(node, hybrid_join_op)
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
 
         pass
 
-    def _rewriteCreate(self, node):
+    def _rewrite_create(self, node: saldag.Create):
 
         pass
 
@@ -466,101 +462,100 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         super(InsertOpenAndCloseOps, self).__init__()
 
-    def _rewriteDefaultUnary(self, node):
+    def _rewrite_default_unary(self, node: saldag.UnaryOpNode):
 
-        # TODO: can there be a case when children have different
-        # storedWith sets?
+        # TODO: can there be a case when children have different stored_with sets?
         warnings.warn("hacky insert store ops")
-        inStoredWith = node.getInRel().storedWith
-        outStoredWith = node.outRel.storedWith
-        if inStoredWith != outStoredWith:
-            if (node.isLowerBoundary()):
+        in_stored_with = node.get_in_rel().stored_with
+        out_stored_with = node.out_rel.stored_with
+        if in_stored_with != out_stored_with:
+            if node.is_lower_boundary():
                 # input is stored with one set of parties
                 # but output must be stored with another so we
                 # need an open operation
-                outRel = copy.deepcopy(node.outRel)
-                outRel.rename(outRel.name + "_open")
-                # reset storedWith on parent so input matches output
-                node.outRel.storedWith = copy.copy(inStoredWith)
+                out_rel = copy.deepcopy(node.out_rel)
+                out_rel.rename(out_rel.name + "_open")
+                # reset stored_with on parent so input matches output
+                node.out_rel.stored_with = copy.copy(in_stored_with)
 
                 # create and insert store node
-                storeOp = saldag.Open(outRel, None)
-                storeOp.isMPC = True
-                saldag.insertBetweenChildren(node, storeOp)
+                store_op = saldag.Open(out_rel, None)
+                store_op.is_mpc = True
+                saldag.insert_between_children(node, store_op)
             else:
                 raise Exception(
-                    "different storedWith on non-lower-boundary unary op", node)
+                    "different stored_with on non-lower-boundary unary op", node)
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
-        self._rewriteDefaultUnary(node)
+        self._rewrite_default_unary(node)
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
 
-        self._rewriteDefaultUnary(node)
+        self._rewrite_default_unary(node)
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
 
-        self._rewriteDefaultUnary(node)
+        self._rewrite_default_unary(node)
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
 
-        self._rewriteDefaultUnary(node)
+        self._rewrite_default_unary(node)
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
 
-        self._rewriteDefaultUnary(node)
+        self._rewrite_default_unary(node)
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
-        self._rewriteJoin(node)
+        self._rewrite_join(node)
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
 
-        outStoredWith = node.outRel.storedWith
-        orderedPars = [node.leftParent, node.rightParent]
+        out_stored_with = node.out_rel.storedWith
+        ordered_pars = [node.left_parent, node.right_parent]
 
-        leftStoredWith = node.getLeftInRel().storedWith
-        rightStoredWith = node.getRightInRel().storedWith
-        inStoredWith = leftStoredWith | rightStoredWith
+        left_stored_with = node.get_left_in_rel().stored_with
+        right_stored_with = node.get_right_in_rel().stored_with
+        in_stored_with = left_stored_with | right_stored_with
 
-        for parent in orderedPars:
-            if (node.isUpperBoundary()):
+        for parent in ordered_pars:
+            if node.is_upper_boundary():
                 # Entering mpc mode so need to secret-share before op
-                outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_close")
-                outRel.storedWith = copy.copy(inStoredWith)
+                out_rel = copy.deepcopy(parent.out_rel)
+                out_rel.rename(out_rel.name + "_close")
+                out_rel.stored_with = copy.copy(in_stored_with)
                 # create and insert close node
-                closeOp = saldag.Close(outRel, None)
-                closeOp.isMPC = True
-                saldag.insertBetween(parent, node, closeOp)
+                close_op = saldag.Close(out_rel, None)
+                close_op.is_mpc = True
+                saldag.insert_between(parent, node, close_op)
             # else:
             #     raise Exception(
-            #         "different storedWith on non-upper-boundary join", node.debugStr())
-        if node.isLeaf():
-            if len(inStoredWith) > 1 and len(outStoredWith) == 1:
-                targetParty = next(iter(outStoredWith))
-                node.outRel.storedWith = copy.copy(inStoredWith)
-                sal._open(node, node.outRel.name + "_open", targetParty)
+            #         "different stored_with on non-upper-boundary join", node.debug_str())
+        if node.is_leaf():
+            if len(in_stored_with) > 1 and len(out_stored_with) == 1:
+                target_party = next(iter(out_stored_with))
+                node.out_rel.storedWith = copy.copy(in_stored_with)
+                sal._open(node, node.out_rel.name + "_open", target_party)
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
 
-        assert (not node.isLowerBoundary())
+        assert (not node.is_lower_boundary())
 
-        outStoredWith = node.outRel.storedWith
-        orderedPars = node.getSortedParents()
-        for parent in orderedPars:
-            parStoredWith = parent.outRel.storedWith
-            if parStoredWith != outStoredWith:
-                outRel = copy.deepcopy(parent.outRel)
-                outRel.rename(outRel.name + "_close")
-                outRel.storedWith = copy.copy(outStoredWith)
+        out_stored_with = node.out_rel.storedWith
+        ordered_pars = node.get_sorted_parents()
+        for parent in ordered_pars:
+            par_stored_with = parent.out_rel.storedWith
+            if par_stored_with != out_stored_with:
+                out_rel = copy.deepcopy(parent.out_rel)
+                out_rel.rename(out_rel.name + "_close")
+                out_rel.stored_with = copy.copy(out_stored_with)
                 # create and insert close node
-                storeOp = saldag.Close(outRel, None)
-                storeOp.isMPC = True
-                saldag.insertBetween(parent, node, storeOp)
+                store_op = saldag.Close(out_rel, None)
+                store_op.is_mpc = True
+                saldag.insert_between(parent, node, store_op)
 
-    def _rewriteCreate(self, node):
+    def _rewrite_create(self, node: saldag.Create):
 
         pass
 
@@ -572,100 +567,100 @@ class ExpandCompositeOps(DagRewriter):
     def __init__(self):
         super(ExpandCompositeOps, self).__init__()
 
-    def _rewriteAggregate(self, node):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
         pass
 
-    def _rewriteDivide(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
         pass
 
-    def _rewriteProject(self, node):
+    def _rewrite_project(self, node: saldag.Project):
         pass
 
-    def _rewriteFilter(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
         pass
 
-    def _rewriteMultiply(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
         pass
 
-    def _rewriteRevealJoin(self, node):
+    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
         pass
 
-    def _rewriteHybridJoin(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
         # TODO
         suffix = "rand"
 
         # in left parents' children, replace self with first primitive operator
         # in expanded subdag
-        shuffledA = sal.shuffle(node.leftParent, "shuffledA")
-        shuffledA.isMPC = True
-        node.leftParent.children.remove(node)
+        shuffled_a = sal.shuffle(node.leftParent, "shuffled_a")
+        shuffled_a.isMPC = True
+        node.left_parent.children.remove(node)
 
         # same for right parent
-        shuffledB = sal.shuffle(node.rightParent, "shuffledB")
-        shuffledB.isMPC = True
-        node.rightParent.children.remove(node)
+        shuffled_b = sal.shuffle(node.rightParent, "shuffled_b")
+        shuffled_b.isMPC = True
+        node.right_parent.children.remove(node)
 
-        persistedB = sal._persist(shuffledB, "persistedB")
-        persistedB.isMPC = True
-        persistedA = sal._persist(shuffledA, "persistedA")
-        persistedA.isMPC = True
+        persisted_b = sal._persist(shuffled_b, "persisted_b")
+        persisted_b.is_mpc = True
+        persisted_a = sal._persist(shuffled_a, "persisted_a")
+        persisted_a.is_mpc = True
 
-        keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
-        keysaclosed.isMPC = True
-        keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
-        keysbclosed.isMPC = True
+        keys_a_closed = sal.project(shuffled_a, "keys_a_closed", ["a"])
+        keys_a_closed.is_mpc = True
+        keys_b_closed = sal.project(shuffled_b, "keys_b_closed", ["c"])
+        keys_b_closed.is_mpc = True
 
-        keysa = sal._open(keysaclosed, "keysa", 1)
-        keysa.isMPC = True
-        keysb = sal._open(keysbclosed, "keysb", 1)
-        keysb.isMPC = True
+        keys_a = sal._open(keys_a_closed, "keys_a", 1)
+        keys_a.is_mpc = True
+        keys_b = sal._open(keys_b_closed, "keys_b", 1)
+        keys_b.is_mpc = True
 
-        indexedA = sal.index(keysa, "indexedA", "indexA")
-        indexedA.isMPC = False
+        indexed_a = sal.index(keys_a, "indexed_a", "index_a")
+        indexed_a.is_mpc = False
 
-        indexedB = sal.index(keysb, "indexedB", "indexB")
-        indexedB.isMPC = False
+        indexed_b = sal.index(keys_b, "indexed_b", "index_b")
+        indexed_b.is_mpc = False
 
-        joinedindeces = sal.join(
-            indexedA, indexedB, "joinedindeces", ["a"], ["c"])
-        joinedindeces.isMPC = False
+        joined_indices = sal.join(
+            indexed_a, indexed_b, "joined_indices", ["a"], ["c"])
+        joined_indices.is_mpc = False
 
-        indecesonly = sal.project(
-            joinedindeces, "indecesonly", ["indexA", "indexB"])
-        indecesonly.isMPC = False
+        indices_only = sal.project(
+            joined_indices, "indices_only", ["index_a", "index_b"])
+        indices_only.is_mpc = False
 
-        # TODO: update storedWith to use union of parent outRel storedWith sets
-        indecesclosed = sal._close(
-            indecesonly, "indecesclosed", set([1, 2]))
-        indecesclosed.isMPC = True
+        # TODO: update stored_with to use union of parent out_rel stored_with sets
+        indices_closed = sal._close(
+            indices_only, "indices_closed", set([1, 2]))
+        indices_closed.is_mpc = True
 
-        joined = sal._index_join(persistedA, persistedB, "joined", [
-            "a"], ["c"], indecesclosed)
-        joined.isMPC = True
+        joined = sal._index_join(persisted_a, persisted_b, "joined",
+                                 ["a"], ["c"], indices_closed)
+        joined.is_mpc = True
 
         # replace self with leaf of expanded subdag in each child node
-        for child in node.getSortedChildren():
-            child.replaceParent(node, joined)
+        for child in node.get_sorted_children():
+            child.replace_parent(node, joined)
         # add former children to children of leaf
         joined.children = node.children
 
-    def _rewriteJoin(self, node):
+    def _rewrite_join(self, node: saldag.Join):
         pass
 
-    def _rewriteConcat(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
         pass
 
-    def _rewriteCreate(self, node):
+    def _rewrite_create(self, node: saldag.Create):
         pass
 
-    def _rewriteOpen(self, node):
+    def _rewrite_open(self, node: saldag.Open):
         pass
 
-    def _rewriteClose(self, node):
+    def _rewrite_close(self, node: saldag.Close):
         pass
 
 
-def rewriteDag(dag):
+def rewrite_dag(dag: saldag.OpDag):
     MPCPushDown().rewrite(dag)
     # ironic?
     MPCPushUp().rewrite(dag)
@@ -676,7 +671,7 @@ def rewriteDag(dag):
     return dag
 
 
-def scotch(f):
+def scotch(f: callable):
     from salmon.codegen import scotch
     from salmon import CodeGenConfig
 
@@ -687,17 +682,12 @@ def scotch(f):
     return wrap
 
 
-def sharemind(f):
+def sharemind(f: callable):
     from salmon.codegen import sharemind
     from salmon import CodeGenConfig
 
-    # TODO: (ben) missing args to SharemindCodeGen, as
-    # well as a call to with_sharemind_config. Also have
-    # to figure out where to place with_sharemind_config
-    # call (not here).
     def wrap():
-        code = sharemind.SharemindCodeGen(
-            CodeGenConfig(), f())._generate(None, None)
+        code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)
         return code
 
     return wrap
@@ -706,7 +696,7 @@ def sharemind(f):
 def mpc(*args):
     def _mpc(f):
         def wrapper(*args, **kwargs):
-            dag = rewriteDag(saldag.OpDag(f()))
+            dag = rewrite_dag(saldag.OpDag(f()))
             return dag
 
         return wrapper
@@ -722,7 +712,7 @@ def mpc(*args):
         return _mpc
 
 
-def dagonly(f):
+def dag_only(f):
     def wrap():
         return saldag.OpDag(f())
 

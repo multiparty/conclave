@@ -1,11 +1,11 @@
 import salmon.lang as sal
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.codegen import spark, viz
 from salmon import CodeGenConfig
 from salmon.utils import *
 
 
-@dagonly
+@dag_only
 def protocol():
 
     cols_concatenated_DFs = [

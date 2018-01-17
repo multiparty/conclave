@@ -7,7 +7,7 @@ import functools
 import copy
 
 
-def mergeCollSets(left, right):
+def merge_coll_sets(left: set, right: set):
     """
     Merge two collusion records if possible.
     :param left: collusion record
@@ -16,7 +16,7 @@ def mergeCollSets(left, right):
     
     >>> left = set([frozenset([1, 2]), frozenset([3, 4])])
     >>> right = set([frozenset([5, 6]), frozenset([7])])
-    >>> actual = mergeCollSets(left, right)
+    >>> actual = merge_coll_sets(left, right)
     >>> expected = {frozenset({1, 2, 5, 6}), frozenset({1, 2, 7}), frozenset({3, 4, 5, 6}), frozenset({3, 4, 7})}
     >>> actual == expected
     True
@@ -27,30 +27,31 @@ def mergeCollSets(left, right):
         return copy.copy(left)
     return {l | r for l in left for r in right}
 
-def collSetsFromColumns(columns):
+
+def coll_sets_from_columns(columns: list):
     """
     ???
     """
-    collSets = [col.collSets if hasattr(col, "collSets") else set() for col in columns]
-    return functools.reduce(lambda setA, setB: mergeCollSets(setA, setB), collSets)
+    coll_sets = [col.coll_sets if hasattr(col, "coll_sets") else set() for col in columns]
+    return functools.reduce(lambda set_a, set_b: merge_coll_sets(set_a, set_b), coll_sets)
 
 
-def find(columns, colName):
+def find(columns: list, col_name: str):
     """
     Retrieve column by name.
     :param columns: ??? of columns
-    :param colName: name of column to return
+    :param col_name: name of column to return
     :returns: column
     :raises StopIteration: if column is not found
     """
     try:
-        return next(iter([col for col in columns if col.getName() == colName]))
+        return next(iter([col for col in columns if col.get_name() == col_name]))
     except StopIteration:
-        print("column '{}' not found in {}".format(colName, [c.getName() for c in columns]))
+        print("column '{}' not found in {}".format(col_name, [c.get_name() for c in columns]))
         return None
 
 
-def defCol(name, tpy, *collSets):
+def defCol(name: str, typ: str, *coll_sets):
     """
     ???
     
@@ -59,4 +60,4 @@ def defCol(name, tpy, *collSets):
     >>> actual == expected
     True
     """
-    return name, tpy, set([frozenset(collSet) for collSet in collSets])
+    return name, typ, set([frozenset(coll_set) for coll_set in coll_sets])

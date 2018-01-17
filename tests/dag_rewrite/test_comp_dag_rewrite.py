@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 import warnings
 import salmon.lang as sal
@@ -274,3 +275,6 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'agg_pushdown')
 
+
+if __name__ == '__main__':
+    unittest.main()

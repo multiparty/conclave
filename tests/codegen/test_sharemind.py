@@ -1,9 +1,10 @@
+import unittest
 from unittest import TestCase
 import warnings
 import salmon.lang as sal
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.utils import *
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon import CodeGenConfig
 import os
 
@@ -75,7 +76,7 @@ class TestSharemind(TestCase):
 
     def test_col_div(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             div = sal.divide(rel, 'div1', 'a', ['a', 'b'])
@@ -89,7 +90,7 @@ class TestSharemind(TestCase):
 
     def test_col_mult(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             mult = sal.multiply(rel, 'mult1', 'a', ['a', 'b'])
@@ -103,7 +104,7 @@ class TestSharemind(TestCase):
 
     def test_scalar_div(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             div = sal.divide(rel, 'div1', 'a', ['a', 1])
@@ -117,7 +118,7 @@ class TestSharemind(TestCase):
 
     def test_scalar_mult(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             mult = sal.multiply(rel, 'mult1', 'a', ['a', 1])
@@ -131,10 +132,10 @@ class TestSharemind(TestCase):
 
     def test_project(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
-            cols = [column.name for column in rel.outRel.columns][::-1]
+            cols = [column.name for column in rel.out_rel.columns][::-1]
             proj = sal.project(rel, "proja", cols)
 
             opened = sal._open(proj, "opened", 1)
@@ -146,7 +147,7 @@ class TestSharemind(TestCase):
 
     def test_agg(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             agg = sal.aggregate(rel, "agg", ["a", "b"], "c", "sum", "agg_1")
@@ -160,7 +161,7 @@ class TestSharemind(TestCase):
 
     def test_shuffle(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inputs, rel = setup()
             shuf = sal.shuffle(rel, "shuf")
@@ -174,7 +175,7 @@ class TestSharemind(TestCase):
 
     def test_join(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             colsIn1 = [
                 defCol("a", "INTEGER", [1]),
@@ -198,3 +199,6 @@ class TestSharemind(TestCase):
         dag = protocol()
         self.check_workflow(dag, 'join')
 
+
+if __name__ == '__main__':
+    unittest.main()

@@ -2,14 +2,14 @@ from salmon import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 import salmon.dispatch
 import salmon.net
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import salmon.lang as sal
 from salmon.utils import *
 import sys
 
 def join(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsIn1 = [

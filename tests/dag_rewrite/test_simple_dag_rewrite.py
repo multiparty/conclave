@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 import warnings
 import salmon.lang as sal
@@ -222,4 +223,5 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'filter')
 
 
-
+if __name__ == '__main__':
+    unittest.main()

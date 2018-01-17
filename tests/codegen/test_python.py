@@ -1,10 +1,11 @@
+import unittest
 from unittest import TestCase
 import warnings
 import salmon.lang as sal
 from salmon.codegen.python import PythonCodeGen
 from salmon import CodeGenConfig
 from salmon.utils import *
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import os
 
 
@@ -54,7 +55,7 @@ class TestPython(TestCase):
 
     def test_agg(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -69,7 +70,7 @@ class TestPython(TestCase):
 
     def test_multiply(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -84,7 +85,7 @@ class TestPython(TestCase):
 
     def test_join(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -99,7 +100,7 @@ class TestPython(TestCase):
 
     def test_project(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -114,7 +115,7 @@ class TestPython(TestCase):
 
     def test_distinct(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -129,7 +130,7 @@ class TestPython(TestCase):
 
     def test_index(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -144,7 +145,7 @@ class TestPython(TestCase):
 
     def test_sort_by(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -159,7 +160,7 @@ class TestPython(TestCase):
 
     def test_comp_neighs(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -174,7 +175,7 @@ class TestPython(TestCase):
 
     def test_workflow_one(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -191,3 +192,5 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'workflow_one')
 
 
+if __name__ == '__main__':
+    unittest.main()

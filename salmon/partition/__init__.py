@@ -7,7 +7,7 @@ from salmon.config import CodeGenConfig
 
 def partDag(dag):
 
-    sorted_nodes = dag.topSort()
+    sorted_nodes = dag.top_sort()
     best = part.getBestPartition(sorted_nodes)
 
     return best
@@ -18,11 +18,11 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     def get_stored_with(node):
 
         if isinstance(node, Open):
-            return node.getInRel().storedWith
+            return node.get_in_rel().storedWith
         elif isinstance(node, Create):
             return get_stored_with(next(iter(node.children)))
         else:
-            return node.outRel.storedWith
+            return node.out_rel.storedWith
 
     def is_correct_mode(node, available, storedWith):
 
@@ -38,7 +38,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         # copy so we don't overwrite global available nodes in this pass
         available = deepcopy(top_available)
-        ordered = dag.topSort()
+        ordered = dag.top_sort()
         unavailable = set()
 
         for node in ordered:
@@ -50,7 +50,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 available.add(node)
             else:
                 # mark all descendants as unavailable
-                descendants = Dag(set([node])).getAllNodes()
+                descendants = Dag(set([node])).get_all_nodes()
                 unavailable = unavailable.union(descendants)
         return True
 
@@ -63,22 +63,22 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 if parent in available:
                     create_op = None
                     if parent not in previous_parents:
-                        create_op = Create(deepcopy(parent.outRel))
+                        create_op = Create(deepcopy(parent.out_rel))
                         # create op is in same mode as root
-                        create_op.isMPC = root.isMPC
+                        create_op.is_mpc = root.isMPC
                         previous_parents.add(parent)
-                        create_op_lookup[parent.outRel.name] = create_op
+                        create_op_lookup[parent.out_rel.name] = create_op
                     else:
-                        create_op = create_op_lookup[parent.outRel.name]
+                        create_op = create_op_lookup[parent.out_rel.name]
                     # unlink root from parent
                     parent.children.remove(root)
                     # insert create op between parent and root
-                    root.replaceParent(parent, create_op)
+                    root.replace_parent(parent, create_op)
                     # connect create op with root
                     create_op.children.add(root)
                     # keep track of parents we have already visited
                     previous_parents.add(parent)
-                    create_op_lookup[create_op.outRel.name] = create_op
+                    create_op_lookup[create_op.out_rel.name] = create_op
             if root in current_dag.roots:
                 current_dag.roots.remove(root)
 
@@ -92,7 +92,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     def find_new_roots(current_dag, available, storedWith):
 
         # need topological ordering
-        ordered = current_dag.topSort()
+        ordered = current_dag.top_sort()
         
         # roots of the next subdag, i.e., where the current subdag will end
         new_roots = []
@@ -126,7 +126,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
     def next_holding_ps(nextdag, available):
 
         roots = nextdag.roots
-        for root in sorted(roots, key=lambda node: node.outRel.name):
+        for root in sorted(roots, key=lambda node: node.out_rel.name):
             holding_ps = get_stored_with(root)
             if can_partition(nextdag, holding_ps, available):
                 return holding_ps, root.isMPC

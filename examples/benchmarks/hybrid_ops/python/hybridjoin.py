@@ -1,6 +1,6 @@
 import salmon.dispatch
 import salmon.lang as sal
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen

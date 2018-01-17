@@ -1,6 +1,6 @@
 import salmon.lang as sal
 import salmon.dispatch as dis
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.utils import *
 from salmon.codegen import spark
 from salmon import CodeGenConfig
@@ -9,7 +9,7 @@ import sys
 
 def join(namenode, root, f_size, master_url):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsInA = [

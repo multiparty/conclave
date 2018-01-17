@@ -17,40 +17,40 @@ class ScotchCodeGen(CodeGen):
 
         return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if idx_agg_op.isMPC else "",
-            idx_agg_op.aggCol.getName(),
+            idx_agg_op.aggCol.get_name(),
             idx_agg_op.aggregator,
-            idx_agg_op.getInRel().dbgStr(),
-            ",".join([groupCol.getName() for groupCol in idx_agg_op.groupCols]),
-            idx_agg_op.outRel.dbgStr()
+            idx_agg_op.get_in_rel().dbg_str(),
+            ",".join([groupCol.get_name() for groupCol in idx_agg_op.groupCols]),
+            idx_agg_op.out_rel.dbg_str()
         )
 
     def _generateAggregate(self, agg_op):
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if agg_op.isMPC else "",
-            agg_op.aggCol.getName(),
+            agg_op.aggCol.get_name(),
             agg_op.aggregator,
-            agg_op.getInRel().dbgStr(),
-            ",".join([groupCol.getName() for groupCol in agg_op.groupCols]),
-            agg_op.outRel.dbgStr()
+            agg_op.get_in_rel().dbg_str(),
+            ",".join([groupCol.get_name() for groupCol in agg_op.groupCols]),
+            agg_op.out_rel.dbg_str()
         )
 
     def _generateConcat(self, concat_op):
 
-        inRelStr = ", ".join([inRel.dbgStr()
-                              for inRel in concat_op.getInRels()])
+        inRelStr = ", ".join([inRel.dbg_str()
+                              for inRel in concat_op.get_in_rels()])
         return "CONCAT{} [{}] AS {}\n".format(
             "MPC" if concat_op.isMPC else "",
             inRelStr,
-            concat_op.outRel.dbgStr()
+            concat_op.out_rel.dbg_str()
         )
 
     def _generateCreate(self, create_op):
 
         colTypeStr = ", ".join(
-            [col.typeStr for col in create_op.outRel.columns])
+            [col.typeStr for col in create_op.out_rel.columns])
         return "CREATE RELATION {} WITH COLUMNS ({})\n".format(
-            create_op.outRel.dbgStr(),
+            create_op.out_rel.dbg_str(),
             colTypeStr
         )
 
@@ -61,8 +61,8 @@ class ScotchCodeGen(CodeGen):
             "MPC" if divide_op.isMPC else "",
             str(divide_op.targetCol),
             operandColStr,
-            divide_op.getInRel().dbgStr(),
-            divide_op.outRel.dbgStr()
+            divide_op.get_in_rel().dbg_str(),
+            divide_op.out_rel.dbg_str()
         )
         
     def _generateMultiply(self, multiply_op):
@@ -72,51 +72,51 @@ class ScotchCodeGen(CodeGen):
             "MPC" if multiply_op.isMPC else "",
             str(multiply_op.targetCol),
             operandColStr,
-            multiply_op.getInRel().dbgStr(),
-            multiply_op.outRel.dbgStr()
+            multiply_op.get_in_rel().dbg_str(),
+            multiply_op.out_rel.dbg_str()
         )
 
     def _generateJoin(self, join_op):
 
         return "({}) JOIN{} ({}) ON [{}] AND [{}] AS {}\n".format(
-            join_op.getLeftInRel().dbgStr(),
+            join_op.get_left_in_rel().dbg_str(),
             "MPC" if join_op.isMPC else "",
-            join_op.getRightInRel().dbgStr(),
+            join_op.get_right_in_rel().dbg_str(),
             ",".join([c.name for c in join_op.leftJoinCols]),
             ",".join([c.name for c in join_op.rightJoinCols]),
-            join_op.outRel.dbgStr()
+            join_op.out_rel.dbg_str()
         )
 
     def _generateIndexJoin(self, index_join_op):
 
         return "({}) IDXJOIN{} ({}) WITH INDECES ({}) ON [{}] AND [{}] AS {}\n".format(
-            index_join_op.getLeftInRel().dbgStr(),
+            index_join_op.get_left_in_rel().dbg_str(),
             "MPC" if index_join_op.isMPC else "",
-            index_join_op.getRightInRel().dbgStr(),
-            index_join_op.indexRel.outRel.dbgStr(),
+            index_join_op.get_right_in_rel().dbg_str(),
+            index_join_op.indexRel.out_rel.dbg_str(),
             ",".join([c.name for c in index_join_op.leftJoinCols]),
             ",".join([c.name for c in index_join_op.rightJoinCols]),
-            index_join_op.outRel.dbgStr()
+            index_join_op.out_rel.dbg_str()
         )
 
     def _generateRevealJoin(self, reveal_join_op):
 
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
-            reveal_join_op.getLeftInRel().dbgStr(),
-            reveal_join_op.getRightInRel().dbgStr(),
+            reveal_join_op.get_left_in_rel().dbg_str(),
+            reveal_join_op.get_right_in_rel().dbg_str(),
             ",".join([c.name for c in reveal_join_op.leftJoinCols]),
             ",".join([c.name for c in reveal_join_op.rightJoinCols]),
-            reveal_join_op.outRel.dbgStr()
+            reveal_join_op.out_rel.dbg_str()
         )
 
     def _generateHybridJoin(self, hybrid_join_op):
 
         return "({}) HYBRIDJOIN ({}) ON {} AND {} AS {}\n".format(
-            hybrid_join_op.getLeftInRel().dbgStr(),
-            hybrid_join_op.getRightInRel().dbgStr(),
+            hybrid_join_op.get_left_in_rel().dbg_str(),
+            hybrid_join_op.get_right_in_rel().dbg_str(),
             ",".join([c.name for c in hybrid_join_op.leftJoinCols]),
             ",".join([c.name for c in hybrid_join_op.rightJoinCols]),
-            hybrid_join_op.outRel.dbgStr()
+            hybrid_join_op.out_rel.dbg_str()
         )
 
     def _generateProject(self, project_op):
@@ -126,8 +126,8 @@ class ScotchCodeGen(CodeGen):
         return "PROJECT{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if project_op.isMPC else "",
             selectedColsStr,
-            project_op.getInRel().dbgStr(),
-            project_op.outRel.dbgStr()
+            project_op.get_in_rel().dbg_str(),
+            project_op.out_rel.dbg_str()
         )
 
     def _generateDistinct(self, distinct_op):
@@ -137,8 +137,8 @@ class ScotchCodeGen(CodeGen):
         return "DISTINCT{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if distinct_op.isMPC else "",
             selectedColsStr,
-            distinct_op.getInRel().dbgStr(),
-            distinct_op.outRel.dbgStr()
+            distinct_op.get_in_rel().dbg_str(),
+            distinct_op.out_rel.dbg_str()
         )
 
     def _generateSortBy(self, sort_by_op):
@@ -146,8 +146,8 @@ class ScotchCodeGen(CodeGen):
         return "SORTBY{} {} FROM ({}) AS {}\n".format(
             "MPC" if sort_by_op.isMPC else "",
             sort_by_op.sortByCol.name,
-            sort_by_op.getInRel().dbgStr(),
-            sort_by_op.outRel.dbgStr()
+            sort_by_op.get_in_rel().dbg_str(),
+            sort_by_op.out_rel.dbg_str()
         )
 
     def _generateCompNeighs(self, comp_neighs_op):
@@ -155,8 +155,8 @@ class ScotchCodeGen(CodeGen):
         return "COMPNEIGHS{} {} FROM ({}) AS {}\n".format(
             "MPC" if comp_neighs_op.isMPC else "",
             comp_neighs_op.compCol.name,
-            comp_neighs_op.getInRel().dbgStr(),
-            comp_neighs_op.outRel.dbgStr()
+            comp_neighs_op.get_in_rel().dbg_str(),
+            comp_neighs_op.out_rel.dbg_str()
         )
 
     def _generateFilter(self, filter_op):
@@ -166,46 +166,46 @@ class ScotchCodeGen(CodeGen):
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.isMPC else "",
             filterStr,
-            filter_op.getInRel().dbgStr(),
-            filter_op.outRel.dbgStr()
+            filter_op.get_in_rel().dbg_str(),
+            filter_op.out_rel.dbg_str()
         )
 
     def _generateShuffle(self, shuffle_op):
 
         return "SHUFFLE{} ({}) AS {}\n".format(
             "MPC" if shuffle_op.isMPC else "",
-            shuffle_op.getInRel().dbgStr(),
-            shuffle_op.outRel.dbgStr()
+            shuffle_op.get_in_rel().dbg_str(),
+            shuffle_op.out_rel.dbg_str()
         )
 
     def _generateIndex(self, index_op):
 
         return "INDEX{} ({}) AS {}\n".format(
             "MPC" if index_op.isMPC else "",
-            index_op.getInRel().dbgStr(),
-            index_op.outRel.dbgStr()
+            index_op.get_in_rel().dbg_str(),
+            index_op.out_rel.dbg_str()
         )
 
     def _generateClose(self, close_op):
 
         return "CLOSE{} {} INTO {}\n".format(
             "MPC" if close_op.isMPC else "",
-            close_op.getInRel().dbgStr(),
-            close_op.outRel.dbgStr()
+            close_op.get_in_rel().dbg_str(),
+            close_op.out_rel.dbg_str()
         )
 
     def _generateOpen(self, open_op):
 
         return "OPEN{} {} INTO {}\n".format(
             "MPC" if open_op.isMPC else "",
-            open_op.getInRel().dbgStr(),
-            open_op.outRel.dbgStr()
+            open_op.get_in_rel().dbg_str(),
+            open_op.out_rel.dbg_str()
         )
 
     def _generatePersist(self, persist_op):
 
         return "PERSIST{} {} INTO {}\n".format(
             "MPC" if persist_op.isMPC else "",
-            persist_op.getInRel().dbgStr(),
-            persist_op.outRel.dbgStr()
+            persist_op.get_in_rel().dbg_str(),
+            persist_op.out_rel.dbg_str()
         )

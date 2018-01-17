@@ -2,12 +2,12 @@ from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon import CodeGenConfig
 import salmon.dispatch
 import salmon.net
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import salmon.lang as sal
 from salmon.utils import *
 import sys
 
-@dagonly
+@dag_only
 def protocol():
 
     # define inputs

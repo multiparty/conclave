@@ -1,5 +1,5 @@
 import salmon.lang as sal
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen
@@ -14,7 +14,7 @@ import sys
 
 def testHybridAggWorkflow():
 
-    @dagonly
+    @dag_only
     def protocol():
 
         # define inputs
@@ -27,7 +27,7 @@ def testHybridAggWorkflow():
 
         proja = sal.project(in1, "proja", ["a", "b"])
         proja.isMPC = False
-        proja.outRel.storedWith = set([1])
+        proja.out_rel.storedWith = set([1])
 
         # define inputs
         colsInB = [
@@ -39,7 +39,7 @@ def testHybridAggWorkflow():
 
         projb = sal.project(in2, "projb", ["a", "b"])
         projb.isMPC = False
-        projb.outRel.storedWith = set([2])
+        projb.out_rel.storedWith = set([2])
 
         # define inputs
         colsInC = [
@@ -51,7 +51,7 @@ def testHybridAggWorkflow():
 
         projc = sal.project(in3, "projc", ["a", "b"])
         projc.isMPC = False
-        projc.outRel.storedWith = set([3])
+        projc.out_rel.storedWith = set([3])
 
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
@@ -63,19 +63,19 @@ def testHybridAggWorkflow():
         clC.isMPC = True
 
         comb = sal.concat([clA, clB, clC], "comb")
-        comb.outRel.storedWith = set([1, 2, 3])
+        comb.out_rel.storedWith = set([1, 2, 3])
         comb.isMPC = True
 
         shuffled = sal.shuffle(comb, "shuffled")
-        shuffled.outRel.storedWith = set([1, 2, 3])
+        shuffled.out_rel.storedWith = set([1, 2, 3])
         shuffled.isMPC = True
 
         persisted = sal._persist(shuffled, "persisted")
-        persisted.outRel.storedWith = set([1, 2, 3])
+        persisted.out_rel.storedWith = set([1, 2, 3])
         persisted.isMPC = True
 
         keysclosed = sal.project(shuffled, "keysclosed", ["a"])
-        keysclosed.outRel.storedWith = set([1, 2, 3])
+        keysclosed.out_rel.storedWith = set([1, 2, 3])
         keysclosed.isMPC = True
 
         keys = sal._open(keysclosed, "keys", 1)
@@ -83,21 +83,21 @@ def testHybridAggWorkflow():
 
         indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
-        indexed.outRel.storedWith = set([1])
+        indexed.out_rel.storedWith = set([1])
 
         sortedByKey = sal.sort_by(indexed, "sortedByKey", "a")
         sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        sortedByKey.out_rel.storedWith = set([1])
 
         eqFlags = sal._comp_neighs(sortedByKey, "eqFlags", "a")
         eqFlags.isMPC = False
-        eqFlags.outRel.storedWith = set([1])
+        eqFlags.out_rel.storedWith = set([1])
 
         # TODO: hack to get keys stored
         # need to fix later!
         sortedByKey = sal.project(sortedByKey, "sortedByKey", ["rowIndex", "a"])
         sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        sortedByKey.out_rel.storedWith = set([1])
 
         closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
         closedEqFlags.isMPC = True
@@ -105,7 +105,7 @@ def testHybridAggWorkflow():
         closedSortedByKey.isMPC = True
         
         agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedEqFlags, closedSortedByKey)
-        agg.outRel.storedWith = set([1, 2, 3])
+        agg.out_rel.storedWith = set([1, 2, 3])
         agg.isMPC = True
 
         sal._open(agg, "opened", 1)

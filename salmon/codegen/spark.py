@@ -53,11 +53,11 @@ class SparkCodeGen(CodeGen):
     def _generateStore(self, op):
 
         store_code = ''
-        if op.isLeaf():
+        if op.is_leaf():
             template = open("{}/store.tmpl"
                             .format(self.template_directory), 'r').read()
             data = {
-                'RELATION_NAME': op.outRel.name,
+                'RELATION_NAME': op.out_rel.name,
                 'OUTPUT_PATH': self.config.output_path,
             }
 
@@ -75,8 +75,8 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory, 'index'), 'r').read()
 
         data = {
-            'INREL': index_op.getInRel().name,
-            'OUTREL': index_op.outRel.name,
+            'INREL': index_op.get_in_rel().name,
+            'out_rel': index_op.out_rel.name,
             'CACHE_VAR': cache_var(index_op)
         }
 
@@ -97,7 +97,7 @@ class SparkCodeGen(CodeGen):
 
         # TODO: this renaming convention will only work if we stick to general aggregations (sum, min, max, etc.)
         old = aggregator + '(' + agg_op.aggCol.name + ')'
-        new = agg_op.outRel.columns[-1].name
+        new = agg_op.out_rel.columns[-1].name
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'agg'), 'r').read()
@@ -105,8 +105,8 @@ class SparkCodeGen(CodeGen):
         data = {
             'GROUPCOLS': ",".join("'" + groupCol.name + "'" for groupCol in agg_op.groupCols),
             'AGGCOLS': aggcol_str,
-            'INREL': agg_op.getInRel().name,
-            'OUTREL': agg_op.outRel.name,
+            'INREL': agg_op.get_in_rel().name,
+            'out_rel': agg_op.out_rel.name,
             'CACHE_VAR': cache_var(agg_op),
             'OLD': old,
             'NEW': new
@@ -116,20 +116,20 @@ class SparkCodeGen(CodeGen):
 
     def _generateConcat(self, concat_op):
 
-        all_rels = concat_op.getInRels()
+        all_rels = concat_op.get_in_rels()
         test = len(all_rels[0].columns)
         assert(all(test == len(rel.columns) for rel in all_rels))
 
         store_code = ''
-        if concat_op.isLeaf():
+        if concat_op.is_leaf():
             store_code += self._generateStore(concat_op)
 
         template = open("{0}/{1}.tmpl"
                         .format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'INRELS': [r.name for r in concat_op.getInRels()],
-            'OUTREL': concat_op.outRel.name,
+            'INRELS': [r.name for r in concat_op.get_in_rels()],
+            'out_rel': concat_op.out_rel.name,
             'CACHE_VAR': cache_var(concat_op)
         }
 
@@ -141,12 +141,12 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
 
         schema = ["StructField('{0}', {1}, True)".format(
-            col.name, convert_type(col.typeStr)) for col in create_op.outRel.columns]
+            col.name, convert_type(col.typeStr)) for col in create_op.out_rel.columns]
 
         data = {
-            'RELATION_NAME': create_op.outRel.name,
+            'RELATION_NAME': create_op.out_rel.name,
             'SCHEMA': 'StructType([' + ','.join(schema) + '])',
-            'INPUT_PATH': self.config.input_path + '/' + create_op.outRel.name + '.csv',
+            'INPUT_PATH': self.config.input_path + '/' + create_op.out_rel.name + '.csv',
             'CACHE_VAR': cache_var(create_op)
         }
 
@@ -155,7 +155,7 @@ class SparkCodeGen(CodeGen):
     def _generateJoin(self, join_op):
 
         store_code = ''
-        if join_op.isLeaf():
+        if join_op.is_leaf():
             store_code += self._generateStore(join_op)
 
         # TODO: (ben) should we assume this is always true?
@@ -169,10 +169,10 @@ class SparkCodeGen(CodeGen):
                         .format(self.template_directory, 'join'), 'r').read()
 
         data = {
-            'LEFT_PARENT': join_op.getLeftInRel().name,
-            'RIGHT_PARENT': join_op.getRightInRel().name,
+            'LEFT_PARENT': join_op.get_left_in_rel().name,
+            'RIGHT_PARENT': join_op.get_right_in_rel().name,
             'JOIN_COLS': [join_col.name for join_col in join_cols],
-            'OUTREL': join_op.outRel.name,
+            'out_rel': join_op.out_rel.name,
             'CACHE_VAR': cache_var(join_op)
         }
 
@@ -181,7 +181,7 @@ class SparkCodeGen(CodeGen):
     def _generateProject(self, project_op):
 
         store_code = ''
-        if project_op.isLeaf():
+        if project_op.is_leaf():
             store_code += self._generateStore(project_op)
 
         cols = project_op.selectedCols
@@ -191,8 +191,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'COLS': [c.name for c in cols],
-            'INREL': project_op.getInRel().name,
-            'OUTREL': project_op.outRel.name,
+            'INREL': project_op.get_in_rel().name,
+            'out_rel': project_op.out_rel.name,
             'CACHE_VAR': cache_var(project_op)
         }
         return pystache.render(template, data) + store_code
@@ -200,7 +200,7 @@ class SparkCodeGen(CodeGen):
     def _generateMultiply(self, mult_op):
 
         store_code = ''
-        if mult_op.isLeaf():
+        if mult_op.is_leaf():
             store_code += self._generateStore(mult_op)
 
         op_cols = mult_op.operands
@@ -209,7 +209,7 @@ class SparkCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'name'):
-                operands.append(mult_op.getInRel().name + '.' + op_col.name)
+                operands.append(mult_op.get_in_rel().name + '.' + op_col.name)
             else:
                 scalar = op_col
 
@@ -220,8 +220,8 @@ class SparkCodeGen(CodeGen):
             'OPERANDS': '*'.join(c for c in operands),
             'SCALAR': scalar,
             'TARGET': mult_op.targetCol.name,
-            'INREL': mult_op.getInRel().name,
-            'OUTREL': mult_op.outRel.name,
+            'INREL': mult_op.get_in_rel().name,
+            'out_rel': mult_op.out_rel.name,
             'CACHE_VAR': cache_var(mult_op)
         }
 
@@ -230,7 +230,7 @@ class SparkCodeGen(CodeGen):
     def _generateDivide(self, div_op):
 
         store_code = ''
-        if div_op.isLeaf():
+        if div_op.is_leaf():
             store_code += self._generateStore(div_op)
 
         op_cols = div_op.operands
@@ -239,7 +239,7 @@ class SparkCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'name'):
-                operands.append(div_op.getInRel().name + '.' + op_col.name)
+                operands.append(div_op.get_in_rel().name + '.' + op_col.name)
             else:
                 scalar = op_col
 
@@ -250,8 +250,8 @@ class SparkCodeGen(CodeGen):
             'OPERANDS': '/'.join(c for c in operands),
             'SCALAR': scalar,
             'TARGET': div_op.targetCol.name,
-            'INREL': div_op.getInRel().name,
-            'OUTREL': div_op.outRel.name,
+            'INREL': div_op.get_in_rel().name,
+            'out_rel': div_op.out_rel.name,
             'CACHE_VAR': cache_var(div_op)
         }
 
@@ -262,7 +262,7 @@ class SparkCodeGen(CodeGen):
         template = open("{}/store.tmpl"
                         .format(self.template_directory), 'r').read()
         data = {
-            'RELATION_NAME': op.outRel.name,
+            'RELATION_NAME': op.out_rel.name,
             'DELIMITER': self.config.delimiter,
             'OUTPUT_PATH': self.config.output_path,
         }
@@ -276,8 +276,8 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'COLS': [c.name for c in op.selectedCols],
-            'OUTREL': op.outRel.name,
-            'INREL': op.getInRel().name,
+            'out_rel': op.out_rel.name,
+            'INREL': op.get_in_rel().name,
             'CACHE_VAR': cache_var(op)
         }
 
@@ -286,14 +286,14 @@ class SparkCodeGen(CodeGen):
     def _writeBash(self, job_name):
         roots, leaves = [], []
 
-        nodes = self.dag.topSort()
+        nodes = self.dag.top_sort()
         for node in nodes:
-            if node.isRoot():
+            if node.is_root():
                 roots.append("{}/{}"
-                             .format(self.config.input_path, node.outRel.name))
-            elif node.isLeaf():
+                             .format(self.config.input_path, node.out_rel.name))
+            elif node.is_leaf():
                 leaves.append("{}/{}"
-                              .format(self.config.input_path, node.outRel.name))
+                              .format(self.config.input_path, node.out_rel.name))
 
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()

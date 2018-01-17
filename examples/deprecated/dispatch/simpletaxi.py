@@ -2,14 +2,14 @@ from salmon import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 import salmon.dispatch
 import salmon.net
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import salmon.lang as sal
 from salmon.utils import *
 from multiprocessing import Process
 import sys
 
 
-@dagonly
+@dag_only
 def protocol():
 
     # define inputs

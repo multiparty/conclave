@@ -4,63 +4,64 @@ Data structures to represent relations (i.e., data sets).
 import salmon.utils as utils
 
 
-class Column():
+class Column:
     """
     Column data structure.
     """
 
-    def __init__(self, relName, name, idx, typeStr, collSets):
+    def __init__(self, rel_name: str, name: str, idx: int, type_str: str, coll_sets: set):
         """Initialize object."""
-        self.relName = relName
+        self.rel_name = rel_name
         self.name = name
-        self.idx = idx # Integer index of the column in the relation.
-        self.typeStr = typeStr # Currently can only be "INTEGER".
-        self.collSets = collSets # Record of all sets of parties that can collude together to recover values in this column.
+        self.idx = idx  # Integer index of the column in the relation.
+        self.type_str = type_str  # Currently can only be "INTEGER".
+        self.coll_sets = coll_sets  # Record of all sets of parties that can collude together to recover values in this column.
 
-    def getName(self):
+    def get_name(self):
         """Return column name."""
         return self.name
 
-    def getIdx(self):
+    def get_idx(self):
         """Return column identifier."""
         return self.idx
 
-    def dbgStr(self):
+    def dbg_str(self):
         """Return column identifier."""
-        collSetStr = " ".join(sorted(["{" + ",".join([str(p) for p in collSet]) + "}" for collSet in self.collSets]))
-        return self.getName() + " " + collSetStr
+        coll_set_str = \
+            " ".join(sorted(["{" + ",".join([str(p) for p in coll_set]) + "}" for coll_set in self.coll_sets]))
+        return self.get_name() + " " + coll_set_str
 
-    def mergeCollSetsIn(self, otherCollSets):
+    def merge_coll_sets_in(self, other_coll_sets: set):
         """Merge collusion sets into column."""
-        self.collSets = utils.mergeCollSets(self.collSets, otherCollSets)
+        self.coll_sets = utils.merge_coll_sets(self.coll_sets, other_coll_sets)
 
     def __str__(self):
         """Return string representation of column object."""
-        return self.getName()
+        return self.get_name()
 
 
-class Relation():
+class Relation:
     """
     Relation data structure.
     """
 
-    def __init__(self, name, columns, storedWith):
+    def __init__(self, name: str, columns: list, stored_with: set):
         """Initialize object."""
         self.name = name
         self.columns = columns
-        self.storedWith = storedWith # Ownership of this data set. Does this refer to secret shares or open data?
+        self.stored_with = stored_with  # Ownership of this data set. Does this refer to secret shares or open data?
 
-    def rename(self, newName):
+    def rename(self, new_name):
         """Rename relation."""
-        self.name = newName
+        self.name = new_name
         for col in self.columns:
-            col.relName = newName
+            col.rel_name = new_name
 
-    def isShared(self):
+    def is_shared(self):
         """Determine if this relation is shared."""
-        return len(self.storedWith) > 1
+        return len(self.stored_with) > 1
 
-    def updateColumnIndexes(self):
+    def update_column_indexes(self):
         """
         Makes sure column indexes are same as the columns' positions
         in the list. Call this after inserting new columns or otherwise
@@ -69,18 +70,18 @@ class Relation():
         for idx, col in enumerate(self.columns):
             col.idx = idx
 
-    def updateColumns(self):
+    def update_columns(self):
         """Update relation name in relation column objects."""
-        self.updateColumnIndexes()
+        self.update_column_indexes()
         for col in self.columns:
-            col.relName = self.name
+            col.rel_name = self.name
 
-    def dbgStr(self):
+    def dbg_str(self):
         """Return extended string representation for debugging."""
-        colStr = ", ".join([col.dbgStr() for col in self.columns])
-        return "{}([{}]) {}".format(self.name, colStr, self.storedWith)
+        col_str = ", ".join([col.dbg_str() for col in self.columns])
+        return "{}([{}]) {}".format(self.name, col_str, self.stored_with)
 
     def __str__(self):
         """Return string representation of relation."""
-        colStr = ", ".join([str(col) for col in self.columns])
-        return "{}([{}])".format(self.name, colStr)
+        col_str = ", ".join([str(col) for col in self.columns])
+        return "{}([{}])".format(self.name, col_str)

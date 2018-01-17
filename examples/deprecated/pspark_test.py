@@ -2,7 +2,7 @@ import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
 from salmon import CodeGenConfig
 from salmon.utils import *
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 
 
 def setup():
@@ -21,7 +21,7 @@ def setup():
     return [in1, in2]
 
 
-@dagonly
+@dag_only
 def agg():
 
     in1 = setup()[0]

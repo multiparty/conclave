@@ -42,7 +42,7 @@ class SharemindCodeGen(CodeGen):
     def _generate(self, job_name, output_directory):
 
         # nodes in topological order
-        nodes = self.dag.topSort()
+        nodes = self.dag.top_sort()
 
         # determine party that will act as the controller
         controller_pid = self._get_controller_pid(nodes)
@@ -132,7 +132,7 @@ class SharemindCodeGen(CodeGen):
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
         # union of all storedWiths gives us all output parties
         output_parties = set().union(
-            *[op.outRel.storedWith for op in open_ops])
+            *[op.out_rel.storedWith for op in open_ops])
         # only support one output party
         assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
@@ -144,7 +144,7 @@ class SharemindCodeGen(CodeGen):
         close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
         # union of all storedWiths gives us all input parties
         input_parties = set().union(
-            *[op.getInRel().storedWith for op in close_ops])
+            *[op.get_in_rel().storedWith for op in close_ops])
         # want these in-order
         return sorted(list(input_parties))
 
@@ -156,7 +156,7 @@ class SharemindCodeGen(CodeGen):
         close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
         # only need schemas for my close ops
         my_close_ops = filter(
-            lambda close_op: self.pid in close_op.getInRel().storedWith, close_ops)
+            lambda close_op: self.pid in close_op.get_in_rel().storedWith, close_ops)
         # all CSVImports this party will perform
         hdfs_import_statements = []
         import_statements = []
@@ -200,7 +200,7 @@ class SharemindCodeGen(CodeGen):
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
         hdfs_cmds = []
         for open_op in open_ops:
-            name = open_op.outRel.name
+            name = open_op.out_rel.name
             # TODO: hack hack hack
             if self.sm_config.use_hdfs:
                 hdfs_cmd = "hadoop fs -put {}.csv {}.csv".format(
@@ -235,8 +235,8 @@ class SharemindCodeGen(CodeGen):
         # we need all open ops to get the size of the output rels
         # for parsing
         open_ops = list(filter(lambda op_node: isinstance(op_node, Open), nodes))
-        rel_names = [open_op.outRel.name for open_op in open_ops]
-        num_cols = [str(len(open_op.outRel.columns)) for open_op in open_ops]
+        rel_names = [open_op.out_rel.name for open_op in open_ops]
+        num_cols = [str(len(open_op.out_rel.columns)) for open_op in open_ops]
         rels_meta_str = " ".join(
             ["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
 
@@ -265,8 +265,8 @@ class SharemindCodeGen(CodeGen):
         # TODO: update template with multi-col
         data = {
             "TYPE": "uint32",
-            "OUT_REL_NAME": agg_op.outRel.name,
-            "IN_REL_NAME": agg_op.getInRel().name,
+            "OUT_REL_NAME": agg_op.out_rel.name,
+            "IN_REL_NAME": agg_op.get_in_rel().name,
             "KEY_COL_IDX": agg_op.groupCols[0].idx,
             "AGG_COL_IDX": agg_op.aggCol.idx
         }
@@ -279,12 +279,12 @@ class SharemindCodeGen(CodeGen):
 
         data = {
             "TYPE": "uint32",
-            "OUT_REL_NAME": idx_agg_op.outRel.name,
-            "IN_REL_NAME": idx_agg_op.getInRel().name,
+            "OUT_REL_NAME": idx_agg_op.out_rel.name,
+            "IN_REL_NAME": idx_agg_op.get_in_rel().name,
             "GROUP_COL_IDX": idx_agg_op.groupCols[0].idx,
             "AGG_COL_IDX": idx_agg_op.aggCol.idx,
-            "EQ_FLAG_REL": idx_agg_op.eqFlagOp.outRel.name,
-            "SORTED_KEYS_REL": idx_agg_op.sortedKeysOp.outRel.name
+            "EQ_FLAG_REL": idx_agg_op.eqFlagOp.out_rel.name,
+            "SORTED_KEYS_REL": idx_agg_op.sortedKeysOp.out_rel.name
         }
         return pystache.render(template, data)
 
@@ -294,14 +294,14 @@ class SharemindCodeGen(CodeGen):
             "{0}/close.tmpl".format(self.template_directory), 'r').read()
         data = {
             "TYPE": "uint32",
-            "OUT_REL_NAME": close_op.outRel.name,
-            "IN_REL_NAME": close_op.getInRel().name
+            "OUT_REL_NAME": close_op.out_rel.name,
+            "IN_REL_NAME": close_op.get_in_rel().name
         }
         return pystache.render(template, data)
 
     def _generateConcat(self, concat_op):
 
-        inRels = concat_op.getInRels()
+        inRels = concat_op.get_in_rels()
         assert len(inRels) > 1
 
         # Sharemind only allows us to concatenate two relations at a time
@@ -319,7 +319,7 @@ class SharemindCodeGen(CodeGen):
         outer = open(
             "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "OUT_REL": concat_op.outRel.name,
+            "OUT_REL": concat_op.out_rel.name,
             "TYPE": "uint32",
             "CATS": cats
         }
@@ -335,7 +335,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "NAME": create_op.outRel.name,
+            "NAME": create_op.out_rel.name,
             "TYPE": "uint32"
         }
         return pystache.render(template, data)
@@ -354,8 +354,8 @@ class SharemindCodeGen(CodeGen):
 
         data = {
             "TYPE": "uint32",
-            "OUT_REL": divide_op.outRel.name,
-            "IN_REL": divide_op.getInRel().name,
+            "OUT_REL": divide_op.out_rel.name,
+            "IN_REL": divide_op.get_in_rel().name,
             "TARGET_COL": divide_op.targetCol.idx,
             # hacking array brackets
             "OPERANDS": "{" + operands_str + "}",
@@ -367,16 +367,16 @@ class SharemindCodeGen(CodeGen):
 
         template = open(
             "{0}/indexJoin.tmpl".format(self.template_directory), 'r').read()
-        left_rel = index_join_op.leftParent.outRel
-        right_rel = index_join_op.rightParent.outRel
-        index_rel = index_join_op.indexRel.outRel
+        left_rel = index_join_op.leftParent.out_rel
+        right_rel = index_join_op.rightParent.out_rel
+        index_rel = index_join_op.indexRel.out_rel
 
         data = {
             "TYPE": "uint32",
-            "OUT_REL": index_join_op.outRel.name,
-            "LEFT_IN_REL": index_join_op.getLeftInRel().name,
+            "OUT_REL": index_join_op.out_rel.name,
+            "LEFT_IN_REL": index_join_op.get_left_in_rel().name,
             "LEFT_KEY_COLS": str(index_join_op.leftJoinCols[0].idx),
-            "RIGHT_IN_REL": index_join_op.getRightInRel().name,
+            "RIGHT_IN_REL": index_join_op.get_right_in_rel().name,
             "RIGHT_KEY_COLS": str(index_join_op.rightJoinCols[0].idx),
             "INDEX_REL": index_rel.name
         }
@@ -390,8 +390,8 @@ class SharemindCodeGen(CodeGen):
                                       for col in join_op.leftJoinCols])
         right_key_cols_str = ",".join(
             [str(col.idx) for col in join_op.rightJoinCols])
-        left_rel = join_op.leftParent.outRel
-        right_rel = join_op.rightParent.outRel
+        left_rel = join_op.leftParent.out_rel
+        right_rel = join_op.rightParent.out_rel
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
         cols_to_keep = list(
@@ -402,10 +402,10 @@ class SharemindCodeGen(CodeGen):
             [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
         data = {
             "TYPE": "uint32",
-            "OUT_REL": join_op.outRel.name,
-            "LEFT_IN_REL": join_op.getLeftInRel().name,
+            "OUT_REL": join_op.out_rel.name,
+            "LEFT_IN_REL": join_op.get_left_in_rel().name,
             "LEFT_KEY_COLS": "{" + left_key_cols_str + "}",
-            "RIGHT_IN_REL": join_op.getRightInRel().name,
+            "RIGHT_IN_REL": join_op.get_right_in_rel().name,
             "RIGHT_KEY_COLS": "{" + right_key_cols_str + "}",
             "COLS_TO_KEEP": "{" + cols_to_keep_str + "}"
         }
@@ -416,8 +416,8 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/publish.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "OUT_REL": open_op.outRel.name,
-            "IN_REL": open_op.getInRel().name,
+            "OUT_REL": open_op.out_rel.name,
+            "IN_REL": open_op.get_in_rel().name,
         }
         return pystache.render(template, data)
 
@@ -427,8 +427,8 @@ class SharemindCodeGen(CodeGen):
             "{0}/shuffle.tmpl".format(self.template_directory), 'r').read()
         data = {
             "TYPE": "uint32",
-            "OUT_REL": shuffle_op.outRel.name,
-            "IN_REL": shuffle_op.getInRel().name
+            "OUT_REL": shuffle_op.out_rel.name,
+            "IN_REL": shuffle_op.get_in_rel().name
         }
         return pystache.render(template, data)
 
@@ -437,8 +437,8 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/persist.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "OUT_REL": persist_op.outRel.name,
-            "IN_REL": persist_op.getInRel().name,
+            "OUT_REL": persist_op.out_rel.name,
+            "IN_REL": persist_op.get_in_rel().name,
         }
         return pystache.render(template, data)
 
@@ -450,8 +450,8 @@ class SharemindCodeGen(CodeGen):
         selectedColStr = ",".join([str(col.idx) for col in selectedCols])
         data = {
             "TYPE": "uint32",
-            "OUT_REL": project_op.outRel.name,
-            "IN_REL": project_op.getInRel().name,
+            "OUT_REL": project_op.out_rel.name,
+            "IN_REL": project_op.get_in_rel().name,
             # hacking array brackets
             "SELECTED_COLS": "{" + selectedColStr + "}"
         }
@@ -471,8 +471,8 @@ class SharemindCodeGen(CodeGen):
 
         data = {
             "TYPE": "uint32",
-            "OUT_REL": multiply_op.outRel.name,
-            "IN_REL": multiply_op.getInRel().name,
+            "OUT_REL": multiply_op.out_rel.name,
+            "IN_REL": multiply_op.get_in_rel().name,
             "TARGET_COL": multiply_op.targetCol.idx,
             # hacking array brackets
             "OPERANDS": "{" + operands_str + "}",
@@ -482,17 +482,17 @@ class SharemindCodeGen(CodeGen):
 
     def _generateSchema(self, close_op):
 
-        inRel = close_op.getInRel()
+        inRel = close_op.get_in_rel()
         inCols = inRel.columns
-        outRel = close_op.outRel
-        outCols = outRel.columns
+        out_rel = close_op.out_rel
+        outCols = out_rel.columns
         colDefs = []
         colDefTemplate = open(
             "{0}/colDef.tmpl".format(self.template_directory), 'r').read()
         for inCol, outCol in zip(inCols, outCols):
             colData = {
-                'IN_NAME': inCol.getName(),
-                'OUT_NAME': outCol.getName(),
+                'IN_NAME': inCol.get_name(),
+                'OUT_NAME': outCol.get_name(),
                 'TYPE': "uint32"  # hard-coded for now
             }
             colDefs.append(pystache.render(colDefTemplate, colData))
@@ -500,7 +500,7 @@ class SharemindCodeGen(CodeGen):
         relDefTemplate = open(
             "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
         relData = {
-            "NAME": close_op.getInRel().name,
+            "NAME": close_op.get_in_rel().name,
             "COL_DEFS": colDefStr
         }
         relDefHeader = ",".join([c.name for c in inCols])
@@ -512,7 +512,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/hdfsImport.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "IN_NAME": close_op.getInRel().name,
+            "IN_NAME": close_op.get_in_rel().name,
             "SCHEMA_HEADER": header,
             "INPUT_PATH": self.config.input_path,
             "CODE_PATH": self.config.code_path + "/" + job_name,
@@ -531,7 +531,7 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
         data = {
-            "IN_NAME": close_op.getInRel().name,
+            "IN_NAME": close_op.get_in_rel().name,
             "INPUT_PATH": self.config.input_path,
             "CODE_PATH": self.config.code_path + "/" + job_name,
             'DELIMITER': _delim_lookup(self.config.delimiter),

@@ -2,7 +2,7 @@ from salmon import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 import salmon.dispatch
 import salmon.net
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import salmon.lang as sal
 from salmon.utils import *
 import sys
@@ -39,7 +39,7 @@ def setup():
 
 def agg(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -58,7 +58,7 @@ def agg(pid, config, sharemind_peer, f_size):
 
 def col_div(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -77,7 +77,7 @@ def col_div(pid, config, sharemind_peer, f_size):
 
 def col_mult(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -96,7 +96,7 @@ def col_mult(pid, config, sharemind_peer, f_size):
 
 def scalar_div(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -115,7 +115,7 @@ def scalar_div(pid, config, sharemind_peer, f_size):
 
 def scalar_mult(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -134,12 +134,12 @@ def scalar_mult(pid, config, sharemind_peer, f_size):
 
 def project(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
 
-        cols = [column.name for column in rel.outRel.columns][::-1]
+        cols = [column.name for column in rel.out_rel.columns][::-1]
 
         res = sal.project(rel, "proja", cols)
 
@@ -155,7 +155,7 @@ def project(pid, config, sharemind_peer, f_size):
 
 def join(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsIn1 = [

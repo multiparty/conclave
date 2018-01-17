@@ -26,13 +26,17 @@ def protocol():
     ]
 
     # instantiate input columns
+    # NOTE: input file names will correspond to the 0th arg of each create
     in1 = sal.create("in1", cols_in_a, {1})
     in2 = sal.create("in2", cols_in_b, {1})
     in3 = sal.create("in3", cols_in_c, {1})
 
     # operate on columns
+    # join in1 & in2 over the column 'a', name output relation 'join1'
     join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
     join2 = sal.join(join1, in3, 'join2', ['a'], ['a'])
+
+    # collect leaf node
     out = sal.collect(join2, 1)
 
     # return root nodes

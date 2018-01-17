@@ -1,5 +1,5 @@
 import salmon.lang as sal
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.codegen import spark, viz
 from salmon import CodeGenConfig
 from salmon.utils import *
@@ -10,7 +10,7 @@ NOTE: This script is intended to be run locally on the output of preprocess_move
 after the data has been separated into distinct parties by retailer_code.
 '''
 
-@dagonly
+@dag_only
 def protocol():
 
     colsInA = [

@@ -19,7 +19,7 @@ def run_ssn_workflow():
 
         proja = sal.project(in1, "proja", ["a", "b"])
         proja.isMPC = False
-        proja.outRel.storedWith = {1}
+        proja.out_rel.storedWith = {1}
 
         colsInB = [
             defCol("c", "INTEGER", [1], [2]),
@@ -30,7 +30,7 @@ def run_ssn_workflow():
 
         projb = sal.project(in2, "projb", ["c", "d"])
         projb.isMPC = False
-        projb.outRel.storedWith = {2}
+        projb.out_rel.storedWith = {2}
 
         colsInC = [
             defCol("c", "INTEGER", [1], [3]),
@@ -41,7 +41,7 @@ def run_ssn_workflow():
 
         projc = sal.project(in3, "projc", ["c", "d"])
         projc.isMPC = False
-        projc.outRel.storedWith = {3}
+        projc.out_rel.storedWith = {3}
 
         clA = sal._close(proja, "clA", {1, 2, 3})
         clA.isMPC = True
@@ -52,7 +52,7 @@ def run_ssn_workflow():
 
         rightClosed = sal.concat([clB, clC], "clD")
         rightClosed.isMPC = True
-        rightClosed.outRel.storedWith = {1, 2, 3}
+        rightClosed.out_rel.storedWith = {1, 2, 3}
 
         shuffledA = sal.shuffle(clA, "shuffledA")
         shuffledA.isMPC = True
@@ -64,11 +64,11 @@ def run_ssn_workflow():
         persistedB.isMPC = True
 
         keysaclosed = sal.project(shuffledA, "keysaclosed", ["a"])
-        keysaclosed.outRel.storedWith = {1, 2, 3}
+        keysaclosed.out_rel.storedWith = {1, 2, 3}
         keysaclosed.isMPC = True
         keysbclosed = sal.project(shuffledB, "keysbclosed", ["c"])
         keysbclosed.isMPC = True
-        keysbclosed.outRel.storedWith = {1, 2, 3}
+        keysbclosed.out_rel.storedWith = {1, 2, 3}
 
         keysa = sal._open(keysaclosed, "keysa", 1)
         keysa.isMPC = True
@@ -77,20 +77,20 @@ def run_ssn_workflow():
 
         indexedA = sal.index(keysa, "indexedA", "indexA")
         indexedA.isMPC = False
-        indexedA.outRel.storedWith = {1}
+        indexedA.out_rel.storedWith = {1}
         indexedB = sal.index(keysb, "indexedB", "indexB")
         indexedB.isMPC = False
-        indexedB.outRel.storedWith = {1}
+        indexedB.out_rel.storedWith = {1}
 
         joinedindeces = sal.join(
             indexedA, indexedB, "joinedindeces", ["a"], ["c"])
         joinedindeces.isMPC = False
-        joinedindeces.outRel.storedWith = {1}
+        joinedindeces.out_rel.storedWith = {1}
 
         indecesonly = sal.project(
             joinedindeces, "indecesonly", ["indexA", "indexB"])
         indecesonly.isMPC = False
-        indecesonly.outRel.storedWith = {1}
+        indecesonly.out_rel.storedWith = {1}
 
         indecesclosed = sal._close(
             indecesonly, "indecesclosed", {1, 2, 3})
@@ -104,15 +104,15 @@ def run_ssn_workflow():
 
     def hybrid_agg(in1):
         shuffled = sal.shuffle(in1, "shuffled")
-        shuffled.outRel.storedWith = {1, 2, 3}
+        shuffled.out_rel.storedWith = {1, 2, 3}
         shuffled.isMPC = True
 
         persisted = sal._persist(shuffled, "persisted")
-        persisted.outRel.storedWith = {1, 2, 3}
+        persisted.out_rel.storedWith = {1, 2, 3}
         persisted.isMPC = True
 
         keysclosed = sal.project(shuffled, "keysclosed", ["b"])
-        keysclosed.outRel.storedWith = {1, 2, 3}
+        keysclosed.out_rel.storedWith = {1, 2, 3}
         keysclosed.isMPC = True
 
         keys = sal._open(keysclosed, "keys", 1)
@@ -120,21 +120,21 @@ def run_ssn_workflow():
 
         indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
-        indexed.outRel.storedWith = {1}
+        indexed.out_rel.storedWith = {1}
 
         sortedByKey = sal.sort_by(indexed, "sortedByKey", "b")
         sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = {1}
+        sortedByKey.out_rel.storedWith = {1}
 
         eqFlags = sal._comp_neighs(sortedByKey, "eqFlags", "b")
         eqFlags.isMPC = False
-        eqFlags.outRel.storedWith = {1}
+        eqFlags.out_rel.storedWith = {1}
 
         # TODO: should be a persist op
         sortedByKeyStored = sal.project(
             sortedByKey, "sortedByKeyStored", ["rowIndex", "b"])
         sortedByKeyStored.isMPC = False
-        sortedByKeyStored.outRel.storedWith = {1}
+        sortedByKeyStored.out_rel.storedWith = {1}
 
         closedEqFlags = sal._close(eqFlags, "closedEqFlags", {1, 2, 3})
         closedEqFlags.isMPC = True

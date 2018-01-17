@@ -27,7 +27,7 @@ class SubDag(Dag):
         leaves = []
 
         for node in self.nodes:
-            if not node.isLeaf():
+            if not node.is_leaf():
                 if isLocalLeaf(node, self.nodes):
                     node.children = set()
                     leaves.append(node)
@@ -42,7 +42,7 @@ class SubDag(Dag):
         roots = []
 
         for node in self.nodes:
-            if not node.isRoot():
+            if not node.is_root():
                 if isLocalRoot(node, self.nodes):
                     roots.append(node)
 
@@ -54,7 +54,7 @@ class SubDag(Dag):
         return inf
 
     def debugStr(self):
-        return "{" + ", ".join([node.outRel.name for node in self.nodes]) + "}"
+        return "{" + ", ".join([node.out_rel.name for node in self.nodes]) + "}"
 
 
 def getBestPartition(nodes):

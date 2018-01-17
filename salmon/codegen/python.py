@@ -17,7 +17,7 @@ class PythonCodeGen(CodeGen):
         self.space = space
 
     def _generateOutputs(self, op_code):
-        leaf_nodes = [node for node in self.dag.topSort() if node.isLeaf()]
+        leaf_nodes = [node for node in self.dag.top_sort() if node.is_leaf()]
         for leaf in leaf_nodes:
             op_code += self._generateOutput(leaf)
         return op_code
@@ -38,8 +38,8 @@ class PythonCodeGen(CodeGen):
         # TODO handle multi-column case
         return "{}{} = aggregate({}, {}, {}, '{}')\n".format(
             self.space,
-            agg_op.outRel.name,
-            agg_op.getInRel().name,
+            agg_op.out_rel.name,
+            agg_op.get_in_rel().name,
             agg_op.groupCols[0].idx,
             agg_op.aggCol.idx,
             agg_op.aggregator
@@ -50,35 +50,35 @@ class PythonCodeGen(CodeGen):
         lambda_expr = "lambda row : " + " * ".join(["row[{}]".format(idx) for idx in operands])
         return "{}{} = arithmetic_project({}, {}, {})\n".format(
             self.space,
-            mult_op.outRel.name,
-            mult_op.getInRel().name,
+            mult_op.out_rel.name,
+            mult_op.get_in_rel().name,
             mult_op.targetCol.idx,
             lambda_expr
         )
 
     def _generateOutput(self, leaf):
-        schema_header = ",".join(['"' + col.name + '"' for col in leaf.outRel.columns])
+        schema_header = ",".join(['"' + col.name + '"' for col in leaf.out_rel.columns])
         return "{}write_rel('{}', '{}.csv', {}, '{}')\n".format(
             self.space,
             self.config.output_path,
-            leaf.outRel.name,
-            leaf.outRel.name,
+            leaf.out_rel.name,
+            leaf.out_rel.name,
             schema_header
         )
 
     def _generateCreate(self, create_op):
         return "{}{} = read_rel('{}')\n".format(
             self.space,
-            create_op.outRel.name,
-            self.config.input_path + "/" + create_op.outRel.name + ".csv"
+            create_op.out_rel.name,
+            self.config.input_path + "/" + create_op.out_rel.name + ".csv"
         )
 
     def _generateJoin(self, join_op):
         return "{}{}  = join({}, {}, {}, {})\n".format(
             self.space,
-            join_op.outRel.name,
-            join_op.getLeftInRel().name,
-            join_op.getRightInRel().name,
+            join_op.out_rel.name,
+            join_op.get_left_in_rel().name,
+            join_op.get_right_in_rel().name,
             join_op.leftJoinCols[0].idx,
             join_op.rightJoinCols[0].idx
         )
@@ -87,8 +87,8 @@ class PythonCodeGen(CodeGen):
         selected_cols = [col.idx for col in project_op.selectedCols]
         return "{}{} = project({}, {})\n".format(
             self.space,
-            project_op.outRel.name,
-            project_op.getInRel().name,
+            project_op.out_rel.name,
+            project_op.get_in_rel().name,
             selected_cols
         )
 
@@ -96,43 +96,43 @@ class PythonCodeGen(CodeGen):
         selected_cols = [col.idx for col in distinct_op.selectedCols]
         return "{}{} = distinct({}, {})\n".format(
             self.space,
-            distinct_op.outRel.name,
-            distinct_op.getInRel().name,
+            distinct_op.out_rel.name,
+            distinct_op.get_in_rel().name,
             selected_cols
         )
 
     def _generateSortBy(self, sort_by_op):
         return "{}{} = sort_by({}, {})\n".format(
             self.space,
-            sort_by_op.outRel.name,
-            sort_by_op.getInRel().name,
+            sort_by_op.out_rel.name,
+            sort_by_op.get_in_rel().name,
             sort_by_op.sortByCol.idx
         )
 
     def _generateCompNeighs(self, comp_neighs_op):
         return "{}{} = comp_neighs({}, {})\n".format(
             self.space,
-            comp_neighs_op.outRel.name,
-            comp_neighs_op.getInRel().name,
+            comp_neighs_op.out_rel.name,
+            comp_neighs_op.get_in_rel().name,
             comp_neighs_op.compCol.idx
         )
 
     def _generateIndex(self, index_op):
         return "{}{} = project_indeces({})\n".format(
             self.space,
-            index_op.outRel.name,
-            index_op.getInRel().name
+            index_op.out_rel.name,
+            index_op.get_in_rel().name
         )
 
     def _generateIndexAggregate(self, index_agg_op):
         # TODO: generalize
         return "{}{} = index_agg({}, {}, {}, {}, lambda x, y: x {} y)\n".format(
             self.space,
-            index_agg_op.outRel.name,
-            index_agg_op.getInRel().name,
+            index_agg_op.out_rel.name,
+            index_agg_op.get_in_rel().name,
             index_agg_op.aggCol.idx,
-            index_agg_op.distKeysOp.outRel.name,
-            index_agg_op.indexOp.outRel.name,
+            index_agg_op.distKeysOp.out_rel.name,
+            index_agg_op.indexOp.out_rel.name,
             index_agg_op.aggregator
         )
 

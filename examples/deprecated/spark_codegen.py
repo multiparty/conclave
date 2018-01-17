@@ -2,7 +2,7 @@ import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
 from salmon import CodeGenConfig
 from salmon.utils import *
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 
 def setup():
 
@@ -20,7 +20,7 @@ def setup():
     return [in1, in2]
 
 
-@dagonly
+@dag_only
 def agg():
 
     in1 = setup()[0]
@@ -32,7 +32,7 @@ def agg():
     return set([in1])
 
 
-@dagonly
+@dag_only
 def concat():
 
     inpts = setup()
@@ -45,7 +45,7 @@ def concat():
     return set([in1, in2])
 
 
-@dagonly
+@dag_only
 def distinct():
 
     in1 = setup()[0]
@@ -56,7 +56,7 @@ def distinct():
     return set([in1])
 
 
-@dagonly
+@dag_only
 def divide():
 
     in1 = setup()[0]
@@ -68,7 +68,7 @@ def divide():
     return set([in1])
 
 
-@dagonly
+@dag_only
 def multiply():
 
     in1 = setup()[0]
@@ -80,7 +80,7 @@ def multiply():
     return set([in1])
 
 
-@dagonly
+@dag_only
 def project():
 
     in1 = setup()[0]
@@ -92,7 +92,7 @@ def project():
     return set([in1])
 
 
-@dagonly
+@dag_only
 def join():
 
     inpts = setup()

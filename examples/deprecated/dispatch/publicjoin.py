@@ -1,5 +1,5 @@
 import salmon.lang as sal
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 from salmon.utils import *
 import salmon.partition as part
 from salmon.codegen.scotch import ScotchCodeGen
@@ -15,7 +15,7 @@ import exampleutils
 
 def testPublicJoinWorkflow():
 
-    @dagonly
+    @dag_only
     def protocol():
 
         # define inputs
@@ -28,7 +28,7 @@ def testPublicJoinWorkflow():
 
         proja = sal.project(in1, "proja", ["a", "b"])
         proja.isMPC = False
-        proja.outRel.storedWith = set([1])
+        proja.out_rel.storedWith = set([1])
 
         colsInB = [
             defCol("c", "INTEGER", [1], [2]),
@@ -39,7 +39,7 @@ def testPublicJoinWorkflow():
 
         projb = sal.project(in2, "projb", ["c", "d"])
         projb.isMPC = False
-        projb.outRel.storedWith = set([2])
+        projb.out_rel.storedWith = set([2])
 
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
@@ -50,11 +50,11 @@ def testPublicJoinWorkflow():
         persistedB = sal._persist(clB, "persistedB")
 
         keysaclosed = sal.project(clA, "keysaclosed", ["a"])
-        keysaclosed.outRel.storedWith = set([1, 2, 3])
+        keysaclosed.out_rel.storedWith = set([1, 2, 3])
         keysaclosed.isMPC = True
         keysbclosed = sal.project(clB, "keysbclosed", ["c"])
         keysbclosed.isMPC = True
-        keysbclosed.outRel.storedWith = set([1, 2, 3])
+        keysbclosed.out_rel.storedWith = set([1, 2, 3])
 
         keysa = sal._open(keysaclosed, "keysa", 1)
         keysa.isMPC = True
@@ -63,20 +63,20 @@ def testPublicJoinWorkflow():
 
         indexedA = sal.index(keysa, "indexedA", "indexA")
         indexedA.isMPC = False
-        indexedA.outRel.storedWith = set([1])
+        indexedA.out_rel.storedWith = set([1])
         indexedB = sal.index(keysb, "indexedB", "indexB")
         indexedB.isMPC = False
-        indexedB.outRel.storedWith = set([1])
+        indexedB.out_rel.storedWith = set([1])
 
         joinedindeces = sal.join(
             indexedA, indexedB, "joinedindeces", ["a"], ["c"])
         joinedindeces.isMPC = False
-        joinedindeces.outRel.storedWith = set([1])
+        joinedindeces.out_rel.storedWith = set([1])
 
         indecesonly = sal.project(
             joinedindeces, "indecesonly", ["indexA", "indexB"])
         indecesonly.isMPC = False
-        indecesonly.outRel.storedWith = set([1])
+        indecesonly.out_rel.storedWith = set([1])
 
         indecesclosed = sal._close(
             indecesonly, "indecesclosed", set([1, 2, 3]))

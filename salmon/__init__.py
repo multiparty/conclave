@@ -10,7 +10,8 @@ from salmon.net import SalmonPeer
 from salmon.net import setup_peer
 
 
-def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, apply_optimizations=True):
+def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
+                  local_frameworks: list, apply_optimizations: bool = True):
     """
     Applies optimization rewrite passes to protocol, partitions resulting dag, and generates backend specific code for
     each sub-dag.
@@ -34,7 +35,7 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, a
     dag = saldag.OpDag(protocol())
     # only apply optimizations if required
     if apply_optimizations:
-        dag = comp.rewriteDag(dag)
+        dag = comp.rewrite_dag(dag)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
     # for each sub dag run code gen and add resulting job to job queue
@@ -43,18 +44,15 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, a
         print(job_num, framework)
         if framework == "sharemind":
             name = "{}-sharemind-job-{}".format(cfg.name, job_num)
-            job = SharemindCodeGen(cfg, sub_dag, cfg.pid).generate(
-                name, cfg.output_path)
+            job = SharemindCodeGen(cfg, sub_dag, cfg.pid).generate(name, cfg.output_path)
             job_queue.append(job)
         elif framework == "spark":
             name = "{}-spark-job-{}".format(cfg.name, job_num)
-            job = SparkCodeGen(cfg, sub_dag).generate(name,
-                                                      cfg.output_path)
+            job = SparkCodeGen(cfg, sub_dag).generate(name, cfg.output_path)
             job_queue.append(job)
         elif framework == "python":
             name = "{}-python-job-{}".format(cfg.name, job_num)
-            job = PythonCodeGen(cfg, sub_dag).generate(name,
-                                                       cfg.output_path)
+            job = PythonCodeGen(cfg, sub_dag).generate(name, cfg.output_path)
             job_queue.append(job)
         else:
             raise Exception("Unknown framework: " + framework)
@@ -62,11 +60,10 @@ def generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, a
         # TODO: this probably doesn't belong here
         if conclave_config.pid not in stored_with:
             job.skip = True
-    # return job
     return job_queue
 
 
-def dispatch_jobs(job_queue, conclave_config):
+def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig):
     """
     Dispatches jobs to respective backends.
     :param job_queue: jobs to dispatch
@@ -80,8 +77,8 @@ def dispatch_jobs(job_queue, conclave_config):
     dispatch_all(conclave_config, networked_peer, job_queue)
 
 
-def generate_and_dispatch(protocol, conclave_config, mpc_frameworks,
-                          local_frameworks, apply_optimizations=True):
+def generate_and_dispatch(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
+                          local_frameworks: list, apply_optimizations: bool = True):
     """
     Calls generate_code to generate code from protocol and :func:`~salmon.__init__.dispatch_jobs` to
     dispatch it.

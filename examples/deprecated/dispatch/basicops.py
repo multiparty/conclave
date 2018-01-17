@@ -2,7 +2,7 @@ from salmon import CodeGenConfig
 from salmon.codegen.sharemind import SharemindCodeGen
 import salmon.dispatch
 import salmon.net
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import salmon.lang as sal
 from salmon.utils import *
 from multiprocessing import Process
@@ -34,7 +34,7 @@ def setup():
     rel = sal.concat([cl1, cl2, cl3], "rel")
     return set([in1, in2, in3]), rel
 
-@dagonly
+@dag_only
 def agg():
 
     inputs, rel = setup()
@@ -43,7 +43,7 @@ def agg():
     opened = sal._open(res, "opened", 1)
     return inputs
 
-@dagonly
+@dag_only
 def proj():
 
     inputs, rel = setup()
@@ -52,7 +52,7 @@ def proj():
     opened = sal._open(res, "opened", 1)
     return inputs
 
-@dagonly
+@dag_only
 def mult_by_const():
 
     inputs, rel = setup()
@@ -61,7 +61,7 @@ def mult_by_const():
     opened = sal._open(res, "opened", 1)
     return inputs
 
-@dagonly
+@dag_only
 def mult_mixed():
 
     inputs, rel = setup()
@@ -70,7 +70,7 @@ def mult_mixed():
     opened = sal._open(res, "opened", 1)
     return inputs
 
-@dagonly
+@dag_only
 def div():
 
     inputs, rel = setup()
@@ -79,7 +79,7 @@ def div():
     opened = sal._open(res, "opened", 1)
     return inputs
 
-@dagonly
+@dag_only
 def join():
 
     # define inputs
@@ -110,7 +110,7 @@ def join():
     return set([in1, in2, in3])
 
 
-@dagonly
+@dag_only
 def div_broken():
 
     inputs, rel = setup()
