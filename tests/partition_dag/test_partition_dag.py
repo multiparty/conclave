@@ -1,28 +1,14 @@
 from unittest import TestCase
-import warnings
 import salmon.lang as sal
 import salmon.dag as saldag
-from salmon.comp import dagonly, mpc
+from salmon.comp import mpc
 from salmon.utils import *
-from salmon.codegen.scotch import ScotchCodeGen
 import salmon.partition as part
 import os
 
 
-# suppresses annoying warnings about open files
-def ignore_resource_warnings(test_func):
-
-    def do_test(self, *args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ResourceWarning)
-            test_func(self, *args, **kwargs)
-
-    return do_test
-
-
 class TestConclave(TestCase):
 
-    @ignore_resource_warnings
     def check_workflow(self, dag, name):
 
         mapping = part.heupart(dag, ["sharemind"], ["spark"])
@@ -31,10 +17,9 @@ class TestConclave(TestCase):
 
         expected_rootdir = "{}/part_expected".format(os.path.dirname(os.path.realpath(__file__)))
 
-        # uncomment this to regenerate (needed if rewrite logic changes)
-        # open(expected_rootdir + '/{}'.format(name), 'w').write(actual)
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
+            expected = f.read()
 
-        expected = open(expected_rootdir + '/{}'.format(name), 'r').read()
         self.assertEqual(expected, actual)
 
     def test_partition_taxi(self):

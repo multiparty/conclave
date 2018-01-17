@@ -1,22 +1,10 @@
 from unittest import TestCase
-import warnings
 import salmon.lang as sal
 from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
 from salmon.utils import *
 from salmon.comp import dagonly
 from salmon import CodeGenConfig
 import os
-
-
-# suppresses annoying warnings about open files
-def ignore_resource_warnings(test_func):
-
-    def do_test(self, *args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ResourceWarning)
-            test_func(self, *args, **kwargs)
-
-    return do_test
 
 
 def setup():
@@ -56,7 +44,6 @@ def setup():
 
 class TestSharemind(TestCase):
 
-    @ignore_resource_warnings
     def check_workflow(self, dag, name):
         expected_rootdir = \
             "{}/sharemind_expected".format(os.path.dirname(os.path.realpath(__file__)))
@@ -67,10 +54,9 @@ class TestSharemind(TestCase):
 
         actual = cg._generate('code', '/tmp')[1]['miner']
 
-        # uncomment this to regenerate (needed if .tmpl files change)
-        # open(expected_rootdir + '/{}'.format(name), 'w').write(actual)
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
+            expected = f.read()
 
-        expected = open(expected_rootdir + '/{}'.format(name), 'r').read()
         self.assertEqual(expected, actual)
 
     def test_col_div(self):
