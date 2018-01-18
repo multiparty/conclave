@@ -9,7 +9,12 @@ import conclave.lang as sal
 import conclave.utils as utils
 
 
-def push_op_node_down(top_node, bottom_node):
+def push_op_node_down(top_node: saldag.OpNode, bottom_node: saldag.OpNode):
+    """
+    Pushes a node that must be done under MPC further down in the DAG,
+    and inserts their child nodes that can be done locally above it.
+    """
+
     # only dealing with one grandchild case for now
     assert (len(bottom_node.children) <= 1)
     child = next(iter(bottom_node.children), None)
@@ -32,7 +37,13 @@ def push_op_node_down(top_node, bottom_node):
         to_insert.update_stored_with()
 
 
-def split_node(node):
+def split_node(node: saldag.OpNode):
+    """
+    For now, deals with case where there is a Concat into an
+    Aggregate. Here, local aggregation can be computed before
+    concatenation, and then another aggregation under MPC.
+    """
+
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
@@ -44,7 +55,14 @@ def split_node(node):
     saldag.insert_between(node, child, clone)
 
 
-def fork_node(node):
+# more than one child & is_boundary
+def fork_node(node: saldag.Concat):
+    """
+    Concat nodes are often MPC boundaries. This method forks a Concat
+    node that has more than one child node into a separate Concat node
+    for each of it's children.
+    """
+
     # we can skip the first child
     child_it = enumerate(copy.copy(node.get_sorted_children()))
     next(child_it)
@@ -67,14 +85,14 @@ def fork_node(node):
 
 
 class DagRewriter:
-
+    """ Top level DAG rewrite class. Traverses DAG, reorders nodes, and applies optimizations to certain nodes. """
     def __init__(self):
 
         # If true we visit topological ordering of condag in reverse
         self.reverse = False
 
     def rewrite(self, dag: saldag.OpDag):
-
+        """ Traverse topologically sorted DAG, inspect each node. """
         ordered = dag.top_sort()
         if self.reverse:
             ordered = ordered[::-1]
@@ -113,15 +131,17 @@ class DagRewriter:
 
 
 class MPCPushDown(DagRewriter):
+    """ DagRewriter subclass for pushing MPC boundaries down in workflows. """
 
     def __init__(self):
+        """ Initialize MPCPushDown object. """
 
         super(MPCPushDown, self).__init__()
 
     def _do_commute(self, top_op: saldag.OpNode, bottom_op: saldag.OpNode):
-
         # TODO: over-simplified
         # TODO: add rules for other ops
+
         if isinstance(top_op, saldag.Aggregate):
             if isinstance(bottom_op, saldag.Divide):
                 return True
@@ -130,12 +150,23 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewrite_default(self, node):
+    def _rewrite_default(self, node: saldag.OpNode):
+        """
+        Throughout the rewrite process, a node might switch from requiring
+        MPC to no longer requiring it. This method updates a node's MPC
+        status by calling an method on it from the OpNode class and it's
+        subclasses.
+        """
 
         node.is_mpc = node.requires_mpc()
 
-    def _rewrite_unary_default(self, node):
-
+    def _rewrite_unary_default(self, node: saldag.UnaryOpNode):
+        """
+        If the parent of a UnaryOpNode is a Concat or an Aggregation (which must be
+        done under MPC), then the Concat or Aggregate operation can be pushed beneath
+        it's child UnaryOpNode, which allows the operation at that node to be done
+        outside of MPC. This method tests whether such a transformation can be performed.
+        """
         parent = next(iter(node.parents))
         if parent.is_mpc:
             # if node is leaf stop
@@ -161,7 +192,8 @@ class MPCPushDown(DagRewriter):
         else:
             pass
 
-    def _rewrite_aggregate(self, node):
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
+        """ Aggregate specific pushdown logic. """
 
         parent = next(iter(node.parents))
         if parent.is_mpc:
@@ -202,6 +234,7 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_concat(self, node: saldag.Concat):
+        """ Concat nodes with more than 1 child can be forked into multiple Concats. """
 
         if node.requires_mpc():
             node.is_mpc = True
@@ -214,13 +247,16 @@ class MPCPushDown(DagRewriter):
 
 
 class MPCPushUp(DagRewriter):
+    """ DagRewriter subclass for pushing MPC boundary up in workflows. """
 
     def __init__(self):
+        """ Initialize MPCPushUp object. """
 
         super(MPCPushUp, self).__init__()
         self.reverse = True
 
     def _rewrite_unary_default(self, node: saldag.UnaryOpNode):
+        """ If a UnaryOpNode is at a lower MPC boundary, it can be computed locally. """
 
         par = next(iter(node.parents))
         if node.is_reversible() and node.is_lower_boundary() and not par.is_root():
@@ -261,9 +297,12 @@ class MPCPushUp(DagRewriter):
         pass
 
     def _rewrite_concat(self, node: saldag.Concat):
+        """
+        Concats are always reversible, only need to know if we are
+        dealing with a boundary node (in which case it can be computed
+        outside of MPC).
+        """
 
-        # concats are always reversible so we just need to know
-        # if we're dealing with a boundary node
         if node.is_lower_boundary():
 
             out_stored_with = node.out_rel.stored_with
@@ -711,7 +750,7 @@ def mpc(*args):
         return _mpc
 
 
-def dag_only(f):
+def dag_only(f: callable):
     def wrap():
         return saldag.OpDag(f())
 
