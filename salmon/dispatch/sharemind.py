@@ -1,21 +1,19 @@
 import asyncio
 import re
 from subprocess import call, Popen, PIPE
-from salmon import SalmonPeer
-from salmon.job import SharemindJob
 
 
 class SharemindDispatcher:
     """ Dispatches sharemind jobs. """
 
-    def __init__(self, peer: SalmonPeer):
+    def __init__(self, peer):
 
         self.peer = peer
         self.loop = peer.loop
         self.to_wait_on = {}
         self.early = set()
 
-    def _input_data(self, job: SharemindJob):
+    def _input_data(self, job):
         """ Calls input.sh script to load input data. """
 
         cmd = "{}/input.sh".format(
@@ -27,7 +25,7 @@ class SharemindDispatcher:
         except Exception:
             print("Failed data input")
 
-    def _submit_to_miners(self, job: SharemindJob):
+    def _submit_to_miners(self, job):
         """ Submits Sharemind code to miners. """
 
         cmd = "{}/submit.sh".format(
@@ -49,7 +47,7 @@ class SharemindDispatcher:
         #    print("non-zero return code with error:", err)
         '''
 
-    def _dispatch_as_controller(self, job: SharemindJob):
+    def _dispatch_as_controller(self, job):
         """ Dispatch Sharemind job as controller for computation. """
 
         # track which participants have completed data submission
@@ -74,7 +72,7 @@ class SharemindDispatcher:
 
         print("done")
 
-    def _regular_dispatch(self, job: SharemindJob):
+    def _regular_dispatch(self, job):
         """ Dispatch Sharemind job not as controler. """
 
         # submit data to miners
@@ -87,7 +85,7 @@ class SharemindDispatcher:
         self.to_wait_on = {job.controller: asyncio.Future()}
         self.loop.run_until_complete(self.to_wait_on[job.controller])
 
-    def dispatch(self, job: SharemindJob):
+    def dispatch(self, job):
         """ Top level dispatch method. """
 
         # register self as current dispatcher with peer

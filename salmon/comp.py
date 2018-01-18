@@ -9,7 +9,7 @@ import salmon.lang as sal
 import salmon.utils as utils
 
 
-def push_op_node_down(top_node: saldag.OpNode, bottom_node: saldag.OpNode):
+def push_op_node_down(top_node, bottom_node):
     # only dealing with one grandchild case for now
     assert (len(bottom_node.children) <= 1)
     child = next(iter(bottom_node.children), None)
@@ -32,7 +32,7 @@ def push_op_node_down(top_node: saldag.OpNode, bottom_node: saldag.OpNode):
         to_insert.update_stored_with()
 
 
-def split_node(node: saldag.OpNode):
+def split_node(node):
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
@@ -44,8 +44,7 @@ def split_node(node: saldag.OpNode):
     saldag.insert_between(node, child, clone)
 
 
-# TODO: (ben) verify that setting the node type as OpNode here is OK for calls like node.ordered
-def fork_node(node: saldag.OpNode):
+def fork_node(node):
     # we can skip the first child
     child_it = enumerate(copy.copy(node.get_sorted_children()))
     next(child_it)
@@ -83,31 +82,31 @@ class DagRewriter:
         for node in ordered:
             print(type(self).__name__, "rewriting", node.out_rel.name)
             if isinstance(node, saldag.Aggregate):
-                self._rewrite_Aggregate(node)
+                self._rewrite_aggregate(node)
             elif isinstance(node, saldag.Divide):
-                self._rewriteDivide(node)
+                self._rewrite_divide(node)
             elif isinstance(node, saldag.Project):
-                self._rewriteProject(node)
+                self._rewrite_project(node)
             elif isinstance(node, saldag.Filter):
-                self._rewriteFilter(node)
+                self._rewrite_filter(node)
             elif isinstance(node, saldag.Multiply):
-                self._rewriteMultiply(node)
+                self._rewrite_multiply(node)
             elif isinstance(node, saldag.RevealJoin):
-                self._rewriteRevealJoin(node)
+                self._rewrite_reveal_join(node)
             elif isinstance(node, saldag.HybridJoin):
-                self._rewriteHybridJoin(node)
+                self._rewrite_hybrid_join(node)
             elif isinstance(node, saldag.Join):
-                self._rewriteJoin(node)
+                self._rewrite_join(node)
             elif isinstance(node, saldag.Concat):
-                self._rewriteConcat(node)
+                self._rewrite_concat(node)
             elif isinstance(node, saldag.Close):
-                self._rewriteClose(node)
+                self._rewrite_close(node)
             elif isinstance(node, saldag.Open):
-                self._rewriteOpen(node)
+                self._rewrite_open(node)
             elif isinstance(node, saldag.Create):
-                self._rewriteCreate(node)
+                self._rewrite_create(node)
             elif isinstance(node, saldag.Distinct):
-                self._rewriteDistinct(node)
+                self._rewrite_distinct(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -131,11 +130,11 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewrite_default(self, node: saldag.OpNode):
+    def _rewrite_default(self, node):
 
         node.is_mpc = node.requires_mpc()
 
-    def _rewrite_unary_default(self, node: saldag.OpNode):
+    def _rewrite_unary_default(self, node):
 
         parent = next(iter(node.parents))
         if parent.is_mpc:
@@ -156,21 +155,21 @@ class MPCPushDown(DagRewriter):
                     updated_node = agg_op.parent
                     push_op_node_down(concat_op, updated_node)
                 else:
-                    node.isMPC = True
+                    node.is_mpc = True
             else:
-                node.isMPC = True
+                node.is_mpc = True
         else:
             pass
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
+    def _rewrite_aggregate(self, node):
 
         parent = next(iter(node.parents))
-        if parent.isMPC:
+        if parent.is_mpc:
             if isinstance(parent, saldag.Concat) and parent.is_boundary():
                 split_node(node)
                 push_op_node_down(parent, node)
             else:
-                node.isMPC = True
+                node.is_mpc = True
         else:
             pass
 
@@ -209,7 +208,7 @@ class MPCPushDown(DagRewriter):
             if len(node.children) > 1 and node.is_boundary():
                 fork_node(node)
 
-    def _rewriteCreate(self, node: saldag.Create):
+    def _rewrite_create(self, node: saldag.Create):
 
         pass
 
@@ -512,7 +511,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
     def _rewrite_join(self, node: saldag.Join):
 
-        out_stored_with = node.out_rel.storedWith
+        out_stored_with = node.out_rel.stored_with
         ordered_pars = [node.left_parent, node.right_parent]
 
         left_stored_with = node.get_left_in_rel().stored_with
@@ -535,17 +534,17 @@ class InsertOpenAndCloseOps(DagRewriter):
         if node.is_leaf():
             if len(in_stored_with) > 1 and len(out_stored_with) == 1:
                 target_party = next(iter(out_stored_with))
-                node.out_rel.storedWith = copy.copy(in_stored_with)
+                node.out_rel.stored_with = copy.copy(in_stored_with)
                 sal._open(node, node.out_rel.name + "_open", target_party)
 
     def _rewrite_concat(self, node: saldag.Concat):
 
         assert (not node.is_lower_boundary())
 
-        out_stored_with = node.out_rel.storedWith
+        out_stored_with = node.out_rel.stored_with
         ordered_pars = node.get_sorted_parents()
         for parent in ordered_pars:
-            par_stored_with = parent.out_rel.storedWith
+            par_stored_with = parent.out_rel.stored_with
             if par_stored_with != out_stored_with:
                 out_rel = copy.deepcopy(parent.out_rel)
                 out_rel.rename(out_rel.name + "_close")
@@ -591,13 +590,13 @@ class ExpandCompositeOps(DagRewriter):
 
         # in left parents' children, replace self with first primitive operator
         # in expanded subdag
-        shuffled_a = sal.shuffle(node.leftParent, "shuffled_a")
-        shuffled_a.isMPC = True
+        shuffled_a = sal.shuffle(node.left_parent, "shuffled_a")
+        shuffled_a.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
         shuffled_b = sal.shuffle(node.right_parent, "shuffled_b")
-        shuffled_b.isMPC = True
+        shuffled_b.is_mpc = True
         node.right_parent.children.remove(node)
 
         persisted_b = sal._persist(shuffled_b, "persisted_b")

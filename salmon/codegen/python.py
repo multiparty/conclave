@@ -4,14 +4,13 @@ import pystache
 
 from salmon.codegen import CodeGen
 from salmon.job import PythonJob
-from salmon import CodeGenConfig
 import salmon.dag as saldag
 
 
 class PythonCodeGen(CodeGen):
     """ Codegen subclass for generating Python code. """
 
-    def __init__(self, config: CodeGenConfig, dag: saldag.Dag, space="    ",
+    def __init__(self, config, dag: saldag.Dag, space="    ",
                  template_directory="{}/templates/python".format(os.path.dirname(os.path.realpath(__file__)))):
         """ Initialize PythonCodeGen object. """
         super(PythonCodeGen, self).__init__(config, dag)
@@ -139,16 +138,15 @@ class PythonCodeGen(CodeGen):
             index_op.get_in_rel().name
         )
 
-    # TODO: mismatched attributes
-    def _generate_index_aggregate(self, index_agg_op: saldag.Index_aggregate):
+    def _generate_index_aggregate(self, index_agg_op: saldag.IndexAggregate):
         # TODO: generalize
         return "{}{} = index_agg({}, {}, {}, {}, lambda x, y: x {} y)\n".format(
             self.space,
             index_agg_op.out_rel.name,
             index_agg_op.get_in_rel().name,
             index_agg_op.agg_col.idx,
-            index_agg_op.distKeysOp.out_rel.name,
-            index_agg_op.indexOp.out_rel.name,
+            index_agg_op.sorted_keys_op.out_rel.name,
+            index_agg_op.eq_flag_op.out_rel.name,
             index_agg_op.aggregator
         )
 

@@ -86,137 +86,137 @@ class TestConclave(TestCase):
                 defCol("b", "INTEGER", [1]),
             ]
             in_1 = sal.create("govreg", cols_in_a, set([1]))
-            in_1.isMPC = False
+            in_1.is_mpc = False
 
             proj_a = sal.project(in_1, "proj_a", ["a", "b"])
-            proj_a.isMPC = False
-            proj_a.outRel.storedWith = set([1])
+            proj_a.is_mpc = False
+            proj_a.out_rel.stored_with = set([1])
 
             cols_in_b = [
                 defCol("c", "INTEGER", [1], [2]),
                 defCol("d", "INTEGER", [2])
             ]
             in_2 = sal.create("company0", cols_in_b, set([2]))
-            in_2.isMPC = False
+            in_2.is_mpc = False
 
             proj_b = sal.project(in_2, "proj_b", ["c", "d"])
-            proj_b.isMPC = False
-            proj_b.outRel.storedWith = set([2])
+            proj_b.is_mpc = False
+            proj_b.out_rel.stored_with = set([2])
 
             cols_in_c = [
                 defCol("c", "INTEGER", [1], [3]),
                 defCol("d", "INTEGER", [3])
             ]
             in_3 = sal.create("company1", cols_in_c, set([3]))
-            in_3.isMPC = False
+            in_3.is_mpc = False
 
             proj_c = sal.project(in_3, "proj_c", ["c", "d"])
-            proj_c.isMPC = False
-            proj_c.outRel.storedWith = set([3])
+            proj_c.is_mpc = False
+            proj_c.out_rel.stored_with = set([3])
 
             cl_a = sal._close(proj_a, "cl_a", set([1, 2, 3]))
-            cl_a.isMPC = True
+            cl_a.is_mpc = True
             cl_b = sal._close(proj_b, "cl_b", set([1, 2, 3]))
-            cl_b.isMPC = True
+            cl_b.is_mpc = True
             cl_c = sal._close(proj_c, "cl_c", set([1, 2, 3]))
-            cl_c.isMPC = True
+            cl_c.is_mpc = True
 
             right_closed = sal.concat([cl_b, cl_c], "clD")
-            right_closed.isMPC = True
-            right_closed.outRel.storedWith = set([1, 2, 3])
+            right_closed.is_mpc = True
+            right_closed.out_rel.stored_with = set([1, 2, 3])
 
             shuffled_a = sal.shuffle(cl_a, "shuffled_a")
-            shuffled_a.isMPC = True
+            shuffled_a.is_mpc = True
             persisted_a = sal._persist(shuffled_a, "persisted_a")
-            persisted_a.isMPC = True
+            persisted_a.is_mpc = True
             shuffled_b = sal.shuffle(right_closed, "shuffled_b")
-            shuffled_b.isMPC = True
+            shuffled_b.is_mpc = True
             persisted_b = sal._persist(shuffled_b, "persisted_b")
-            persisted_b.isMPC = True
+            persisted_b.is_mpc = True
 
             keys_a_closed = sal.project(shuffled_a, "keys_a_closed", ["a"])
-            keys_a_closed.outRel.storedWith = set([1, 2, 3])
-            keys_a_closed.isMPC = True
+            keys_a_closed.out_rel.stored_with = set([1, 2, 3])
+            keys_a_closed.is_mpc = True
             keys_b_closed = sal.project(shuffled_b, "keys_b_closed", ["c"])
-            keys_b_closed.isMPC = True
-            keys_b_closed.outRel.storedWith = set([1, 2, 3])
+            keys_b_closed.is_mpc = True
+            keys_b_closed.out_rel.stored_with = set([1, 2, 3])
 
             keys_a = sal._open(keys_a_closed, "keys_a", 1)
-            keys_a.isMPC = True
+            keys_a.is_mpc = True
             keys_b = sal._open(keys_b_closed, "keys_b", 1)
-            keys_b.isMPC = True
+            keys_b.is_mpc = True
 
             indexed_a = sal.index(keys_a, "indexed_a", "index_a")
-            indexed_a.isMPC = False
-            indexed_a.outRel.storedWith = set([1])
+            indexed_a.is_mpc = False
+            indexed_a.out_rel.stored_with = set([1])
             indexed_b = sal.index(keys_b, "indexed_b", "index_b")
-            indexed_b.isMPC = False
-            indexed_b.outRel.storedWith = set([1])
+            indexed_b.is_mpc = False
+            indexed_b.out_rel.stored_with = set([1])
 
             joined_indeces = sal.join(
                 indexed_a, indexed_b, "joined_indeces", ["a"], ["c"])
-            joined_indeces.isMPC = False
-            joined_indeces.outRel.storedWith = set([1])
+            joined_indeces.is_mpc = False
+            joined_indeces.out_rel.stored_with = set([1])
 
             indeces_only = sal.project(
                 joined_indeces, "indeces_only", ["index_a", "index_b"])
-            indeces_only.isMPC = False
-            indeces_only.outRel.storedWith = set([1])
+            indeces_only.is_mpc = False
+            indeces_only.out_rel.stored_with = set([1])
 
             indeces_closed = sal._close(
                 indeces_only, "indeces_closed", set([1, 2, 3]))
-            indeces_closed.isMPC = True
+            indeces_closed.is_mpc = True
 
             joined = sal._index_join(persisted_a, persisted_b, "joined", [
                 "a"], ["c"], indeces_closed)
-            joined.isMPC = True
+            joined.is_mpc = True
 
             return joined, set([in_1, in_2, in_3])
 
         def hybrid_agg(in1):
 
             shuffled = sal.shuffle(in1, "shuffled")
-            shuffled.outRel.storedWith = set([1, 2, 3])
-            shuffled.isMPC = True
+            shuffled.out_rel.stored_with = set([1, 2, 3])
+            shuffled.is_mpc = True
 
             persisted = sal._persist(shuffled, "persisted")
-            persisted.outRel.storedWith = set([1, 2, 3])
-            persisted.isMPC = True
+            persisted.out_rel.stored_with = set([1, 2, 3])
+            persisted.is_mpc = True
 
             keys_closed = sal.project(shuffled, "keys_closed", ["b"])
-            keys_closed.outRel.storedWith = set([1, 2, 3])
-            keys_closed.isMPC = True
+            keys_closed.out_rel.stored_with = set([1, 2, 3])
+            keys_closed.is_mpc = True
 
             keys = sal._open(keys_closed, "keys", 1)
-            keys.isMPC = True
+            keys.is_mpc = True
 
             indexed = sal.index(keys, "indexed", "rowIndex")
-            indexed.isMPC = False
-            indexed.outRel.storedWith = set([1])
+            indexed.is_mpc = False
+            indexed.out_rel.stored_with = set([1])
 
             sorted_by_key = sal.sort_by(indexed, "sorted_by_key", "b")
-            sorted_by_key.isMPC = False
-            sorted_by_key.outRel.storedWith = set([1])
+            sorted_by_key.is_mpc = False
+            sorted_by_key.out_rel.stored_with = set([1])
 
             eq_flags = sal._comp_neighs(sorted_by_key, "eq_flags", "b")
-            eq_flags.isMPC = False
-            eq_flags.outRel.storedWith = set([1])
+            eq_flags.is_mpc = False
+            eq_flags.out_rel.stored_with = set([1])
 
             # TODO: should be a persist op
             sorted_by_key_stored = sal.project(
                 sorted_by_key, "sorted_by_key_stored", ["rowIndex", "b"])
-            sorted_by_key_stored.isMPC = False
-            sorted_by_key_stored.outRel.storedWith = set([1])
+            sorted_by_key_stored.is_mpc = False
+            sorted_by_key_stored.out_rel.stored_with = set([1])
 
             closed_eq_flags = sal._close(eq_flags, "closed_eq_flags", set([1, 2, 3]))
-            closed_eq_flags.isMPC = True
+            closed_eq_flags.is_mpc = True
             closed_sorted_by_key = sal._close(
                 sorted_by_key_stored, "closed_sorted_by_key", set([1, 2, 3]))
-            closed_sorted_by_key.isMPC = True
+            closed_sorted_by_key.is_mpc = True
 
             agg = sal.index_aggregate(
                 persisted, "agg", ["b"], "d", "+", "d", closed_eq_flags, closed_sorted_by_key)
-            agg.isMPC = True
+            agg.is_mpc = True
             sal._open(agg, "ssnopened", 1)
 
         def protocol():
@@ -239,43 +239,43 @@ class TestConclave(TestCase):
                 defCol("b", "INTEGER", [1]),
             ]
             in_1 = sal.create("in_1", cols_in_a, set([1]))
-            in_1.isMPC = False
+            in_1.is_mpc = False
 
             proj_a = sal.project(in_1, "proj_a", ["a", "b"])
-            proj_a.isMPC = False
-            proj_a.outRel.storedWith = set([1])
+            proj_a.is_mpc = False
+            proj_a.out_rel.stored_with = set([1])
 
             cols_in_b = [
                 defCol("c", "INTEGER", [1], [2]),
                 defCol("d", "INTEGER", [2])
             ]
             in_2 = sal.create("in_2", cols_in_b, set([2]))
-            in_2.isMPC = False
+            in_2.is_mpc = False
 
             proj_b = sal.project(in_2, "proj_b", ["c", "d"])
-            proj_b.isMPC = False
-            proj_b.outRel.storedWith = set([2])
+            proj_b.is_mpc = False
+            proj_b.out_rel.stored_with = set([2])
 
             cols_in_c = [
                 defCol("c", "INTEGER", [1], [3]),
                 defCol("d", "INTEGER", [3])
             ]
             in_3 = sal.create("beforeOthers", cols_in_c, set([1, 2, 3]))
-            in_3.isMPC = True
+            in_3.is_mpc = True
 
             cl_a = sal._close(proj_a, "cl_a", set([1, 2, 3]))
-            cl_a.isMPC = True
+            cl_a.is_mpc = True
             cl_b = sal._close(proj_b, "cl_b", set([1, 2, 3]))
-            cl_b.isMPC = True
+            cl_b.is_mpc = True
             cl_c = sal._close(in_3, "cl_c", set([1, 2, 3]))
-            cl_c.isMPC = True
+            cl_c.is_mpc = True
 
             right_closed = sal.concat([cl_a, cl_b, cl_c], "a")
-            right_closed.isMPC = True
-            right_closed.outRel.storedWith = set([1, 2, 3])
+            right_closed.is_mpc = True
+            right_closed.out_rel.stored_with = set([1, 2, 3])
 
             shuffled_a = sal.shuffle(cl_a, "shuffled_a")
-            shuffled_a.isMPC = True
+            shuffled_a.is_mpc = True
             sal._open(shuffled_a, "ssn_opened", 1)
 
             return saldag.OpDag(set([in_1, in_2, in_3]))

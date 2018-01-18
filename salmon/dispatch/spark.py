@@ -1,5 +1,4 @@
 from subprocess import call
-from salmon.job import SparkJob
 
 
 class SparkDispatcher:
@@ -9,7 +8,7 @@ class SparkDispatcher:
         """ Initialize SparkDispatcher object """
         self.master = master_url
 
-    def dispatch(self, job: SparkJob):
+    def dispatch(self, job):
         """ Dispatch Spark job. """
         cmd = "{}/bash.sh".format(job.code_dir)
 

@@ -1,7 +1,5 @@
 import os
 import tempfile
-from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon.codegen.spark import SparkConfig
 
 
 class CodeGenConfig:
@@ -49,7 +47,7 @@ class CodeGenConfig:
 
         return self
 
-    def with_sharemind_config(self, cfg: SharemindCodeGenConfig):
+    def with_sharemind_config(self, cfg):
         """ Add SharemindCodeGenConfig object to this object. """
 
         if not self.inited:
@@ -58,7 +56,7 @@ class CodeGenConfig:
 
         return self
 
-    def with_spark_config(self, cfg: SparkConfig):
+    def with_spark_config(self, cfg):
         """ Add SparkConfig object to this object. """
 
         if not self.inited:

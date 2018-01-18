@@ -3,7 +3,7 @@ import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
 from salmon import CodeGenConfig
 from salmon.utils import *
-from salmon.comp import dagonly
+from salmon.comp import dag_only
 import os
 
 
@@ -40,7 +40,7 @@ class TestSpark(TestCase):
 
     def test_divide(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -55,7 +55,7 @@ class TestSpark(TestCase):
 
     def test_multiply(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -70,7 +70,7 @@ class TestSpark(TestCase):
 
     def test_project(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -85,7 +85,7 @@ class TestSpark(TestCase):
 
     def test_join(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -100,7 +100,7 @@ class TestSpark(TestCase):
 
     def test_agg(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -115,7 +115,7 @@ class TestSpark(TestCase):
 
     def test_concat(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -130,7 +130,7 @@ class TestSpark(TestCase):
 
     def test_distinct(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -145,7 +145,7 @@ class TestSpark(TestCase):
 
     def test_index(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -160,7 +160,7 @@ class TestSpark(TestCase):
 
     def test_workflow_one(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -179,7 +179,7 @@ class TestSpark(TestCase):
 
     def test_workflow_two(self):
 
-        @dagonly
+        @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]

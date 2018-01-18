@@ -1,12 +1,11 @@
 from salmon.codegen import CodeGen
 import salmon.dag as saldag
-from salmon import CodeGenConfig
 
 
 class ScotchCodeGen(CodeGen):
     """ Codegen subclass for generating relational debugging language. """
 
-    def __init__(self, config: CodeGenConfig, dag: saldag.Dag):
+    def __init__(self, config, dag: saldag.Dag):
 
         super(ScotchCodeGen, self).__init__(config, dag)
 
@@ -15,7 +14,7 @@ class ScotchCodeGen(CodeGen):
 
         return op_code
 
-    def _generate_index_aggregate(self, idx_agg_op: saldag.Index_aggregate):
+    def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
         """ Generate code for Index Aggregate operations. """
 
         return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(

@@ -7,7 +7,6 @@ from salmon.codegen import CodeGen
 from salmon.dag import *
 from salmon.job import SharemindJob
 from salmon.rel import *
-from salmon import CodeGenConfig
 
 
 class SharemindCodeGenConfig():
@@ -22,7 +21,7 @@ class SharemindCodeGenConfig():
 class SharemindCodeGen(CodeGen):
     """ Codegen subclass for generating Sharemind code. """
 
-    def __init__(self, config: CodeGenConfig, dag: Dag, pid: int,
+    def __init__(self, config, dag: Dag, pid: int,
                  template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         if not "sharemind" in config.system_configs:

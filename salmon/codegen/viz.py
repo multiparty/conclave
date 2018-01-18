@@ -1,6 +1,5 @@
 from salmon.codegen import CodeGen
 import salmon.dag as saldag
-from salmon import CodeGenConfig
 import os
 
 
@@ -30,7 +29,7 @@ def _node_description(op: saldag.OpNode, kind: str, inner):
 class VizCodeGen(CodeGen):
     """ Codegen subclass for generating code used to visualize Conclave workflows. """
 
-    def __init__(self, config: CodeGenConfig, dag: saldag.Dag,
+    def __init__(self, config, dag: saldag.Dag,
             template_directory="{}/templates/viz".format(os.path.dirname(os.path.realpath(__file__)))):
         """ Initialize VizCodeGen object. """
 
@@ -149,7 +148,7 @@ class VizCodeGen(CodeGen):
                 _node_description(index_op, "INDEX", "")
             )
 
-    def _generate_index_aggregate(self, agg_op: saldag.Aggregate):
+    def _generate_index_aggregate(self, agg_op: saldag.IndexAggregate):
         """ Generate code for Index Aggregate operations."""
 
         return self._generate_node(

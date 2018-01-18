@@ -1,7 +1,6 @@
 from salmon.job import SparkJob
 from salmon.codegen import CodeGen
 import os, pystache
-from salmon import CodeGenConfig
 import salmon.dag as saldag
 
 
@@ -36,7 +35,7 @@ def convert_type(type_str: str):
 class SparkCodeGen(CodeGen):
     """ Codegen subclass for generating Spark code. """
 
-    def __init__(self, config: CodeGenConfig, dag: saldag.Dag,
+    def __init__(self, config, dag: saldag.Dag,
                  template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
@@ -75,7 +74,7 @@ class SparkCodeGen(CodeGen):
 
     # TODO: (ben) find way to do this without converting to RDD first
     # (monotonically_increasing_id doesn't give sequential indices)
-    def _generate_index(self, index_op):
+    def _generate_index(self, index_op: saldag.Index):
         """ Generate code for Index operations. """
 
         store_code = self._generate_store(index_op)

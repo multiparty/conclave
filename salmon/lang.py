@@ -57,7 +57,7 @@ def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_na
                     over_col_name: str, aggregator: str, agg_out_col_name: str, eq_flag_op, sorted_keys_op):
 
     agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
-    idx_agg_op = saldag.Index_aggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
+    idx_agg_op = saldag.IndexAggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
 
     input_op_node.children.remove(agg_op)
     input_op_node.children.add(idx_agg_op)
@@ -312,7 +312,7 @@ def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output
 
     # The result of the join will be stored with the union
     # of the parties storing left and right
-    out_stored_with = left_in_rel.storedWith.union(right_in_rel.stored_with)
+    out_stored_with = left_in_rel.stored_with.union(right_in_rel.stored_with)
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, out_stored_with)

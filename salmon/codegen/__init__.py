@@ -1,11 +1,10 @@
 from salmon.dag import *
-from salmon.config import CodeGenConfig
 
 
 class CodeGen:
     """ Base class for code generation. """
 
-    def __init__(self, config: CodeGenConfig, dag: Dag):
+    def __init__(self, config, dag):
         """ Initialize CodeGen with DAG and config. """
 
         self.config = config
