@@ -1,6 +1,8 @@
 from salmon.job import SparkJob
 from salmon.codegen import CodeGen
 import os, pystache
+from salmon import CodeGenConfig
+import salmon.dag as saldag
 
 
 class SparkConfig:
@@ -12,33 +14,38 @@ class SparkConfig:
         self.spark_master_url = spark_master_url
 
 
-def cache_var(op_node):
+def cache_var(op_node: saldag.OpNode):
+    """ Determines whether a Spark DF must be cached. """
     if len(op_node.children) > 1:
         return ".cache()"
     else:
         return ''
 
 
-def convert_type(type_str):
+def convert_type(type_str: str):
+    """ Convert type strings from column definitions to Spark type definitions. """
+
     if type_str == "INTEGER":
         return "IntegerType()"
     elif type_str == "STRING":
         return "StringType()"
     else:
-        raise Exception("Unsupported Column Data Type")
+        raise Exception("Unsupported data type")
 
 
 class SparkCodeGen(CodeGen):
+    """ Codegen subclass for generating Spark code. """
 
-    def __init__(self, config, dag,
-            template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
+    def __init__(self, config: CodeGenConfig, dag: saldag.Dag,
+                 template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
 
-    def _generateJob(self, job_name, code_directory, op_code):
+    def _generate_job(self, job_name: str, code_directory: str, op_code: str):
+        """ Returns generated Spark code and Job object. """
 
-        template = open("{}/job.tmpl"
-                        .format(self.template_directory), 'r').read()
+        template = open(
+            "{}/job.tmpl".format(self.template_directory), 'r').read()
         data = {
             'JOB_NAME': job_name,
             'OP_CODE': op_code
@@ -50,12 +57,13 @@ class SparkCodeGen(CodeGen):
 
         return job, op_code
 
-    def _generateStore(self, op):
+    def _generate_store(self, op: saldag.OpNode):
+        """ Generate code for storing a relation. """
 
         store_code = ''
         if op.is_leaf():
-            template = open("{}/store.tmpl"
-                            .format(self.template_directory), 'r').read()
+            template = open(
+                "{}/store.tmpl".format(self.template_directory), 'r').read()
             data = {
                 'RELATION_NAME': op.out_rel.name,
                 'OUTPUT_PATH': self.config.output_path,
@@ -67,12 +75,13 @@ class SparkCodeGen(CodeGen):
 
     # TODO: (ben) find way to do this without converting to RDD first
     # (monotonically_increasing_id doesn't give sequential indices)
-    def _generateIndex(self, index_op):
+    def _generate_index(self, index_op):
+        """ Generate code for Index operations. """
 
-        store_code = self._generateStore(index_op)
+        store_code = self._generate_store(index_op)
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'index'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'index'), 'r').read()
 
         data = {
             'INREL': index_op.get_in_rel().name,
@@ -82,7 +91,8 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateAggregate(self, agg_op):
+    def _generate_aggregate(self, agg_op: saldag.Aggregate):
+        """ Generate code for Aggregate operations. """
 
         if agg_op.aggregator == '+':
             aggregator = 'sum'
@@ -90,20 +100,20 @@ class SparkCodeGen(CodeGen):
             # e.g. - 'max', 'min', 'avg', 'count', 'sum'
             aggregator = agg_op.aggregator
 
-        store_code = self._generateStore(agg_op)
+        store_code = self._generate_store(agg_op)
 
         # codegen can take strings like {'c':'sum', 'd':'sum'}
-        aggcol_str = '{' + "'" + agg_op.aggCol.name + "'" + ':' + "'" + aggregator + "'" + '}'
+        aggcol_str = '{' + "'" + agg_op.agg_col.name + "'" + ':' + "'" + aggregator + "'" + '}'
 
         # TODO: this renaming convention will only work if we stick to general aggregations (sum, min, max, etc.)
-        old = aggregator + '(' + agg_op.aggCol.name + ')'
+        old = aggregator + '(' + agg_op.agg_col.name + ')'
         new = agg_op.out_rel.columns[-1].name
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'agg'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'agg'), 'r').read()
 
         data = {
-            'GROUPCOLS': ",".join("'" + groupCol.name + "'" for groupCol in agg_op.groupCols),
+            'GROUPCOLS': ",".join("'" + group_col.name + "'" for group_col in agg_op.group_cols),
             'AGGCOLS': aggcol_str,
             'INREL': agg_op.get_in_rel().name,
             'out_rel': agg_op.out_rel.name,
@@ -114,7 +124,8 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateConcat(self, concat_op):
+    def _generate_concat(self, concat_op: saldag.Concat):
+        """ Generate code for Concat operations. """
 
         all_rels = concat_op.get_in_rels()
         test = len(all_rels[0].columns)
@@ -122,10 +133,10 @@ class SparkCodeGen(CodeGen):
 
         store_code = ''
         if concat_op.is_leaf():
-            store_code += self._generateStore(concat_op)
+            store_code += self._generate_store(concat_op)
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'concat'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
             'INRELS': [r.name for r in concat_op.get_in_rels()],
@@ -135,13 +146,13 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateCreate(self, create_op):
+    def _generate_create(self, create_op: saldag.Create):
 
-        template = open("{}/create.tmpl"
-                        .format(self.template_directory), 'r').read()
+        template = open(
+            "{}/create.tmpl".format(self.template_directory), 'r').read()
 
         schema = ["StructField('{0}', {1}, True)".format(
-            col.name, convert_type(col.typeStr)) for col in create_op.out_rel.columns]
+            col.name, convert_type(col.type_str)) for col in create_op.out_rel.columns]
 
         data = {
             'RELATION_NAME': create_op.out_rel.name,
@@ -152,21 +163,22 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _generateJoin(self, join_op):
+    def _generate_join(self, join_op: saldag.Join):
+        """ Generate code for Join operations. """
 
         store_code = ''
         if join_op.is_leaf():
-            store_code += self._generateStore(join_op)
+            store_code += self._generate_store(join_op)
 
         # TODO: (ben) should we assume this is always true?
         # (pyspark's join function only takes 1 list of column names as an argument)
-        left_names = [col.name for col in join_op.leftJoinCols]
-        right_names = [col.name for col in join_op.rightJoinCols]
+        left_names = [col.name for col in join_op.left_join_cols]
+        right_names = [col.name for col in join_op.right_join_cols]
         assert(sorted(left_names) == sorted(right_names))
-        join_cols = join_op.leftJoinCols
+        join_cols = join_op.left_join_cols
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'join'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'join'), 'r').read()
 
         data = {
             'LEFT_PARENT': join_op.get_left_in_rel().name,
@@ -178,16 +190,17 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateProject(self, project_op):
+    def _generate_project(self, project_op: saldag.Project):
+        """ Generate code for Project operations. """
 
         store_code = ''
         if project_op.is_leaf():
-            store_code += self._generateStore(project_op)
+            store_code += self._generate_store(project_op)
 
-        cols = project_op.selectedCols
+        cols = project_op.selected_cols
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'project'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'project'), 'r').read()
 
         data = {
             'COLS': [c.name for c in cols],
@@ -195,13 +208,15 @@ class SparkCodeGen(CodeGen):
             'out_rel': project_op.out_rel.name,
             'CACHE_VAR': cache_var(project_op)
         }
+
         return pystache.render(template, data) + store_code
 
-    def _generateMultiply(self, mult_op):
+    def _generate_multiply(self, mult_op: saldag.Multiply):
+        """ Generate code for Multiply operations. """
 
         store_code = ''
         if mult_op.is_leaf():
-            store_code += self._generateStore(mult_op)
+            store_code += self._generate_store(mult_op)
 
         op_cols = mult_op.operands
         operands = []
@@ -219,7 +234,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'OPERANDS': '*'.join(c for c in operands),
             'SCALAR': scalar,
-            'TARGET': mult_op.targetCol.name,
+            'TARGET': mult_op.target_col.name,
             'INREL': mult_op.get_in_rel().name,
             'out_rel': mult_op.out_rel.name,
             'CACHE_VAR': cache_var(mult_op)
@@ -227,11 +242,12 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateDivide(self, div_op):
+    def _generate_divide(self, div_op: saldag.Divide):
+        """ Generate code for Divide operations. """
 
         store_code = ''
         if div_op.is_leaf():
-            store_code += self._generateStore(div_op)
+            store_code += self._generate_store(div_op)
 
         op_cols = div_op.operands
         operands = []
@@ -243,13 +259,13 @@ class SparkCodeGen(CodeGen):
             else:
                 scalar = op_col
 
-        template = open("{0}/{1}.tmpl"
-                        .format(self.template_directory, 'divide'), 'r').read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'divide'), 'r').read()
 
         data = {
             'OPERANDS': '/'.join(c for c in operands),
             'SCALAR': scalar,
-            'TARGET': div_op.targetCol.name,
+            'TARGET': div_op.target_col.name,
             'INREL': div_op.get_in_rel().name,
             'out_rel': div_op.out_rel.name,
             'CACHE_VAR': cache_var(div_op)
@@ -257,33 +273,24 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    def _generateStore(self, op):
+    def _generate_distinct(self, distinct_op: saldag.Distinct):
+        """ Generate code for Distinct operations. """
 
-        template = open("{}/store.tmpl"
-                        .format(self.template_directory), 'r').read()
+        template = open(
+            "{}/distinct.tmpl".format(self.template_directory), 'r').read()
+
         data = {
-            'RELATION_NAME': op.out_rel.name,
-            'DELIMITER': self.config.delimiter,
-            'OUTPUT_PATH': self.config.output_path,
+            'COLS': [c.name for c in distinct_op.selected_cols],
+            'OUTREL': distinct_op.out_rel.name,
+            'INREL': distinct_op.get_in_rel().name,
+            'CACHE_VAR': cache_var(distinct_op)
         }
 
         return pystache.render(template, data)
 
-    def _generateDistinct(self, op):
+    def _write_bash(self, job_name: str):
+        """ Generate bash script that runs Spark jobs. """
 
-        template = open("{}/distinct.tmpl"
-                        .format(self.template_directory), 'r').read()
-
-        data = {
-            'COLS': [c.name for c in op.selectedCols],
-            'out_rel': op.out_rel.name,
-            'INREL': op.get_in_rel().name,
-            'CACHE_VAR': cache_var(op)
-        }
-
-        return pystache.render(template, data)
-
-    def _writeBash(self, job_name):
         roots, leaves = [], []
 
         nodes = self.dag.top_sort()
@@ -306,7 +313,8 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _writeCode(self, code, job_name):
+    def _write_code(self, code: str, job_name: str):
+        """ Write generated code to file. """
 
         os.makedirs("{}/{}".format(self.config.code_path, job_name), exist_ok=True)
 
@@ -314,6 +322,6 @@ class SparkCodeGen(CodeGen):
         pyfile = open("{}/{}/workflow.py".format(self.config.code_path, job_name), 'w')
         pyfile.write(code)
 
-        bash_code = self._writeBash(job_name)
+        bash_code = self._write_bash(job_name)
         bash = open("{}/{}/bash.sh".format(self.config.code_path, job_name), 'w')
         bash.write(bash_code)

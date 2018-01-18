@@ -1,23 +1,28 @@
 from salmon.dag import *
+from salmon import CodeGenConfig
 
 
 class CodeGen:
+    """ Base class for code generation. """
 
-    # initialize code generator for DAG passed
-    def __init__(self, config, dag):
+    def __init__(self, config: CodeGenConfig, dag: Dag):
+        """ Initialize CodeGen with DAG and config. """
+
         self.config = config
         self.dag = dag
 
-    # generate code for the DAG stored
-    def generate(self, job_name, output_directory):
+    def generate(self, job_name: str, output_directory: str):
+        """ Generate code for DAG passed and write to file. """
+
         job, code = self._generate(job_name, output_directory)
         # store the code in type-specific files
-        self._writeCode(code, job_name)
+        self._write_code(code, job_name)
         # return job object
         return job
 
-    # generate code for the DAG stored
-    def _generate(self, job_name, output_directory):
+    def _generate(self, job_name: str, output_directory: str):
+        """ Generate code for DAG passed"""
+
         op_code = ""
 
         # topological traversal
@@ -26,53 +31,53 @@ class CodeGen:
         # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
-            if isinstance(node, IndexAggregate):
-                op_code += self._generateIndexAggregate(node)
+            if isinstance(node, Index_aggregate):
+                op_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
-                op_code += self._generateAggregate(node)
+                op_code += self._generate_aggregate(node)
             elif isinstance(node, Concat):
-                op_code += self._generateConcat(node)
+                op_code += self._generate_concat(node)
             elif isinstance(node, Create):
-                op_code += self._generateCreate(node)
+                op_code += self._generate_create(node)
             elif isinstance(node, Close):
-                op_code += self._generateClose(node)
+                op_code += self._generate_close(node)
             elif isinstance(node, IndexJoin):
-                op_code += self._generateIndexJoin(node)
+                op_code += self._generate_index_join(node)
             elif isinstance(node, RevealJoin):
-                op_code += self._generateRevealJoin(node)
+                op_code += self._generate_reveal_join(node)
             elif isinstance(node, HybridJoin):
-                op_code += self._generateHybridJoin(node)
+                op_code += self._generate_hybrid_join(node)
             elif isinstance(node, Join):
-                op_code += self._generateJoin(node)
+                op_code += self._generate_join(node)
             elif isinstance(node, Open):
-                op_code += self._generateOpen(node)
+                op_code += self._generate_open(node)
             elif isinstance(node, Filter):
-                op_code += self._generateFilter(node)
+                op_code += self._generate_filter(node)
             elif isinstance(node, Project):
-                op_code += self._generateProject(node)
+                op_code += self._generate_project(node)
             elif isinstance(node, Persist):
-                op_code += self._generatePersist(node)
+                op_code += self._generate_persist(node)
             elif isinstance(node, Multiply):
-                op_code += self._generateMultiply(node)
+                op_code += self._generate_multiply(node)
             elif isinstance(node, Divide):
-                op_code += self._generateDivide(node)
+                op_code += self._generate_divide(node)
             elif isinstance(node, Index):
-                op_code += self._generateIndex(node)
+                op_code += self._generate_index(node)
             elif isinstance(node, Shuffle):
-                op_code += self._generateShuffle(node)
+                op_code += self._generate_shuffle(node)
             elif isinstance(node, Distinct):
-                op_code += self._generateDistinct(node)
+                op_code += self._generate_distinct(node)
             elif isinstance(node, SortBy):
-                op_code += self._generateSortBy(node)
+                op_code += self._generate_sort_by(node)
             elif isinstance(node, CompNeighs):
-                op_code += self._generateCompNeighs(node)
+                op_code += self._generate_comp_neighs(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
         # expand top-level job template and return code
-        return self._generateJob(job_name, self.config.code_path, op_code)
+        return self._generate_job(job_name, self.config.code_path, op_code)
 
-    def _writeCode(self, code, job_name):
+    def _write_code(self, code, job_name):
+        """ Overridden in subclasses. """
 
-        # overridden in subclasses
         pass

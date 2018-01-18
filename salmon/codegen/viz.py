@@ -1,36 +1,45 @@
 from salmon.codegen import CodeGen
-from salmon.dag import *
-import os, pystache
+import salmon.dag as saldag
+from salmon import CodeGenConfig
+import os
+
 
 # helper to extract column list
-def _columnList(op):
+def _column_list(op: saldag.OpNode):
+    """ Returns string that lists column names in output relation. """
 
     return ", <BR/>".join([col.name for col in op.out_rel.columns])
 
 
-def _nodeDescription(op, kind, inner):
+def _node_description(op: saldag.OpNode, kind: str, inner):
+    """ Returns description of node properties. """
 
     if inner:
         return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} | {} }}".format(
                 op.out_rel.name,
                 kind,
                 inner,
-                _columnList(op))
+                _column_list(op))
     else:
         return "{{ {{ <I>{}</I> | <B>{}</B> }} | {} }}".format(
                 op.out_rel.name,
                 kind,
-                _columnList(op))
+                _column_list(op))
 
 
 class VizCodeGen(CodeGen):
-    def __init__(self, config, dag,
+    """ Codegen subclass for generating code used to visualize Conclave workflows. """
+
+    def __init__(self, config: CodeGenConfig, dag: saldag.Dag,
             template_directory="{}/templates/viz".format(os.path.dirname(os.path.realpath(__file__)))):
+        """ Initialize VizCodeGen object. """
+
         super(VizCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
 
-    # generate code for the DAG stored
-    def _generateEdges(self):
+    def _generate_edges(self):
+        """ Generate code for DAG passed. """
+
         edges_code = ""
 
         nodes = self.dag.top_sort()
@@ -39,183 +48,189 @@ class VizCodeGen(CodeGen):
                 edges_code += "{} -> {}\n".format(node.out_rel.name, c.out_rel.name)
         return edges_code
 
-    def _generateNode(self, op, descr):
+    def _generate_node(self, op: saldag.OpNode, descr: str):
 
-        if op.isMPC:
+        if op.is_mpc:
             c = 1
         else:
             c = 2
-        return "{} [style=\"filled\", fillcolor=\"/set312/{}\",  \
-                label=<{}>]\n".format(op.out_rel.name, c, descr)
+        return "{} [style=\"filled\", fillcolor=\"/set312/{}\", label=<{}>]\n"\
+            .format(op.out_rel.name, c, descr)
 
-    def _generateJob(self, job_name, output_directory, op_code):
+    def _generate_job(self, job_name, output_directory, op_code: str):
+        """ No job object here, just generates graph. """
 
-        edges = self._generateEdges()
-        # no job object here
+        edges = self._generate_edges()
+
         return None, "digraph {{\n" \
-                "node [shape=record, fontsize=10]\n\n" \
-                "{}\n" \
-                "{}\n" \
-                "}}".format(op_code, edges)
+                     "node [shape=record, fontsize=10]\n\n" \
+                     "{}\n" \
+                     "{}\n" \
+                     "}}".format(op_code, edges)
 
-    def _generateAggregate(self, agg_op):
+    def _generate_aggregate(self, agg_op: saldag.Aggregate):
+        """ Generate code for Aggregate operations. """
 
-        return self._generateNode(
+        return self._generate_node(
                 agg_op,
-                _nodeDescription(agg_op, "AGG",
-                    "{}: {}({})".format(
-                        agg_op.out_rel.columns[-1].name,
-                        agg_op.aggregator,
-                        agg_op.aggCol)
-                )
-            )
+                _node_description(
+                    agg_op, "AGG", "{}: {}({})".format(
+                                      agg_op.out_rel.columns[-1].name,
+                                      agg_op.aggregator,
+                                      agg_op.agg_col)
+                                  )
+        )
 
-    def _generateConcat(self, concat_op):
+    def _generate_concat(self, concat_op: saldag.Concat):
+        """ Generate code for Concat operations. """
 
-        inRelStr = ", ".join([inRel.name for inRel in concat_op.get_in_rels()])
-
-        return self._generateNode(
+        return self._generate_node(
                 concat_op,
-                _nodeDescription(concat_op, "CONCAT", "")
+                _node_description(concat_op, "CONCAT", "")
             )
 
-    def _generateCreate(self, create_op):
+    def _generate_create(self, create_op: saldag.Create):
+        """ Generate code for Create operations. """
 
-        colTypeStr = ", ".join([col.typeStr for col in create_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 create_op,
-                _nodeDescription(create_op, "CREATE", "")
+                _node_description(create_op, "CREATE", "")
             )
 
-    def _generateClose(self, close_op):
+    def _generate_close(self, close_op: saldag.Close):
+        """ Generate code for Close operations. """
 
-        colTypeStr = ", ".join([col.typeStr for col in close_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 close_op,
-                _nodeDescription(close_op, "CLOSE", "")
+                _node_description(close_op, "CLOSE", "")
             )
 
-    def _generateDistinct(self, distinct_op):
+    def _generate_distinct(self, distinct_op: saldag.Distinct):
+        """ Generate code for Distinct operations. """
 
-        colTypeStr = ", ".join([col.typeStr for col in distinct_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 distinct_op,
-                _nodeDescription(distinct_op, "DISTINCT", "")
+                _node_description(distinct_op, "DISTINCT", "")
             )
 
-    def _generateDivide(self, div_op):
+    def _generate_divide(self, div_op: saldag.Divide):
+        """ Generate code for Divide operations. """
 
-        return self._generateNode(
+        return self._generate_node(
                 div_op,
-                _nodeDescription(div_op, "DIV", "{}: {}".format(
-                    div_op.targetCol.name,
-                    " / ".join([str(o) for o in div_op.operands]),
-                    ))
-            )
-
-    def _generateJoin(self, join_op):
-
-        return self._generateNode(
-                join_op,
-                _nodeDescription(join_op, "JOIN",
-                    "{} ⋈ {} <br />on: {} ⋈ {}" .format(
-                        join_op.get_left_in_rel().name,
-                        join_op.get_right_in_rel().name,
-                        [c.name for c in join_op.leftJoinCols],
-                        [c.name for c in join_op.rightJoinCols])
+                _node_description(
+                    div_op,
+                    "DIV", "{}: {}".format(
+                        div_op.target_col.name,
+                        " / ".join([str(o) for o in div_op.operands]),
+                    )
                 )
             )
 
-    def _generateIndex(self, index_op):
+    def _generate_join(self, join_op: saldag.Join):
+        """ Generate code for Join operations. """
 
-        return self._generateNode(
-                index_op,
-                _nodeDescription(index_op, "INDEX", "")
+        return self._generate_node(
+                join_op,
+                _node_description(
+                    join_op, "JOIN", "{} ⋈ {} <br />on: {} ⋈ {}" .format(
+                        join_op.get_left_in_rel().name,
+                        join_op.get_right_in_rel().name,
+                        [c.name for c in join_op.left_join_cols],
+                        [c.name for c in join_op.right_join_cols])
+                                  )
             )
 
-    def _generateIndexAggregate(self, agg_op):
+    def _generate_index(self, index_op: saldag.Index):
+        """ Generate code for Index operations. """
 
-        return self._generateNode(
+        return self._generate_node(
+                index_op,
+                _node_description(index_op, "INDEX", "")
+            )
+
+    def _generate_index_aggregate(self, agg_op: saldag.Aggregate):
+        """ Generate code for Index Aggregate operations."""
+
+        return self._generate_node(
                 agg_op,
-                _nodeDescription(agg_op, "INDEX AGG",
-                    "{}: {}({})".format(
+                _node_description(
+                    agg_op, "INDEX AGG", "{}: {}({})".format(
                         agg_op.out_rel.columns[-1].name,
                         agg_op.aggregator,
-                        agg_op.aggCol)
-                )
+                        agg_op.agg_col)
+                                  )
             )
 
-    def _generateIndexJoin(self, join_op):
+    def _generate_index_join(self, join_op: saldag.IndexJoin):
+        """ Generate code for Index Join operations. """
 
-        return self._generateNode(
+        return self._generate_node(
                 join_op,
-                _nodeDescription(join_op, "INDEX JOIN",
-                    "{} ⋈ {} <br />on: {} ⋈ {}" .format(
+                _node_description(
+                    join_op, "INDEX JOIN", "{} ⋈ {} <br />on: {} ⋈ {}" .format(
                         join_op.get_left_in_rel().name,
                         join_op.get_right_in_rel().name,
-                        [c.name for c in join_op.leftJoinCols],
-                        [c.name for c in join_op.rightJoinCols])
+                        [c.name for c in join_op.left_join_cols],
+                        [c.name for c in join_op.right_join_cols])
+                                  )
+            )
+
+    def _generate_multiply(self, mul_op: saldag.Multiply):
+        """ Generate code for Multiply operations. """
+
+        return self._generate_node(
+                mul_op,
+                _node_description(
+                    mul_op, "MUL", "{}: {}".format(
+                        mul_op.target_col.name, " * ".join([str(o) for o in mul_op.operands]),
+                    )
                 )
             )
 
-    def _generateMultiply(self, mul_op):
+    def _generateOpen(self, open_op: saldag.Open):
+        """ Generate code for Open operations. """
 
-        return self._generateNode(
-                mul_op,
-                _nodeDescription(mul_op, "MUL", "{}: {}".format(
-                    mul_op.targetCol.name,
-                    " * ".join([str(o) for o in mul_op.operands]),
-                    ))
-            )
-
-    def _generateOpen(self, open_op):
-
-        colTypeStr = ", ".join([col.typeStr for col in open_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 open_op,
-                _nodeDescription(open_op, "OPEN", "")
+                _node_description(open_op, "OPEN", "")
             )
 
-    def _generatePersist(self, persist_op):
+    def _generate_persist(self, persist_op: saldag.Persist):
+        """ Generate code for Persist operations. """
 
-        colTypeStr = ", ".join([col.typeStr for col in persist_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 persist_op,
-                _nodeDescription(persist_op, "PERSIST", "")
+                _node_description(persist_op, "PERSIST", "")
             )
 
-    def _generateProject(self, project_op):
+    def _generate_project(self, project_op: saldag.Project):
+        """ Generate code for Project operations. """
 
-        selectedColsStr = ", ".join([str(col) for col in project_op.selectedCols])
-
-        return self._generateNode(
+        return self._generate_node(
                 project_op,
-                _nodeDescription(project_op, "PROJECT", "")
+                _node_description(project_op, "PROJECT", "")
             )
 
-    def _generateShuffle(self, shuffle_op):
+    def _generate_shuffle(self, shuffle_op: saldag.Shuffle):
+        """ Generate code for Shuffle operations. """
 
-        colTypeStr = ", ".join([col.typeStr for col in shuffle_op.out_rel.columns])
-
-        return self._generateNode(
+        return self._generate_node(
                 shuffle_op,
-                _nodeDescription(shuffle_op, "SHUFFLE", "")
+                _node_description(shuffle_op, "SHUFFLE", "")
             )
 
-    def _generateStore(self, store_op):
+    def _generate_store(self, store_op: saldag.Store):
+        """ Generate code for Store operations. """
 
-        return self._generateNode(
+        return self._generate_node(
                 store_op,
-                _nodeDescription(store_op, "STORE", "")
+                _node_description(store_op, "STORE", "")
             )
 
-    def _writeCode(self, code, job_name):
-        # write code to a file
+    def _write_code(self, code: str, job_name: str):
+        """ Write code to file. """
+
         os.makedirs(self.config.code_path, exist_ok=True)
         outfile = open("{}/{}.gv".format(self.config.code_path, job_name), 'w')
         outfile.write(code)

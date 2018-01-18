@@ -1,33 +1,18 @@
-import unittest
 from unittest import TestCase
-import warnings
 import salmon.lang as sal
 from salmon.comp import mpc, scotch
 from salmon.utils import *
 import os
 
 
-# suppresses annoying warnings about open files
-def ignore_resource_warnings(test_func):
-
-    def do_test(self, *args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ResourceWarning)
-            test_func(self, *args, **kwargs)
-
-    return do_test
-
-
 class TestConclave(TestCase):
 
-    @ignore_resource_warnings
     def check_workflow(self, code, name):
         expected_rootdir = "{}/rewrite_expected".format(os.path.dirname(os.path.realpath(__file__)))
 
-        # uncomment this to regenerate (needed if rewrite logic changes)
-        # open(expected_rootdir + '/{}'.format(name), 'w').write(code)
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
+            expected = f.read()
 
-        expected = open(expected_rootdir + '/{}'.format(name), 'r').read()
         self.assertEqual(expected, code)
 
     def test_mult_by_zer0(self):
@@ -275,6 +260,3 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'agg_pushdown')
 
-
-if __name__ == '__main__':
-    unittest.main()

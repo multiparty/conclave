@@ -7,9 +7,11 @@ from salmon.codegen import CodeGen
 from salmon.dag import *
 from salmon.job import SharemindJob
 from salmon.rel import *
+from salmon import CodeGenConfig
 
 
 class SharemindCodeGenConfig():
+    """ Data structure for Sharemind configuration. """
 
     def __init__(self, home_path="/tmp", use_docker=True, use_hdfs=True):
         self.home_path = home_path
@@ -18,8 +20,9 @@ class SharemindCodeGenConfig():
 
 
 class SharemindCodeGen(CodeGen):
+    """ Codegen subclass for generating Sharemind code. """
 
-    def __init__(self, config, dag, pid,
+    def __init__(self, config: CodeGenConfig, dag: Dag, pid: int,
                  template_directory="{}/templates/sharemind".format(os.path.dirname(os.path.realpath(__file__)))):
 
         if not "sharemind" in config.system_configs:
@@ -31,15 +34,17 @@ class SharemindCodeGen(CodeGen):
         self.template_directory = template_directory
         self.pid = pid
 
-    def generate(self, job_name, output_directory):
+    def generate(self, job_name: str, output_directory: str):
+        """ Generate code for DAG passed and write to file. """
 
         job, code = self._generate(job_name, self.config.code_path)
         # store the code in type-specific files
-        self._writeCode(code, job_name)
+        self._write_code(code, job_name)
         # return job object
         return job
 
-    def _generate(self, job_name, output_directory):
+    def _generate(self, job_name: str, output_directory: str):
+        """ Generate Sharemind code for DAG passed to CodeGen"""
 
         # nodes in topological order
         nodes = self.dag.top_sort()
@@ -84,7 +89,8 @@ class SharemindCodeGen(CodeGen):
             job.skip = True
         return job, op_code
 
-    def _generate_miner_code(self, nodes):
+    def _generate_miner_code(self, nodes: list):
+        """ Generate code that will run on Sharemind miners. """
 
         # TODO: this code should be re-using base class _generate method
         # the code that will run on the miners
@@ -92,31 +98,31 @@ class SharemindCodeGen(CodeGen):
         miner_code = ""
         for node in nodes:
             if isinstance(node, IndexAggregate):
-                miner_code += self._generateIndexAggregate(node)
+                miner_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
-                miner_code += self._generateAggregate(node)
+                miner_code += self._generate_aggregate(node)
             elif isinstance(node, Concat):
-                miner_code += self._generateConcat(node)
+                miner_code += self._generate_concat(node)
             elif isinstance(node, Create):
-                miner_code += self._generateCreate(node)
+                miner_code += self._generate_create(node)
             elif isinstance(node, Divide):
-                miner_code += self._generateDivide(node)
+                miner_code += self._generate_divide(node)
             elif isinstance(node, IndexJoin):
-                miner_code += self._generateIndexJoin(node)
+                miner_code += self._generate_index_join(node)
             elif isinstance(node, Join):
-                miner_code += self._generateJoin(node)
+                miner_code += self._generate_join(node)
             elif isinstance(node, Multiply):
-                miner_code += self._generateMultiply(node)
+                miner_code += self._generate_multiply(node)
             elif isinstance(node, Open):
-                miner_code += self._generateOpen(node)
+                miner_code += self._generate_open(node)
             elif isinstance(node, Project):
-                miner_code += self._generateProject(node)
+                miner_code += self._generate_project(node)
             elif isinstance(node, Close):
-                miner_code += self._generateClose(node)
+                miner_code += self._generate_close(node)
             elif isinstance(node, Shuffle):
-                miner_code += self._generateShuffle(node)
+                miner_code += self._generate_shuffle(node)
             elif isinstance(node, Persist):
-                miner_code += self._generatePersist(node)
+                miner_code += self._generate_persist(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -126,29 +132,32 @@ class SharemindCodeGen(CodeGen):
         return pystache.render(
             template, {"PROTOCOL_CODE": miner_code})
 
-    def _get_controller_pid(self, nodes):
+    def _get_controller_pid(self, nodes: list):
+        """ Returns pid of Controller. """
 
         # we need all open ops to get all output parties
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
         # union of all storedWiths gives us all output parties
         output_parties = set().union(
-            *[op.out_rel.storedWith for op in open_ops])
+            *[op.out_rel.stored_with for op in open_ops])
         # only support one output party
         assert len(output_parties) == 1, len(output_parties)
         # that output party will be the controller
         return next(iter(output_parties))  # pop
 
-    def _get_input_parties(self, nodes):
+    def _get_input_parties(self, nodes: list):
+        """ Returns pid's of all parties in this computation. """
 
         # we need all close ops to get all input parties
         close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
         # union of all storedWiths gives us all input parties
         input_parties = set().union(
-            *[op.get_in_rel().storedWith for op in close_ops])
+            *[op.get_in_rel().stored_with for op in close_ops])
         # want these in-order
         return sorted(list(input_parties))
 
-    def _generate_input_code(self, nodes, job_name, output_directory):
+    def _generate_input_code(self, nodes: list, job_name: str, output_directory: str):
+        """ Generates code for loading inputs. """
 
         # all schemas of the relations this party will input
         schemas = {}
@@ -156,17 +165,17 @@ class SharemindCodeGen(CodeGen):
         close_ops = filter(lambda op_node: isinstance(op_node, Close), nodes)
         # only need schemas for my close ops
         my_close_ops = filter(
-            lambda close_op: self.pid in close_op.get_in_rel().storedWith, close_ops)
+            lambda close_op: self.pid in close_op.get_in_rel().stored_with, close_ops)
         # all CSVImports this party will perform
         hdfs_import_statements = []
         import_statements = []
         for close_op in my_close_ops:
             # generate schema and get its name
-            name, schema, header = self._generateSchema(close_op)
+            name, schema, header = self._generate_schema(close_op)
             schemas[name] = schema
             # TODO: hack hack hack
             if self.sm_config.use_hdfs:
-                hdfs_import_statements.append(self._generateHDFSImport(
+                hdfs_import_statements.append(self._generate_hdfs_import(
                     close_op, header, job_name)[:-1])
             else:
                 hdfs_import_statements.append("cp {} {}".format(
@@ -175,17 +184,17 @@ class SharemindCodeGen(CodeGen):
                 )
                 )
             # generate csv import code
-            import_statements.append(self._generateCSVImport(
+            import_statements.append(self._generate_csv_import(
                 close_op, output_directory, job_name)[:-1])
         input_code = "&&".join(import_statements)
         # expand top-level
         # TODO: hack hack hack
         if self.sm_config.use_docker:
             top_level_template = open(
-                "{0}/csvImportTopLevel.tmpl".format(self.template_directory), 'r').read()
+                "{0}/csv_import_top_level.tmpl".format(self.template_directory), 'r').read()
         else:
             top_level_template = open(
-                "{0}/csvImportNoDocker.tmpl".format(self.template_directory), 'r').read()
+                "{0}/csv_import_no_docker.tmpl".format(self.template_directory), 'r').read()
         top_level_data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
             "HDFS_IMPORTS": "\n".join(hdfs_import_statements),
@@ -194,7 +203,8 @@ class SharemindCodeGen(CodeGen):
         # return schemas and input code
         return schemas, pystache.render(top_level_template, top_level_data)
 
-    def _generate_submit_code(self, nodes, job_name, code_path):
+    def _generate_submit_code(self, nodes: list, job_name: str, code_path: str):
+        """ Generates code that submits Sharemind code to miners. """
 
         # hack HDFS output
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
@@ -223,43 +233,46 @@ class SharemindCodeGen(CodeGen):
                 "{0}/submit.tmpl".format(self.template_directory), 'r').read()
         else:
             template = open(
-                "{0}/submitNoDocker.tmpl".format(self.template_directory), 'r').read()
+                "{0}/submit_no_docker.tmpl".format(self.template_directory), 'r').read()
         data = {
             "SHAREMIND_HOME": self.sm_config.home_path,
             "CODE_PATH": code_path + "/" + job_name,
             "HDFS_CMDS": hdfs_cmds_str
         }
+
         # inner template (separate shell script)
-        templateInner = open(
-            "{0}/submitInner.tmpl".format(self.template_directory), 'r').read()
-        # we need all open ops to get the size of the output rels
-        # for parsing
+        template_inner = open(
+            "{0}/submit_inner.tmpl".format(self.template_directory), 'r').read()
+
+        # we need all open ops to get the size of the output rels for parsing
         open_ops = list(filter(lambda op_node: isinstance(op_node, Open), nodes))
         rel_names = [open_op.out_rel.name for open_op in open_ops]
         num_cols = [str(len(open_op.out_rel.columns)) for open_op in open_ops]
         rels_meta_str = " ".join(
             ["--rels-meta {}:{}".format(rname, ncols) for (rname, ncols) in zip(rel_names, num_cols)])
 
-        dataInner = {
+        data_inner = {
             "CODE_PATH": code_path + "/" + job_name,
             "RELS_META": rels_meta_str,
             "LOCAL_OUTPUT_PATH": self.config.code_path + "/" + job_name
         }
         return {
             "outer": pystache.render(template, data),
-            "inner": pystache.render(templateInner, dataInner)
+            "inner": pystache.render(template_inner, data_inner)
         }
 
-    def _generate_controller_code(self, nodes, job_name, output_directory):
+    def _generate_controller_code(self, nodes: list, job_name: str, output_directory: str):
+        """ Generates code that is run by the Sharemind controller. """
 
         submit_code = self._generate_submit_code(
             nodes, job_name, output_directory)
         return submit_code
 
-    def _generateAggregate(self, agg_op):
+    def _generate_aggregate(self, agg_op: Aggregate):
+        """ Generate code for Aggregate operations. """
 
         template = open(
-            "{0}/aggregateSum.tmpl".format(self.template_directory), 'r').read()
+            "{0}/aggregate_sum.tmpl".format(self.template_directory), 'r').read()
 
         # for now, only 1 groupCol in mpc ops
         # TODO: update template with multi-col
@@ -267,28 +280,30 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL_NAME": agg_op.out_rel.name,
             "IN_REL_NAME": agg_op.get_in_rel().name,
-            "KEY_COL_IDX": agg_op.groupCols[0].idx,
-            "AGG_COL_IDX": agg_op.aggCol.idx
+            "KEY_COL_IDX": agg_op.group_cols[0].idx,
+            "AGG_COL_IDX": agg_op.agg_col.idx
         }
         return pystache.render(template, data)
 
-    def _generateIndexAggregate(self, idx_agg_op):
+    def _generate_index_aggregate(self, idx_agg_op: IndexAggregate):
+        """ Generate code for Index Aggregate operations. """
 
         template = open(
-            "{0}/indexAggregateSum.tmpl".format(self.template_directory), 'r').read()
+            "{0}/index_aggregate_sum.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "TYPE": "uint32",
             "OUT_REL_NAME": idx_agg_op.out_rel.name,
             "IN_REL_NAME": idx_agg_op.get_in_rel().name,
-            "GROUP_COL_IDX": idx_agg_op.groupCols[0].idx,
-            "AGG_COL_IDX": idx_agg_op.aggCol.idx,
-            "EQ_FLAG_REL": idx_agg_op.eqFlagOp.out_rel.name,
-            "SORTED_KEYS_REL": idx_agg_op.sortedKeysOp.out_rel.name
+            "GROUP_COL_IDX": idx_agg_op.group_cols[0].idx,
+            "AGG_COL_IDX": idx_agg_op.agg_col.idx,
+            "EQ_FLAG_REL": idx_agg_op.eq_flag_op.out_rel.name,
+            "SORTED_KEYS_REL": idx_agg_op.sorted_keys_op.out_rel.name
         }
         return pystache.render(template, data)
 
-    def _generateClose(self, close_op):
+    def _generate_close(self, close_op: Close):
+        """ Generate code for Close operations. """
 
         template = open(
             "{0}/close.tmpl".format(self.template_directory), 'r').read()
@@ -299,25 +314,26 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generateConcat(self, concat_op):
+    def _generate_concat(self, concat_op: Concat):
+        """ Generate code for Concat operations. """
 
-        inRels = concat_op.get_in_rels()
-        assert len(inRels) > 1
+        in_rels = concat_op.get_in_rels()
+        assert len(in_rels) > 1
 
         # Sharemind only allows us to concatenate two relations at a time
         # so we need to chain calls repeatedly for more
-        catTemplate = open(
-            "{0}/catExpr.tmpl".format(self.template_directory), 'r').read()
+        cat_template = open(
+            "{0}/cat_expr.tmpl".format(self.template_directory), 'r').read()
 
-        cats = catTemplate
-        for inRel in inRels[:-2]:
+        cats = cat_template
+        for in_rel in in_rels[:-2]:
             data = {
-                "LEFT_REL": inRel.name,
-                "RIGHT_REL": catTemplate
+                "LEFT_REL": in_rel.name,
+                "RIGHT_REL": cat_template
             }
             cats = pystache.render(cats, data)
         outer = open(
-            "{0}/concatDef.tmpl".format(self.template_directory), 'r').read()
+            "{0}/concat_def.tmpl".format(self.template_directory), 'r').read()
         data = {
             "OUT_REL": concat_op.out_rel.name,
             "TYPE": "uint32",
@@ -325,22 +341,24 @@ class SharemindCodeGen(CodeGen):
         }
         outer = pystache.render(outer, data)
         data = {
-            "LEFT_REL": inRels[-2].name,
-            "RIGHT_REL": inRels[-1].name
+            "LEFT_REL": in_rels[-2].name,
+            "RIGHT_REL": in_rels[-1].name
         }
         return pystache.render(outer, data)
 
-    def _generateCreate(self, create_op):
+    def _generate_create(self, create_op: Create):
+        """ Generate code for Create operations. """
 
         template = open(
-            "{0}/readFromDb.tmpl".format(self.template_directory), 'r').read()
+            "{0}/read_from_db.tmpl".format(self.template_directory), 'r').read()
         data = {
             "NAME": create_op.out_rel.name,
             "TYPE": "uint32"
         }
         return pystache.render(template, data)
 
-    def _generateDivide(self, divide_op):
+    def _generate_divide(self, divide_op: Divide):
+        """ Generate code for Divide operations. """
 
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
@@ -356,50 +374,54 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL": divide_op.out_rel.name,
             "IN_REL": divide_op.get_in_rel().name,
-            "TARGET_COL": divide_op.targetCol.idx,
+            "TARGET_COL": divide_op.target_col.idx,
             # hacking array brackets
             "OPERANDS": "{" + operands_str + "}",
             "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
 
-    def _generateIndexJoin(self, index_join_op):
+    def _generate_index_join(self, index_join_op: IndexJoin):
+        """ Generate code for Index Join operations. """
 
         template = open(
-            "{0}/indexJoin.tmpl".format(self.template_directory), 'r').read()
-        left_rel = index_join_op.leftParent.out_rel
-        right_rel = index_join_op.rightParent.out_rel
-        index_rel = index_join_op.indexRel.out_rel
+            "{0}/index_join.tmpl".format(self.template_directory), 'r').read()
+        left_rel = index_join_op.left_parent.out_rel
+        right_rel = index_join_op.right_parent.out_rel
+        index_rel = index_join_op.index_rel.out_rel
 
         data = {
             "TYPE": "uint32",
             "OUT_REL": index_join_op.out_rel.name,
             "LEFT_IN_REL": index_join_op.get_left_in_rel().name,
-            "LEFT_KEY_COLS": str(index_join_op.leftJoinCols[0].idx),
+            "LEFT_KEY_COLS": str(index_join_op.left_join_cols[0].idx),
             "RIGHT_IN_REL": index_join_op.get_right_in_rel().name,
-            "RIGHT_KEY_COLS": str(index_join_op.rightJoinCols[0].idx),
+            "RIGHT_KEY_COLS": str(index_join_op.right_join_cols[0].idx),
             "INDEX_REL": index_rel.name
         }
         return pystache.render(template, data)
 
-    def _generateJoin(self, join_op):
+    def _generate_join(self, join_op: Join):
+        """ Generate code for Join operations. """
 
         template = open(
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
         left_key_cols_str = ",".join([str(col.idx)
-                                      for col in join_op.leftJoinCols])
+                                      for col in join_op.left_join_cols])
         right_key_cols_str = ",".join(
-            [str(col.idx) for col in join_op.rightJoinCols])
-        left_rel = join_op.leftParent.out_rel
-        right_rel = join_op.rightParent.out_rel
+            [str(col.idx) for col in join_op.right_join_cols])
+        left_rel = join_op.left_parent.out_rel
+        right_rel = join_op.right_parent.out_rel
+
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
         cols_to_keep = list(
             range(len(left_rel.columns) + len(right_rel.columns)))
         cols_to_exclude = [col.idx + len(left_rel.columns)
-                           for col in join_op.rightJoinCols]
+                           for col in join_op.right_join_cols]
         cols_to_keep_str = ",".join(
             [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
+
         data = {
             "TYPE": "uint32",
             "OUT_REL": join_op.out_rel.name,
@@ -411,20 +433,24 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generateOpen(self, open_op):
+    def _generate_open(self, open_op: Open):
+        """ Generate code for Open operations. """
 
         template = open(
             "{0}/publish.tmpl".format(self.template_directory), 'r').read()
+
         data = {
             "OUT_REL": open_op.out_rel.name,
             "IN_REL": open_op.get_in_rel().name,
         }
         return pystache.render(template, data)
 
-    def _generateShuffle(self, shuffle_op):
+    def _generate_shuffle(self, shuffle_op: Shuffle):
+        """ Generate code for Shuffle operations. """
 
         template = open(
             "{0}/shuffle.tmpl".format(self.template_directory), 'r').read()
+
         data = {
             "TYPE": "uint32",
             "OUT_REL": shuffle_op.out_rel.name,
@@ -432,32 +458,37 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generatePersist(self, persist_op):
+    def _generate_persist(self, persist_op: Persist):
+        """ Generate code for Persist operations. """
 
         template = open(
             "{0}/persist.tmpl".format(self.template_directory), 'r').read()
+
         data = {
             "OUT_REL": persist_op.out_rel.name,
             "IN_REL": persist_op.get_in_rel().name,
         }
         return pystache.render(template, data)
 
-    def _generateProject(self, project_op):
+    def _generate_project(self, project_op: Project):
+        """ Generate code for Project operations. """
 
         template = open(
             "{0}/project.tmpl".format(self.template_directory), 'r').read()
-        selectedCols = project_op.selectedCols
-        selectedColStr = ",".join([str(col.idx) for col in selectedCols])
+        selected_cols = project_op.selected_cols
+        selected_col_str = ",".join([str(col.idx) for col in selected_cols])
+
         data = {
             "TYPE": "uint32",
             "OUT_REL": project_op.out_rel.name,
             "IN_REL": project_op.get_in_rel().name,
             # hacking array brackets
-            "SELECTED_COLS": "{" + selectedColStr + "}"
+            "SELECTED_COLS": "{" + selected_col_str + "}"
         }
         return pystache.render(template, data)
 
-    def _generateMultiply(self, multiply_op):
+    def _generate_multiply(self, multiply_op: Multiply):
+        """ Generate code for Multiply operations. """
 
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
@@ -473,44 +504,46 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL": multiply_op.out_rel.name,
             "IN_REL": multiply_op.get_in_rel().name,
-            "TARGET_COL": multiply_op.targetCol.idx,
+            "TARGET_COL": multiply_op.target_col.idx,
             # hacking array brackets
             "OPERANDS": "{" + operands_str + "}",
             "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
 
-    def _generateSchema(self, close_op):
+    def _generate_schema(self, close_op: Close):
+        """ Generate schema for Sharemind job. """
 
-        inRel = close_op.get_in_rel()
-        inCols = inRel.columns
+        in_rel = close_op.get_in_rel()
+        in_cols = in_rel.columns
         out_rel = close_op.out_rel
-        outCols = out_rel.columns
-        colDefs = []
-        colDefTemplate = open(
-            "{0}/colDef.tmpl".format(self.template_directory), 'r').read()
-        for inCol, outCol in zip(inCols, outCols):
-            colData = {
-                'IN_NAME': inCol.get_name(),
-                'OUT_NAME': outCol.get_name(),
+        out_cols = out_rel.columns
+        col_defs = []
+        col_def_template = open(
+            "{0}/col_def.tmpl".format(self.template_directory), 'r').read()
+        for in_col, out_col in zip(in_cols, out_cols):
+            col_data = {
+                'IN_NAME': in_col.get_name(),
+                'OUT_NAME': out_col.get_name(),
                 'TYPE': "uint32"  # hard-coded for now
             }
-            colDefs.append(pystache.render(colDefTemplate, colData))
-        colDefStr = "\n".join(colDefs)
-        relDefTemplate = open(
-            "{0}/relDef.tmpl".format(self.template_directory), 'r').read()
-        relData = {
+            col_defs.append(pystache.render(col_def_template, col_data))
+        col_def_str = "\n".join(col_defs)
+        rel_def_template = open(
+            "{0}/rel_def.tmpl".format(self.template_directory), 'r').read()
+        rel_data = {
             "NAME": close_op.get_in_rel().name,
-            "COL_DEFS": colDefStr
+            "COL_DEFS": col_def_str
         }
-        relDefHeader = ",".join([c.name for c in inCols])
-        relDefStr = pystache.render(relDefTemplate, relData)
-        return inRel.name, relDefStr, relDefHeader
+        rel_def_header = ",".join([c.name for c in in_cols])
+        rel_def_str = pystache.render(rel_def_template, rel_data)
+        return in_rel.name, rel_def_str, rel_def_header
 
-    def _generateHDFSImport(self, close_op, header, job_name):
+    def _generate_hdfs_import(self, close_op: Close, header: str, job_name: str):
+        """ Generate HDFS import code. """
 
         template = open(
-            "{0}/hdfsImport.tmpl".format(self.template_directory), 'r').read()
+            "{0}/hdfs_import.tmpl".format(self.template_directory), 'r').read()
         data = {
             "IN_NAME": close_op.get_in_rel().name,
             "SCHEMA_HEADER": header,
@@ -519,17 +552,18 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _generateCSVImport(self, close_op, output_directory, job_name):
+    def _generate_csv_import(self, close_op: Close, output_directory, job_name: str):
+        """ Generate code for CSV file import. """
 
-        def _delim_lookup(delim):
-
+        def _delim_lookup(delim: str):
+            """ Lookup how file inputs are delimited. """
             if delim == ",":
                 return "c"
             else:
                 raise Exception("unknown delimiter")
 
         template = open(
-            "{0}/csvImport.tmpl".format(self.template_directory), 'r').read()
+            "{0}/csv_import.tmpl".format(self.template_directory), 'r').read()
         data = {
             "IN_NAME": close_op.get_in_rel().name,
             "INPUT_PATH": self.config.input_path,
@@ -538,9 +572,10 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
-    def _writeCode(self, code_dict, job_name):
+    def _write_code(self, code_dict: dict, job_name: str):
+        """ Write generated code to file. """
 
-        def _write(root_dir, fn, ext, content, job_name):
+        def _write(root_dir: str, fn: str, ext: str, content: str, job_name: str):
 
             fullpath = "{}/{}/{}.{}".format(root_dir, job_name, fn, ext)
             os.makedirs(os.path.dirname(fullpath), exist_ok=True)

@@ -1,23 +1,10 @@
-import unittest
 from unittest import TestCase
-import warnings
 import salmon.lang as sal
 from salmon.codegen.spark import SparkCodeGen
 from salmon import CodeGenConfig
 from salmon.utils import *
-from salmon.comp import dag_only
+from salmon.comp import dagonly
 import os
-
-
-# suppresses annoying warnings about open files
-def ignore_resource_warnings(test_func):
-
-    def do_test(self, *args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ResourceWarning)
-            test_func(self, *args, **kwargs)
-
-    return do_test
 
 
 def setup():
@@ -38,7 +25,6 @@ def setup():
 
 class TestSpark(TestCase):
 
-    @ignore_resource_warnings
     def check_workflow(self, dag, name):
         expected_rootdir = \
             "{}/spark_expected".format(os.path.dirname(os.path.realpath(__file__)))
@@ -48,15 +34,13 @@ class TestSpark(TestCase):
 
         actual = cg._generate('code', '/tmp')[1]
 
-        # uncomment this to regenerate (needed if .tmpl files change)
-        # open(expected_rootdir + '/{}'.format(name), 'w').write(actual)
-
-        expected = open(expected_rootdir + '/{}'.format(name), 'r').read()
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
+            expected = f.read()
         self.assertEqual(expected, actual)
 
     def test_divide(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -71,7 +55,7 @@ class TestSpark(TestCase):
 
     def test_multiply(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -86,7 +70,7 @@ class TestSpark(TestCase):
 
     def test_project(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -101,7 +85,7 @@ class TestSpark(TestCase):
 
     def test_join(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -116,7 +100,7 @@ class TestSpark(TestCase):
 
     def test_agg(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -131,7 +115,7 @@ class TestSpark(TestCase):
 
     def test_concat(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -146,7 +130,7 @@ class TestSpark(TestCase):
 
     def test_distinct(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -161,7 +145,7 @@ class TestSpark(TestCase):
 
     def test_index(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
@@ -176,7 +160,7 @@ class TestSpark(TestCase):
 
     def test_workflow_one(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -195,7 +179,7 @@ class TestSpark(TestCase):
 
     def test_workflow_two(self):
 
-        @dag_only
+        @dagonly
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
@@ -210,7 +194,3 @@ class TestSpark(TestCase):
 
         dag = protocol()
         self.check_workflow(dag, 'workflow_two')
-
-
-if __name__ == '__main__':
-    unittest.main()
