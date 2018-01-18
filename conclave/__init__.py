@@ -1,25 +1,25 @@
-import salmon.comp as comp
-import salmon.dag as saldag
-import salmon.partition as part
-from salmon.codegen.python import PythonCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen
-from salmon.codegen.spark import SparkCodeGen
-from salmon.config import CodeGenConfig
-from salmon.dispatch import dispatch_all
-from salmon.net import SalmonPeer
-from salmon.net import setup_peer
+import conclave.comp as comp
+import conclave.dag as condag
+import conclave.partition as part
+from conclave.codegen.python import PythonCodeGen
+from conclave.codegen.sharemind import SharemindCodeGen
+from conclave.codegen.spark import SparkCodeGen
+from conclave.config import CodeGenConfig
+from conclave.dispatch import dispatch_all
+from conclave.net import SalmonPeer
+from conclave.net import setup_peer
 
 
 def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
                   local_frameworks: list, apply_optimizations: bool = True):
     """
-    Applies optimization rewrite passes to protocol, partitions resulting dag, and generates backend specific code for
-    each sub-dag.
+    Applies optimization rewrite passes to protocol, partitions resulting condag, and generates backend specific code for
+    each sub-condag.
     :param protocol: protocol to compile
     :param conclave_config: conclave configuration
     :param mpc_frameworks: available mpc backend frameworks
     :param local_frameworks: available local-processing backend frameworks
-    :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to dag
+    :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to condag
     :return: queue of job objects to be executed by dispatcher
     """
     # currently only allow one local and one mpc framework
@@ -32,13 +32,13 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
         cfg = CodeGenConfig.from_dict(conclave_config)
 
     # apply optimizations
-    dag = saldag.OpDag(protocol())
+    dag = condag.OpDag(protocol())
     # only apply optimizations if required
     if apply_optimizations:
         dag = comp.rewrite_dag(dag)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
-    # for each sub dag run code gen and add resulting job to job queue
+    # for each sub condag run code gen and add resulting job to job queue
     job_queue = []
     for job_num, (framework, sub_dag, stored_with) in enumerate(mapping):
         print(job_num, framework)

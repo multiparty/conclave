@@ -2,7 +2,7 @@
 Data structure for representing a workflow directed acyclic graph (DAG).
 """
 import copy
-from salmon import rel
+from conclave import rel
 
 
 class Node:

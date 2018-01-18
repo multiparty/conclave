@@ -2,9 +2,9 @@
 Embedded language for relational workflows.
 """
 import copy
-from salmon import rel
-import salmon.dag as saldag
-import salmon.utils as utils
+from conclave import rel
+import conclave.dag as saldag
+import conclave.utils as utils
 
 
 def create(rel_name: str, columns: list, stored_with: set):

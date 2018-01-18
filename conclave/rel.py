@@ -1,7 +1,7 @@
 """
 Data structures to represent relations (i.e., data sets).
 """
-import salmon.utils as utils
+import conclave.utils as utils
 
 
 class Column:

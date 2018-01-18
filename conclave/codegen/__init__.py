@@ -1,4 +1,4 @@
-from salmon.dag import *
+from conclave.dag import *
 
 
 class CodeGen:

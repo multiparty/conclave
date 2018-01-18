@@ -1,9 +1,9 @@
-import salmon.lang as sal
-import salmon.dispatch as dis
-from salmon.comp import dag_only
-from salmon.utils import *
-from salmon.codegen import spark
-from salmon import CodeGenConfig
+import conclave.lang as sal
+import conclave.dispatch as dis
+from conclave.comp import dag_only
+from conclave.utils import *
+from conclave.codegen import spark
+from conclave import CodeGenConfig
 from random import shuffle
 import sys
 

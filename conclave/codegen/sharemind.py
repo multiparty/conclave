@@ -3,10 +3,10 @@ import sys
 
 import pystache
 
-from salmon.codegen import CodeGen
-from salmon.dag import *
-from salmon.job import SharemindJob
-from salmon.rel import *
+from conclave.codegen import CodeGen
+from conclave.dag import *
+from conclave.job import SharemindJob
+from conclave.rel import *
 
 
 class SharemindCodeGenConfig():

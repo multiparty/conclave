@@ -1,9 +1,9 @@
 from unittest import TestCase
-import salmon.lang as sal
-import salmon.dag as saldag
-from salmon.comp import mpc
-from salmon.utils import *
-import salmon.partition as part
+import conclave.lang as sal
+import conclave.dag as saldag
+from conclave.comp import mpc
+from conclave.utils import *
+import conclave.partition as part
 import os
 
 

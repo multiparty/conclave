@@ -1,15 +1,15 @@
-import salmon.lang as sal
-from salmon.comp import dag_only
-from salmon.utils import *
-import salmon.partition as part
-from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen.spark import SparkCodeGen
-from salmon.codegen.python import PythonCodeGen
-from salmon.codegen.viz import VizCodeGen
-from salmon import generate_code, CodeGenConfig
-from salmon.dispatch import dispatch_all
-from salmon.net import setup_peer
+import conclave.lang as sal
+from conclave.comp import dag_only
+from conclave.utils import *
+import conclave.partition as part
+from conclave.codegen.scotch import ScotchCodeGen
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave.codegen.spark import SparkCodeGen
+from conclave.codegen.python import PythonCodeGen
+from conclave.codegen.viz import VizCodeGen
+from conclave import generate_code, CodeGenConfig
+from conclave.dispatch import dispatch_all
+from conclave.net import setup_peer
 import sys
 
 def testHybridAggWorkflow():
@@ -110,7 +110,7 @@ def testHybridAggWorkflow():
 
         sal._open(agg, "opened", 1)
 
-        # create dag
+        # create condag
         return set([in1, in2, in3])
 
     pid = int(sys.argv[1])

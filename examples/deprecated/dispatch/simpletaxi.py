@@ -1,10 +1,10 @@
-from salmon import CodeGenConfig
-from salmon.codegen.sharemind import SharemindCodeGen
-import salmon.dispatch
-import salmon.net
-from salmon.comp import dag_only
-import salmon.lang as sal
-from salmon.utils import *
+from conclave import CodeGenConfig
+from conclave.codegen.sharemind import SharemindCodeGen
+import conclave.dispatch
+import conclave.net
+from conclave.comp import dag_only
+import conclave.lang as sal
+from conclave.utils import *
 from multiprocessing import Process
 import sys
 
@@ -63,13 +63,13 @@ def party_proc(pid):
             3: {"host": "localhost", "port": 9003}
         }
     }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = conclave.net.setup_peer(sharemind_config)
 
     codegen_config = CodeGenConfig()
 
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate("job-" + str(pid), sharemind_home)
     job_queue = [job]
-    salmon.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
+    conclave.dispatch.dispatch_all(spark_master, sm_peer, job_queue)
 
 if __name__ == "__main__":
 

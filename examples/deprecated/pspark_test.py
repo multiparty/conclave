@@ -1,8 +1,8 @@
-import salmon.lang as sal
-from salmon.codegen.spark import SparkCodeGen
-from salmon import CodeGenConfig
-from salmon.utils import *
-from salmon.comp import dag_only
+import conclave.lang as sal
+from conclave.codegen.spark import SparkCodeGen
+from conclave import CodeGenConfig
+from conclave.utils import *
+from conclave.comp import dag_only
 
 
 def setup():

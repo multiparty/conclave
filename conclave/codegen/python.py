@@ -2,9 +2,9 @@ import os
 
 import pystache
 
-from salmon.codegen import CodeGen
-from salmon.job import PythonJob
-import salmon.dag as saldag
+from conclave.codegen import CodeGen
+from conclave.job import PythonJob
+import conclave.dag as saldag
 
 
 class PythonCodeGen(CodeGen):

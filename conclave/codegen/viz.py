@@ -1,5 +1,5 @@
-from salmon.codegen import CodeGen
-import salmon.dag as saldag
+from conclave.codegen import CodeGen
+import conclave.dag as saldag
 import os
 
 

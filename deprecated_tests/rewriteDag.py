@@ -1,5 +1,5 @@
-import salmon.lang as sal
-from salmon.comp import mpc, scotch
+import conclave.lang as sal
+from conclave.comp import mpc, scotch
 
 
 def testJoinConcat():
@@ -38,7 +38,7 @@ def testJoinConcat():
         comb = sal.concat([inC, joined], "comb")
         sal.collect(comb, 3)
 
-        # create dag
+        # create condag
         return set([inA, inB, inC])
 
     expected = """CREATE RELATION inA {1} WITH COLUMNS (INTEGER, INTEGER)
@@ -92,7 +92,7 @@ def testJoinConcat2():
         agg = sal.aggregate(comb, "agg", "comb_1", "comb_2", "+")
         sal.collect(agg, 1)
 
-        # create dag
+        # create condag
         return set([inA, inB, inC])
 
     expected = """CREATE RELATION inA {2} WITH COLUMNS (INTEGER, INTEGER)

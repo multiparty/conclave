@@ -1,10 +1,10 @@
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon import CodeGenConfig
-import salmon.dispatch
-import salmon.net
-from salmon.comp import dag_only
-import salmon.lang as sal
-from salmon.utils import *
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave import CodeGenConfig
+import conclave.dispatch
+import conclave.net
+from conclave.comp import dag_only
+import conclave.lang as sal
+from conclave.utils import *
 import sys
 import exampleutils
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     pid = int(sys.argv[1])
     sharemind_config = exampleutils.get_sharemind_config(pid)
 
-    sm_peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = conclave.net.setup_peer(sharemind_config)
 
     workflow_name = "job-" + str(pid)
     sm_cg_config = SharemindCodeGenConfig(
@@ -60,4 +60,4 @@ if __name__ == "__main__":
     job = SharemindCodeGen(codegen_config, protocol(), pid).generate(
         "sharemind-0", "")
     job_queue = [job]
-    salmon.dispatch.dispatch_all(None, sm_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sm_peer, job_queue)

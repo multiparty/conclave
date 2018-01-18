@@ -1,9 +1,9 @@
 from unittest import TestCase
-import salmon.lang as sal
-from salmon.codegen.python import PythonCodeGen
-from salmon import CodeGenConfig
-from salmon.utils import *
-from salmon.comp import dag_only
+import conclave.lang as sal
+from conclave.codegen.python import PythonCodeGen
+from conclave import CodeGenConfig
+from conclave.utils import *
+from conclave.comp import dag_only
 import os
 
 

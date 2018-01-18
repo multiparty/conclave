@@ -1,11 +1,11 @@
 """
 Simple example workflow for MOC deployment of Conclave
 """
-import salmon.lang as sal
-from salmon.utils import *
-from salmon.codegen.spark import SparkConfig
-from salmon import CodeGenConfig
-from salmon import generate_and_dispatch
+import conclave.lang as sal
+from conclave.utils import *
+from conclave.codegen.spark import SparkConfig
+from conclave import CodeGenConfig
+from conclave import generate_and_dispatch
 import sys
 
 

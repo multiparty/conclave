@@ -4,9 +4,9 @@ Workflow graph optimizations and transformations.
 import copy
 import warnings
 
-import salmon.dag as saldag
-import salmon.lang as sal
-import salmon.utils as utils
+import conclave.dag as saldag
+import conclave.lang as sal
+import conclave.utils as utils
 
 
 def push_op_node_down(top_node, bottom_node):
@@ -70,7 +70,7 @@ class DagRewriter:
 
     def __init__(self):
 
-        # If true we visit topological ordering of dag in reverse
+        # If true we visit topological ordering of condag in reverse
         self.reverse = False
 
     def rewrite(self, dag: saldag.OpDag):
@@ -671,8 +671,8 @@ def rewrite_dag(dag: saldag.OpDag):
 
 
 def scotch(f: callable):
-    from salmon.codegen import scotch
-    from salmon import CodeGenConfig
+    from conclave.codegen import scotch
+    from conclave import CodeGenConfig
 
     def wrap():
         code = scotch.ScotchCodeGen(CodeGenConfig(), f())._generate(None, None)
@@ -682,8 +682,8 @@ def scotch(f: callable):
 
 
 def sharemind(f: callable):
-    from salmon.codegen import sharemind
-    from salmon import CodeGenConfig
+    from conclave.codegen import sharemind
+    from conclave import CodeGenConfig
 
     def wrap():
         code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)

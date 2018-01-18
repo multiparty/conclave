@@ -1,8 +1,8 @@
-import salmon.lang as sal
-from salmon.comp import dag_only
-from salmon.codegen import spark, viz
-from salmon import CodeGenConfig
-from salmon.utils import *
+import conclave.lang as sal
+from conclave.comp import dag_only
+from conclave.codegen import spark, viz
+from conclave import CodeGenConfig
+from conclave.utils import *
 
 
 @dag_only

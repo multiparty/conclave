@@ -1,8 +1,8 @@
 from . import part
-from salmon.dag import OpDag, Dag, Create, Open, Persist, OpNode
+from conclave.dag import OpDag, Dag, Create, Open, Persist, OpNode
 from copy import copy, deepcopy
-from salmon.codegen.scotch import ScotchCodeGen
-from salmon.config import CodeGenConfig
+from conclave.codegen.scotch import ScotchCodeGen
+from conclave.config import CodeGenConfig
 
 
 def part_dag(dag: Dag):
@@ -98,7 +98,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
         # roots of the next subdag, i.e., where the current subdag will end
         new_roots = []
 
-        # traverse current dag until all boundary nodes are hit
+        # traverse current condag until all boundary nodes are hit
         for node in ordered:
             if is_correct_mode(node, available, stored_with):
                 available.add(node)
@@ -114,7 +114,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
         # roots of the next subdag
         new_roots = find_new_roots(nextdag, available, holding_parties)
         # disconnect current dags at new root nodes and return the disconnected
-        # bottom dag
+        # bottom condag
         return disconnect_at_roots(nextdag, available, new_roots)
 
     def _merge_dags(left_dag, right_dag):

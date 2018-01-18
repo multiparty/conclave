@@ -1,9 +1,9 @@
 from unittest import TestCase
-import salmon.lang as sal
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.utils import *
-from salmon.comp import dag_only
-from salmon import CodeGenConfig
+import conclave.lang as sal
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave.utils import *
+from conclave.comp import dag_only
+from conclave import CodeGenConfig
 import os
 
 

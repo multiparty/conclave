@@ -1,9 +1,9 @@
 import os
 
-import salmon.lang as lang
-from salmon import generate_and_dispatch
-from salmon.config import CodeGenConfig
-from salmon.utils import defCol
+import conclave.lang as lang
+from conclave import generate_and_dispatch
+from conclave.config import CodeGenConfig
+from conclave.utils import defCol
 
 
 def protocol():

@@ -1,11 +1,11 @@
 import sys
 
-import salmon.lang as sal
-from salmon import CodeGenConfig
-from salmon import generate_and_dispatch
-from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon.codegen.spark import SparkConfig
-from salmon.utils import *
+import conclave.lang as sal
+from conclave import CodeGenConfig
+from conclave import generate_and_dispatch
+from conclave.codegen.sharemind import SharemindCodeGenConfig
+from conclave.codegen.spark import SparkConfig
+from conclave.utils import *
 
 
 def protocol():

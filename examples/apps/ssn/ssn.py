@@ -1,10 +1,10 @@
 import sys
 
-import salmon.lang as sal
-from salmon import CodeGenConfig
-from salmon import generate_and_dispatch
-from salmon.codegen.sharemind import SharemindCodeGenConfig
-from salmon.utils import *
+import conclave.lang as sal
+from conclave import CodeGenConfig
+from conclave import generate_and_dispatch
+from conclave.codegen.sharemind import SharemindCodeGenConfig
+from conclave.utils import *
 
 
 def run_ssn_workflow():

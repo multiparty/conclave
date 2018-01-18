@@ -1,7 +1,7 @@
-from salmon.job import SparkJob
-from salmon.codegen import CodeGen
+from conclave.job import SparkJob
+from conclave.codegen import CodeGen
 import os, pystache
-import salmon.dag as saldag
+import conclave.dag as saldag
 
 
 class SparkConfig:

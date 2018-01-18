@@ -1,7 +1,7 @@
 from unittest import TestCase
-import salmon.lang as sal
-from salmon.comp import mpc, scotch
-from salmon.utils import *
+import conclave.lang as sal
+from conclave.comp import mpc, scotch
+from conclave.utils import *
 import os
 
 
