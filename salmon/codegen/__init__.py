@@ -1,5 +1,5 @@
 from salmon.dag import *
-from salmon import CodeGenConfig
+from salmon.config import CodeGenConfig
 
 
 class CodeGen:
@@ -31,7 +31,7 @@ class CodeGen:
         # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
-            if isinstance(node, Index_aggregate):
+            if isinstance(node, IndexAggregate):
                 op_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
                 op_code += self._generate_aggregate(node)

@@ -137,7 +137,7 @@ class SharemindCodeGen(CodeGen):
 
         # we need all open ops to get all output parties
         open_ops = filter(lambda op_node: isinstance(op_node, Open), nodes)
-        # union of all storedWiths gives us all output parties
+        # union of all stored_withs gives us all output parties
         output_parties = set().union(
             *[op.out_rel.stored_with for op in open_ops])
         # only support one output party

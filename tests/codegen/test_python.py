@@ -24,7 +24,7 @@ def setup():
 
 class TestPython(TestCase):
 
-    def check_workflow(self, dag, name):
+    def check_workflow(self, dag : dag.Dag, name: str):
         expected_rootdir = \
             "{}/python_expected".format(os.path.dirname(os.path.realpath(__file__)))
 

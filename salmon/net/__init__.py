@@ -4,9 +4,9 @@ import pickle
 
 
 class IAMMsg:
-    """Message identifying peer."""
+    """ Message identifying peer. """
 
-    def __init__(self, pid):
+    def __init__(self, pid: int):
         self.pid = pid
 
     def __str__(self):
@@ -14,9 +14,9 @@ class IAMMsg:
 
 
 class DoneMsg:
-    """Message signifying that peer has finished a task."""
+    """ Message signifying that peer has finished a task. """
 
-    def __init__(self, pid, task_name):
+    def __init__(self, pid: int, task_name: str):
         self.pid = pid
         self.task_name = task_name
 
@@ -25,17 +25,20 @@ class DoneMsg:
 
 
 class FailMsg:
-    """Message signifying that peer failed to complete a task."""
+    """ Message signifying that peer failed to complete a task. """
+
     # TODO
     pass
 
 
 class SalmonProtocol(asyncio.Protocol):
     """
-    The Salmon network protocol defines what messages salmon peers can send each other and how to interpret these.
+    The Salmon network protocol defines what messages salmon
+    peers can send each other and how to interpret these.
     """
 
     def __init__(self, peer):
+        """ Initialize SalmonProtocol object. """
 
         self.peer = peer
         self.buffer = b""
@@ -103,8 +106,10 @@ class SalmonProtocol(asyncio.Protocol):
 
 
 class SalmonPeer:
-    """A salmon network peer exposes networking functionality. Used to transfer messages to other peers and forward the
-    received messages to the other peers."""
+    """
+    A salmon network peer exposes networking functionality. Used to transfer
+    messages to other peers and forward the received messages to the other peers.
+    """
 
     def __init__(self, loop, config):
 

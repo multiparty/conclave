@@ -1,10 +1,14 @@
 import os
 import tempfile
+from salmon.codegen.sharemind import SharemindCodeGenConfig
+from salmon.codegen.spark import SparkConfig
 
 
 class CodeGenConfig:
+    """ Config object for code generation module. """
 
-    def __init__(self, job_name=None):
+    def __init__(self, job_name: [str, None] = None):
+        """ Initialize CodeGenConfig object. """
         self.inited = True
         self.delimiter = ','
         if job_name is not None:
@@ -27,42 +31,55 @@ class CodeGenConfig:
             }
         }
 
-    def with_pid(self, pid):
+    def with_pid(self, pid: int):
+        """ Change pid of this party (default is 1). """
+
         if not self.inited:
             self.__init__()
         self.pid = pid
 
         return self
 
-    def with_delimiter(self, delimiter):
+    def with_delimiter(self, delimiter: str):
+        """ Set delimiter for input files (default is ','). """
+
         if not self.inited:
             self.__init__()
         self.delimiter = delimiter
 
         return self
 
-    def with_sharemind_config(self, cfg):
+    def with_sharemind_config(self, cfg: SharemindCodeGenConfig):
+        """ Add SharemindCodeGenConfig object to this object. """
+
         if not self.inited:
             self.__init__()
         self.system_configs["sharemind"] = cfg
 
         return self
 
-    def with_spark_config(self, cfg):
+    def with_spark_config(self, cfg: SparkConfig):
+        """ Add SparkConfig object to this object. """
+
         if not self.inited:
             self.__init__()
         self.system_configs["spark"] = cfg
 
         return self
 
+    # TODO: net cfg is dict for now, move to class?
     def with_network_config(self, cfg):
+        """ Add network config to this object. """
+
         if not self.inited:
             self.__init__()
         self.network_config = cfg
 
         return self
 
-    def from_dict(cfg):
+    def from_dict(self, cfg: dict):
+        """ Create config from dict """
+
         ccfg = CodeGenConfig(cfg['name'])
 
         ccfg.delimiter = cfg['delimiter']

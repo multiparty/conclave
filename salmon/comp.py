@@ -162,7 +162,7 @@ class MPCPushDown(DagRewriter):
         else:
             pass
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.Index_aggregate]):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
         parent = next(iter(node.parents))
         if parent.isMPC:
@@ -284,7 +284,7 @@ class CollSetPropDown(DagRewriter):
 
         super(CollSetPropDown, self).__init__()
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.Index_aggregate]):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
         in_group_cols = node.group_cols
         out_group_cols = node.out_rel.columns[:-1]
@@ -486,7 +486,7 @@ class InsertOpenAndCloseOps(DagRewriter):
                 raise Exception(
                     "different stored_with on non-lower-boundary unary op", node)
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.Index_aggregate]):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
 
         self._rewrite_default_unary(node)
 
@@ -567,7 +567,7 @@ class ExpandCompositeOps(DagRewriter):
     def __init__(self):
         super(ExpandCompositeOps, self).__init__()
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.Index_aggregate]):
+    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
         pass
 
     def _rewrite_divide(self, node: saldag.Divide):
@@ -596,7 +596,7 @@ class ExpandCompositeOps(DagRewriter):
         node.left_parent.children.remove(node)
 
         # same for right parent
-        shuffled_b = sal.shuffle(node.rightParent, "shuffled_b")
+        shuffled_b = sal.shuffle(node.right_parent, "shuffled_b")
         shuffled_b.isMPC = True
         node.right_parent.children.remove(node)
 

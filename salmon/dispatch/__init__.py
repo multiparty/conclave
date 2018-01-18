@@ -1,13 +1,12 @@
 import salmon.job
 from . import sharemind, spark, python
+from salmon import CodeGenConfig
+from salmon import SalmonPeer
 
 
-def dispatch_all(conclave_config, networked_peer, job_queue):
+def dispatch_all(conclave_config: CodeGenConfig, networked_peer: [SalmonPeer, None], job_queue: list):
     """
     Dispatches jobs in job queue.
-    :param conclave_config: conclave configuration
-    :param networked_peer: networked peer in case dispatching involves more than one party; none otherwise
-    :param job_queue: jobs to dispatch
     """
 
     # create a lookup from job class to instantiated dispatcher

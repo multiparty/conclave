@@ -57,7 +57,7 @@ class SubDag(Dag):
         return "{" + ", ".join([node.out_rel.name for node in self.nodes]) + "}"
 
 
-def getBestPartition(nodes):
+def get_best_partition(nodes):
     # TODO: is this the best way to express maximum cost?
     max_cost = 1000
     num_ops = len(nodes)

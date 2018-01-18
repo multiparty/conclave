@@ -1,40 +1,41 @@
 from . import part
-from salmon.dag import OpDag, Dag, Create, Open, Persist
+from salmon.dag import OpDag, Dag, Create, Open, Persist, OpNode
 from copy import copy, deepcopy
 from salmon.codegen.scotch import ScotchCodeGen
 from salmon.config import CodeGenConfig
 
 
-def partDag(dag):
-
+def part_dag(dag: Dag):
+    """ Exhaustive search partition function. """
     sorted_nodes = dag.top_sort()
-    best = part.getBestPartition(sorted_nodes)
+    best = part.get_best_partition(sorted_nodes)
 
     return best
 
 
-def heupart(dag, mpc_frameworks, local_frameworks):
+def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
+    """ Non-exhaustive partition. Returns best partition with respect to certain heuristics. """
 
-    def get_stored_with(node):
-
+    def get_stored_with(node: OpNode):
+        """ Returns stored_with set of out_rel or in_rel of a node, depending on it's type. """
         if isinstance(node, Open):
-            return node.get_in_rel().storedWith
+            return node.get_in_rel().stored_with
         elif isinstance(node, Create):
             return get_stored_with(next(iter(node.children)))
         else:
-            return node.out_rel.storedWith
+            return node.out_rel.stored_with
 
-    def is_correct_mode(node, available, storedWith):
+    def is_correct_mode(node: OpNode, available: set, stored_with: set):
+        """ Verifies that node is stored with same set of parties passed to this function. """
 
-        # if node itself is stored with different set of parties it doesn't
-        # belong inside current dag
-        if get_stored_with(node) != storedWith:
+        if get_stored_with(node) != stored_with:
             return False
 
         # otherwise check parents
         return node.parents.issubset(available) or not (node.parents or available)
 
-    def can_partition(dag, storedWith, top_available):
+    def can_partition(dag: Dag, stored_with: set, top_available: set):
+        """ Returns whether the Dag passed to it can be partitioned. """
 
         # copy so we don't overwrite global available nodes in this pass
         available = deepcopy(top_available)
@@ -42,11 +43,11 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         unavailable = set()
 
         for node in ordered:
-            if node in unavailable and get_stored_with(node) == storedWith:
+            if node in unavailable and get_stored_with(node) == stored_with:
                 for parent in node.parents:
                     if parent in available and not isinstance(parent, Persist):
                         return False
-            if is_correct_mode(node, available, storedWith):
+            if is_correct_mode(node, available, stored_with):
                 available.add(node)
             else:
                 # mark all descendants as unavailable
@@ -54,7 +55,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                 unavailable = unavailable.union(descendants)
         return True
 
-    def disconnect_at_roots(current_dag, available, new_roots):
+    def disconnect_at_roots(current_dag: Dag, available: set, new_roots: list):
 
         previous_parents = set()
         create_op_lookup = dict()
@@ -65,7 +66,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
                     if parent not in previous_parents:
                         create_op = Create(deepcopy(parent.out_rel))
                         # create op is in same mode as root
-                        create_op.is_mpc = root.isMPC
+                        create_op.is_mpc = root.is_mpc
                         previous_parents.add(parent)
                         create_op_lookup[parent.out_rel.name] = create_op
                     else:
@@ -89,7 +90,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         return OpDag(set(parent_roots)), available
 
-    def find_new_roots(current_dag, available, storedWith):
+    def find_new_roots(current_dag: Dag, available: set, stored_with: set):
 
         # need topological ordering
         ordered = current_dag.top_sort()
@@ -99,9 +100,9 @@ def heupart(dag, mpc_frameworks, local_frameworks):
 
         # traverse current dag until all boundary nodes are hit
         for node in ordered:
-            if is_correct_mode(node, available, storedWith):
+            if is_correct_mode(node, available, stored_with):
                 available.add(node)
-            elif ((not node.parents) or (node.parents & available)):
+            elif (not node.parents) or (node.parents & available):
                 if node not in new_roots:
                     new_roots.append(node)
         
@@ -129,13 +130,14 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         for root in sorted(roots, key=lambda node: node.out_rel.name):
             holding_ps = get_stored_with(root)
             if can_partition(nextdag, holding_ps, available):
-                return holding_ps, root.isMPC
+                return holding_ps, root.is_mpc
         raise Exception("Found no roots to partition on")
 
     def merge_neighbor_dags(mapping):
 
         updated_mapping = []
         prev_fmwk, prev_subdag, stored_with = None, None, None
+
         for fmwk, subdag, stored_with in mapping:
             # we can merge neighboring subdags if they're mapped to the same
             # framework and are stored by same parties
@@ -178,7 +180,7 @@ def heupart(dag, mpc_frameworks, local_frameworks):
         # increment iteration count
         iterations += 1
     
-    for fmwk, subdag, storedWith in mapping:
+    for fmwk, subdag, stored_with in mapping:
         print(ScotchCodeGen(CodeGenConfig(), subdag)._generate(0, 0))
 
     merged = merge_neighbor_dags(mapping)
