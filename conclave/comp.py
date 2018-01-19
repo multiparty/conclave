@@ -317,12 +317,18 @@ class MPCPushUp(DagRewriter):
 
 
 class CollSetPropDown(DagRewriter):
+    """
+    Pushes collusion sets down through the DAG. Collusion sets are
+    column-specific and thus more granular than stored_with sets,
+    which are defined over whole relations.
+    """
 
     def __init__(self):
 
         super(CollSetPropDown, self).__init__()
 
     def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
+        """ Push down collusion sets for an Aggregate or IndexAggregate node. """
 
         in_group_cols = node.group_cols
         out_group_cols = node.out_rel.columns[:-1]
@@ -333,6 +339,7 @@ class CollSetPropDown(DagRewriter):
         out_agg_col.coll_sets |= copy.deepcopy(in_agg_col.coll_sets)
 
     def _rewrite_divide(self, node: saldag.Divide):
+        """ Push down collusion sets for a Divide node. """
 
         out_rel_cols = node.out_rel.columns
         operands = node.operands
@@ -350,6 +357,7 @@ class CollSetPropDown(DagRewriter):
                 out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
     def _rewrite_project(self, node: saldag.Project):
+        """ Push down collusion sets for a Project node. """
 
         selected_cols = node.selected_cols
 
@@ -357,6 +365,7 @@ class CollSetPropDown(DagRewriter):
             out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
     def _rewrite_filter(self, node: saldag.Filter):
+        """ Push down collusion sets for a Filter node. """
 
         out_rel_cols = node.out_rel.columns
 
@@ -364,6 +373,7 @@ class CollSetPropDown(DagRewriter):
             out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
 
     def _rewrite_multiply(self, node: saldag.Multiply):
+        """ Push down collusion sets for a Multiply node. """
 
         out_rel_cols = node.out_rel.columns
         operands = node.operands
@@ -385,6 +395,7 @@ class CollSetPropDown(DagRewriter):
         raise Exception("HybridJoin encountered during CollSetPropDown")
 
     def _rewrite_join(self, node: saldag.Join):
+        """ Push down collusion sets for a Join node. """
 
         left_in_rel = node.get_left_in_rel()
         right_in_rel = node.get_right_in_rel()
@@ -417,6 +428,7 @@ class CollSetPropDown(DagRewriter):
                 abs_idx += 1
 
     def _rewrite_concat(self, node: saldag.Concat):
+        """ Push down collusion sets for a Concat node. """
 
         # Copy over columns from existing relation
         out_rel_cols = node.out_rel.columns
@@ -427,12 +439,13 @@ class CollSetPropDown(DagRewriter):
             col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
 
     def _rewrite_create(self, node: saldag.Create):
+        """ No collusion set """
 
         pass
 
 
 class HybridJoinOpt(DagRewriter):
-
+    """ DagRewriter subclass specific to HybridJoin optimization rewriting. """
     def __init__(self):
 
         super(HybridJoinOpt, self).__init__()
@@ -467,6 +480,7 @@ class HybridJoinOpt(DagRewriter):
         raise Exception("HybridJoin encountered during HybridJoinOpt")
 
     def _rewrite_join(self, node: saldag.Join):
+        """ Convert Join node to HybridJoin node. """
 
         if node.is_mpc:
             out_rel = node.out_rel
@@ -493,14 +507,22 @@ class HybridJoinOpt(DagRewriter):
         pass
 
 
+# TODO: this class is messy
 class InsertOpenAndCloseOps(DagRewriter):
-    # TODO: this class is messy
+    """
+    Data structure for inserting Open and Close ops that separate
+    MPC and non-MPC boundaries into the DAG.
+    """
 
     def __init__(self):
 
         super(InsertOpenAndCloseOps, self).__init__()
 
     def _rewrite_default_unary(self, node: saldag.UnaryOpNode):
+        """
+        Insert Store node beneath a UnaryOpNode that
+        is at a lower boundary of an MPC op.
+        """
 
         # TODO: can there be a case when children have different stored_with sets?
         warnings.warn("hacky insert store ops")
@@ -549,6 +571,11 @@ class InsertOpenAndCloseOps(DagRewriter):
         self._rewrite_join(node)
 
     def _rewrite_join(self, node: saldag.Join):
+        """
+        Insert Open/Close ops above or beneath a Join node. If the parent of the Join node is an upper
+        boundary node, then a Close op is inserted between it and the parent node. If the Join node is
+        a leaf node (i.e. - has no children), then an Open op is inserted beneath it.
+        """
 
         out_stored_with = node.out_rel.stored_with
         ordered_pars = [node.left_parent, node.right_parent]
@@ -577,6 +604,10 @@ class InsertOpenAndCloseOps(DagRewriter):
                 sal._open(node, node.out_rel.name + "_open", target_party)
 
     def _rewrite_concat(self, node: saldag.Concat):
+        """
+        Insert a Close op above a Concat node if it's
+        parent's stored_with sets do not match it's own.
+        """
 
         assert (not node.is_lower_boundary())
 
@@ -599,8 +630,10 @@ class InsertOpenAndCloseOps(DagRewriter):
 
 
 class ExpandCompositeOps(DagRewriter):
-    """Replaces operator nodes that correspond to composite operations
-    (for example hybrid joins) into subdags of primitive operators"""
+    """
+    Replaces operator nodes that correspond to composite operations
+    (for example hybrid joins) into subdags of primitive operators.
+    """
 
     def __init__(self):
         super(ExpandCompositeOps, self).__init__()
@@ -699,6 +732,8 @@ class ExpandCompositeOps(DagRewriter):
 
 
 def rewrite_dag(dag: saldag.OpDag):
+    """ Combines and calls all rewrite operations. """
+
     MPCPushDown().rewrite(dag)
     # ironic?
     MPCPushUp().rewrite(dag)
@@ -710,6 +745,8 @@ def rewrite_dag(dag: saldag.OpDag):
 
 
 def scotch(f: callable):
+    """ Wraps protocol execution to only generate Scotch code. """
+
     from conclave.codegen import scotch
     from conclave import CodeGenConfig
 
@@ -721,6 +758,7 @@ def scotch(f: callable):
 
 
 def sharemind(f: callable):
+    """ Wraps protocol execution to only generate Sharemind code. """
     from conclave.codegen import sharemind
     from conclave import CodeGenConfig
 
@@ -751,6 +789,8 @@ def mpc(*args):
 
 
 def dag_only(f: callable):
+    """ Wrapper to bypass rewrite logic. """
+    
     def wrap():
         return saldag.OpDag(f())
 

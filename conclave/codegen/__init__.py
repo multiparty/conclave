@@ -19,7 +19,7 @@ class CodeGen:
         # return job object
         return job
 
-    def _generate(self, job_name: str, output_directory: str):
+    def _generate(self, job_name: [str, None], output_directory: [str, None]):
         """ Generate code for DAG passed"""
 
         op_code = ""

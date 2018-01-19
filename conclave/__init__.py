@@ -22,6 +22,7 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to condag
     :return: queue of job objects to be executed by dispatcher
     """
+
     # currently only allow one local and one mpc framework
     assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
 
@@ -69,6 +70,7 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig):
     :param job_queue: jobs to dispatch
     :param conclave_config: conclave configuration
     """
+
     networked_peer = None
     # if more than one party is involved in the protocol, we need a networked peer
     if len(conclave_config.all_pids) > 1:
@@ -83,6 +85,7 @@ def generate_and_dispatch(protocol: callable, conclave_config: CodeGenConfig, mp
     Calls generate_code to generate code from protocol and :func:`~salmon.__init__.dispatch_jobs` to
     dispatch it.
     """
+
     job_queue = generate_code(protocol, conclave_config, mpc_frameworks, local_frameworks, apply_optimizations)
     dispatch_jobs(job_queue, conclave_config)
 

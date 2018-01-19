@@ -21,6 +21,7 @@ def merge_coll_sets(left: set, right: set):
     >>> actual == expected
     True
     """
+
     if not left:
         return copy.copy(right)
     elif not right:
@@ -30,7 +31,7 @@ def merge_coll_sets(left: set, right: set):
 
 def coll_sets_from_columns(columns: list):
     """
-    ???
+    Returned
     """
     coll_sets = [col.coll_sets if hasattr(col, "coll_sets") else set() for col in columns]
     return functools.reduce(lambda set_a, set_b: merge_coll_sets(set_a, set_b), coll_sets)
@@ -54,10 +55,11 @@ def find(columns: list, col_name: str):
 def defCol(name: str, typ: str, *coll_sets):
     """
     ???
-    
+
     >>> actual = defCol("a", "INTEGER", [1], [2], [1, 2, 3])
     >>> expected = ('a', 'INTEGER', {frozenset({1, 2, 3}), frozenset({2}), frozenset({1})})
     >>> actual == expected
-    True
+
     """
+
     return name, typ, set([frozenset(coll_set) for coll_set in coll_sets])

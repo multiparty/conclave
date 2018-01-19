@@ -277,7 +277,7 @@ class Persist(UnaryOpNode):
 
 class Open(UnaryOpNode):
     """ Object for opening results of a computation to participating parties. """
-    def __init__(self, out_rel: rel.Relation, parent: OpNode):
+    def __init__(self, out_rel: rel.Relation, parent: [OpNode, None]):
         """ Initialize Open object. """
         super(Open, self).__init__("open", out_rel, parent)
         self.is_mpc = True
@@ -289,7 +289,7 @@ class Open(UnaryOpNode):
 
 class Close(UnaryOpNode):
     """ Object for marking the boundary between local and MPC operations. """
-    def __init__(self, out_rel: rel.Relation, parent: OpNode):
+    def __init__(self, out_rel: rel.Relation, parent: [OpNode, None]):
         """ Initialize Close object. """
         super(Close, self).__init__("close", out_rel, parent)
         self.is_mpc = True

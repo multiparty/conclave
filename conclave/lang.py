@@ -52,7 +52,6 @@ def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: l
     return op
 
 
-# TODO: (ben) type annotations for eq_flags_op and sorted_keys_op
 def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: list,
                     over_col_name: str, aggregator: str, agg_out_col_name: str, eq_flag_op, sorted_keys_op):
 
