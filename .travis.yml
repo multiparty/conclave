@@ -10,7 +10,7 @@ notifications:
   email: true
   slack:
     rooms:
-      - appliedmpc:fU25pTj0itFJQp9ycTEFXI2F
+      - appliedmpc:Q3gSuYu4bSpenmQ5KZHRPvHc
     on_success: change
     on_failure: always
 
