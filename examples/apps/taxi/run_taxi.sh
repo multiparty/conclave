@@ -14,3 +14,4 @@ hadoop fs -rm -r /home/ubuntu/taxi/scaled_down*
 hadoop fs -rm -r /home/ubuntu/taxi/hhi_open*
 
 python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+

@@ -56,6 +56,11 @@ def protocol():
 
 if __name__ == "__main__":
 
+
+    # python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+
+    # taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>"
+
     if len(sys.argv) < 5:
         print("usage: taxi.py <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>")
         sys.exit(1)

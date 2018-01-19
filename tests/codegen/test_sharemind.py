@@ -1,9 +1,9 @@
 from unittest import TestCase
 import conclave.lang as sal
-from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave.codegen.sharemind import SharemindCodeGen
 from conclave.utils import *
 from conclave.comp import dag_only
-from conclave import CodeGenConfig
+from conclave.config import CodeGenConfig, SharemindCodeGenConfig
 import os
 
 

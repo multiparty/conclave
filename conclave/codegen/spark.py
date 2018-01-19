@@ -4,15 +4,6 @@ import os, pystache
 import conclave.dag as saldag
 
 
-class SparkConfig:
-    """
-    Spark configuration.
-    """
-
-    def __init__(self, spark_master_url):
-        self.spark_master_url = spark_master_url
-
-
 def cache_var(op_node: saldag.OpNode):
     """ Determines whether a Spark DF must be cached. """
     if len(op_node.children) > 1:

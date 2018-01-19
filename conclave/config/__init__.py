@@ -1,5 +1,53 @@
+""" Conclave configuration objects. """
 import os
 import tempfile
+
+
+# python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+
+# <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>
+
+
+class NetworkConfig:
+    """ Config object for network module. """
+
+    def __init__(self):
+        """ Initialize NetworkConfig object. """
+
+        self.pid = 1
+        # List of HDFS master nodes. Mapping between party running the computation
+        # and their own master node / port is indicated in network_config['parties'],
+        # where the PID corresponds to each tuple.
+        self.hosts = ["localhost", "localhost", "localhost"]
+        self.ports = [9001, 9002, 9003]
+        self.network_config = {
+            "pid": self.pid,
+            "parties": {
+                1: {"host": self.hosts[0], "port": self.ports[0]},
+                2: {"host": self.hosts[1], "port": self.ports[1]},
+                3: {"host": self.hosts[2], "port": self.ports[2]}
+            }
+        }
+
+
+class SharemindCodeGenConfig:
+    """ Sharemind configuration. """
+
+    def __init__(self, home_path='/tmp', use_docker=True, use_hdfs=True):
+        """ Initialize SharemindCodeGenConfig object. """
+        
+        self.home_path = home_path
+        self.use_docker = use_docker
+        self.use_hdfs = use_hdfs
+
+
+class SparkConfig:
+    """ Spark configuration."""
+
+    def __init__(self, spark_master_url):
+        """ Initialize SparkConfig object. """
+
+        self.spark_master_url = spark_master_url
 
 
 class CodeGenConfig:
@@ -7,6 +55,7 @@ class CodeGenConfig:
 
     def __init__(self, job_name: [str, None] = None):
         """ Initialize CodeGenConfig object. """
+
         self.inited = True
         self.delimiter = ','
         if job_name is not None:
@@ -47,7 +96,7 @@ class CodeGenConfig:
 
         return self
 
-    def with_sharemind_config(self, cfg):
+    def with_sharemind_config(self, cfg: SharemindCodeGenConfig):
         """ Add SharemindCodeGenConfig object to this object. """
 
         if not self.inited:
@@ -56,7 +105,7 @@ class CodeGenConfig:
 
         return self
 
-    def with_spark_config(self, cfg):
+    def with_spark_config(self, cfg: SparkConfig):
         """ Add SparkConfig object to this object. """
 
         if not self.inited:
@@ -65,13 +114,12 @@ class CodeGenConfig:
 
         return self
 
-    # TODO: net cfg is dict for now, move to class?
-    def with_network_config(self, cfg):
+    def with_network_config(self, cfg: NetworkConfig):
         """ Add network config to this object. """
 
         if not self.inited:
             self.__init__()
-        self.network_config = cfg
+        self.network_config = cfg.network_config
 
         return self
 
@@ -88,3 +136,5 @@ class CodeGenConfig:
         ccfg.pid = cfg['pid']
 
         return ccfg
+
+

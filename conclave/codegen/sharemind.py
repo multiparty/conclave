@@ -9,15 +9,6 @@ from conclave.job import SharemindJob
 from conclave.rel import *
 
 
-class SharemindCodeGenConfig():
-    """ Data structure for Sharemind configuration. """
-
-    def __init__(self, home_path="/tmp", use_docker=True, use_hdfs=True):
-        self.home_path = home_path
-        self.use_docker = use_docker
-        self.use_hdfs = use_hdfs
-
-
 class SharemindCodeGen(CodeGen):
     """ Codegen subclass for generating Sharemind code. """
 
