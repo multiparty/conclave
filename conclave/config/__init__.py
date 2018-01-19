@@ -3,24 +3,48 @@ import os
 import tempfile
 
 
-# python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+"""
+*** EXAMPLE SETUP ***
 
-# <party ID> <HDFS master node:port> <HDFS root dir> <Spark master url>
+net_conf = NetworkConfig(
+    ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
+    [8020, 8020, 8020],
+    1
+)
+
+spark_conf = SparkConfig("spark://ca-spark-node-0:8020")
+
+sharemind_conf = SharemindCodeGenConfig("/mnt/data")
+
+config_all = CodeGenConfig("big_job"). \
+    with_sharemind_config(sharemind_conf). \
+    with_spark_config(spark_conf). \
+    with_network_config(net_conf)
+    
+"""
 
 
 class NetworkConfig:
     """ Config object for network module. """
 
-    def __init__(self):
+    def __init__(self, hosts: list, ports: list, pid: int = 1):
         """ Initialize NetworkConfig object. """
 
-        self.pid = 1
+        self.inited = True
+        self.pid = pid
         # List of HDFS master nodes. Mapping between party running the computation
         # and their own master node / port is indicated in network_config['parties'],
         # where the PID corresponds to each tuple.
-        self.hosts = ["localhost", "localhost", "localhost"]
-        self.ports = [9001, 9002, 9003]
-        self.network_config = {
+        self.hosts = hosts
+        self.ports = ports
+
+    def set_network_config(self):
+        """ Return network configuration dict. """
+
+        if not self.inited:
+            self.__init__()
+
+        network_config = {
             "pid": self.pid,
             "parties": {
                 1: {"host": self.hosts[0], "port": self.ports[0]},
@@ -29,13 +53,15 @@ class NetworkConfig:
             }
         }
 
+        return network_config
+
 
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
     def __init__(self, home_path='/tmp', use_docker=True, use_hdfs=True):
         """ Initialize SharemindCodeGenConfig object. """
-        
+
         self.home_path = home_path
         self.use_docker = use_docker
         self.use_hdfs = use_hdfs
@@ -70,7 +96,7 @@ class CodeGenConfig:
         self.pid = 1
         self.all_pids = [1, 2, 3]
         self.network_config = {
-            "pid": self.pid,
+            "pid": 1,
             "parties": {
                 1: {"host": "localhost", "port": 9001},
                 2: {"host": "localhost", "port": 9002},
@@ -119,7 +145,8 @@ class CodeGenConfig:
 
         if not self.inited:
             self.__init__()
-        self.network_config = cfg.network_config
+
+        self.network_config = cfg.set_network_config()
 
         return self
 
