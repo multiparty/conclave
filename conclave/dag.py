@@ -526,7 +526,6 @@ class Divide(UnaryOpNode):
 
 class Filter(UnaryOpNode):
 
-    # TODO: (ben) type annotations on 'operator' and 'expr'
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operator: str, expr: str):
 
         super(Filter, self).__init__("filter", out_rel, parent)

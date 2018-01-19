@@ -8,6 +8,14 @@ import conclave.utils as utils
 
 
 def create(rel_name: str, columns: list, stored_with: set):
+    """
+    Define Create relation.
+
+    :param rel_name: Name of returned Create node.
+    :param columns: List of column objects.
+    :param stored_with: Set of input party IDs that own this relation.
+    :return: Create OpNode.
+    """
 
     columns = [rel.Column(rel_name, col_name, idx, type_str, collusion_set)
                for idx, (col_name, type_str, collusion_set) in enumerate(columns)]
@@ -18,6 +26,17 @@ def create(rel_name: str, columns: list, stored_with: set):
 
 def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: list,
               over_col_name: str, aggregator: str, agg_out_col_name: str):
+    """
+    Define Aggregate relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Aggregate node.
+    :param group_col_names: List of column names to be used as key columns in the aggregation.
+    :param over_col_name: Name of column that gets aggregated.
+    :param aggregator: Aggregate function ('+', 'max', 'min', etc.)
+    :param agg_out_col_name: Name of (optionally renamed) aggregate column for returned node.
+    :return: Aggregate OpNode.
+    """
 
     assert isinstance(group_col_names, list)
     # Get input relation from input node
@@ -54,6 +73,19 @@ def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: l
 
 def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: list,
                     over_col_name: str, aggregator: str, agg_out_col_name: str, eq_flag_op, sorted_keys_op):
+    """
+    Define Index Aggregate relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned IndexAggregate node.
+    :param group_col_names: List of column names to be used as key columns in the aggregation.
+    :param over_col_name: Name of column that gets aggregated.
+    :param aggregator: Aggregate function ('+', 'max', 'min', etc.)
+    :param agg_out_col_name: Name of (optionally renamed) aggregate column for returned node.
+    :param eq_flag_op: # TODO
+    :param sorted_keys_op: # TODO
+    :return: IndexAggregate OpNode.
+    """
 
     agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
     idx_agg_op = saldag.IndexAggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
@@ -71,6 +103,14 @@ def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_na
 
 
 def sort_by(input_op_node: saldag.OpNode, output_name: str, sort_by_col_name: str):
+    """
+    Define Sort By relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned SortBy node.
+    :param sort_by_col_name: Name of column that keys sorting.
+    :return: SortBy OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -97,6 +137,14 @@ def sort_by(input_op_node: saldag.OpNode, output_name: str, sort_by_col_name: st
 
 
 def project(input_op_node: saldag.OpNode, output_name: str, selected_col_names: list):
+    """
+    Define Project relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Project node.
+    :param selected_col_names: List of column names that will be projected from the parent out relation.
+    :return: Project OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -122,6 +170,14 @@ def project(input_op_node: saldag.OpNode, output_name: str, selected_col_names: 
 
 
 def distinct(input_op_node: saldag.OpNode, output_name: str, selected_col_names: list):
+    """
+    Define Distinct relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Distinct node.
+    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :return: Distinct OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -147,6 +203,20 @@ def distinct(input_op_node: saldag.OpNode, output_name: str, selected_col_names:
 
 
 def divide(input_op_node: saldag.OpNode, output_name: str, target_col_name: str, operands: list):
+    """
+    Define Divide relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Divide node.
+    :param target_col_name: Name of column that stores results of Divide operation.
+    If target_col_name refers to an already existing column in the relation, then that
+    column should also be the first argument in the operands list. If target_col_name
+    does not refer to an existing column, then the columns in the operands list will
+    be divided together in order, and stored in a column named <target_col_name> and
+    appended to the relation.
+    :param operands: List of operand columns & scalars.
+    :return: Divide OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -185,6 +255,17 @@ def divide(input_op_node: saldag.OpNode, output_name: str, target_col_name: str,
 
 
 def filter(input_op_node: saldag.OpNode, output_name: str, filter_col_name: str, operator: str, filter_expr: str):
+    # TODO: Not implemented in codegen as far as I can tell
+    """
+    Define Filter relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Filter node.
+    :param filter_col_name: Name of column that relation gets filtered over.
+    :param operator: # TODO not sure what the difference between operator and filter_expr is
+    :param filter_expr:
+    :return: Filter OpNode
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -210,6 +291,20 @@ def filter(input_op_node: saldag.OpNode, output_name: str, filter_col_name: str,
 
 
 def multiply(input_op_node: saldag.OpNode, output_name: str, target_col_name: str, operands: list):
+    """
+    Define Multiply relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Multiply node.
+    :param target_col_name: Name of column that stores results of Multiply operation.
+    If target_col_name refers to an already existing column in the relation, then that
+    column should also be the first argument in the operands list. If target_col_name
+    does not refer to an existing column, then the columns in the operands list will
+    be multiplied together in order, and stored in a column named <target_col_name> and
+    appended to the relation.
+    :param operands: List of operand columns & scalars.
+    :return: Multiply OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -250,6 +345,16 @@ def multiply(input_op_node: saldag.OpNode, output_name: str, target_col_name: st
 # TODO: is a self-join a problem?
 def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
          left_col_names: list, right_col_names: list):
+    """
+    Define Join relation.
+
+    :param left_input_node: Left parent node for the node returned by this method.
+    :param right_input_node: Right parent node for the node returned by this method.
+    :param output_name: Name of returned Join node.
+    :param left_col_names: List of join columns in left parent relation.
+    :param right_col_names: List of join columns in right parent relation.
+    :return: Join OpNode.
+    """
 
     # TODO: technically this should take in a start index as well
     # This helper method takes in a relation, the key column of the join
@@ -334,6 +439,14 @@ def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output
 
 
 def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = None):
+    """
+    Define Concat relation.
+
+    :param input_op_nodes: List of parent nodes for the node returned by this method.
+    :param output_name: Name of returned Concat node.
+    :param column_names: List of output relation column names.
+    :return: Concat OpNode.
+    """
 
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
@@ -380,6 +493,14 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
 
 
 def index(input_op_node: saldag.OpNode, output_name: str, idx_col_name: str = "index"):
+    """
+    Define Index relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Index node.
+    :param idx_col_name: Name of index column that gets appended to relation.
+    :return: Index OpNode.
+    """
 
     in_rel = input_op_node.out_rel
 
@@ -402,6 +523,13 @@ def index(input_op_node: saldag.OpNode, output_name: str, idx_col_name: str = "i
 
 
 def shuffle(input_op_node: saldag.OpNode, output_name: str):
+    """
+    Define Shuffle relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Shuffle node.
+    :return: Shuffle OpNode.
+    """
 
     in_rel = input_op_node.out_rel
 
@@ -420,6 +548,13 @@ def shuffle(input_op_node: saldag.OpNode, output_name: str):
 
 
 def collect(input_op_node: saldag.OpNode, target_party: int):
+    """
+    Define Collect relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param target_party: PID of party that receives outputs.
+    :return: Collect OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -429,6 +564,14 @@ def collect(input_op_node: saldag.OpNode, target_party: int):
 # Below functions are NOT part of the public API! Only used to simplify codegen testing
 
 def _comp_neighs(input_op_node: saldag.OpNode, output_name: str, comp_col_name: str):
+    """
+    Define CompNeighs relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned CompNeighs node.
+    :param comp_col_name: Name of column that keys comparison operation.
+    :return: CompNeighs OpNode.
+    """
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -457,6 +600,17 @@ def _comp_neighs(input_op_node: saldag.OpNode, output_name: str, comp_col_name: 
 
 def _index_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
                 left_col_names: list, right_col_names: list, index_op_node: saldag.Index):
+    """
+    Define Index Join relation.
+
+    :param left_input_node: Left parent node for the node returned by this method.
+    :param right_input_node: Right parent node for the node returned by this method.
+    :param output_name: Name of returned IndexJoin node.
+    :param left_col_names: List of join columns in left parent relation.
+    :param right_col_names: List of join columns in right parent relation.
+    :param index_op_node: Index node that gets combined with Join relation.
+    :return: IndexJoin OpNode.
+    """
 
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
@@ -473,6 +627,13 @@ def _index_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
 
 
 def _persist(input_op_node: saldag.OpNode, output_name: str):
+    """
+    Define Perist relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Persist node.
+    :return: Persist OpNode.
+    """
 
     out_rel = copy.deepcopy(input_op_node.out_rel)
     out_rel.rename(output_name)
@@ -482,6 +643,14 @@ def _persist(input_op_node: saldag.OpNode, output_name: str):
 
 
 def _close(input_op_node: saldag.OpNode, output_name: str, target_parties: set):
+    """
+    Define Close relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Close node.
+    :param target_parties: ID's of parties that will receive secret shares outputted by this operation.
+    :return: Close OpNode.
+    """
 
     out_rel = copy.deepcopy(input_op_node.out_rel)
     out_rel.stored_with = target_parties
@@ -492,6 +661,14 @@ def _close(input_op_node: saldag.OpNode, output_name: str, target_parties: set):
 
 
 def _open(input_op_node: saldag.OpNode, output_name: str, target_party: int):
+    """
+    Define Open relation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Open node.
+    :param target_party: ID of party that will receive outputs of this operation.
+    :return: Open OpNode.
+    """
 
     out_rel = copy.deepcopy(input_op_node.out_rel)
     out_rel.stored_with = set([target_party])

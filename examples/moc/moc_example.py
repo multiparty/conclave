@@ -10,6 +10,9 @@ import sys
 
 
 def protocol():
+    """
+    Define inputs and operations to be performed between them.
+    """
 
     # define input columns
     cols_in_a = [
@@ -26,7 +29,7 @@ def protocol():
     ]
 
     # instantiate input columns
-    # NOTE: input file names will correspond to the 0th arg of each create
+    # NOTE: input file names will correspond to the 0th arg of each create call ("in1", "in2", etc.)
     in1 = sal.create("in1", cols_in_a, {1})
     in2 = sal.create("in2", cols_in_b, {1})
     in3 = sal.create("in3", cols_in_c, {1})
