@@ -4,7 +4,7 @@ import tempfile
 
 
 """
-*** EXAMPLE SETUP ***
+*** EXAMPLE INVOCATION ***
 
 net_conf = NetworkConfig(
     ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
@@ -150,6 +150,7 @@ class CodeGenConfig:
 
         return self
 
+    # TODO: remove?
     def from_dict(self, cfg: dict):
         """ Create config from dict """
 
