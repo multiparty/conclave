@@ -4,7 +4,7 @@ python:
   - "3.5"
 
 script:
-  - ./tests.sh
+  - nosetests
 
 notifications:
   email: true
