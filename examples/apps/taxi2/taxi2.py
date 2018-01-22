@@ -1,6 +1,6 @@
-from salmon import workflow
-import salmon.lang as sal
-from salmon.utils import *
+from conclave import workflow
+import conclave.lang as sal
+from conclave.utils import *
 
 
 def protocol():

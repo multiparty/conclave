@@ -14,12 +14,9 @@ spark:
 
 sharemind:
   parties:
-    1:
-      host: ca-spark-node-0
+    - host: ca-spark-node-0
       port: 9001
-    2:
-      host: cb-spark-node-0
+    - host: cb-spark-node-0
       port: 9002
-    3:
-      host: cc-spark-node-0
+    - host: cc-spark-node-0
       port: 9003
