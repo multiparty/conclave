@@ -1,21 +1,20 @@
-import salmon.lang as sal
-from salmon.comp import dagonly
-from salmon.utils import *
-import salmon.partition as part
-from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen import CodeGenConfig
-from salmon.codegen.spark import SparkCodeGen
-from salmon.codegen.python import PythonCodeGen
-from salmon.codegen.viz import VizCodeGen
-from salmon import codegen
-from salmon.dispatch import dispatch_all
-from salmon.net import setup_peer
+import conclave.lang as sal
+from conclave.comp import dag_only
+from conclave.utils import *
+import conclave.partition as part
+from conclave.codegen.scotch import ScotchCodeGen
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave.codegen.spark import SparkCodeGen
+from conclave.codegen.python import PythonCodeGen
+from conclave.codegen.viz import VizCodeGen
+from conclave import generate_code, CodeGenConfig
+from conclave.dispatch import dispatch_all
+from conclave.net import setup_peer
 import sys
 
 def testHybridAggWorkflow():
 
-    @dagonly
+    @dag_only
     def protocol():
 
         # define inputs
@@ -28,7 +27,7 @@ def testHybridAggWorkflow():
 
         proja = sal.project(in1, "proja", ["a", "b"])
         proja.isMPC = False
-        proja.outRel.storedWith = set([1])
+        proja.out_rel.storedWith = set([1])
 
         # define inputs
         colsInB = [
@@ -40,7 +39,7 @@ def testHybridAggWorkflow():
 
         projb = sal.project(in2, "projb", ["a", "b"])
         projb.isMPC = False
-        projb.outRel.storedWith = set([2])
+        projb.out_rel.storedWith = set([2])
 
         # define inputs
         colsInC = [
@@ -52,7 +51,7 @@ def testHybridAggWorkflow():
 
         projc = sal.project(in3, "projc", ["a", "b"])
         projc.isMPC = False
-        projc.outRel.storedWith = set([3])
+        projc.out_rel.storedWith = set([3])
 
         clA = sal._close(proja, "clA", set([1, 2, 3]))
         clA.isMPC = True
@@ -64,19 +63,19 @@ def testHybridAggWorkflow():
         clC.isMPC = True
 
         comb = sal.concat([clA, clB, clC], "comb")
-        comb.outRel.storedWith = set([1, 2, 3])
+        comb.out_rel.storedWith = set([1, 2, 3])
         comb.isMPC = True
 
         shuffled = sal.shuffle(comb, "shuffled")
-        shuffled.outRel.storedWith = set([1, 2, 3])
+        shuffled.out_rel.storedWith = set([1, 2, 3])
         shuffled.isMPC = True
 
         persisted = sal._persist(shuffled, "persisted")
-        persisted.outRel.storedWith = set([1, 2, 3])
+        persisted.out_rel.storedWith = set([1, 2, 3])
         persisted.isMPC = True
 
         keysclosed = sal.project(shuffled, "keysclosed", ["a"])
-        keysclosed.outRel.storedWith = set([1, 2, 3])
+        keysclosed.out_rel.storedWith = set([1, 2, 3])
         keysclosed.isMPC = True
 
         keys = sal._open(keysclosed, "keys", 1)
@@ -84,21 +83,21 @@ def testHybridAggWorkflow():
 
         indexed = sal.index(keys, "indexed", "rowIndex")
         indexed.isMPC = False
-        indexed.outRel.storedWith = set([1])
+        indexed.out_rel.storedWith = set([1])
 
         sortedByKey = sal.sort_by(indexed, "sortedByKey", "a")
         sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        sortedByKey.out_rel.storedWith = set([1])
 
         eqFlags = sal._comp_neighs(sortedByKey, "eqFlags", "a")
         eqFlags.isMPC = False
-        eqFlags.outRel.storedWith = set([1])
+        eqFlags.out_rel.storedWith = set([1])
 
         # TODO: hack to get keys stored
         # need to fix later!
         sortedByKey = sal.project(sortedByKey, "sortedByKey", ["rowIndex", "a"])
         sortedByKey.isMPC = False
-        sortedByKey.outRel.storedWith = set([1])
+        sortedByKey.out_rel.storedWith = set([1])
 
         closedEqFlags = sal._close(eqFlags, "closedEqFlags", set([1, 2, 3]))
         closedEqFlags.isMPC = True
@@ -106,12 +105,12 @@ def testHybridAggWorkflow():
         closedSortedByKey.isMPC = True
         
         agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedEqFlags, closedSortedByKey)
-        agg.outRel.storedWith = set([1, 2, 3])
+        agg.out_rel.storedWith = set([1, 2, 3])
         agg.isMPC = True
 
         sal._open(agg, "opened", 1)
 
-        # create dag
+        # create condag
         return set([in1, in2, in3])
 
     pid = int(sys.argv[1])

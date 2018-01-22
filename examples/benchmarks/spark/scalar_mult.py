@@ -1,14 +1,15 @@
-import salmon.lang as sal
-import salmon.dispatch as dis
-from salmon.comp import dagonly
-from salmon.utils import *
-from salmon.codegen import CodeGenConfig, spark
+import conclave.lang as sal
+import conclave.dispatch as dis
+from conclave.comp import dag_only
+from conclave.utils import *
+from conclave.codegen import spark
+from conclave import CodeGenConfig
 import sys
 
 
 def scalar_mult(namenode, root, f_size, master_url):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsInA = [

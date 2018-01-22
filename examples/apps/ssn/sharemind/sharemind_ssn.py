@@ -1,13 +1,13 @@
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen import CodeGenConfig
-import salmon.dispatch
-import salmon.net
-from salmon.comp import dagonly
-import salmon.lang as sal
-from salmon.utils import *
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave import CodeGenConfig
+import conclave.dispatch
+import conclave.net
+from conclave.comp import dag_only
+import conclave.lang as sal
+from conclave.utils import *
 import sys
 
-@dagonly
+@dag_only
 def protocol():
 
     # define inputs
@@ -65,6 +65,6 @@ if __name__ == "__main__":
             3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
-    salmon.dispatch.dispatch_all(None, sm_peer, job_queue)
+    sm_peer = conclave.net.setup_peer(sharemind_config)
+    conclave.dispatch.dispatch_all(None, sm_peer, job_queue)
 

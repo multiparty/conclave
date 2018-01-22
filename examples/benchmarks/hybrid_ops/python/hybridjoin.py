@@ -1,16 +1,15 @@
-import salmon.dispatch
-import salmon.lang as sal
-from salmon.comp import dagonly
-from salmon.utils import *
-import salmon.partition as part
-from salmon.codegen.scotch import ScotchCodeGen
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from salmon.codegen import CodeGenConfig
-from salmon.codegen.spark import SparkCodeGen
-from salmon.codegen.python import PythonCodeGen
-from salmon import codegen
-from salmon.dispatch import dispatch_all
-from salmon.net import setup_peer
+import conclave.dispatch
+import conclave.lang as sal
+from conclave.comp import dag_only
+from conclave.utils import *
+import conclave.partition as part
+from conclave.codegen.scotch import ScotchCodeGen
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+from conclave.codegen.spark import SparkCodeGen
+from conclave.codegen.python import PythonCodeGen
+from conclave import generate_code, CodeGenConfig
+from conclave.dispatch import dispatch_all
+from conclave.net import setup_peer
 import sys
 
 
@@ -37,7 +36,6 @@ def testHybridJoinWorkflow():
 
         # open result to party 1
         sal.collect(res, 1)
-        # sal.collect(res, 1)
 
         # return roots of dag
         return set([in1, in2])
@@ -55,7 +53,7 @@ def testHybridJoinWorkflow():
     codegen_config.input_path = "/mnt/shared/hybridjoin/" + size
     codegen_config.output_path = "/mnt/shared/hybridjoin/" + size
 
-    jobqueue = codegen(protocol, codegen_config, ["sharemind"], ["python"])
+    jobqueue = generate_code(protocol, codegen_config, ["sharemind"], ["python"])
     sharemind_config = {
         "pid": pid,
         "parties": {
@@ -65,7 +63,7 @@ def testHybridJoinWorkflow():
         }
     }
     sm_peer = setup_peer(sharemind_config)
-    salmon.dispatch.dispatch_all(None, sm_peer, jobqueue)
+    conclave.dispatch.dispatch_all(None, sm_peer, jobqueue)
 
 if __name__ == "__main__":
 

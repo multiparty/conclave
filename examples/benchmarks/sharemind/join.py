@@ -1,15 +1,15 @@
-from salmon.codegen import CodeGenConfig
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-import salmon.dispatch
-import salmon.net
-from salmon.comp import dagonly
-import salmon.lang as sal
-from salmon.utils import *
+from conclave import CodeGenConfig
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+import conclave.dispatch
+import conclave.net
+from conclave.comp import dag_only
+import conclave.lang as sal
+from conclave.utils import *
 import sys
 
 def join(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsIn1 = [
@@ -35,7 +35,7 @@ def join(pid, config, sharemind_peer, f_size):
     job = cg.generate("join_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def no_hdfs():
@@ -60,7 +60,7 @@ def no_hdfs():
             3: {"host": "cc-spark-node-0", "port": 9003}
         }
     }
-    sm_peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = conclave.net.setup_peer(sharemind_config)
 
     join(pid, codegen_config, sm_peer, num_tuples)
     

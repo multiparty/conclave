@@ -1,15 +1,16 @@
-import salmon.lang as sal
-import salmon.dispatch as dis
-from salmon.comp import dagonly
-from salmon.utils import *
-from salmon.codegen import CodeGenConfig, spark
+import conclave.lang as sal
+import conclave.dispatch as dis
+from conclave.comp import dag_only
+from conclave.utils import *
+from conclave.codegen import spark
+from conclave import CodeGenConfig
 from random import shuffle
 import sys
 
 
 def project(namenode, root, f_size, master_url):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsInA = [
@@ -21,7 +22,7 @@ def project(namenode, root, f_size, master_url):
 
         in1 = sal.create("in1", colsInA, set([1]))
 
-        cols = ([column.name for column in in1.outRel.columns])
+        cols = ([column.name for column in in1.out_rel.columns])
         shuffle(cols)
 
         proja = sal.project(in1, "proja", cols)

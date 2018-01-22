@@ -1,10 +1,10 @@
-from salmon.codegen import CodeGenConfig
-from salmon.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-import salmon.dispatch
-import salmon.net
-from salmon.comp import dagonly
-import salmon.lang as sal
-from salmon.utils import *
+from conclave import CodeGenConfig
+from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
+import conclave.dispatch
+import conclave.net
+from conclave.comp import dag_only
+import conclave.lang as sal
+from conclave.utils import *
 import sys
 
 
@@ -39,7 +39,7 @@ def setup():
 
 def agg(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -53,12 +53,12 @@ def agg(pid, config, sharemind_peer, f_size):
     job = cg.generate("agg_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def col_div(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -72,12 +72,12 @@ def col_div(pid, config, sharemind_peer, f_size):
     job = cg.generate("col_div_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def col_mult(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -91,12 +91,12 @@ def col_mult(pid, config, sharemind_peer, f_size):
     job = cg.generate("col_mult_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def scalar_div(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -110,12 +110,12 @@ def scalar_div(pid, config, sharemind_peer, f_size):
     job = cg.generate("scalar_div_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def scalar_mult(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
@@ -129,17 +129,17 @@ def scalar_mult(pid, config, sharemind_peer, f_size):
     job = cg.generate("scalar_mult_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def project(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         inputs, rel = setup()
 
-        cols = [column.name for column in rel.outRel.columns][::-1]
+        cols = [column.name for column in rel.out_rel.columns][::-1]
 
         res = sal.project(rel, "proja", cols)
 
@@ -150,12 +150,12 @@ def project(pid, config, sharemind_peer, f_size):
     job = cg.generate("project_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def join(pid, config, sharemind_peer, f_size):
 
-    @dagonly
+    @dag_only
     def protocol():
 
         colsIn1 = [
@@ -181,7 +181,7 @@ def join(pid, config, sharemind_peer, f_size):
     job = cg.generate("join_{}".format(f_size), "")
     job_queue = [job]
 
-    salmon.dispatch.dispatch_all(None, sharemind_peer, job_queue)
+    conclave.dispatch.dispatch_all(None, sharemind_peer, job_queue)
 
 
 def no_hdfs():
@@ -217,7 +217,7 @@ def no_hdfs():
     codegen_config.input_path = "/mnt/shared" + "/" + num_tuples
     codegen_config.output_path = "/mnt/shared" + "/" + num_tuples
 
-    sm_peer = salmon.net.setup_peer(sharemind_config)
+    sm_peer = conclave.net.setup_peer(sharemind_config)
 
     if op == 'agg':
         agg(pid, codegen_config, sm_peer, num_tuples)
