@@ -1,9 +1,8 @@
 import sys
 
 import conclave.lang as sal
-from conclave import CodeGenConfig
+from conclave import config
 from conclave import generate_and_dispatch
-from conclave.codegen.sharemind import SharemindCodeGenConfig
 from conclave.utils import *
 
 
@@ -153,8 +152,8 @@ def run_ssn_workflow():
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
 
-    sm_config = SharemindCodeGenConfig("/mnt/shared", use_hdfs=False, use_docker=True)
-    conclave_config = CodeGenConfig(
+    sm_config = config.SharemindCodeGenConfig("/mnt/shared", use_hdfs=False, use_docker=True)
+    conclave_config = config.CodeGenConfig(
         workflow_name).with_sharemind_config(sm_config)
     conclave_config.pid = pid
     conclave_config.all_pids = [1, 2, 3]
