@@ -152,23 +152,22 @@ def run_ssn_workflow():
     pid = int(sys.argv[1])
     workflow_name = "ssn-" + str(pid)
 
+    net_conf = config.NetworkConfig(
+        ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
+        [9001, 9002, 9003],
+        pid
+    )
+
     sm_config = config.SharemindCodeGenConfig("/mnt/shared", use_hdfs=False, use_docker=True)
     conclave_config = config.CodeGenConfig(
-        workflow_name).with_sharemind_config(sm_config)
+        workflow_name)\
+        .with_sharemind_config(sm_config)\
+        .with_network_config(net_conf)
     conclave_config.pid = pid
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.code_path = "/mnt/shared/" + workflow_name
     conclave_config.input_path = "/mnt/shared/ssn-data-small"
     conclave_config.output_path = "/mnt/shared/ssn-data-small"
-    network_config = {
-        "pid": pid,
-        "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
-        }
-    }
-    conclave_config.with_network_config(network_config)
 
     # run code generation (without rewrite passes) and dispatch
     generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
