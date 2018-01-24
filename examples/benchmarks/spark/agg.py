@@ -25,7 +25,6 @@ def agg(namenode, root, f_size, master_url):
 
     dag = protocol()
     config = CodeGenConfig('agg_spark_{}'.format(f_size))
-    spark_config = SparkConfig(master_url)
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}"\
@@ -33,12 +32,12 @@ def agg(namenode, root, f_size, master_url):
     config.output_path = "hdfs://{}/{}/agg_sp{}"\
         .format(namenode, root, f_size)
 
-    config.with_spark_config(spark_config)
-
     cg = spark.SparkCodeGen(config, dag)
     job = cg.generate(config.name, config.output_path)
     job_queue = [job]
 
+    spark_config = SparkConfig(master_url)
+    config.with_spark_config(spark_config)
     dis.dispatch_all(config, None, job_queue)
 
 

@@ -5,6 +5,7 @@ from salmon.utils import *
 from salmon.codegen import spark
 from salmon import CodeGenConfig
 from random import shuffle
+from salmon.codegen.spark import SparkConfig
 import sys
 
 
@@ -42,7 +43,9 @@ def project(namenode, root, f_size, master_url):
     job = cg.generate(config.name, config.output_path)
     job_queue = [job]
 
-    dis.dispatch_all(master_url, None, job_queue)
+    spark_config = SparkConfig(master_url)
+    config.with_spark_config(spark_config)
+    dis.dispatch_all(config, None, job_queue)
 
 if __name__ == "__main__":
 
