@@ -31,11 +31,13 @@ def agg(namenode, root, f_size, master_url):
     config.output_path = "hdfs://{}/{}/agg_sp{}"\
         .format(namenode, root, f_size)
 
+    config.with_spark_config(master_url)
+
     cg = spark.SparkCodeGen(config, dag)
     job = cg.generate(config.name, config.output_path)
     job_queue = [job]
 
-    dis.dispatch_all(master_url, None, job_queue)
+    dis.dispatch_all(config, None, job_queue)
 
 
 if __name__ == "__main__":
