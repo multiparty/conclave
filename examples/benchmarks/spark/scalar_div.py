@@ -1,0 +1,52 @@
+import salmon.lang as sal
+import salmon.dispatch as dis
+from salmon.comp import dagonly
+from salmon.utils import *
+from salmon.codegen import spark
+from salmon import CodeGenConfig
+from salmon.codegen.spark import SparkConfig
+import sys
+
+
+def scalar_div(namenode, root, f_size, master_url):
+
+    @dagonly
+    def protocol():
+
+        colsInA = [
+            defCol('a', 'INTEGER', [1]),
+            defCol('b', 'INTEGER', [1]),
+        ]
+
+        in1 = sal.create("in1", colsInA, set([1]))
+        div1 = sal.divide(in1, 'div1', 'a', ['a', 5])
+
+        return set([in1])
+
+    dag = protocol()
+    config = CodeGenConfig('scalar_div_spark_{}'.format(f_size))
+
+    config.code_path = "/mnt/shared/" + config.name
+    config.input_path = "hdfs://{}/{}/{}" \
+        .format(namenode, root, f_size)
+    config.output_path = "hdfs://{}/{}/scalar_div_sp{}" \
+        .format(namenode, root, f_size)
+
+    cg = spark.SparkCodeGen(config, dag)
+    job = cg.generate(config.name, config.output_path)
+    job_queue = [job]
+
+    spark_config = SparkConfig(master_url)
+    config.with_spark_config(spark_config)
+    dis.dispatch_all(config, None, job_queue)
+
+if __name__ == "__main__":
+
+    hdfs_namenode = sys.argv[1]
+    hdfs_root = sys.argv[2]
+    # configurable benchmark size
+    filesize = sys.argv[3]
+    spark_master_url = sys.argv[4]
+
+    scalar_div(hdfs_namenode, hdfs_root, filesize, spark_master_url)
+

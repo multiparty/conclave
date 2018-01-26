@@ -1,0 +1,40 @@
+import pyspark.sql as psql
+from pyspark.conf import SparkConf
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+import numpy, functools, operator, sys
+
+conf = SparkConf()
+sp = psql \
+    .SparkSession \
+    .builder.config(conf=conf) \
+    .appName("code") \
+    .getOrCreate()
+
+def union_all(dfs):
+    return functools.reduce(psql.DataFrame.unionAll, dfs)
+
+inpt_idx = 1
+
+
+schema = StructType([StructField('a', IntegerType(), True),StructField('b', IntegerType(), True),StructField('c', IntegerType(), True),StructField('d', IntegerType(), True)])
+
+in_1 = sp.read.csv(
+    '/tmp/in_1.csv',
+    schema=schema,
+    header=False) \
+    
+
+
+mult = in_1 \
+    .withColumn('a', in_1.a*in_1.b*1) \
+    
+
+
+mult \
+    .write \
+    .csv("/tmp/mult")
+
+
+
+sp.stop()
+

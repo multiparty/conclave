@@ -1,0 +1,19 @@
+CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSEMPC in_1([a {1}, b {1}]) {1} INTO in_1_close([a {1}, b {1}]) {1, 2}
+CREATE RELATION in_2([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSEMPC in_2([c {1} {2}, d {2}]) {2} INTO in_2_close([c {1} {2}, d {2}]) {1, 2}
+SHUFFLEMPC (in_1_close([a {1}, b {1}]) {1, 2}) AS shuffledA([a {1}, b {1}]) {1, 2}
+PERSISTMPC shuffledA([a {1}, b {1}]) {1, 2} INTO persistedA([a {1}, b {1}]) {1, 2}
+PROJECTMPC [a] FROM (shuffledA([a {1}, b {1}]) {1, 2}) AS keysaclosed([a ]) {1, 2}
+OPENMPC keysaclosed([a ]) {1, 2} INTO keysa([a ]) {1}
+INDEX (keysa([a ]) {1}) AS indexedA([indexA , a ]) {1}
+SHUFFLEMPC (in_2_close([c {1} {2}, d {2}]) {1, 2}) AS shuffledB([c {1} {2}, d {2}]) {1, 2}
+PERSISTMPC shuffledB([c {1} {2}, d {2}]) {1, 2} INTO persistedB([c {1} {2}, d {2}]) {1, 2}
+PROJECTMPC [c] FROM (shuffledB([c {1} {2}, d {2}]) {1, 2}) AS keysbclosed([c ]) {1, 2}
+OPENMPC keysbclosed([c ]) {1, 2} INTO keysb([c ]) {1}
+INDEX (keysb([c ]) {1}) AS indexedB([indexB , c ]) {1}
+(indexedA([indexA , a ]) {1}) JOIN (indexedB([indexB , c ]) {1}) ON [a] AND [c] AS joinedindeces([a , indexA , indexB ]) {1}
+PROJECT [indexA, indexB] FROM (joinedindeces([a , indexA , indexB ]) {1}) AS indecesonly([indexA , indexB ]) {1}
+CLOSEMPC indecesonly([indexA , indexB ]) {1} INTO indecesclosed([indexA , indexB ]) {1, 2}
+(persistedA([a {1}, b {1}]) {1, 2}) IDXJOINMPC (persistedB([c {1} {2}, d {2}]) {1, 2}) WITH INDECES (indecesclosed([indexA , indexB ]) {1, 2}) ON [a] AND [c] AS joined([a , b , d ]) {1, 2}
+OPENMPC joined([a , b , d ]) {1, 2} INTO joined_open([a {1,2} {1}, b {1,2} {1}, d {1,2}]) {1}

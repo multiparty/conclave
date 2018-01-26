@@ -1,0 +1,21 @@
+import pyspark.sql as psql
+from pyspark.conf import SparkConf
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+import numpy, functools, operator, sys
+
+conf = SparkConf()
+sp = psql \
+    .SparkSession \
+    .builder.config(conf=conf) \
+    .appName("{{{JOB_NAME}}}") \
+    .getOrCreate()
+
+def union_all(dfs):
+    return functools.reduce(psql.DataFrame.unionAll, dfs)
+
+inpt_idx = 1
+
+{{{OP_CODE}}}
+
+sp.stop()
+
