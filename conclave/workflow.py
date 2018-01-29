@@ -37,7 +37,7 @@ def setup(conf: Dict):
 
     net_conf = NetworkConfig(
         ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
-        [8020, 8020, 8020],
+        [9001, 9002, 9003],
         pid
     )
 
