@@ -31,9 +31,17 @@ def setup(conf: Dict):
     conclave_config.pid = pid
     conclave_config.name = workflow_name
 
-    network_config = NetworkConfig(conf["sharemind"]["parties"], pid)
+    # network_config = NetworkConfig(conf["sharemind"]["parties"], pid)
 
-    conclave_config.with_network_config(network_config)
+    # conclave_config.with_network_config(network_config)
+
+    net_conf = NetworkConfig(
+        ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
+        [8020, 8020, 8020],
+        pid
+    )
+
+    conclave_config.with_network_config(net_conf)
 
     return conclave_config
 
