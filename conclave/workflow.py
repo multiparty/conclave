@@ -41,11 +41,10 @@ def setup(conf: Dict):
         [9001, 9002, 9003],
         pid
     )
-    
 
     conclave_config.with_network_config(net_conf)
     '''
-    
+
     return conclave_config
 
 

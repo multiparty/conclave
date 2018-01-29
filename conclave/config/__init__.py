@@ -27,12 +27,11 @@ config_all = CodeGenConfig("big_job"). \
 class NetworkConfig:
     """ Config object for network module. """
 
-    def __init__(self, parties: list, ports: list, pid: int = 1):
+    def __init__(self, parties: list, pid: int = 1):
         """ Initialize NetworkConfig object. """
 
         self.inited = True
         self.pid = pid
-        self.ports = ports
         # List of HDFS master nodes. Mapping between party running the computation
         # and their own master node / port is indicated in network_config['parties'],
         # where the PID corresponds to each tuple.
