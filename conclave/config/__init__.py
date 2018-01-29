@@ -44,9 +44,9 @@ class NetworkConfig:
         network_config = {
             "pid": self.pid,
             "parties": {
-                1: {"host": self.parties[0], "port": self.ports[0]},
-                2: {"host": self.parties[1], "port": self.ports[1]},
-                3: {"host": self.parties[2], "port": self.ports[2]}
+                1: {"host": self.parties[0]['host'], "port": self.parties[0]['port']},
+                2: {"host": self.parties[1]['host'], "port": self.parties[1]['port']},
+                3: {"host": self.parties[2]['host'], "port": self.parties[2]['port']}
             }
         }
 
