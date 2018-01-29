@@ -1,12 +1,12 @@
 ---
 # Party ID
-pid: &pid 1
+pid: &pid 2
 workflow_name: &workflow_name !join [job-, *pid]
 name: taxi
 delimiter: ','
 code_path: /mnt/shared/
 spark:
-  cluster_prefix: &prefix prefix
+  cluster_prefix: &prefix cb
   hdfs:
     node_name: !join [*prefix, '-spark-node-0:8020']
     root: /home/ubuntu

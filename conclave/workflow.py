@@ -42,7 +42,7 @@ def run(protocol: Callable):
     # Parse arguments
     parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
     parser.add_argument("--conf", metavar="/config/file.yml", type=str,
-                        help="path of the config file", default="conf.yml", required=False)
+                        help="path of the config file", default="conf-ca.yml", required=False)
 
     args = parser.parse_args()
 

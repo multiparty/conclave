@@ -1,0 +1,22 @@
+---
+# Party ID
+pid: &pid 1
+workflow_name: &workflow_name !join [job-, *pid]
+name: taxi
+delimiter: ','
+code_path: /mnt/shared/
+spark:
+  cluster_prefix: &prefix ca
+  hdfs:
+    node_name: !join [*prefix, '-spark-node-0:8020']
+    root: /home/ubuntu
+  master_url: !join ['spark://', *prefix, '-spark-node-0:7077']
+
+sharemind:
+  parties:
+    - host: ca-spark-node-0
+      port: 9001
+    - host: cb-spark-node-0
+      port: 9002
+    - host: cc-spark-node-0
+      port: 9003
