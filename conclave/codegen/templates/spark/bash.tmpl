@@ -7,4 +7,4 @@ fi
 
 MASTER_URL=$1
 
-spark-submit --conf "spark.local.dir=/mnt/hdfs/spark-tmp" --master ${MASTER_URL} {{{PATH}}}/workflow.py {{{INPUTS}}} {{{OUTPUTS}}}
+sudo spark-submit --conf "spark.local.dir=/mnt/hdfs/spark-tmp" --master ${MASTER_URL} {{{PATH}}}/workflow.py {{{INPUTS}}} {{{OUTPUTS}}}
