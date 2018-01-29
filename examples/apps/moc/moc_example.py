@@ -3,9 +3,7 @@ Simple example workflow for MOC deployment of Conclave
 """
 import conclave.lang as sal
 from conclave.utils import *
-from conclave.config import SharemindCodeGenConfig, SparkConfig, CodeGenConfig, NetworkConfig
-from conclave import generate_and_dispatch
-import sys
+from conclave import workflow
 
 
 def protocol():
@@ -47,28 +45,5 @@ def protocol():
 
 if __name__ == "__main__":
 
-    pid = int(sys.argv[1])
-
-    net_conf = NetworkConfig(
-        ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
-        [8020, 8020, 8020],
-        1
-    )
-
-    spark_conf = SparkConfig("spark://ca-spark-node-0:8020")
-    sharemind_conf = SharemindCodeGenConfig("/mnt/data")
-    conclave_config = CodeGenConfig("big_job"). \
-        with_sharemind_config(sharemind_conf). \
-        with_spark_config(spark_conf). \
-        with_network_config(net_conf)
-
-    conclave_config.pid = pid
-
-    # run the protocol
-    generate_and_dispatch(
-        protocol,
-        conclave_config,
-        mpc_frameworks=["sharemind"],
-        local_frameworks=["spark"]
-    )
+    workflow.run(protocol)
 
