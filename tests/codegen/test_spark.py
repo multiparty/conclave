@@ -36,7 +36,24 @@ class TestSpark(TestCase):
 
         with open(expected_rootdir + '/{}'.format(name), 'r') as f:
             expected = f.read()
+
         self.assertEqual(expected, actual)
+
+    def test_sort_by(self):
+
+        @dag_only
+        def protocol():
+
+            inpts = setup()
+            in_1 = inpts[0]
+
+            sorted = sal.sort_by(in_1, 'sorted1', 'a')
+            out = sal.collect(sorted, 1)
+
+            return set([in_1])
+
+        dag = protocol()
+        self.check_workflow(dag, 'sort_by')
 
     def test_divide(self):
 
