@@ -63,6 +63,24 @@ class SparkCodeGen(CodeGen):
 
         return store_code
 
+    def _generate_sort_by(self, sort_op: saldag.SortBy):
+        """ Generate code for SortBy operations. """
+
+        store_code = self._generate_store(sort_op)
+
+        sort_col = sort_op.sort_by_col.name
+
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'sort_by'), 'r').read()
+
+        data = {
+            'INREL': sort_op.get_in_rel().name,
+            'OUTREL': sort_op.out_rel.name,
+            'SORT_COL': sort_col,
+            'CACHE_VAR': cache_var(sort_op)
+        }
+
+        return pystache.render(template, data) + store_code
+
     # TODO: (ben) find way to do this without converting to RDD first
     # (monotonically_increasing_id doesn't give sequential indices)
     def _generate_index(self, index_op: saldag.Index):
@@ -75,7 +93,7 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'INREL': index_op.get_in_rel().name,
-            'out_rel': index_op.out_rel.name,
+            'OUTREL': index_op.out_rel.name,
             'CACHE_VAR': cache_var(index_op)
         }
 
@@ -106,7 +124,7 @@ class SparkCodeGen(CodeGen):
             'GROUPCOLS': ",".join("'" + group_col.name + "'" for group_col in agg_op.group_cols),
             'AGGCOLS': aggcol_str,
             'INREL': agg_op.get_in_rel().name,
-            'out_rel': agg_op.out_rel.name,
+            'OUTREL': agg_op.out_rel.name,
             'CACHE_VAR': cache_var(agg_op),
             'OLD': old,
             'NEW': new
@@ -130,7 +148,7 @@ class SparkCodeGen(CodeGen):
 
         data = {
             'INRELS': [r.name for r in concat_op.get_in_rels()],
-            'out_rel': concat_op.out_rel.name,
+            'OUTREL': concat_op.out_rel.name,
             'CACHE_VAR': cache_var(concat_op)
         }
 
@@ -174,7 +192,7 @@ class SparkCodeGen(CodeGen):
             'LEFT_PARENT': join_op.get_left_in_rel().name,
             'RIGHT_PARENT': join_op.get_right_in_rel().name,
             'JOIN_COLS': [join_col.name for join_col in join_cols],
-            'out_rel': join_op.out_rel.name,
+            'OUTREL': join_op.out_rel.name,
             'CACHE_VAR': cache_var(join_op)
         }
 
@@ -195,7 +213,7 @@ class SparkCodeGen(CodeGen):
         data = {
             'COLS': [c.name for c in cols],
             'INREL': project_op.get_in_rel().name,
-            'out_rel': project_op.out_rel.name,
+            'OUTREL': project_op.out_rel.name,
             'CACHE_VAR': cache_var(project_op)
         }
 
@@ -226,7 +244,7 @@ class SparkCodeGen(CodeGen):
             'SCALAR': scalar,
             'TARGET': mult_op.target_col.name,
             'INREL': mult_op.get_in_rel().name,
-            'out_rel': mult_op.out_rel.name,
+            'OUTREL': mult_op.out_rel.name,
             'CACHE_VAR': cache_var(mult_op)
         }
 
@@ -257,7 +275,7 @@ class SparkCodeGen(CodeGen):
             'SCALAR': scalar,
             'TARGET': div_op.target_col.name,
             'INREL': div_op.get_in_rel().name,
-            'out_rel': div_op.out_rel.name,
+            'OUTREL': div_op.out_rel.name,
             'CACHE_VAR': cache_var(div_op)
         }
 
