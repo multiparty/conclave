@@ -515,7 +515,7 @@ def index(input_op_node: saldag.OpNode, output_name: str, idx_col_name: str = "i
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
-    op = saldag.Index(out_rel, input_op_node)
+    op = saldag.Index(out_rel, input_op_node, idx_col_name)
     # Add it as a child to input node
     input_op_node.children.add(op)
 

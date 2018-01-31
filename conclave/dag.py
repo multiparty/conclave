@@ -406,11 +406,12 @@ class Project(UnaryOpNode):
 class Index(UnaryOpNode):
     """ Add a column with row indeces to relation. """
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, idx_col_name: str):
         """ Initialize Index object"""
         super(Index, self).__init__("index", out_rel, parent)
         # Indexing needs parties to communicate size
         self.is_local = False
+        self.idx_col_name = idx_col_name
 
     def is_reversible(self):
         """ Output is just the input with an index column appended to it. """
