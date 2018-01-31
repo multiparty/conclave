@@ -86,13 +86,30 @@ class SparkCodeGen(CodeGen):
 
         store_code = self._generate_store(index_op)
 
-        template = open("{0}/{1}.tmpl".format(self.template_directory, 'index', 'r')).read()
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'index', 'r')).read()
 
         data = {
             'INREL': index_op.get_in_rel().name,
             'OUTREL': index_op.out_rel.name,
             'IDX_COL': index_op.idx_col_name,
             'CACHE_VAR': cache_var(index_op)
+        }
+
+        return pystache.render(template, data) + store_code
+
+    def _generate_comp_neighs(self, comp_neighs_op: saldag.CompNeighs):
+
+        store_code = self._generate_store(comp_neighs_op)
+
+        template = open(
+            "{0}/{1}.tmpl".format(self.template_directory, 'comp_neighs', 'r')).read()
+
+        data = {
+            'INREL': comp_neighs_op.get_in_rel().name,
+            'OUTREL': comp_neighs_op.out_rel.name,
+            'COMP_COL': comp_neighs_op.comp_col.name,
+            'CACHE_VAR': cache_var(comp_neighs_op)
         }
 
         return pystache.render(template, data) + store_code

@@ -1,0 +1,10 @@
+
+w = Window.partitionBy(F.lit(0)).orderBy('{{{COMP_COL}}}')
+
+intermediate = {{{INREL}}} \
+    .withColumn('neighbor', F.lead({{{INREL}}}).{{{COMP_COL}}}).over(w))
+
+{{{OUTREL}}} = intermediate \
+    .withColumn('comp', (intermediate.{{{COMP_COL}}} == intermediate.neighbor).cast('integer')) \
+    .select('comp') \
+    .na.drop()
