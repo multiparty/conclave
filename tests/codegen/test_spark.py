@@ -167,7 +167,7 @@ class TestSpark(TestCase):
             inpts = setup()
             in_1 = inpts[0]
 
-            ind = sal.index(in_1, "ind")
+            ind = sal.index(in_1, "index_1", "index")
             out = sal.collect(ind, 1)
 
             return set([in_1])

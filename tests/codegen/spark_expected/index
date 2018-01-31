@@ -25,13 +25,23 @@ in_1 = sp.read.csv(
     
 
 
-ind = in_1 \
+schema = StructType(
+	[StructField('index', IntegerType(), False)]
+	+ in_1.schema.fields[:]
+	)
+
+index_1 = in_1 \
+    .rdd \
+    .map(lambda x: [y for y in x]) \
     .zipWithIndex() \
     .map(lambda x: [x[1]] + x[0]) \
+    .toDF(schema) \
     
-ind \
+
+
+index_1 \
     .write \
-    .csv("/tmp/ind")
+    .csv("/tmp/index_1")
 
 
 
