@@ -67,7 +67,25 @@ def index():
     return dag
 
 
+def comp_neighs():
+
+    @dag_only
+    def protocol():
+
+        inpts = setup()
+        in_1 = inpts
+
+        comp = sal._comp_neighs(in_1, 'comp', 'a')
+        out = sal.collect(comp, 1)
+
+        return set([in_1])
+
+    dag = protocol()
+
+    return dag
+
+
 if __name__ == "__main__":
 
-    dag = index()
-    generate(dag, 'index')
+    dag = comp_neighs()
+    generate(dag, 'comp')
