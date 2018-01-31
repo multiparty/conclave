@@ -49,7 +49,25 @@ def sort_by():
     return dag
 
 
+def index():
+
+    @dag_only
+    def protocol():
+
+        inpts = setup()
+        in_1 = inpts
+
+        indexed = sal.index(in_1, 'index_1', 'index')
+        out = sal.collect(indexed, 1)
+
+        return set([in_1])
+
+    dag = protocol()
+
+    return dag
+
+
 if __name__ == "__main__":
 
-    dag = sort_by()
-    generate(dag, 'sort_by')
+    dag = index()
+    generate(dag, 'index')
