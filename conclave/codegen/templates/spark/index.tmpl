@@ -1,5 +1,14 @@
 
+schema = StructType(
+	[StructField('{{{IDX_COL}}}', IntegerType(), False)]
+	+ {{{INREL}}}.schema.fields[:]
+	)
+
 {{{OUTREL}}} = {{{INREL}}} \
+    .rdd \
+    .map(lambda x: [y for y in x]) \
     .zipWithIndex() \
     .map(lambda x: [x[1]] + x[0]) \
+    .toDF(schema) \
     {{{CACHE_VAR}}}
+

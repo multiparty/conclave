@@ -81,19 +81,17 @@ class SparkCodeGen(CodeGen):
 
         return pystache.render(template, data) + store_code
 
-    # TODO: (ben) find way to do this without converting to RDD first
-    # (monotonically_increasing_id doesn't give sequential indices)
     def _generate_index(self, index_op: saldag.Index):
         """ Generate code for Index operations. """
 
         store_code = self._generate_store(index_op)
 
-        template = open(
-            "{0}/{1}.tmpl".format(self.template_directory, 'index'), 'r').read()
+        template = open("{0}/{1}.tmpl".format(self.template_directory, 'index', 'r')).read()
 
         data = {
             'INREL': index_op.get_in_rel().name,
             'OUTREL': index_op.out_rel.name,
+            'IDX_COL': index_op.idx_col_name,
             'CACHE_VAR': cache_var(index_op)
         }
 
