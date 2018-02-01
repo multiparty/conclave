@@ -3,5 +3,11 @@ language: python
 python:
   - "3.5"
 
+notifications:
+  email: true
+  slack: appliedmpc:Q3gSuYu4bSpenmQ5KZHRPvHc
+    on_success: change
+    on_failure: always
+
 script:
   - nosetests
