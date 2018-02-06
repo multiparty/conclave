@@ -101,7 +101,7 @@ class SharemindDispatcher:
         self.to_wait_on = {}
         self.early = set()
 
-    def receive_msg(self, msg: str):
+    def receive_msg(self, msg):
         """ Receive message from other party in computation. """
 
         done_peer = msg.pid
