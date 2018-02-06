@@ -18,6 +18,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
 
     def get_stored_with(node: OpNode):
         """ Returns stored_with set of out_rel or in_rel of a node, depending on it's type. """
+
         if isinstance(node, Open):
             return node.get_in_rel().stored_with
         elif isinstance(node, Create):

@@ -73,7 +73,7 @@ class SharemindDispatcher:
         print("done")
 
     def _regular_dispatch(self, job):
-        """ Dispatch Sharemind job not as controler. """
+        """ Dispatch Sharemind job not as controller. """
 
         # submit data to miners
         self._input_data(job)
