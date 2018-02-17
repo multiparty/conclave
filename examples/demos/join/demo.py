@@ -36,14 +36,14 @@ def protocol():
     left_shuffled = cc.shuffle(left_closed, "left_shuffled")
     left_shuffled.is_mpc = True
 
-    # left_persisted = cc._persist(left_shuffled, "left_persisted")
-    # left_persisted.is_mpc = True
+    left_persisted = cc._persist(left_shuffled, "left_persisted")
+    left_persisted.is_mpc = True
 
     right_shuffled = cc.shuffle(right_closed, "right_shuffled")
     right_shuffled.is_mpc = True
 
-    # right_persisted = cc._persist(right_shuffled, "right_persisted")
-    # right_persisted.is_mpc = True
+    right_persisted = cc._persist(right_shuffled, "right_persisted")
+    right_persisted.is_mpc = True
 
     left_keys_closed = cc.project(left_shuffled, "left_keys_closed", ["column_a"])
     left_keys_closed.is_mpc = True

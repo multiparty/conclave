@@ -1,14 +1,14 @@
-from unittest import TestCase
-import conclave.lang as sal
-from conclave.codegen.python import PythonCodeGen
-from conclave import CodeGenConfig
-from conclave.utils import *
-from conclave.comp import dag_only
 import os
+from unittest import TestCase
+
+import conclave.lang as sal
+from conclave import CodeGenConfig
+from conclave.codegen.python import PythonCodeGen
+from conclave.comp import dag_only
+from conclave.utils import *
 
 
 def setup():
-
     cols = [
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1]),
@@ -33,13 +33,15 @@ class TestPython(TestCase):
 
         actual = cg._generate('code', '/tmp')[1]
 
-        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
-            expected = f.read()
-
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f_specific, open(
+                expected_rootdir + '/{}'.format("base"), 'r') as f_base:
+            expected_base = f_base.read()
+            expected_specific = f_specific.read()
+            expected = expected_base + expected_specific
+        
         self.assertEqual(expected, actual)
 
     def test_agg(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -54,7 +56,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'agg')
 
     def test_multiply(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -69,7 +70,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'multiply')
 
     def test_join(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -84,7 +84,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'join')
 
     def test_join_flags(self):
-
         @dag_only
         def protocol():
             inputs = setup()
@@ -99,7 +98,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'join_flags')
 
     def test_project(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -114,7 +112,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'project')
 
     def test_distinct(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -129,7 +126,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'distinct')
 
     def test_index(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -144,7 +140,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'index')
 
     def test_sort_by(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -159,7 +154,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'sort_by')
 
     def test_comp_neighs(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -174,7 +168,6 @@ class TestPython(TestCase):
         self.check_workflow(dag, 'comp_neighs')
 
     def test_workflow_one(self):
-
         @dag_only
         def protocol():
             inpts = setup()
@@ -190,5 +183,3 @@ class TestPython(TestCase):
 
         dag = protocol()
         self.check_workflow(dag, 'workflow_one')
-
-
