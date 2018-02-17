@@ -73,7 +73,7 @@ def protocol():
     joined = cc._flag_join(left_persisted, right_persisted, "joined", ["column_a"], ["column_a"], flags_closed)
     joined_open = cc._open(joined, "joined_open", 1)
 
-    cc.sort_by(joined_open, "sorted_result", "column_a")
+    cc.sort_by(joined_open, "actual", "column_a")
 
     return {left, right}
 
