@@ -327,9 +327,3 @@ D uint32[[2]] indexAggregateSum(D uint32[[2]] rows, uint valCol, D uint32[[2]] k
     return res;
 }
 
-void main() {
-    string ds = "DS1";
-    tdbOpenConnection(ds);
-{{{PROTOCOL_CODE}}}
-    tdbCloseConnection(ds);
-}

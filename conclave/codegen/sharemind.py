@@ -97,6 +97,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_create(node)
             elif isinstance(node, Divide):
                 miner_code += self._generate_divide(node)
+            elif isinstance(node, FlagJoin):
+                miner_code += self._generate_flag_join(node)
             elif isinstance(node, IndexJoin):
                 miner_code += self._generate_index_join(node)
             elif isinstance(node, Join):
@@ -371,13 +373,29 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    def _generate_flag_join(self, flag_join_op: FlagJoin):
+        """ Generate code for FlagJoin operations. """
+
+        template = open(
+            "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
+        flags_rel = flag_join_op.join_flag_op.out_rel
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": flag_join_op.out_rel.name,
+            "LEFT_IN_REL": flag_join_op.get_left_in_rel().name,
+            "LEFT_KEY_COLS": str(flag_join_op.left_join_cols[0].idx),
+            "RIGHT_IN_REL": flag_join_op.get_right_in_rel().name,
+            "RIGHT_KEY_COLS": str(flag_join_op.right_join_cols[0].idx),
+            "FLAGS_REL": flags_rel.name
+        }
+        return pystache.render(template, data)
+
     def _generate_index_join(self, index_join_op: IndexJoin):
         """ Generate code for Index Join operations. """
 
         template = open(
             "{0}/index_join.tmpl".format(self.template_directory), 'r').read()
-        left_rel = index_join_op.left_parent.out_rel
-        right_rel = index_join_op.right_parent.out_rel
         index_rel = index_join_op.index_rel.out_rel
 
         data = {

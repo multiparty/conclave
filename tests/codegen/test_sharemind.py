@@ -29,17 +29,17 @@ def setup():
         defCol("d", "INTEGER", [3])
     ]
 
-    in1 = sal.create("in1", colsIn1, set([1]))
-    in2 = sal.create("in2", colsIn2, set([2]))
-    in3 = sal.create("in3", colsIn3, set([3]))
+    in1 = sal.create("in1", colsIn1, {1})
+    in2 = sal.create("in2", colsIn2, {2})
+    in3 = sal.create("in3", colsIn3, {3})
 
-    cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
-    cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
-    cl3 = sal._close(in3, "cl3", set([1, 2, 3]))
+    cl1 = sal._close(in1, "cl1", {1, 2, 3})
+    cl2 = sal._close(in2, "cl2", {1, 2, 3})
+    cl3 = sal._close(in3, "cl3", {1, 2, 3})
 
     rel = sal.concat([cl1, cl2, cl3], "rel")
 
-    return set([in1, in2, in3]), rel
+    return {in1, in2, in3}, rel
 
 
 class TestSharemind(TestCase):
@@ -54,8 +54,11 @@ class TestSharemind(TestCase):
 
         actual = cg._generate('code', '/tmp')[1]['miner']
 
-        with open(expected_rootdir + '/{}'.format(name), 'r') as f:
-            expected = f.read()
+        with open(expected_rootdir + '/{}'.format(name), 'r') as f_specific, open(
+                expected_rootdir + '/{}'.format("base"), 'r') as f_base:
+            expected_base = f_base.read()
+            expected_specific = f_specific.read()
+            expected = expected_base + expected_specific
 
         self.assertEqual(expected, actual)
 
@@ -166,20 +169,20 @@ class TestSharemind(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            in1 = sal.create("in1", colsIn1, set([1]))
+            in1 = sal.create("in1", colsIn1, {1})
             colsIn2 = [
                 defCol("a", "INTEGER", [2]),
                 defCol("b", "INTEGER", [2])
             ]
-            in2 = sal.create("in2", colsIn2, set([2]))
+            in2 = sal.create("in2", colsIn2, {2})
 
-            cl1 = sal._close(in1, "cl1", set([1, 2, 3]))
-            cl2 = sal._close(in2, "cl2", set([1, 2, 3]))
+            cl1 = sal._close(in1, "cl1", {1, 2, 3})
+            cl2 = sal._close(in2, "cl2", {1, 2, 3})
             res = sal.join(cl1, cl2, "res", ["a"], ["a"])
 
             opened = sal._open(res, "opened", 1)
 
-            return set([in1, in2])
+            return {in1, in2}
 
         dag = protocol()
         self.check_workflow(dag, 'join')
