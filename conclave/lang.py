@@ -699,3 +699,21 @@ def _join_flags(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
     right_input_node.children.add(join_flags_op)
 
     return join_flags_op
+
+
+def _flag_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
+               left_col_names: list, right_col_names: list, join_flags_op_node: saldag.JoinFlags):
+    """
+    Define FlagJoin operation.
+    """
+    join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
+    flag_join_op = saldag.IndexJoin.from_join(join_op, join_flags_op_node)
+
+    left_input_node.children.remove(join_op)
+    right_input_node.children.remove(join_op)
+
+    left_input_node.children.add(flag_join_op)
+    right_input_node.children.add(flag_join_op)
+    join_flags_op_node.children.add(flag_join_op)
+
+    return flag_join_op

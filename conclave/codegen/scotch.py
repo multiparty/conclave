@@ -26,8 +26,21 @@ class ScotchCodeGen(CodeGen):
             join_flags_op.out_rel.dbg_str()
         )
 
+    def _generate_flag_join(self, flag_join_op: saldag.FlagJoin):
+        """ Generate code for FlagJoin operations. """
+
+        return "({}) FLAGJOIN{} ({}) WITH FLAGS ({}) ON [{}] AND [{}] AS {}\n".format(
+            flag_join_op.get_left_in_rel().dbg_str(),
+            "MPC" if flag_join_op.is_mpc else "",
+            flag_join_op.get_right_in_rel().dbg_str(),
+            flag_join_op.join_flag_op.out_rel.dbg_str(),
+            ",".join([c.name for c in flag_join_op.left_join_cols]),
+            ",".join([c.name for c in flag_join_op.right_join_cols]),
+            flag_join_op.out_rel.dbg_str()
+        )
+
     def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
-        """ Generate code for Index Aggregate operations. """
+        """ Generate code for IndexAggregate operations. """
 
         return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if idx_agg_op.is_mpc else "",
@@ -51,7 +64,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_concat(self, concat_op: saldag.Concat):
-        """ Generate code for concat operations. """
+        """ Generate code for Concat operations. """
 
         in_rel_str = ", ".join([in_rel.dbg_str() for in_rel in concat_op.get_in_rels()])
         return "CONCAT{} [{}] AS {}\n".format(
@@ -61,7 +74,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_create(self, create_op: saldag.Create):
-        """ Generate code to create relations. """
+        """ Generate code to Create relations. """
 
         col_type_str = ", ".join(
             [col.type_str for col in create_op.out_rel.columns])
@@ -107,7 +120,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_index_join(self, index_join_op: saldag.IndexJoin):
-        """ Generate code for Index Join operations. """
+        """ Generate code for IndexJoin operations. """
 
         return "({}) IDXJOIN{} ({}) WITH INDECES ({}) ON [{}] AND [{}] AS {}\n".format(
             index_join_op.get_left_in_rel().dbg_str(),
@@ -120,7 +133,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_reveal_join(self, reveal_join_op: saldag.RevealJoin):
-        """ Generate code for Reveal Join operations. """
+        """ Generate code for RevealJoin operations. """
 
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
             reveal_join_op.get_left_in_rel().dbg_str(),
@@ -131,7 +144,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_hybrid_join(self, hybrid_join_op: saldag.HybridJoin):
-        """ Generate code for Hybrid Join operations. """
+        """ Generate code for HybridJoin operations. """
 
         return "({}) HYBRIDJOIN ({}) ON {} AND {} AS {}\n".format(
             hybrid_join_op.get_left_in_rel().dbg_str(),
