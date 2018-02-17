@@ -702,12 +702,12 @@ def _join_flags(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
 
 
 def _flag_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
-               left_col_names: list, right_col_names: list, join_flags_op_node: saldag.JoinFlags):
+               left_col_names: list, right_col_names: list, join_flags_op_node: saldag.OpNode):
     """
     Define FlagJoin operation.
     """
     join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
-    flag_join_op = saldag.IndexJoin.from_join(join_op, join_flags_op_node)
+    flag_join_op = saldag.FlagJoin.from_join(join_op, join_flags_op_node)
 
     left_input_node.children.remove(join_op)
     right_input_node.children.remove(join_op)

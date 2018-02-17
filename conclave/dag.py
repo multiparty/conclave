@@ -621,7 +621,7 @@ class FlagJoin(Join):
     """
 
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
-                 left_join_cols: list, right_join_cols: list, join_flags_op: JoinFlags):
+                 left_join_cols: list, right_join_cols: list, join_flags_op: OpNode):
         super(FlagJoin, self).__init__(out_rel, left_parent, right_parent, left_join_cols, right_join_cols)
         self.name = "flag_join"
         self.join_flag_op = join_flags_op
@@ -629,7 +629,7 @@ class FlagJoin(Join):
         self.is_mpc = True
 
     @classmethod
-    def from_join(cls, join_op: Join, join_flags_op: JoinFlags):
+    def from_join(cls, join_op: Join, join_flags_op: OpNode):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
                   join_op.left_join_cols, join_op.right_join_cols, join_flags_op)
         return obj

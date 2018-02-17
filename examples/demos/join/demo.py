@@ -67,6 +67,12 @@ def protocol():
     flags = cc._join_flags(left_dummy, right_dummy, "flags", ["column_a"], ["column_a"])
     flags.is_mpc = False
 
+    flags_closed = cc._close(flags, "flags_closed", {1, 2, 3})
+    flags_closed.is_mpc = True
+
+    joined = cc._flag_join(left_persisted, right_persisted, "joined", ["column_a"], ["column_a"], flags_closed)
+    cc._open(joined, "joined_open", 1)
+
     return {left, right}
 
 
@@ -87,4 +93,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
-    dispatch_jobs(job_queue, conclave_config)
+    # dispatch_jobs(job_queue, conclave_config)
