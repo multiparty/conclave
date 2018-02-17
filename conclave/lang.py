@@ -690,6 +690,7 @@ def _join_flags(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
     out_col = rel.Column(output_name, out_col_name, 0, "INTEGER", join_flags_op.out_rel.columns[0].coll_sets)
     out_rel = rel.Relation(output_name, [out_col], join_flags_op.out_rel.stored_with)
     join_flags_op.out_rel = out_rel
+    join_flags_op.is_mpc = True
 
     left_input_node.children.remove(join_op)
     right_input_node.children.remove(join_op)
