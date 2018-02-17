@@ -379,15 +379,25 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
         flags_rel = flag_join_op.join_flag_op.out_rel
+        left_rel = flag_join_op.left_parent.out_rel
+        right_rel = flag_join_op.right_parent.out_rel
+        # sharemind adds all columns from right-rel to the result
+        # so we need to explicitely exclude these
+        cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
+        cols_to_exclude = [col.idx + len(left_rel.columns)
+                           for col in flag_join_op.right_join_cols]
+        cols_to_keep_str = ",".join(
+            [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
 
         data = {
             "TYPE": "uint32",
             "OUT_REL": flag_join_op.out_rel.name,
+            "FLAGS_REL": flags_rel.name,
             "LEFT_IN_REL": flag_join_op.get_left_in_rel().name,
             "LEFT_KEY_COLS": str(flag_join_op.left_join_cols[0].idx),
             "RIGHT_IN_REL": flag_join_op.get_right_in_rel().name,
             "RIGHT_KEY_COLS": str(flag_join_op.right_join_cols[0].idx),
-            "FLAGS_REL": flags_rel.name
+            "COLS_TO_KEEP": "{" + cols_to_keep_str + "}"
         }
         return pystache.render(template, data)
 

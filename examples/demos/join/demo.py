@@ -20,7 +20,7 @@ def protocol():
     right = cc.create("right", input_columns_right, {2})
 
     # TODO so sad, partitioning still finicky
-    left_projected = cc.project(left, "zzz-left_projected", ["column_a", "column_b"])
+    left_projected = cc.project(left, "zzz_left_projected", ["column_a", "column_b"])
     left_projected.is_mpc = False
     left_projected.out_rel.stored_with = {1}
 
@@ -71,7 +71,9 @@ def protocol():
     flags_closed.is_mpc = True
 
     joined = cc._flag_join(left_persisted, right_persisted, "joined", ["column_a"], ["column_a"], flags_closed)
-    cc._open(joined, "joined_open", 1)
+    joined_open = cc._open(joined, "joined_open", 1)
+
+    cc.sort_by(joined_open, "sorted_result", "column_a")
 
     return {left, right}
 
@@ -93,4 +95,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
-    # dispatch_jobs(job_queue, conclave_config)
+    dispatch_jobs(job_queue, conclave_config)

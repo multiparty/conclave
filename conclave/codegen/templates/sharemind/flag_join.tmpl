@@ -1,1 +1,1 @@
-    pd_shared3p {{TYPE}} [[2]] {{OUT_REL}} = flagJoin({{LEFT_IN_REL}}, (uint){{LEFT_KEY_COLS}}, {{RIGHT_IN_REL}}, (uint){{RIGHT_KEY_COLS}}, declassify({{FLAGS_REL}}));
+    pd_shared3p {{TYPE}} [[2]] {{OUT_REL}} = flagJoin({{FLAGS_REL}}, {{LEFT_IN_REL}}, (uint){{LEFT_KEY_COLS}}, {{RIGHT_IN_REL}}, (uint){{RIGHT_KEY_COLS}}, (uint){{COLS_TO_KEEP}});
