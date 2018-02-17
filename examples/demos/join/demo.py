@@ -19,7 +19,8 @@ def protocol():
     ]
     right = cc.create("right", input_columns_right, {2})
 
-    left_projected = cc.project(left, "left_projected", ["column_a", "column_b"])
+    # TODO so sad, partitioning still finicky
+    left_projected = cc.project(left, "zzz-left_projected", ["column_a", "column_b"])
     left_projected.is_mpc = False
     left_projected.out_rel.stored_with = {1}
 
