@@ -5,7 +5,7 @@ import tempfile
 
 """
 *** EXAMPLE INVOCATION ***
-
+TODO this isn't up-to-date
 net_conf = NetworkConfig(
     ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
     [8020, 8020, 8020],
@@ -75,7 +75,7 @@ class SparkConfig:
 class CodeGenConfig:
     """ Config object for code generation module. """
 
-    def __init__(self, job_name: [str, None] = None):
+    def __init__(self, job_name: [str, None] = None, pid: int = 1):
         """ Initialize CodeGenConfig object. """
 
         self.inited = True
@@ -89,10 +89,10 @@ class CodeGenConfig:
         self.input_path = '/tmp'
         self.output_path = '/tmp'
         self.system_configs = {}
-        self.pid = 1
+        self.pid = pid
         self.all_pids = [1, 2, 3]
         self.network_config = {
-            "pid": 1,
+            "pid": pid,
             "parties": {
                 1: {"host": "localhost", "port": 9001},
                 2: {"host": "localhost", "port": 9002},
