@@ -1,19 +1,18 @@
-import conclave.lang as sal
-from conclave.comp import dag_only
-from conclave.utils import *
-import conclave.partition as part
-from conclave.codegen.scotch import ScotchCodeGen
-from conclave.codegen.sharemind import SharemindCodeGen, SharemindCodeGenConfig
-from conclave.codegen.spark import SparkCodeGen
-from conclave.codegen.python import PythonCodeGen
-from conclave.codegen.viz import VizCodeGen
-from conclave import generate_code, CodeGenConfig
-from conclave.dispatch import dispatch_all
-from conclave.net import setup_peer
 import sys
 
-def testHybridAggWorkflow():
+import conclave.lang as sal
+import conclave.partition as part
+from conclave import CodeGenConfig
+from conclave.codegen.python import PythonCodeGen
+from conclave.codegen.sharemind import SharemindCodeGen
+from conclave.comp import dag_only
+from conclave.config import SharemindCodeGenConfig
+from conclave.dispatch import dispatch_all
+from conclave.net import setup_peer
+from conclave.utils import *
 
+
+def testHybridAggWorkflow():
     @dag_only
     def protocol():
 
@@ -103,7 +102,7 @@ def testHybridAggWorkflow():
         closedEqFlags.isMPC = True
         closedSortedByKey = sal._close(sortedByKey, "closedSortedByKey", set([1, 2, 3]))
         closedSortedByKey.isMPC = True
-        
+
         agg = sal.index_aggregate(persisted, "agg", ["a"], "b", "+", "b", closedEqFlags, closedSortedByKey)
         agg.out_rel.storedWith = set([1, 2, 3])
         agg.isMPC = True
@@ -117,8 +116,7 @@ def testHybridAggWorkflow():
     size = sys.argv[2]
 
     workflow_name = "hybrid-agg-" + str(pid)
-    sm_cg_config = SharemindCodeGenConfig(
-        workflow_name, "/mnt/shared", use_hdfs=False, use_docker=True)
+    sm_cg_config = SharemindCodeGenConfig("/mnt/shared", use_hdfs=False, use_docker=True)
     codegen_config = CodeGenConfig(
         workflow_name).with_sharemind_config(sm_cg_config)
     codegen_config.code_path = "/mnt/shared/" + workflow_name
@@ -151,7 +149,7 @@ def testHybridAggWorkflow():
     }
     sm_peer = setup_peer(sharemind_config)
     dispatch_all(None, sm_peer, job_queue)
-    
-if __name__ == "__main__":
 
+
+if __name__ == "__main__":
     testHybridAggWorkflow()
