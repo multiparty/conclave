@@ -83,6 +83,21 @@ class TestPython(TestCase):
         dag = protocol()
         self.check_workflow(dag, 'join')
 
+    def test_join_flags(self):
+
+        @dag_only
+        def protocol():
+            inputs = setup()
+            in_1, in_2 = inputs[0], inputs[1]
+
+            join_flags = sal._join_flags(in_1, in_2, 'join_flags', ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'])
+            sal.collect(join_flags, 1)
+
+            return {in_1, in_2}
+
+        dag = protocol()
+        self.check_workflow(dag, 'join_flags')
+
     def test_project(self):
 
         @dag_only
