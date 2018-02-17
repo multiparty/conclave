@@ -16,8 +16,8 @@ def setup():
         defCol("d", "INTEGER", [1])
     ]
 
-    in_1 = sal.create("in_1", cols, set([1]))
-    in_2 = sal.create("in_2", cols, set([1]))
+    in_1 = sal.create("in_1", cols, {1})
+    in_2 = sal.create("in_2", cols, {1})
 
     return [in_1, in_2]
 
@@ -48,7 +48,7 @@ class TestPython(TestCase):
             agg = sal.aggregate(in_1, "agg", ["a", "b"], "c", "sum", "agg_1")
             out = sal.collect(agg, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'agg')
@@ -63,7 +63,7 @@ class TestPython(TestCase):
             mult = sal.multiply(in_1, "mult", "a", ["a", "b"])
             out = sal.collect(mult, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'multiply')
@@ -78,7 +78,7 @@ class TestPython(TestCase):
             join = sal.join(in_1, in_2, 'join', ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'])
             out = sal.collect(join, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'join')
@@ -93,7 +93,7 @@ class TestPython(TestCase):
             proj = sal.project(in_1, "proj_1", ["a", "b"])
             out = sal.collect(proj, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'project')
@@ -108,7 +108,7 @@ class TestPython(TestCase):
             dist = sal.distinct(in_1, "dist", ["a", "b"])
             out = sal.collect(dist, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'distinct')
@@ -123,7 +123,7 @@ class TestPython(TestCase):
             ind = sal.index(in_1, "ind")
             out = sal.collect(ind, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'index')
@@ -138,7 +138,7 @@ class TestPython(TestCase):
             sb = sal.sort_by(in_1, "sort_by", "a")
             out = sal.collect(sb, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'sort_by')
@@ -153,7 +153,7 @@ class TestPython(TestCase):
             cn = sal._comp_neighs(in_1, 'comp_neighs', 'b')
             out = sal.collect(cn, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'comp_neighs')
@@ -171,7 +171,7 @@ class TestPython(TestCase):
             agg = sal.aggregate(join, "agg", ["a", "b"], "c", "sum", "agg_1")
             out = sal.collect(agg, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'workflow_one')

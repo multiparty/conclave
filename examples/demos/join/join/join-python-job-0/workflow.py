@@ -105,8 +105,9 @@ def distinct(rel, selected_cols):
 
 if __name__ == "__main__":
     print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    agg = aggregate(in_1, 0, 2, 'sum')
-    write_rel('/tmp', 'agg.csv', agg, '"a","b","agg_1"')
+    left = read_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data/left.csv')
+    right = read_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data/right.csv')
+    joined  = join_flags(left, right, 0, 0)
+    write_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data', 'joined.csv', joined, '"column_a","column_b","column_b"')
 
     print("done python")

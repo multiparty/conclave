@@ -48,6 +48,10 @@ def project_indeces(rel):
 
     return [[idx] + rest for (idx, rest) in enumerate(rel)]
 
+def join_flags(left, right, left_col, right_col):
+
+    return [[int(left_row[left_col] == right_row[right_col])] for left_row in left for right_row in right]
+
 def join(left, right, left_col, right_col):
 
     left_row_map = dict()

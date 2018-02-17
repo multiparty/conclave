@@ -2,6 +2,7 @@
 Data structure for representing a workflow directed acyclic graph (DAG).
 """
 import copy
+
 from conclave import rel
 
 
@@ -9,6 +10,7 @@ class Node:
     """
     Graph node data structure.
     """
+
     def __init__(self, name: str):
         """ Initalize graph node object. """
         self.name = name
@@ -38,6 +40,7 @@ class OpNode(Node):
     """
     Base class for nodes that store relational operations
     """
+
     def __init__(self, name: str, out_rel: rel.Relation):
         """ Initialize OpNode object. """
         super(OpNode, self).__init__(name)
@@ -123,6 +126,7 @@ class OpNode(Node):
 
 class UnaryOpNode(OpNode):
     """ An OpNode with exactly one parent (e.g. - Multiply, Project, etc.). """
+
     def __init__(self, name: str, out_rel: rel.Relation, parent: OpNode):
         """ Initialize UnaryOpNode object. """
         super(UnaryOpNode, self).__init__(name, out_rel)
@@ -160,6 +164,7 @@ class UnaryOpNode(OpNode):
 
 class BinaryOpNode(OpNode):
     """ An OpNode with exactly two parents (e.g. - Join). """
+
     def __init__(self, name: str, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode):
 
         super(BinaryOpNode, self).__init__(name, out_rel)
@@ -190,7 +195,7 @@ class BinaryOpNode(OpNode):
 
     def make_orphan(self):
         """ Removes link between this node and both of it's parents. """
-        super(UnaryOpNode, self).make_orphan()
+        super(BinaryOpNode, self).make_orphan()
         self.left_parent = None
         self.right_parent = None
 
@@ -213,6 +218,7 @@ class BinaryOpNode(OpNode):
 
 class NaryOpNode(OpNode):
     """ An OpNode with arbitrarily many parents (e.g. - Concat)."""
+
     def __init__(self, name: str, out_rel: rel.Relation, parents: set):
         """ Initialize NaryOpNode object. """
         super(NaryOpNode, self).__init__(name, out_rel)
@@ -239,6 +245,7 @@ class NaryOpNode(OpNode):
 
 class Create(UnaryOpNode):
     """ Object for creating datasets in a DAG. """
+
     def __init__(self, out_rel: rel.Relation):
         """ Initialize Create object. """
         super(Create, self).__init__("create", out_rel, None)
@@ -252,6 +259,7 @@ class Create(UnaryOpNode):
 
 class Store(UnaryOpNode):
     """ Object for storing data returned by a workflow. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode):
         """ Initialize Store object. """
         super(Store, self).__init__("store", out_rel, parent)
@@ -266,17 +274,17 @@ class Store(UnaryOpNode):
 
 class Persist(UnaryOpNode):
     """ ??? """
-    def __init__(self, out_rel: rel.Relation, parent: OpNode):
 
+    def __init__(self, out_rel: rel.Relation, parent: OpNode):
         super(Persist, self).__init__("persist", out_rel, parent)
 
     def is_reversible(self):
-
         return True
 
 
 class Open(UnaryOpNode):
     """ Object for opening results of a computation to participating parties. """
+
     def __init__(self, out_rel: rel.Relation, parent: [OpNode, None]):
         """ Initialize Open object. """
         super(Open, self).__init__("open", out_rel, parent)
@@ -289,6 +297,7 @@ class Open(UnaryOpNode):
 
 class Close(UnaryOpNode):
     """ Object for marking the boundary between local and MPC operations. """
+
     def __init__(self, out_rel: rel.Relation, parent: [OpNode, None]):
         """ Initialize Close object. """
         super(Close, self).__init__("close", out_rel, parent)
@@ -301,6 +310,7 @@ class Close(UnaryOpNode):
 
 class Send(UnaryOpNode):
     """ Object for Sending secret shares to another party. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode):
         """ Initialize Send object."""
         super(Send, self).__init__("send", out_rel, parent)
@@ -312,11 +322,12 @@ class Send(UnaryOpNode):
 
 class Concat(NaryOpNode):
     """ Object to store the concatenation of several relations' datasets. """
+
     def __init__(self, out_rel: rel.Relation, parents: list):
         """ Initialize a Concat object. """
         parent_set = set(parents)
         # sanity check for now
-        assert(len(parents) == len(parent_set))
+        assert (len(parents) == len(parent_set))
         super(Concat, self).__init__("concat", out_rel, parent_set)
         self.ordered = parents
 
@@ -342,6 +353,7 @@ class Concat(NaryOpNode):
 
 class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode,
                  group_cols: list, agg_col: rel.Column, aggregator: str):
         """ Initialize Aggregate object. """
@@ -363,6 +375,7 @@ class Aggregate(UnaryOpNode):
 
 class IndexAggregate(Aggregate):
     """ Object to store an indexed aggregation operation. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, group_cols: list,
                  agg_col: rel.Column, aggregator: str, eq_flag_op: OpNode, sorted_keys_op: OpNode):
         """ Initialize IndexAggregate object. """
@@ -380,6 +393,7 @@ class IndexAggregate(Aggregate):
 
 class Project(UnaryOpNode):
     """ Object to store a project operation. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_cols: list):
         """ Initialize project object. """
         super(Project, self).__init__("project", out_rel, parent)
@@ -433,6 +447,7 @@ class Shuffle(UnaryOpNode):
 
 class Multiply(UnaryOpNode):
     """ Object to store multiplication between columns. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operands: list):
         """ Initialize Multiply object. """
         super(Multiply, self).__init__("multiply", out_rel, parent)
@@ -457,6 +472,7 @@ class Multiply(UnaryOpNode):
 
 class SortBy(UnaryOpNode):
     """ Object to store the sorting of a relation over a particular column. """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, sort_by_col: rel.Column):
         """ Initialize SortBy object. """
         super(SortBy, self).__init__("sortBy", out_rel, parent)
@@ -474,6 +490,7 @@ class CompNeighs(UnaryOpNode):
     Object that stores equality comparison between neighboring row values in a relation.
     Used in Hybrid Aggregation to allow parties to obliviously aggregate during MPC.
     """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, comp_col: rel.Column):
         """ Initialize CompNeighs object. """
         super(CompNeighs, self).__init__("compNeighs", out_rel, parent)
@@ -491,13 +508,13 @@ class Distinct(UnaryOpNode):
     Object that stores removing duplicate rows from a relation,
     with respect to a set of selected columns.
     """
+
     def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_cols: list):
         """ Initialize Distinct object. """
         super(Distinct, self).__init__("distinct", out_rel, parent)
         self.selected_cols = selected_cols
 
     def update_op_specific_cols(self):
-
         temp_cols = self.get_in_rel().columns
         old_cols = copy.copy(self.selected_cols)
         self.selected_cols = [temp_cols[col.idx] if isinstance(
@@ -507,18 +524,15 @@ class Distinct(UnaryOpNode):
 class Divide(UnaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operands: list):
-
         super(Divide, self).__init__("divide", out_rel, parent)
         self.operands = operands
         self.target_col = target_col
         self.is_local = True
 
     def is_reversible(self):
-
         return True
 
     def update_op_specific_cols(self):
-
         temp_cols = self.get_in_rel().columns
         old_operands = copy.copy(self.operands)
         self.operands = [temp_cols[col.idx] if isinstance(
@@ -528,7 +542,6 @@ class Divide(UnaryOpNode):
 class Filter(UnaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operator: str, expr: str):
-
         super(Filter, self).__init__("filter", out_rel, parent)
         self.operator = operator
         self.filter_expr = expr
@@ -536,7 +549,6 @@ class Filter(UnaryOpNode):
         self.is_local = True
 
     def is_reversible(self):
-
         return False
 
 
@@ -544,17 +556,42 @@ class Join(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
                  right_parent: OpNode, left_join_cols: list, right_join_cols: list):
-
         super(Join, self).__init__("join", out_rel, left_parent, right_parent)
         self.left_join_cols = left_join_cols
         self.right_join_cols = right_join_cols
 
     def update_op_specific_cols(self):
-
         self.left_join_cols = [self.get_left_in_rel().columns[left_join_col.idx]
                                for left_join_col in copy.copy(self.left_join_cols)]
         self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
                                 for right_join_col in copy.copy(self.right_join_cols)]
+
+
+class JoinFlags(Join):
+    """
+    Operator node which computes a join and expresses the result as a list of binary flags. For each row in the
+    cartesian product of the two input relations the result will hold a 1 flag if the row belongs in the result and 0
+    otherwise.
+    """
+
+    def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
+                 right_parent: OpNode, left_join_cols: list, right_join_cols: list):
+        super(JoinFlags, self).__init__(out_rel, left_parent,
+                                        right_parent, left_join_cols, right_join_cols)
+        self.name = "join_flags"
+        self.is_mpc = True
+
+    def update_op_specific_cols(self):
+        self.left_join_cols = [self.get_left_in_rel().columns[left_join_col.idx]
+                               for left_join_col in copy.copy(self.left_join_cols)]
+        self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
+                                for right_join_col in copy.copy(self.right_join_cols)]
+
+    @classmethod
+    def from_join(cls, join_op: Join):
+        obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
+                  join_op.left_join_cols, join_op.right_join_cols)
+        return obj
 
 
 class IndexJoin(Join):
@@ -562,7 +599,6 @@ class IndexJoin(Join):
 
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
                  left_join_cols: list, right_join_cols: list, index_op: OpNode):
-
         super(IndexJoin, self).__init__(out_rel, left_parent,
                                         right_parent, left_join_cols, right_join_cols)
         self.name = "indexJoin"
@@ -591,7 +627,6 @@ class RevealJoin(Join):
     # TODO: (ben) recipient == pid (int) ?
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
                  left_join_cols: list, right_join_cols: list, revealed_in_rel: rel.Relation, recepient):
-
         super(RevealJoin, self).__init__(out_rel, left_parent,
                                          right_parent, left_join_cols, right_join_cols)
         self.name = "revealJoin"
@@ -607,7 +642,6 @@ class RevealJoin(Join):
 
     # TODO: remove?
     def update_op_specific_cols(self):
-
         self.left_join_cols = [self.get_left_in_rel().columns[c.idx]
                                for c in self.left_join_cols]
         self.right_join_cols = [self.get_right_in_rel().columns[c.idx]
@@ -625,7 +659,6 @@ class HybridJoin(Join):
     # TODO: (ben) trusted_party == pid (int) ?
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
                  left_join_cols: list, right_join_cols: list, trusted_party):
-
         super(HybridJoin, self).__init__(out_rel, left_parent,
                                          right_parent, left_join_cols, right_join_cols)
         self.name = "hybridJoin"
@@ -715,7 +748,6 @@ class Dag:
         ordered = []
 
         while unmarked:
-
             node = unmarked.pop()
             self._top_sort_visit(node, marked, temp_marked, unmarked, ordered)
 
@@ -725,17 +757,14 @@ class Dag:
 class OpDag(Dag):
 
     def __init__(self, roots: set):
-
         super(OpDag, self).__init__(roots)
 
     def __str__(self):
-
         order = self.top_sort()
         return ",\n".join(str(node) for node in order)
 
 
 def remove_between(parent: OpNode, child: OpNode, other: OpNode):
-
     assert len(other.children) < 2
     assert len(other.parents) < 2
     # only dealing with unary nodes for now
@@ -753,7 +782,6 @@ def remove_between(parent: OpNode, child: OpNode, other: OpNode):
 
 
 def insert_between_children(parent: OpNode, other: OpNode):
-
     assert not other.children
     assert not other.parents
     # only dealing with unary nodes for now
@@ -774,12 +802,11 @@ def insert_between_children(parent: OpNode, other: OpNode):
 
 
 def insert_between(parent: OpNode, child: OpNode, other: OpNode):
-
     # called with grandParent, topNode, toInsert
-    assert(not other.children)
-    assert(not other.parents)
+    assert (not other.children)
+    assert (not other.parents)
     # only dealing with unary nodes for now
-    assert(isinstance(other, UnaryOpNode))
+    assert (isinstance(other, UnaryOpNode))
 
     # Insert other below parent
     other.parents.add(parent)

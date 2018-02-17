@@ -40,6 +40,8 @@ class CodeGen:
                 op_code += self._generate_create(node)
             elif isinstance(node, Close):
                 op_code += self._generate_close(node)
+            elif isinstance(node, JoinFlags):
+                op_code += self._generate_join_flags(node)
             elif isinstance(node, IndexJoin):
                 op_code += self._generate_index_join(node)
             elif isinstance(node, RevealJoin):

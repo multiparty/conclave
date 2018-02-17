@@ -14,6 +14,18 @@ class ScotchCodeGen(CodeGen):
 
         return op_code
 
+    def _generate_join_flags(self, join_flags_op: saldag.JoinFlags):
+        """ Generate code for JoinFlags operations. """
+
+        return "({}) JOINFLAGS{} ({}) ON [{}] AND [{}] AS {}\n".format(
+            join_flags_op.get_left_in_rel().dbg_str(),
+            "MPC" if join_flags_op.is_mpc else "",
+            join_flags_op.get_right_in_rel().dbg_str(),
+            ",".join([c.name for c in join_flags_op.left_join_cols]),
+            ",".join([c.name for c in join_flags_op.right_join_cols]),
+            join_flags_op.out_rel.dbg_str()
+        )
+
     def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
         """ Generate code for Index Aggregate operations. """
 
