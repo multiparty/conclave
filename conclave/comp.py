@@ -86,6 +86,7 @@ def fork_node(node: saldag.Concat):
 
 class DagRewriter:
     """ Top level DAG rewrite class. Traverses DAG, reorders nodes, and applies optimizations to certain nodes. """
+
     def __init__(self):
 
         # If true we visit topological ordering of condag in reverse
@@ -109,6 +110,8 @@ class DagRewriter:
                 self._rewrite_filter(node)
             elif isinstance(node, saldag.Multiply):
                 self._rewrite_multiply(node)
+            elif isinstance(node, saldag.JoinFlags):
+                self._rewrite_join_flags(node)
             elif isinstance(node, saldag.RevealJoin):
                 self._rewrite_reveal_join(node)
             elif isinstance(node, saldag.HybridJoin):
@@ -128,6 +131,48 @@ class DagRewriter:
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
+
+    def _rewrite_aggregate(self, node):
+        pass
+
+    def _rewrite_divide(self, node):
+        pass
+
+    def _rewrite_project(self, node):
+        pass
+
+    def _rewrite_filter(self, node):
+        pass
+
+    def _rewrite_multiply(self, node):
+        pass
+
+    def _rewrite_join_flags(self, node):
+        pass
+
+    def _rewrite_reveal_join(self, node):
+        pass
+
+    def _rewrite_hybrid_join(self, node):
+        pass
+
+    def _rewrite_join(self, node):
+        pass
+
+    def _rewrite_concat(self, node):
+        pass
+
+    def _rewrite_close(self, node):
+        pass
+
+    def _rewrite_open(self, node):
+        pass
+
+    def _rewrite_create(self, node):
+        pass
+
+    def _rewrite_distinct(self, node):
+        pass
 
 
 class MPCPushDown(DagRewriter):
@@ -241,10 +286,6 @@ class MPCPushDown(DagRewriter):
             if len(node.children) > 1 and node.is_boundary():
                 fork_node(node)
 
-    def _rewrite_create(self, node: saldag.Create):
-
-        pass
-
 
 class MPCPushUp(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundary up in workflows. """
@@ -263,10 +304,6 @@ class MPCPushUp(DagRewriter):
             print("lower boundary", node)
             node.get_in_rel().stored_with = copy.copy(node.out_rel.stored_with)
             node.is_mpc = False
-
-    def _rewrite_aggregate(self, node: saldag.Aggregate):
-
-        pass
 
     def _rewrite_divide(self, node: saldag.Divide):
 
@@ -291,10 +328,6 @@ class MPCPushUp(DagRewriter):
     def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
         raise Exception("HybridJoin encountered during MPCPushUp")
-
-    def _rewrite_join(self, node: saldag.Join):
-
-        pass
 
     def _rewrite_concat(self, node: saldag.Concat):
         """
@@ -438,37 +471,13 @@ class CollSetPropDown(DagRewriter):
             columns_at_idx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]
             col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
 
-    def _rewrite_create(self, node: saldag.Create):
-        """ No collusion set """
-
-        pass
-
 
 class HybridJoinOpt(DagRewriter):
     """ DagRewriter subclass specific to HybridJoin optimization rewriting. """
+
     def __init__(self):
 
         super(HybridJoinOpt, self).__init__()
-
-    def _rewrite_aggregate(self, node: saldag.Aggregate):
-
-        pass
-
-    def _rewrite_project(self, node: saldag.Project):
-
-        pass
-
-    def _rewrite_filter(self, node: saldag.Filter):
-
-        pass
-
-    def _rewrite_divide(self, node: saldag.Divide):
-
-        pass
-
-    def _rewrite_multiply(self, node: saldag.Multiply):
-
-        pass
 
     def _rewrite_reveal_join(self, node: saldag.RevealJoin):
 
@@ -497,14 +506,6 @@ class HybridJoinOpt(DagRewriter):
                 parents = hybrid_join_op.parents
                 for par in parents:
                     par.replace_child(node, hybrid_join_op)
-
-    def _rewrite_concat(self, node: saldag.Concat):
-
-        pass
-
-    def _rewrite_create(self, node: saldag.Create):
-
-        pass
 
 
 # TODO: this class is messy
@@ -624,10 +625,6 @@ class InsertOpenAndCloseOps(DagRewriter):
                 store_op.is_mpc = True
                 saldag.insert_between(parent, node, store_op)
 
-    def _rewrite_create(self, node: saldag.Create):
-
-        pass
-
 
 class ExpandCompositeOps(DagRewriter):
     """
@@ -637,24 +634,6 @@ class ExpandCompositeOps(DagRewriter):
 
     def __init__(self):
         super(ExpandCompositeOps, self).__init__()
-
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
-        pass
-
-    def _rewrite_divide(self, node: saldag.Divide):
-        pass
-
-    def _rewrite_project(self, node: saldag.Project):
-        pass
-
-    def _rewrite_filter(self, node: saldag.Filter):
-        pass
-
-    def _rewrite_multiply(self, node: saldag.Multiply):
-        pass
-
-    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
-        pass
 
     def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
         # TODO
@@ -702,7 +681,7 @@ class ExpandCompositeOps(DagRewriter):
 
         # TODO: update stored_with to use union of parent out_rel stored_with sets
         indices_closed = sal._close(
-            indices_only, "indices_closed", set([1, 2]))
+            indices_only, "indices_closed", {1, 2})
         indices_closed.is_mpc = True
 
         joined = sal._index_join(persisted_a, persisted_b, "joined",
@@ -714,21 +693,6 @@ class ExpandCompositeOps(DagRewriter):
             child.replace_parent(node, joined)
         # add former children to children of leaf
         joined.children = node.children
-
-    def _rewrite_join(self, node: saldag.Join):
-        pass
-
-    def _rewrite_concat(self, node: saldag.Concat):
-        pass
-
-    def _rewrite_create(self, node: saldag.Create):
-        pass
-
-    def _rewrite_open(self, node: saldag.Open):
-        pass
-
-    def _rewrite_close(self, node: saldag.Close):
-        pass
 
 
 def rewrite_dag(dag: saldag.OpDag):
@@ -790,7 +754,7 @@ def mpc(*args):
 
 def dag_only(f: callable):
     """ Wrapper to bypass rewrite logic. """
-    
+
     def wrap():
         return saldag.OpDag(f())
 

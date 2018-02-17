@@ -108,6 +108,6 @@ if __name__ == "__main__":
     left = read_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data/left.csv')
     right = read_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data/right.csv')
     joined  = join_flags(left, right, 0, 0)
-    write_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data', 'joined.csv', joined, '"column_a","column_b","column_b"')
+    write_rel('/Users/nikolajvolgushev/Desktop/work/conclave/examples/demos/join/data', 'joined.csv', joined, '"flags"')
 
     print("done python")

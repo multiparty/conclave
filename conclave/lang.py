@@ -680,13 +680,16 @@ def _open(input_op_node: saldag.OpNode, output_name: str, target_party: int):
 
 
 def _join_flags(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
-                left_col_names: list, right_col_names: list):
+                left_col_names: list, right_col_names: list, out_col_name: str = "flags"):
     """
     Define JoinFlags operation.
     """
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
     join_flags_op = saldag.JoinFlags.from_join(join_op)
+    out_col = rel.Column(output_name, out_col_name, 0, "INTEGER", join_flags_op.out_rel.columns[0].coll_sets)
+    out_rel = rel.Relation(output_name, [out_col], join_flags_op.out_rel.stored_with)
+    join_flags_op.out_rel = out_rel
 
     left_input_node.children.remove(join_op)
     right_input_node.children.remove(join_op)
