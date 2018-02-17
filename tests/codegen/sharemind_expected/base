@@ -327,3 +327,14 @@ D uint32[[2]] indexAggregateSum(D uint32[[2]] rows, uint valCol, D uint32[[2]] k
     return res;
 }
 
+template <domain D : shared3p>
+D uint32[[2]] flagJoin(D uint32[[2]] eqFlags, D uint32[[2]] left, uint leftJoinCol, D uint32[[2]] right,
+        uint rightJoinCol, uint[[1]] colsToKeep) {
+    uint nrowsLeft = shape(left)[0];
+    uint nrowsRight = shape(right)[0];
+    D uint32[[2]] leftStretched = stretch(left, nrowsRight);
+    D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
+    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], leftStretched, leftJoinCol, rightDupped, rightJoinCol);
+    return project(res, colsToKeep);
+}
+
