@@ -162,7 +162,6 @@ class TestConclave(TestCase):
             return {in_1, in_2}
 
         actual = protocol()
-        print(actual)
         self.check_workflow(actual, 'hybrid_agg')
 
     def test_hybrid_join_opt(self):
