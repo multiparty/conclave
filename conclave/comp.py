@@ -634,58 +634,63 @@ class ExpandCompositeOps(DagRewriter):
 
     def __init__(self):
         super(ExpandCompositeOps, self).__init__()
+        self.counter = 0
+
+    def _create_unique_suffix(self):
+        """
+        Creates a unique string which will be appended to the end of each sub-relation created for each new hybrid
+        join. This prevents relation name overlap in the case of multiple hybrid operators.
+        """
+        self.counter += 1
+        return "_hybrid_join_" + str(self.counter)
 
     def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
-        # TODO
-        suffix = "rand"
+        suffix = self._create_unique_suffix()
 
         # in left parents' children, replace self with first primitive operator
         # in expanded subdag
-        shuffled_a = sal.shuffle(node.left_parent, "shuffled_a")
+        shuffled_a = sal.shuffle(node.left_parent, "shuffled_a" + suffix)
         shuffled_a.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
-        shuffled_b = sal.shuffle(node.right_parent, "shuffled_b")
+        shuffled_b = sal.shuffle(node.right_parent, "shuffled_b" + suffix)
         shuffled_b.is_mpc = True
         node.right_parent.children.remove(node)
 
-        persisted_b = sal._persist(shuffled_b, "persisted_b")
+        persisted_b = sal._persist(shuffled_b, "persisted_b" + suffix)
         persisted_b.is_mpc = True
-        persisted_a = sal._persist(shuffled_a, "persisted_a")
+        persisted_a = sal._persist(shuffled_a, "persisted_a" + suffix)
         persisted_a.is_mpc = True
 
-        keys_a_closed = sal.project(shuffled_a, "keys_a_closed", ["a"])
+        keys_a_closed = sal.project(shuffled_a, "keys_a_closed" + suffix, ["a"])
         keys_a_closed.is_mpc = True
-        keys_b_closed = sal.project(shuffled_b, "keys_b_closed", ["c"])
+        keys_b_closed = sal.project(shuffled_b, "keys_b_closed" + suffix, ["c"])
         keys_b_closed.is_mpc = True
 
-        keys_a = sal._open(keys_a_closed, "keys_a", 1)
+        keys_a = sal._open(keys_a_closed, "keys_a" + suffix, node.trusted_party)
         keys_a.is_mpc = True
-        keys_b = sal._open(keys_b_closed, "keys_b", 1)
+        keys_b = sal._open(keys_b_closed, "keys_b" + suffix, node.trusted_party)
         keys_b.is_mpc = True
 
-        indexed_a = sal.index(keys_a, "indexed_a", "index_a")
+        indexed_a = sal.index(keys_a, "indexed_a" + suffix, "index_a")
         indexed_a.is_mpc = False
 
-        indexed_b = sal.index(keys_b, "indexed_b", "index_b")
+        indexed_b = sal.index(keys_b, "indexed_b" + suffix, "index_b")
         indexed_b.is_mpc = False
 
-        joined_indices = sal.join(
-            indexed_a, indexed_b, "joined_indices", ["a"], ["c"])
+        joined_indices = sal.join(indexed_a, indexed_b, "joined_indices" + suffix, ["a"], ["c"])
         joined_indices.is_mpc = False
 
         indices_only = sal.project(
-            joined_indices, "indices_only", ["index_a", "index_b"])
+            joined_indices, "indices_only" + suffix, ["index_a", "index_b"])
         indices_only.is_mpc = False
 
-        # TODO: update stored_with to use union of parent out_rel stored_with sets
-        indices_closed = sal._close(
-            indices_only, "indices_closed", {1, 2})
+        stored_with_union = node.get_left_in_rel().stored_with.union(node.get_right_in_rel().stored_with)
+        indices_closed = sal._close(indices_only, "indices_closed" + suffix, stored_with_union)
         indices_closed.is_mpc = True
 
-        joined = sal._index_join(persisted_a, persisted_b, "joined",
-                                 ["a"], ["c"], indices_closed)
+        joined = sal._index_join(persisted_a, persisted_b, node.out_rel.name, ["a"], ["c"], indices_closed)
         joined.is_mpc = True
 
         # replace self with leaf of expanded subdag in each child node

@@ -26,12 +26,12 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            in_1 = sal.create("in1", cols_in_1, set([1]))
+            in_1 = sal.create("in1", cols_in_1, {1})
             cols_in_2 = [
                 defCol("a", "INTEGER", [2]),
                 defCol("b", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
 
             # combine parties' inputs into one relation
             rel = sal.concat([in_1, in_2], "rel")
@@ -42,7 +42,7 @@ class TestConclave(TestCase):
             sal.collect(mult, 1)
 
             # return root nodes
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         actual = protocol()
         self.check_workflow(actual, 'mult_by_zero')
@@ -58,17 +58,17 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
             cols_in_2 = [
                 defCol("a", "INTEGER", [2]),
                 defCol("b", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
             cols_in_3 = [
                 defCol("a", "INTEGER", [3]),
                 defCol("b", "INTEGER", [3])
             ]
-            in_3 = sal.create("in_3", cols_in_3, set([3]))
+            in_3 = sal.create("in_3", cols_in_3, {3})
 
             # combine parties' inputs into one relation
             rel = sal.concat([in_1, in_2, in_3], "rel")
@@ -78,7 +78,7 @@ class TestConclave(TestCase):
             sal.collect(agg, 1)
 
             # return root nodes
-            return set([in_1, in_2, in_3])
+            return {in_1, in_2, in_3}
 
         actual = protocol()
         self.check_workflow(actual, 'concat_pushdown')
@@ -94,12 +94,12 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
             cols_in_2 = [
                 defCol("a", "INTEGER", [2]),
                 defCol("b", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
 
             # combine parties' inputs into one relation
             rel = sal.concat([in_1, in_2], "rel")
@@ -113,7 +113,7 @@ class TestConclave(TestCase):
             sal.collect(proj_c, 1)
 
             # return root nodes
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         actual = protocol()
         self.check_workflow(actual, 'agg_proj')
@@ -127,23 +127,23 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1]),
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
 
             cols_in_2 = [
                 defCol("c", "INTEGER", [2]),
                 defCol("d", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
             proj_b = sal.project(in_2, "proj_b", ["c", "d"])
 
             joined = sal.join(in_1, proj_b, "joined", ["a"], ["c"])
             sal.collect(joined, 1)
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         actual = protocol()
         self.check_workflow(actual, 'join')
 
-    def test_hyrbid_join_opt(self):
+    def test_hybrid_join_opt(self):
 
         @scotch
         @mpc
@@ -153,22 +153,49 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1]),
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
 
             cols_in_2 = [
                 defCol("c", "INTEGER", [1], [2]),
                 defCol("d", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
 
-            joined = sal.join(in_1, in_2, "joined", ["a"], ["c"])
+            result = sal.join(in_1, in_2, "result", ["a"], ["c"])
 
-            sal.collect(joined, 1)
+            sal.collect(result, 1)
             # create dag
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         actual = protocol()
         self.check_workflow(actual, 'hybrid_join')
+
+    def test_hybrid_join_opt_party_two(self):
+
+        @scotch
+        @mpc
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1], [2]),
+                defCol("b", "INTEGER", [1]),
+            ]
+            in_1 = sal.create("in_1", cols_in_1, {1})
+
+            cols_in_2 = [
+                defCol("c", "INTEGER", [2]),
+                defCol("d", "INTEGER", [2])
+            ]
+            in_2 = sal.create("in_2", cols_in_2, {2})
+
+            result = sal.join(in_1, in_2, "result", ["a"], ["c"])
+
+            sal.collect(result, 1)
+            # create dag
+            return {in_1, in_2}
+
+        actual = protocol()
+        self.check_workflow(actual, 'hybrid_join_party_two')
 
     def test_taxi(self):
 
@@ -179,17 +206,17 @@ class TestConclave(TestCase):
                 defCol("companyID", "INTEGER", [1]),
                 defCol("price", "INTEGER", [1])
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
             cols_in_2 = [
                 defCol("companyID", "INTEGER", [2]),
                 defCol("price", "INTEGER", [2])
             ]
-            in_2 = sal.create("in_2", cols_in_2, set([2]))
+            in_2 = sal.create("in_2", cols_in_2, {2})
             cols_in_3 = [
                 defCol("companyID", "INTEGER", [3]),
                 defCol("price", "INTEGER", [3])
             ]
-            in_3 = sal.create("in_3", cols_in_3, set([3]))
+            in_3 = sal.create("in_3", cols_in_3, {3})
 
             cab_data = sal.concat([in_1, in_2, in_3], "cab_data")
 
@@ -217,7 +244,7 @@ class TestConclave(TestCase):
             sal.collect(hhi, 1)
 
             # return root nodes
-            return set([in_1, in_2, in_3])
+            return {in_1, in_2, in_3}
 
         actual = protocol()
         self.check_workflow(actual, 'taxi')
@@ -233,17 +260,17 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            in_1 = sal.create("in_1", cols_in_1, set([1]))
+            in_1 = sal.create("in_1", cols_in_1, {1})
             cols_in_2 = [
                 defCol("a", "INTEGER", [2]),
                 defCol("b", "INTEGER", [2])
             ]
-            in_2 = sal.create("in2", cols_in_2, set([2]))
+            in_2 = sal.create("in2", cols_in_2, {2})
             cols_in_3 = [
                 defCol("a", "INTEGER", [3]),
                 defCol("b", "INTEGER", [3])
             ]
-            in_3 = sal.create("in_3", cols_in_3, set([3]))
+            in_3 = sal.create("in_3", cols_in_3, {3})
 
             # combine parties' inputs into one relation
             rel = sal.concat([in_1, in_2, in_3], "rel")
@@ -255,7 +282,7 @@ class TestConclave(TestCase):
             sal.collect(mult, 1)
 
             # return root nodes
-            return set([in_1, in_2, in_3])
+            return {in_1, in_2, in_3}
 
         actual = protocol()
         self.check_workflow(actual, 'agg_pushdown')

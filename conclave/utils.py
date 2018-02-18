@@ -14,8 +14,8 @@ def merge_coll_sets(left: set, right: set):
     :param right: collusion record
     :returns: all combinations of collusion sets from records
     
-    >>> left = set([frozenset([1, 2]), frozenset([3, 4])])
-    >>> right = set([frozenset([5, 6]), frozenset([7])])
+    >>> left = {frozenset([1, 2]), frozenset([3, 4])}
+    >>> right = {frozenset([5, 6]), frozenset([7])}
     >>> actual = merge_coll_sets(left, right)
     >>> expected = {frozenset({1, 2, 5, 6}), frozenset({1, 2, 7}), frozenset({3, 4, 5, 6}), frozenset({3, 4, 7})}
     >>> actual == expected
