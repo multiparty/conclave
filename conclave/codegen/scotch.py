@@ -51,6 +51,19 @@ class ScotchCodeGen(CodeGen):
             idx_agg_op.out_rel.dbg_str()
         )
 
+    def _generate_hybrid_aggregate(self, hybrid_agg_op: saldag.HybridAggregate):
+        """ Generate code for Aggregate operations. """
+
+        return "HYBRIDAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {} WITH STP {}\n".format(
+            "MPC" if hybrid_agg_op.is_mpc else "",
+            hybrid_agg_op.agg_col.get_name(),
+            hybrid_agg_op.aggregator,
+            hybrid_agg_op.get_in_rel().dbg_str(),
+            ",".join([group_col.get_name() for group_col in hybrid_agg_op.group_cols]),
+            hybrid_agg_op.out_rel.dbg_str(),
+            hybrid_agg_op.trusted_party
+        )
+
     def _generate_aggregate(self, agg_op: saldag.Aggregate):
         """ Generate code for Aggregate operations. """
 

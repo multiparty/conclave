@@ -687,12 +687,32 @@ class HybridJoin(Join):
         self.is_mpc = True
 
     @classmethod
-    def from_join(cls, join_op: Join, trusted_party):
+    def from_join(cls, join_op: Join, trusted_party: int):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
                   join_op.left_join_cols, join_op.right_join_cols, trusted_party)
         obj.children = join_op.children
         for child in obj.children:
             child.replace_parent(join_op, obj)
+        return obj
+
+
+class HybridAggregate(Aggregate):
+    """ Object to store an aggregation assisted by a semi-trusted party over data. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, group_cols: list, agg_col: rel.Column, aggregator: str,
+                 trusted_party: int):
+        """ Initialize HybridAggregate object. """
+        super(HybridAggregate, self).__init__(out_rel, parent, group_cols, agg_col, aggregator)
+        self.name = "hybrid_aggregation"
+        self.trusted_party = trusted_party
+        self.is_mpc = True
+
+    @classmethod
+    def from_aggregate(cls, agg_op: Aggregate, trusted_party: int):
+        obj = cls(agg_op.out_rel, agg_op.parent, agg_op.group_cols, agg_op.agg_col, agg_op.aggregator, trusted_party)
+        obj.children = agg_op.children
+        for child in obj.children:
+            child.replace_parent(agg_op, obj)
         return obj
 
 

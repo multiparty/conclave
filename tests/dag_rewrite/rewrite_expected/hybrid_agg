@@ -1,0 +1,9 @@
+CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+AGG [b, +] FROM (in_1([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
+CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+CREATE RELATION in_2([a {1} {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+AGG [b, +] FROM (in_2([a {1} {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {1} {2}, total_b {2}]) {2}
+CLOSEMPC agg_1([a {1} {2}, total_b {2}]) {2} INTO agg_1_close([a {1} {2}, total_b {2}]) {1, 2}
+CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2}, agg_1_close([a {1} {2}, total_b {2}]) {1, 2}] AS rel([a {1,2} {1}, b {1,2}]) {1, 2}
+HYBRIDAGGMPC [b, +] FROM (rel([a {1,2} {1}, b {1,2}]) {1, 2}) GROUP BY [a] AS agg_obl([a {1,2} {1}, total_b {1,2}]) {1, 2} WITH STP 1
+OPENMPC agg_obl([a {1,2} {1}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2} {1}, total_b {1,2}]) {1}

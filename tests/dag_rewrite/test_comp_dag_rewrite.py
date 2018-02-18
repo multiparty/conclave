@@ -143,6 +143,28 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'join')
 
+    def test_hybrid_agg_opt(self):
+
+        @scotch
+        @mpc
+        def protocol():
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            in_1 = sal.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [1], [2]),
+                defCol("b", "INTEGER", [2])
+            ]
+            in_2 = sal.create("in_2", cols_in_2, {2})
+            sal.collect(sal.aggregate(sal.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "total_b"), 1)
+            return {in_1, in_2}
+
+        actual = protocol()
+        print(actual)
+        self.check_workflow(actual, 'hybrid_agg')
+
     def test_hybrid_join_opt(self):
 
         @scotch

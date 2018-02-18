@@ -100,7 +100,9 @@ class DagRewriter:
 
         for node in ordered:
             print(type(self).__name__, "rewriting", node.out_rel.name)
-            if isinstance(node, saldag.Aggregate):
+            if isinstance(node, saldag.HybridAggregate):
+                self._rewrite_hybrid_aggregate(node)
+            elif isinstance(node, saldag.Aggregate):
                 self._rewrite_aggregate(node)
             elif isinstance(node, saldag.Divide):
                 self._rewrite_divide(node)
@@ -132,46 +134,49 @@ class DagRewriter:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
 
-    def _rewrite_aggregate(self, node):
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
         pass
 
-    def _rewrite_divide(self, node):
+    def _rewrite_hybrid_aggregate(self, node: saldag.HybridAggregate):
         pass
 
-    def _rewrite_project(self, node):
+    def _rewrite_divide(self, node: saldag.Divide):
         pass
 
-    def _rewrite_filter(self, node):
+    def _rewrite_project(self, node: saldag.Project):
         pass
 
-    def _rewrite_multiply(self, node):
+    def _rewrite_filter(self, node: saldag.Filter):
         pass
 
-    def _rewrite_join_flags(self, node):
+    def _rewrite_multiply(self, node: saldag.Multiply):
         pass
 
-    def _rewrite_reveal_join(self, node):
+    def _rewrite_join_flags(self, node: saldag.JoinFlags):
         pass
 
-    def _rewrite_hybrid_join(self, node):
+    def _rewrite_reveal_join(self, node: saldag.RevealJoin):
         pass
 
-    def _rewrite_join(self, node):
+    def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
         pass
 
-    def _rewrite_concat(self, node):
+    def _rewrite_join(self, node: saldag.Join):
         pass
 
-    def _rewrite_close(self, node):
+    def _rewrite_concat(self, node: saldag.Concat):
         pass
 
-    def _rewrite_open(self, node):
+    def _rewrite_close(self, node: saldag.Close):
         pass
 
-    def _rewrite_create(self, node):
+    def _rewrite_open(self, node: saldag.Open):
         pass
 
-    def _rewrite_distinct(self, node):
+    def _rewrite_create(self, node: saldag.Create):
+        pass
+
+    def _rewrite_distinct(self, node: saldag.Distinct):
         pass
 
 
@@ -301,7 +306,6 @@ class MPCPushUp(DagRewriter):
 
         par = next(iter(node.parents))
         if node.is_reversible() and node.is_lower_boundary() and not par.is_root():
-            print("lower boundary", node)
             node.get_in_rel().stored_with = copy.copy(node.out_rel.stored_with)
             node.is_mpc = False
 
@@ -472,30 +476,50 @@ class CollSetPropDown(DagRewriter):
             col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
 
 
-class HybridJoinOpt(DagRewriter):
-    """ DagRewriter subclass specific to HybridJoin optimization rewriting. """
+class HybridOperatorOpt(DagRewriter):
+    """ DagRewriter subclass specific to hybrid operator optimization rewriting. """
 
     def __init__(self):
 
-        super(HybridJoinOpt, self).__init__()
+        super(HybridOperatorOpt, self).__init__()
+
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
+        """ Convert Aggregate node to HybridAggregate node. """
+        if node.is_mpc:
+            out_rel = node.out_rel
+            # TODO extend to multi-column case
+            group_col_idx = node.group_cols[0].idx
+            # oversimplifying here. what if there are multiple singleton coll_sets?
+            singleton_coll_sets = filter(
+                lambda s: len(s) == 1,
+                out_rel.columns[group_col_idx].coll_sets)
+            singleton_coll_sets = sorted(list(singleton_coll_sets))
+            if singleton_coll_sets:
+                trusted_party = next(iter(singleton_coll_sets[0]))
+                hybrid_agg_op = saldag.HybridAggregate.from_aggregate(node, trusted_party)
+                parents = hybrid_agg_op.parents
+                for par in parents:
+                    par.replace_child(node, hybrid_agg_op)
 
     def _rewrite_reveal_join(self, node: saldag.RevealJoin):
-
         # TODO
         pass
 
     def _rewrite_hybrid_join(self, node: saldag.HybridJoin):
 
-        raise Exception("HybridJoin encountered during HybridJoinOpt")
+        raise Exception("HybridJoin encountered during HybridOperatorOpt")
+
+    def _rewrite_hybrid_aggregate(self, node: saldag.HybridAggregate):
+
+        raise Exception("HybridAggregate encountered during HybridOperatorOpt")
 
     def _rewrite_join(self, node: saldag.Join):
         """ Convert Join node to HybridJoin node. """
-
         if node.is_mpc:
             out_rel = node.out_rel
+            # TODO this doesn't look right
             key_col_idx = 0
-            # oversimplifying here. what if there are multiple singleton
-            # coll_sets?
+            # oversimplifying here. what if there are multiple singleton coll_sets?
             singleton_coll_sets = filter(
                 lambda s: len(s) == 1,
                 out_rel.columns[key_col_idx].coll_sets)
@@ -547,7 +571,11 @@ class InsertOpenAndCloseOps(DagRewriter):
                 raise Exception(
                     "different stored_with on non-lower-boundary unary op", node)
 
-    def _rewrite_aggregate(self, node: [saldag.Aggregate, saldag.IndexAggregate]):
+    def _rewrite_hybrid_aggregate(self, node: saldag.HybridAggregate):
+
+        self._rewrite_default_unary(node)
+
+    def _rewrite_aggregate(self, node: saldag.Aggregate):
 
         self._rewrite_default_unary(node)
 
@@ -707,7 +735,7 @@ def rewrite_dag(dag: saldag.OpDag):
     # ironic?
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
-    HybridJoinOpt().rewrite(dag)
+    HybridOperatorOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps().rewrite(dag)
     return dag
@@ -726,21 +754,9 @@ def scotch(f: callable):
     return wrap
 
 
-def sharemind(f: callable):
-    """ Wraps protocol execution to only generate Sharemind code. """
-    from conclave.codegen import sharemind
-    from conclave import CodeGenConfig
-
-    def wrap():
-        code = sharemind.SharemindCodeGen(CodeGenConfig(), f())._generate(None, None)
-        return code
-
-    return wrap
-
-
 def mpc(*args):
     def _mpc(f):
-        def wrapper(*args, **kwargs):
+        def wrapper():
             dag = rewrite_dag(saldag.OpDag(f()))
             return dag
 
@@ -749,11 +765,9 @@ def mpc(*args):
     if len(args) == 1 and callable(args[0]):
         # No arguments, this is the decorator
         # Set default values for the arguments
-        party = None
         return _mpc(args[0])
     else:
         # This is just returning the decorator
-        party = args[0]
         return _mpc
 
 
