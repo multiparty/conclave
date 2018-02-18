@@ -14,7 +14,6 @@ class TestConclave(TestCase):
         mapping = part.heupart(dag, ["sharemind"], ["spark"])
         actual = "###".join([fmwk + str(subdag) + str(parties)
                              for (fmwk, subdag, parties) in mapping])
-        print(actual)
         expected_rootdir = "{}/part_expected".format(os.path.dirname(os.path.realpath(__file__)))
 
         with open(expected_rootdir + '/{}'.format(name), 'r') as f:
