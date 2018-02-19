@@ -11,9 +11,9 @@ PROJECTMPC [a] FROM (shuffled_hybrid_agg_1([a {1,2} {1}, b {1,2}]) {1, 2}) AS ke
 OPENMPC keys_closed_hybrid_agg_1([a ]) {1, 2} INTO keys_hybrid_agg_1([a ]) {1}
 INDEX (keys_hybrid_agg_1([a ]) {1}) AS indexed_hybrid_agg_1([row_index , a ]) {1}
 SORTBY a FROM (indexed_hybrid_agg_1([row_index , a ]) {1}) AS sorted_by_key_hybrid_agg_1([row_index , a ]) {1}
-PROJECT [row_index, a] FROM (sorted_by_key_hybrid_agg_1([row_index , a ]) {1}) AS sorted_by_key_hybrid_agg_1([row_index , a ]) {1}
-CLOSEMPC sorted_by_key_hybrid_agg_1([row_index , a ]) {1} INTO closed_sorted_by_key_hybrid_agg_1([row_index , a ]) {1, 2}
 COMPNEIGHS a FROM (sorted_by_key_hybrid_agg_1([row_index , a ]) {1}) AS eq_flags_hybrid_agg_1([a ]) {1}
 CLOSEMPC eq_flags_hybrid_agg_1([a ]) {1} INTO closed_eq_flags_hybrid_agg_1([a ]) {1, 2}
+PROJECT [row_index, a] FROM (sorted_by_key_hybrid_agg_1([row_index , a ]) {1}) AS sorted_by_key_hybrid_agg_1([row_index , a ]) {1}
+CLOSEMPC sorted_by_key_hybrid_agg_1([row_index , a ]) {1} INTO closed_sorted_by_key_hybrid_agg_1([row_index , a ]) {1, 2}
 IDXAGGMPC [b, +] FROM (persisted_hybrid_agg_1([a , b ]) {1, 2}) GROUP BY [a] AS agg_obl([a , total_b ]) {1, 2}
 OPENMPC agg_obl([a , total_b ]) {1, 2} INTO agg_obl_open([a {1,2} {1}, total_b {1,2}]) {1}
