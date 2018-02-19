@@ -3,7 +3,7 @@ import sys
 
 import conclave.lang as cc
 from conclave import generate_code, dispatch_jobs
-from conclave.config import CodeGenConfig, SharemindCodeGenConfig, NetworkConfig
+from conclave.config import CodeGenConfig, SharemindCodeGenConfig
 from conclave.utils import defCol
 
 
@@ -18,22 +18,22 @@ def protocol():
         defCol("column_c", "INTEGER", [1])
     ]
     right = cc.create("right", input_columns_right, {1})
-    joined_expected = cc.join(left, right, "joined_expected", ["column_a"], ["column_a"])
-    cc.sort_by(joined_expected, "expected", "column_a")
-
+    cc.collect(cc.aggregate(cc.concat([left, right], "rel"), "expected", ["column_a"], "column_b", "+", "total_b"), 1)
     return {left, right}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "simple-join-" + pid
+    workflow_name = "simple-agg-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1]
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
+    conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
-    conclave_config.code_path = os.path.join(current_dir, workflow_name)
+    conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     # point conclave to directory where data is to be read from...
     conclave_config.input_path = os.path.join(current_dir, "data")
     # and written to
