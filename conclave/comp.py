@@ -715,9 +715,9 @@ class ExpandCompositeOps(DagRewriter):
         closed_sorted_by_key.is_mpc = True
 
         group_col_names = [col.name for col in node.group_cols]
-        # TODO figure out what out_agg_col_name should be
+        out_over_col_name = node.out_rel.columns[-1].name
         result = cc.index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name, node.aggregator,
-                                     "total_b",
+                                    out_over_col_name,
                                     closed_eq_flags,
                                     closed_sorted_by_key)
         result.is_mpc = True
