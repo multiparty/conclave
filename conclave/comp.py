@@ -682,7 +682,6 @@ class ExpandCompositeOps(DagRewriter):
         """
         suffix = self._create_unique_agg_suffix()
         group_by_col_name = node.group_cols[0].name
-        over_col_name = node.agg_col.name
 
         shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
         shuffled.is_mpc = True

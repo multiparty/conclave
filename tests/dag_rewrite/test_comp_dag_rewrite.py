@@ -218,6 +218,39 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'hybrid_join_party_two')
 
+    def test_ssn(self):
+
+        @scotch
+        @mpc
+        def protocol():
+            govreg_cols = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            govreg = sal.create("govreg", govreg_cols, {1})
+            govreg_dummy = sal.project(govreg, "govreg_dummy", ["a", "b"])
+            company0_cols = [
+                defCol("c", "INTEGER", [1], [2]),
+                defCol("d", "INTEGER", [1])
+            ]
+            company0 = sal.create("company0", company0_cols, {2})
+            company1_cols = [
+                defCol("c", "INTEGER", [1], [3]),
+                defCol("d", "INTEGER", [1])
+            ]
+            company1 = sal.create("company1", company1_cols, {3})
+            companies = sal.concat([company0, company1], "companies")
+
+            joined = sal.join(govreg_dummy, companies, "joined", ["a"], ["c"])
+            expected = sal.aggregate(joined, "expected", ["b"], "d", "+", "total")
+            sal.collect(expected, 1)
+
+            return {govreg, company0, company1}
+
+        actual = protocol()
+        print(actual)
+        self.check_workflow(actual, 'ssn')
+
     def test_taxi(self):
 
         @scotch
