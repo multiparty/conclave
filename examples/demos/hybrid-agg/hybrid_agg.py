@@ -17,8 +17,8 @@ def protocol():
         defCol("column_a", "INTEGER", [1], [2]),
         defCol("column_c", "INTEGER", [1])
     ]
-    right = cc.create("right", input_columns_right, {1})
-    cc.collect(cc.aggregate(cc.concat([left, right], "rel"), "agg", ["column_a"], "column_b", "+", "total_b"), 1)
+    right = cc.create("right", input_columns_right, {2})
+    cc.collect(cc.aggregate(cc.concat([left, right], "rel"), "actual", ["column_a"], "column_b", "+", "total_b"), 1)
     return {left, right}
 
 
@@ -38,5 +38,5 @@ if __name__ == "__main__":
     # and written to
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
-    job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
+    job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)

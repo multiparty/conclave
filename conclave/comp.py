@@ -681,6 +681,8 @@ class ExpandCompositeOps(DagRewriter):
         Expand hybrid aggregation into a sub-dag of primitive operators.
         """
         suffix = self._create_unique_agg_suffix()
+        group_by_col_name = node.group_cols[0].name
+        over_col_name = node.agg_col.name
 
         shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
         shuffled.is_mpc = True
@@ -689,7 +691,7 @@ class ExpandCompositeOps(DagRewriter):
         persisted = cc._persist(shuffled, "persisted" + suffix)
         persisted.is_mpc = True
 
-        keys_closed = cc.project(shuffled, "keys_closed" + suffix, ["a"])
+        keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
         keys_closed.is_mpc = True
 
         keys = cc._open(keys_closed, "keys" + suffix, node.trusted_party)
@@ -698,14 +700,14 @@ class ExpandCompositeOps(DagRewriter):
         indexed = cc.index(keys, "indexed" + suffix, "row_index")
         indexed.is_mpc = False
 
-        sorted_by_key = cc.sort_by(indexed, "sorted_by_key" + suffix, "a")
+        sorted_by_key = cc.sort_by(indexed, "sorted_by_key" + suffix, group_by_col_name)
         sorted_by_key.is_mpc = False
 
-        eq_flags = cc._comp_neighs(sorted_by_key, "eq_flags" + suffix, "a")
+        eq_flags = cc._comp_neighs(sorted_by_key, "eq_flags" + suffix, group_by_col_name)
         eq_flags.is_mpc = False
 
         # TODO figure out what's going on here
-        sorted_by_key = cc.project(sorted_by_key, "sorted_by_key" + suffix, ["row_index", "a"])
+        sorted_by_key = cc.project(sorted_by_key, "sorted_by_key" + suffix, ["row_index", group_by_col_name])
         sorted_by_key.is_mpc = False
 
         closed_eq_flags = cc._close(eq_flags, "closed_eq_flags" + suffix, node.get_in_rel().stored_with)
@@ -732,6 +734,7 @@ class ExpandCompositeOps(DagRewriter):
         Expand hybrid join into a sub-dag of primitive operators.
         """
         suffix = self._create_unique_join_suffix()
+        # TODO column names should not be hard-coded
 
         # in left parents' children, replace self with first primitive operator
         # in expanded subdag
