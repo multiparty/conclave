@@ -158,7 +158,7 @@ class TestConclave(TestCase):
                 defCol("b", "INTEGER", [2])
             ]
             in_2 = sal.create("in_2", cols_in_2, {2})
-            sal.collect(sal.aggregate(sal.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "total_b"), 1)
+            sal.collect(sal.aggregate(sal.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "b"), 1)
             return {in_1, in_2}
 
         actual = protocol()

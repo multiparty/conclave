@@ -755,7 +755,7 @@ class Dag:
                         unmarked, ordered: list, deterministic: bool = True):
 
         if node in temp_marked:
-            raise Exception("Not a Dag!")
+            raise Exception("Not a Dag! Node ", node, " was in ", temp_marked)
 
         if node not in marked:
             if node in unmarked:
