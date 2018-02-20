@@ -614,7 +614,7 @@ class InsertOpenAndCloseOps(DagRewriter):
         in_stored_with = left_stored_with | right_stored_with
 
         for parent in ordered_pars:
-            if node.is_upper_boundary():
+            if not parent.is_mpc and not isinstance(parent, ccdag.Close) and node.is_mpc:
                 # Entering mpc mode so need to secret-share before op
                 out_rel = copy.deepcopy(parent.out_rel)
                 out_rel.rename(out_rel.name + "_close")
@@ -706,13 +706,15 @@ class ExpandCompositeOps(DagRewriter):
         eq_flags.is_mpc = False
 
         # TODO figure out what's going on here
-        sorted_by_key = cc.project(sorted_by_key, "sorted_by_key" + suffix, ["row_index", group_by_col_name])
-        sorted_by_key.is_mpc = False
+        sorted_by_key_dummy = cc.project(sorted_by_key, "sorted_by_key_dummy" + suffix,
+                                         ["row_index", group_by_col_name])
+        sorted_by_key_dummy.is_mpc = False
 
         closed_eq_flags = cc._close(eq_flags, "closed_eq_flags" + suffix, node.get_in_rel().stored_with)
         closed_eq_flags.is_mpc = True
 
-        closed_sorted_by_key = cc._close(sorted_by_key, "closed_sorted_by_key" + suffix, node.get_in_rel().stored_with)
+        closed_sorted_by_key = cc._close(sorted_by_key_dummy, "closed_sorted_by_key" + suffix,
+                                         node.get_in_rel().stored_with)
         closed_sorted_by_key.is_mpc = True
 
         group_col_names = [col.name for col in node.group_cols]
@@ -788,9 +790,32 @@ class ExpandCompositeOps(DagRewriter):
         joined.children = node.children
 
 
+class StoredWithSimplifier(DagRewriter):
+    """
+    Converts all stored_with sets larger than 1 with special all-parties-stored-with set.
+    TODO this is a pre-deadline hack
+    """
+
+    def __init__(self, all_parties: list = None):
+        super(StoredWithSimplifier, self).__init__()
+        if all_parties is None:
+            all_parties = {1, 2, 3}
+        self.all_parties = all_parties
+
+    def rewrite(self, dag: ccdag.OpDag):
+        """ Traverse topologically sorted DAG, inspect each node. """
+        ordered = dag.top_sort()
+        if self.reverse:
+            ordered = ordered[::-1]
+
+        for node in ordered:
+            print(type(self).__name__, "rewriting", node.out_rel.name)
+            if len(node.out_rel.stored_with) > 1:
+                node.out_rel.stored_with = self.all_parties
+
+
 def rewrite_dag(dag: ccdag.OpDag):
     """ Combines and calls all rewrite operations. """
-
     MPCPushDown().rewrite(dag)
     # ironic?
     MPCPushUp().rewrite(dag)
@@ -798,6 +823,7 @@ def rewrite_dag(dag: ccdag.OpDag):
     HybridOperatorOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps().rewrite(dag)
+    StoredWithSimplifier().rewrite(dag)
     return dag
 
 

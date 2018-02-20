@@ -12,22 +12,28 @@ def protocol():
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1])
     ]
-    govreg = cc.create("govreg", govreg_cols, {1})
+    govreg = cc.create("a_govreg", govreg_cols, {1})
+    govreg_dummy = cc.project(govreg, "govreg_dummy", ["a", "b"])
+
     company0_cols = [
         defCol("c", "INTEGER", [1], [2]),
-        defCol("d", "INTEGER", [1])
+        defCol("d", "INTEGER", [2])
     ]
     company0 = cc.create("company0", company0_cols, {2})
+    company0_dummy = cc.project(company0, "company0_dummy", ["c", "d"])
+
     company1_cols = [
         defCol("c", "INTEGER", [1], [3]),
-        defCol("d", "INTEGER", [1])
+        defCol("d", "INTEGER", [3])
     ]
     company1 = cc.create("company1", company1_cols, {3})
-    companies = cc.concat([company0, company1], "companies")
+    company1_dummy = cc.project(company1, "company1_dummy", ["c", "d"])
 
-    joined = cc.join(govreg, companies, "joined", ["a"], ["c"])
-    expected = cc.aggregate(joined, "expected", ["b"], "d", "+", "total")
-    cc.collect(expected, 1)
+    companies = cc.concat([company0_dummy, company1_dummy], "companies")
+
+    joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
+    # expected = cc.aggregate(joined, "expected", ["b"], "d", "+", "total")
+    cc.collect(joined, 1)
 
     return {govreg, company0, company1}
 
@@ -49,4 +55,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
-    dispatch_jobs(job_queue, conclave_config)
+    # dispatch_jobs(job_queue, conclave_config)

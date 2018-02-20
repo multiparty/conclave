@@ -227,7 +227,7 @@ class TestConclave(TestCase):
                 defCol("a", "INTEGER", [1]),
                 defCol("b", "INTEGER", [1])
             ]
-            govreg = sal.create("govreg", govreg_cols, {1})
+            govreg = sal.create("a_govreg", govreg_cols, {1})
             govreg_dummy = sal.project(govreg, "govreg_dummy", ["a", "b"])
             company0_cols = [
                 defCol("c", "INTEGER", [1], [2]),

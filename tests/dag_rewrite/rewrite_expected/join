@@ -1,7 +1,7 @@
 CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC in_1([a {1}, b {1}]) {1} INTO in_1_close([a {1}, b {1}]) {1, 2}
+CLOSEMPC in_1([a {1}, b {1}]) {1} INTO in_1_close([a {1}, b {1}]) {1, 2, 3}
 CREATE RELATION in_2([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [c, d] FROM (in_2([c {2}, d {2}]) {2}) AS proj_b([c {2}, d {2}]) {2}
-CLOSEMPC proj_b([c {2}, d {2}]) {2} INTO proj_b_close([c {2}, d {2}]) {1, 2}
-(in_1_close([a {1}, b {1}]) {1, 2}) JOINMPC (proj_b_close([c {2}, d {2}]) {1, 2}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2}
-OPENMPC joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2} INTO joined_open([a {1,2}, b {1,2}, d {1,2}]) {1}
+CLOSEMPC proj_b([c {2}, d {2}]) {2} INTO proj_b_close([c {2}, d {2}]) {1, 2, 3}
+(in_1_close([a {1}, b {1}]) {1, 2, 3}) JOINMPC (proj_b_close([c {2}, d {2}]) {1, 2, 3}) ON [a] AND [c] AS joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2, 3}
+OPENMPC joined([a {1,2}, b {1,2}, d {1,2}]) {1, 2, 3} INTO joined_open([a {1,2}, b {1,2}, d {1,2}]) {1}

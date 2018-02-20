@@ -1,6 +1,7 @@
 import conclave.comp as comp
 import conclave.dag as condag
 import conclave.partition as part
+from conclave.codegen import scotch
 from conclave.codegen.python import PythonCodeGen
 from conclave.codegen.sharemind import SharemindCodeGen
 from conclave.codegen.spark import SparkCodeGen
@@ -37,6 +38,7 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     # only apply optimizations if required
     if apply_optimizations:
         dag = comp.rewrite_dag(dag)
+    print(scotch.ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0))
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
     # for each sub condag run code gen and add resulting job to job queue
