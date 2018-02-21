@@ -32,8 +32,8 @@ def protocol():
     companies = cc.concat([company0_dummy, company1_dummy], "companies")
 
     joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
-    # expected = cc.aggregate(joined, "expected", ["b"], "d", "+", "total")
-    cc.collect(joined, 1)
+    actual = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
+    cc.collect(actual, 1)
 
     return {govreg, company0, company1}
 
@@ -55,4 +55,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
-    # dispatch_jobs(job_queue, conclave_config)
+    dispatch_jobs(job_queue, conclave_config)

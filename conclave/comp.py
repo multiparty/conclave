@@ -488,7 +488,8 @@ class HybridOperatorOpt(DagRewriter):
         if node.is_mpc:
             out_rel = node.out_rel
             # TODO extend to multi-column case
-            group_col_idx = node.group_cols[0].idx
+            # by convention the group-by column comes first in the result of an aggregation
+            group_col_idx = 0
             # oversimplifying here. what if there are multiple singleton coll_sets?
             singleton_coll_sets = filter(
                 lambda s: len(s) == 1,
