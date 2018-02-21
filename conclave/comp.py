@@ -656,8 +656,9 @@ class ExpandCompositeOps(DagRewriter):
     (for example hybrid joins) into subdags of primitive operators.
     """
 
-    def __init__(self):
+    def __init__(self, use_leaky_ops: bool = True):
         super(ExpandCompositeOps, self).__init__()
+        self.use_leaky_ops = use_leaky_ops
         self.join_counter = 0
         self.agg_counter = 0
 
@@ -677,9 +678,9 @@ class ExpandCompositeOps(DagRewriter):
         self.agg_counter += 1
         return "_hybrid_agg_" + str(self.agg_counter)
 
-    def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
+    def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
         """
-        Expand hybrid aggregation into a sub-dag of primitive operators.
+        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
         """
         suffix = self._create_unique_agg_suffix()
         group_by_col_name = node.group_cols[0].name
@@ -731,9 +732,22 @@ class ExpandCompositeOps(DagRewriter):
         # add former children to children of leaf
         result.children = node.children
 
-    def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
+    def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
         """
-        Expand hybrid join into a sub-dag of primitive operators.
+        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the non-leaky version.
+        """
+        pass
+
+    def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
+        # TODO cleaner way would be to have a LeakyHybridAggregate class
+        if self.use_leaky_ops:
+            self._rewrite_agg_leaky(node)
+        else:
+            self._rewrite_agg_non_leaky(node)
+
+    def _rewrite_join_leaky(self, node: ccdag.HybridJoin):
+        """
+        Expand hybrid join into a sub-dag of primitive operators. This uses the leaky version.
         """
         suffix = self._create_unique_join_suffix()
         # TODO column names should not be hard-coded
@@ -790,14 +804,26 @@ class ExpandCompositeOps(DagRewriter):
         # add former children to children of leaf
         joined.children = node.children
 
+    def _rewrite_join_non_leaky(self, node: ccdag.HybridJoin):
+        """
+        Expand hybrid join into a sub-dag of primitive operators. This uses the non-leaky version.
+        """
+        pass
+
+    def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
+        if self.use_leaky_ops:
+            self._rewrite_join_leaky(node)
+        else:
+            self._rewrite_join_non_leaky(node)
+
 
 class StoredWithSimplifier(DagRewriter):
     """
-    Converts all stored_with sets larger than 1 with special all-parties-stored-with set.
+    Converts all stored_with sets larger than 1 to special all-parties-stored-with set.
     TODO this is a pre-deadline hack
     """
 
-    def __init__(self, all_parties: list = None):
+    def __init__(self, all_parties: set = None):
         super(StoredWithSimplifier, self).__init__()
         if all_parties is None:
             all_parties = {1, 2, 3}
@@ -815,16 +841,17 @@ class StoredWithSimplifier(DagRewriter):
                 node.out_rel.stored_with = self.all_parties
 
 
-def rewrite_dag(dag: ccdag.OpDag):
+def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = True):
     """ Combines and calls all rewrite operations. """
+    if all_parties is None:
+        all_parties = [1, 2, 3]
     MPCPushDown().rewrite(dag)
-    # ironic?
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
     HybridOperatorOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
-    ExpandCompositeOps().rewrite(dag)
-    StoredWithSimplifier().rewrite(dag)
+    ExpandCompositeOps(use_leaky_ops).rewrite(dag)
+    StoredWithSimplifier(set(all_parties)).rewrite(dag)
     return dag
 
 

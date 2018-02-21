@@ -33,7 +33,6 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     else:
         cfg = CodeGenConfig.from_dict(conclave_config)
 
-    # apply optimizations
     dag = condag.OpDag(protocol())
     # only apply optimizations if required
     if apply_optimizations:
