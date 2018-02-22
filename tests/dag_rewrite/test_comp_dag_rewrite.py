@@ -187,7 +187,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'hybrid_join')
 
     def test_hybrid_join_opt_non_leaky(self):
-
         def protocol():
             # define inputs
             cols_in_1 = [

@@ -3,31 +3,40 @@ import sys
 
 import conclave.lang as cc
 from conclave import generate_code, dispatch_jobs
-from conclave.config import CodeGenConfig, SharemindCodeGenConfig, NetworkConfig
+from conclave.config import CodeGenConfig, SharemindCodeGenConfig
 from conclave.utils import defCol
 
 
 def protocol():
-    input_columns_left = [
-        defCol("column_a", "INTEGER", [1]),
-        defCol("column_b", "INTEGER", [1])
+    # define inputs
+    left_cols = [
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1]),
     ]
-    left = cc.create("left", input_columns_left, {1})
-    input_columns_right = [
-        defCol("column_a", "INTEGER", [1], [2]),
-        defCol("column_c", "INTEGER", [1])
+    left = cc.create("left", left_cols, {1})
+    left_dummy = cc.project(left, "zzz_left_dummy", ["a", "b"])
+
+    right_cols = [
+        defCol("c", "INTEGER", [1], [2]),
+        defCol("d", "INTEGER", [2])
     ]
-    right = cc.create("right", input_columns_right, {2})
-    cc.collect(cc.aggregate(cc.concat([left, right], "rel"), "actual", ["column_a"], "column_b", "+", "total_b"), 1)
+    right = cc.create("right", right_cols, {2})
+    right_dummy = cc.project(right, "right_dummy", ["c", "d"])
+
+    actual = cc.join(left_dummy, right_dummy, "actual", ["a"], ["c"])
+
+    cc.collect(actual, 1)
+    # create dag
     return {left, right}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "hybrid-agg-" + pid
+    workflow_name = "hybrid-join-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
+    conclave_config.use_leaky_ops = False
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))

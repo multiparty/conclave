@@ -9,17 +9,16 @@ from conclave.utils import defCol
 
 def protocol():
     input_columns_left = [
-        defCol("column_a", "INTEGER", [1]),
-        defCol("column_b", "INTEGER", [1])
+        defCol("a", "INTEGER", [1]),
+        defCol("b", "INTEGER", [1])
     ]
     left = cc.create("left", input_columns_left, {1})
     input_columns_right = [
-        defCol("column_a", "INTEGER", [1]),
-        defCol("column_c", "INTEGER", [1])
+        defCol("c", "INTEGER", [1]),
+        defCol("d", "INTEGER", [1])
     ]
     right = cc.create("right", input_columns_right, {1})
-    joined_expected = cc.join(left, right, "joined_expected", ["column_a"], ["column_a"])
-    cc.sort_by(joined_expected, "expected", "column_a")
+    expected = cc.join(left, right, "expected", ["a"], ["c"])
 
     return {left, right}
 
