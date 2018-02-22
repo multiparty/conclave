@@ -808,7 +808,57 @@ class ExpandCompositeOps(DagRewriter):
         """
         Expand hybrid join into a sub-dag of primitive operators. This uses the non-leaky version.
         """
-        pass
+        suffix = self._create_unique_join_suffix()
+        # TODO column names should not be hard-coded
+
+        # in left parents' children, replace self with first primitive operator
+        # in expanded subdag
+        left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
+        left_shuffled.is_mpc = True
+        node.left_parent.children.remove(node)
+
+        # same for right parent
+        right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
+        right_shuffled.is_mpc = True
+        node.right_parent.children.remove(node)
+
+        left_persisted = cc._persist(left_shuffled, "left_persisted" + suffix)
+        left_persisted.is_mpc = True
+
+        right_persisted = cc._persist(right_shuffled, "right_persisted" + suffix)
+        right_persisted.is_mpc = True
+
+        left_keys_closed = cc.project(left_shuffled, "left_keys_closed" + suffix, ["a"])
+        left_keys_closed.is_mpc = True
+
+        right_keys_closed = cc.project(right_shuffled, "right_keys_closed" + suffix, ["c"])
+        right_keys_closed.is_mpc = True
+
+        left_keys_open = cc._open(left_keys_closed, "left_keys_open" + suffix, node.trusted_party)
+        left_keys_open.is_mpc = True
+
+        right_keys_open = cc._open(right_keys_closed, "right_keys_open" + suffix, node.trusted_party)
+        right_keys_open.is_mpc = True
+
+        # TODO remove dummy ops
+        left_dummy = cc.project(left_keys_open, "left_dummy" + suffix, ["a"])
+        left_dummy.is_mpc = False
+
+        right_dummy = cc.project(right_keys_open, "right_dummy" + suffix, ["c"])
+        right_dummy.is_mpc = False
+
+        flags = cc._join_flags(left_dummy, right_dummy, "flags" + suffix, ["a"], ["c"])
+        flags.is_mpc = False
+
+        flags_closed = cc._close(flags, "flags_closed" + suffix, {1, 2, 3})
+        flags_closed.is_mpc = True
+
+        joined = cc._flag_join(left_persisted, right_persisted, node.out_rel.name, ["a"], ["c"], flags_closed)
+        # replace self with leaf of expanded subdag in each child node
+        for child in node.get_sorted_children():
+            child.replace_parent(node, joined)
+        # add former children to children of leaf
+        joined.children = node.children
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:

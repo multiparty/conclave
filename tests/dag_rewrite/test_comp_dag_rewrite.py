@@ -1,8 +1,12 @@
-from unittest import TestCase
-import conclave.lang as cc
-from conclave.comp import mpc, scotch
-from conclave.utils import *
 import os
+from unittest import TestCase
+
+import conclave.dag as ccdag
+import conclave.lang as cc
+from conclave import CodeGenConfig
+from conclave.codegen.scotch import ScotchCodeGen
+from conclave.comp import mpc, scotch, rewrite_dag
+from conclave.utils import *
 
 
 class TestConclave(TestCase):
@@ -16,11 +20,9 @@ class TestConclave(TestCase):
         self.assertEqual(expected, code)
 
     def test_mult_by_zer0(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -48,11 +50,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'mult_by_zero')
 
     def test_concat_pushdown(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -84,11 +84,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'concat_pushdown')
 
     def test_agg_proj(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -119,7 +117,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'agg_proj')
 
     def test_join(self):
-
         @scotch
         @mpc
         def protocol():
@@ -144,7 +141,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'join')
 
     def test_hybrid_agg_opt(self):
-
         @scotch
         @mpc
         def protocol():
@@ -165,7 +161,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'hybrid_agg')
 
     def test_hybrid_join_opt(self):
-
         @scotch
         @mpc
         def protocol():
@@ -191,8 +186,34 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'hybrid_join')
 
-    def test_hybrid_join_opt_party_two(self):
+    def test_hybrid_join_opt_non_leaky(self):
 
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1]),
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+
+            cols_in_2 = [
+                defCol("c", "INTEGER", [1], [2]),
+                defCol("d", "INTEGER", [2])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {2})
+
+            result = cc.join(in_1, in_2, "result", ["a"], ["c"])
+
+            cc.collect(result, 1)
+            # create dag
+            return {in_1, in_2}
+
+        dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=False)
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+
+        self.check_workflow(actual, 'hybrid_join_non_leaky')
+
+    def test_hybrid_join_opt_party_two(self):
         @scotch
         @mpc
         def protocol():
@@ -219,7 +240,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'hybrid_join_party_two')
 
     def test_ssn(self):
-
         @scotch
         @mpc
         def protocol():
@@ -253,11 +273,9 @@ class TestConclave(TestCase):
             return {govreg, company0, company1}
 
         actual = protocol()
-        print(actual)
         self.check_workflow(actual, 'ssn')
 
     def test_taxi(self):
-
         @scotch
         @mpc
         def protocol():
@@ -309,11 +327,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'taxi')
 
     def test_agg_pushdown(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -345,4 +361,3 @@ class TestConclave(TestCase):
 
         actual = protocol()
         self.check_workflow(actual, 'agg_pushdown')
-
