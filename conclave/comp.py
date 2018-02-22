@@ -682,6 +682,12 @@ class ExpandCompositeOps(DagRewriter):
         """
         Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
         """
+        pass
+
+    def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
+        """
+        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the non-leaky version.
+        """
         suffix = self._create_unique_agg_suffix()
         group_by_col_name = node.group_cols[0].name
 
@@ -732,16 +738,11 @@ class ExpandCompositeOps(DagRewriter):
         # add former children to children of leaf
         result.children = node.children
 
-    def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
-        """
-        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the non-leaky version.
-        """
-        pass
-
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            self._rewrite_agg_leaky(node)
+            # TODO implement leaky agg
+            self._rewrite_agg_non_leaky(node)
         else:
             self._rewrite_agg_non_leaky(node)
 

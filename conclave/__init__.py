@@ -36,7 +36,7 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     dag = condag.OpDag(protocol())
     # only apply optimizations if required
     if apply_optimizations:
-        dag = comp.rewrite_dag(dag)
+        dag = comp.rewrite_dag(dag, use_leaky_ops=conclave_config.use_leaky_ops)
     # partition into subdags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
     # for each sub condag run code gen and add resulting job to job queue
