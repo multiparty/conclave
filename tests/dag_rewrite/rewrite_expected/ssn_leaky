@@ -1,0 +1,38 @@
+CREATE RELATION a_govreg([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION company0([c {1} {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [c, d] FROM (company0([c {1} {2}, d {2}]) {2}) AS company0_dummy([c {1} {2}, d {2}]) {2}
+CLOSEMPC company0_dummy([c {1} {2}, d {2}]) {2} INTO company0_dummy_close([c {1} {2}, d {2}]) {1, 2, 3}
+CREATE RELATION company1([c {1} {3}, d {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
+PROJECT [c, d] FROM (company1([c {1} {3}, d {3}]) {3}) AS company1_dummy([c {1} {3}, d {3}]) {3}
+CLOSEMPC company1_dummy([c {1} {3}, d {3}]) {3} INTO company1_dummy_close([c {1} {3}, d {3}]) {1, 2, 3}
+CONCATMPC [company0_dummy_close([c {1} {2}, d {2}]) {1, 2, 3}, company1_dummy_close([c {1} {3}, d {3}]) {1, 2, 3}] AS companies([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}
+PROJECT [a, b] FROM (a_govreg([a {1}, b {1}]) {1}) AS govreg_dummy([a {1}, b {1}]) {1}
+CLOSEMPC govreg_dummy([a {1}, b {1}]) {1} INTO govreg_dummy_close([a {1}, b {1}]) {1, 2, 3}
+SHUFFLEMPC (govreg_dummy_close([a {1}, b {1}]) {1, 2, 3}) AS shuffled_a_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}
+PERSISTMPC shuffled_a_hybrid_join_1([a {1}, b {1}]) {1, 2, 3} INTO persisted_a_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}
+PROJECTMPC [a] FROM (shuffled_a_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}) AS keys_a_closed_hybrid_join_1([a ]) {1, 2, 3}
+OPENMPC keys_a_closed_hybrid_join_1([a ]) {1, 2, 3} INTO keys_a_hybrid_join_1([a ]) {1}
+INDEX (keys_a_hybrid_join_1([a ]) {1}) AS indexed_a_hybrid_join_1([index_a , a ]) {1}
+SHUFFLEMPC (companies([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}) AS shuffled_b_hybrid_join_1([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}
+PERSISTMPC shuffled_b_hybrid_join_1([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3} INTO persisted_b_hybrid_join_1([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}
+PROJECTMPC [c] FROM (shuffled_b_hybrid_join_1([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}) AS keys_b_closed_hybrid_join_1([c ]) {1, 2, 3}
+OPENMPC keys_b_closed_hybrid_join_1([c ]) {1, 2, 3} INTO keys_b_hybrid_join_1([c ]) {1}
+INDEX (keys_b_hybrid_join_1([c ]) {1}) AS indexed_b_hybrid_join_1([index_b , c ]) {1}
+(indexed_a_hybrid_join_1([index_a , a ]) {1}) JOIN (indexed_b_hybrid_join_1([index_b , c ]) {1}) ON [a] AND [c] AS joined_indices_hybrid_join_1([a , index_a , index_b ]) {1}
+PROJECT [index_a, index_b] FROM (joined_indices_hybrid_join_1([a , index_a , index_b ]) {1}) AS indices_only_hybrid_join_1([index_a , index_b ]) {1}
+CLOSEMPC indices_only_hybrid_join_1([index_a , index_b ]) {1} INTO indices_closed_hybrid_join_1([index_a , index_b ]) {1, 2, 3}
+(persisted_a_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}) IDXJOINMPC (persisted_b_hybrid_join_1([c {1,2} {1,3} {1} {2,3}, d {2,3}]) {1, 2, 3}) WITH INDECES (indices_closed_hybrid_join_1([index_a , index_b ]) {1, 2, 3}) ON [a] AND [c] AS joined([a , b , d ]) {1, 2, 3}
+SHUFFLEMPC (joined([a , b , d ]) {1, 2, 3}) AS shuffled_hybrid_agg_1([a , b , d ]) {1, 2, 3}
+PERSIST shuffled_hybrid_agg_1([a , b , d ]) {1, 2, 3} INTO persisted_hybrid_agg_1([a , b , d ]) {1, 2, 3}
+PROJECT [b] FROM (shuffled_hybrid_agg_1([a , b , d ]) {1, 2, 3}) AS keys_closed_hybrid_agg_1([b ]) {1, 2, 3}
+OPENMPC keys_closed_hybrid_agg_1([b ]) {1, 2, 3} INTO keys_open_hybrid_agg_1([b ]) {1}
+INDEX (keys_open_hybrid_agg_1([b ]) {1}) AS indexed_hybrid_agg_1([row_index , b ]) {1}
+DISTINCT [b] FROM (keys_open_hybrid_agg_1([b ]) {1}) AS distinct_keys_hybrid_agg_1([b ]) {1}
+PROJECT [b] FROM (distinct_keys_hybrid_agg_1([b ]) {1}) AS persist_dist_keys_hybrid_agg_1([b ]) {1}
+INDEX (distinct_keys_hybrid_agg_1([b ]) {1}) AS indexed_distinct_hybrid_agg_1([key_index , b ]) {1}
+(indexed_hybrid_agg_1([row_index , b ]) {1}) JOIN (indexed_distinct_hybrid_agg_1([key_index , b ]) {1}) ON [b] AND [b] AS indexes_joined_hybrid_agg_1([b , row_index , key_index ]) {1}
+PROJECT [row_index, key_index] FROM (indexes_joined_hybrid_agg_1([b , row_index , key_index ]) {1}) AS indexes_only_hybrid_agg_1([row_index , key_index ]) {1}
+CLOSEMPC indexes_only_hybrid_agg_1([row_index , key_index ]) {1} INTO keys_lookup_hybrid_agg_1([row_index , key_index ]) {1, 2, 3}
+CLOSEMPC distinct_keys_hybrid_agg_1([b ]) {1} INTO closed_distinct_hybrid_agg_1([b ]) {1, 2, 3}
+LKYIDXAGGMPC [d, +] FROM (persisted_hybrid_agg_1([a , b , d ]) {1, 2, 3}) GROUP BY [b] WITH KEYS closed_distinct_hybrid_agg_1 AND MAP keys_lookup_hybrid_agg_1 AS actual([b , total ]) {1, 2, 3}
+OPENMPC actual([b , total ]) {1, 2, 3} INTO actual_open([b {1,2,3} {1,2} {1,3} {1}, total {1,2,3}]) {1}

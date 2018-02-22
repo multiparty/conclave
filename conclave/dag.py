@@ -391,6 +391,24 @@ class IndexAggregate(Aggregate):
         return obj
 
 
+class LeakyIndexAggregate(Aggregate):
+    """ Object to store an leaky indexed aggregation operation. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, group_cols: list,
+                 agg_col: rel.Column, aggregator: str, dist_keys: OpNode, keys_to_idx_map: OpNode):
+        """ Initialize LeakyIndexAggregate object. """
+        super(LeakyIndexAggregate, self).__init__(out_rel, parent, group_cols, agg_col, aggregator)
+        self.dist_keys = dist_keys
+        self.keys_to_idx_map = keys_to_idx_map
+
+    @classmethod
+    def from_aggregate(cls, agg_op: Aggregate, eq_flag_op: OpNode, sorted_keys_op: OpNode):
+        """ Generate an LeakyIndexAggregate object from an Aggregate object. """
+        obj = cls(agg_op.out_rel, agg_op.parent, agg_op.group_cols,
+                  agg_op.agg_col, agg_op.aggregator, eq_flag_op, sorted_keys_op)
+        return obj
+
+
 class Project(UnaryOpNode):
     """ Object to store a project operation. """
 

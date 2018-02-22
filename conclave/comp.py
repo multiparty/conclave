@@ -682,7 +682,62 @@ class ExpandCompositeOps(DagRewriter):
         """
         Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
         """
-        pass
+        suffix = self._create_unique_agg_suffix()
+        group_by_col_name = node.group_cols[0].name
+
+        shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
+        shuffled.is_mpc = True
+        node.parent.children.remove(node)
+
+        persisted = cc._persist(shuffled, "persisted" + suffix)
+        persisted.isMPC = True
+
+        keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
+        keys_closed.isMPC = True
+
+        keys_open = cc._open(keys_closed, "keys_open" + suffix, node.trusted_party)
+        keys_open.isMPC = True
+
+        indexed = cc.index(keys_open, "indexed" + suffix, "row_index")
+        indexed.isMPC = False
+
+        distinct_keys = cc.distinct(keys_open, "distinct_keys" + suffix, [group_by_col_name])
+        distinct_keys.isMPC = False
+
+        # TODO use persist
+        persist_dist_keys = cc.project(distinct_keys, "persist_dist_keys" + suffix, [group_by_col_name])
+        persist_dist_keys.isMPC = False
+
+        indexed_distinct = cc.index(distinct_keys, "indexed_distinct" + suffix, "key_index")
+        indexed_distinct.isMPC = False
+
+        indexes_joined = cc.join(indexed, indexed_distinct, "indexes_joined" + suffix, [group_by_col_name],
+                                 [group_by_col_name])
+        indexes_joined.isMPC = False
+
+        # TODO: could project row indexes away too
+        indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
+        indexes_only.isMPC = False
+
+        closed_distinct = cc._close(distinct_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
+        closed_distinct.isMPC = True
+        keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
+        keys_lookup.isMPC = True
+
+        group_col_names = [col.name for col in node.group_cols]
+        out_over_col_name = node.out_rel.columns[-1].name
+
+        result = cc._leaky_index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name,
+                                           node.aggregator,
+                                           out_over_col_name,
+                                           closed_distinct,
+                                           keys_lookup)
+        result.is_mpc = True
+        # replace self with leaf of expanded subdag in each child node
+        for child in node.get_sorted_children():
+            child.replace_parent(node, result)
+        # add former children to children of leaf
+        result.children = node.children
 
     def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
         """
@@ -713,7 +768,7 @@ class ExpandCompositeOps(DagRewriter):
         eq_flags = cc._comp_neighs(sorted_by_key, "eq_flags" + suffix, group_by_col_name)
         eq_flags.is_mpc = False
 
-        # TODO figure out what's going on here
+        # TODO check if we can use a persist here
         sorted_by_key_dummy = cc.project(sorted_by_key, "sorted_by_key_dummy" + suffix,
                                          ["row_index", group_by_col_name])
         sorted_by_key_dummy.is_mpc = False
@@ -741,8 +796,7 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            # TODO implement leaky agg
-            self._rewrite_agg_non_leaky(node)
+            self._rewrite_agg_leaky(node)
         else:
             self._rewrite_agg_non_leaky(node)
 

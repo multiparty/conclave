@@ -140,9 +140,7 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'join')
 
-    def test_hybrid_agg_opt(self):
-        @scotch
-        @mpc
+    def test_hybrid_agg_leaky_opt(self):
         def protocol():
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -157,8 +155,28 @@ class TestConclave(TestCase):
             cc.collect(cc.aggregate(cc.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "total_b"), 1)
             return {in_1, in_2}
 
-        actual = protocol()
-        self.check_workflow(actual, 'hybrid_agg')
+        dag = rewrite_dag(ccdag.OpDag(protocol()))
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, "hybrid_agg_leaky")
+
+    def test_hybrid_agg_non_leaky_opt(self):
+        def protocol():
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [1], [2]),
+                defCol("b", "INTEGER", [2])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {2})
+            cc.collect(cc.aggregate(cc.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "total_b"), 1)
+            return {in_1, in_2}
+
+        dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=False)
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, "hybrid_agg_non_leaky")
 
     def test_hybrid_join_opt(self):
         @scotch
@@ -209,7 +227,6 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=False)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-
         self.check_workflow(actual, 'hybrid_join_non_leaky')
 
     def test_hybrid_join_opt_party_two(self):
@@ -238,9 +255,7 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'hybrid_join_party_two')
 
-    def test_ssn(self):
-        @scotch
-        @mpc
+    def test_ssn_leaky(self):
         def protocol():
             govreg_cols = [
                 defCol("a", "INTEGER", [1]),
@@ -266,13 +281,49 @@ class TestConclave(TestCase):
             companies = cc.concat([company0_dummy, company1_dummy], "companies")
 
             joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
-            actual = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
-            cc.collect(actual, 1)
+            res = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
+            cc.collect(res, 1)
 
             return {govreg, company0, company1}
 
-        actual = protocol()
-        self.check_workflow(actual, 'ssn')
+        dag = rewrite_dag(ccdag.OpDag(protocol()))
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, "ssn_leaky")
+
+    def test_ssn_non_leaky(self):
+        def protocol():
+            govreg_cols = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            govreg = cc.create("a_govreg", govreg_cols, {1})
+            govreg_dummy = cc.project(govreg, "govreg_dummy", ["a", "b"])
+
+            company0_cols = [
+                defCol("c", "INTEGER", [1], [2]),
+                defCol("d", "INTEGER", [2])
+            ]
+            company0 = cc.create("company0", company0_cols, {2})
+            company0_dummy = cc.project(company0, "company0_dummy", ["c", "d"])
+
+            company1_cols = [
+                defCol("c", "INTEGER", [1], [3]),
+                defCol("d", "INTEGER", [3])
+            ]
+            company1 = cc.create("company1", company1_cols, {3})
+            company1_dummy = cc.project(company1, "company1_dummy", ["c", "d"])
+
+            companies = cc.concat([company0_dummy, company1_dummy], "companies")
+
+            joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
+            res = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
+            cc.collect(res, 1)
+
+            return {govreg, company0, company1}
+
+        dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=False)
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, "ssn_non_leaky")
 
     def test_taxi(self):
         @scotch

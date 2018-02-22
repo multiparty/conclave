@@ -32,6 +32,8 @@ class CodeGen:
         for node in nodes:
             if isinstance(node, HybridAggregate):
                 op_code += self._generate_hybrid_aggregate(node)
+            elif isinstance(node, LeakyIndexAggregate):
+                op_code += self._generate_leaky_hybrid_aggregate(node)
             elif isinstance(node, IndexAggregate):
                 op_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):

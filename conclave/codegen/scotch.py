@@ -1,12 +1,11 @@
-from conclave.codegen import CodeGen
 import conclave.dag as saldag
+from conclave.codegen import CodeGen
 
 
 class ScotchCodeGen(CodeGen):
     """ Codegen subclass for generating relational debugging language. """
 
     def __init__(self, config, dag: saldag.Dag):
-
         super(ScotchCodeGen, self).__init__(config, dag)
 
     def _generate_job(self, job_name, output_directory, op_code: str):
@@ -37,6 +36,20 @@ class ScotchCodeGen(CodeGen):
             ",".join([c.name for c in flag_join_op.left_join_cols]),
             ",".join([c.name for c in flag_join_op.right_join_cols]),
             flag_join_op.out_rel.dbg_str()
+        )
+
+    def _generate_leaky_hybrid_aggregate(self, lky_idx_agg_op: saldag.LeakyIndexAggregate):
+        """ Generate code for LeakyIndexAggregate operations. """
+
+        return "LKYIDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] WITH KEYS {} AND MAP {} AS {}\n".format(
+            "MPC" if lky_idx_agg_op.is_mpc else "",
+            lky_idx_agg_op.agg_col.get_name(),
+            lky_idx_agg_op.aggregator,
+            lky_idx_agg_op.get_in_rel().dbg_str(),
+            ",".join([group_col.get_name() for group_col in lky_idx_agg_op.group_cols]),
+            lky_idx_agg_op.dist_keys.out_rel.name,
+            lky_idx_agg_op.keys_to_idx_map.out_rel.name,
+            lky_idx_agg_op.out_rel.dbg_str()
         )
 
     def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
@@ -107,7 +120,7 @@ class ScotchCodeGen(CodeGen):
             divide_op.get_in_rel().dbg_str(),
             divide_op.out_rel.dbg_str()
         )
-        
+
     def _generate_multiply(self, multiply_op: saldag.Multiply):
         """ Generate code for Multiply operations. """
 
@@ -213,7 +226,7 @@ class ScotchCodeGen(CodeGen):
         """ Generate code for Filer operations. """
 
         filterStr = "{} {} {}".format(filter_op.target_col,
-                filter_op.operator, filter_op.filter_expr)
+                                      filter_op.operator, filter_op.filter_expr)
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
             filterStr,
