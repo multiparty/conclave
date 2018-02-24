@@ -30,8 +30,8 @@ D uint32[[2]] duplicate(D uint32[[2]] rel, uint numDups) {
     uint numRows = shape(rel)[0];
     uint numVals = numRows * numDups;
     D uint32[[2]] dupped(numVals, shape(rel)[1]);
-    for (uint r = 0; r < numRows; r+=1) {
-        dupped[r * numDups : (r + 1) * numDups,:] = rel[:,:];
+    for (uint r = 0; r < numDups; r+=1) {
+        dupped[r * numRows : (r + 1) * numRows,:] = rel[:,:];
     }
     return dupped;
 }
