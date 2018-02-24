@@ -719,7 +719,7 @@ class ExpandCompositeOps(DagRewriter):
         indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
         indexes_only.isMPC = False
 
-        closed_distinct = cc._close(distinct_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
+        closed_distinct = cc._close(persist_dist_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
         closed_distinct.isMPC = True
         keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
         keys_lookup.isMPC = True

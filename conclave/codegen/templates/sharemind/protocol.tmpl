@@ -320,8 +320,9 @@ D uint32[[2]] indexAggregateSum(D uint32[[2]] rows, uint valCol, D uint32[[2]] k
     res[:,1] = 0;
 
     for (uint r = 0; r < nrows; r+=1) {
-        uint idx = (uint)indeces[r,1];
-        res[idx,1] = res[idx,1] + rows[r,valCol];
+        uint rowIdx = (uint)indeces[r,0];
+        uint keyIdx = (uint)indeces[r,1];
+        res[keyIdx,1] = res[keyIdx,1] + rows[rowIdx,valCol];
     }
 
     return res;

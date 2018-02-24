@@ -16,6 +16,6 @@ INDEX (distinct_keys_hybrid_agg_1([a ]) {1}) AS indexed_distinct_hybrid_agg_1([k
 (indexed_hybrid_agg_1([row_index , a ]) {1}) JOIN (indexed_distinct_hybrid_agg_1([key_index , a ]) {1}) ON [a] AND [a] AS indexes_joined_hybrid_agg_1([a , row_index , key_index ]) {1}
 PROJECT [row_index, key_index] FROM (indexes_joined_hybrid_agg_1([a , row_index , key_index ]) {1}) AS indexes_only_hybrid_agg_1([row_index , key_index ]) {1}
 CLOSEMPC indexes_only_hybrid_agg_1([row_index , key_index ]) {1} INTO keys_lookup_hybrid_agg_1([row_index , key_index ]) {1, 2, 3}
-CLOSEMPC distinct_keys_hybrid_agg_1([a ]) {1} INTO closed_distinct_hybrid_agg_1([a ]) {1, 2, 3}
+CLOSEMPC persist_dist_keys_hybrid_agg_1([a ]) {1} INTO closed_distinct_hybrid_agg_1([a ]) {1, 2, 3}
 LKYIDXAGGMPC [b, +] FROM (persisted_hybrid_agg_1([a , b ]) {1, 2, 3}) GROUP BY [a] WITH KEYS closed_distinct_hybrid_agg_1 AND MAP keys_lookup_hybrid_agg_1 AS agg_obl([a , total_b ]) {1, 2, 3}
 OPENMPC agg_obl([a , total_b ]) {1, 2, 3} INTO agg_obl_open([a {1,2} {1}, total_b {1,2}]) {1}

@@ -87,7 +87,9 @@ class SharemindCodeGen(CodeGen):
         # TODO: handle subclassing more gracefully
         miner_code = ""
         for node in nodes:
-            if isinstance(node, IndexAggregate):
+            if isinstance(node, LeakyIndexAggregate):
+                miner_code += self._generate_leaky_index_aggregate(node)
+            elif isinstance(node, IndexAggregate):
                 miner_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
                 miner_code += self._generate_aggregate(node)
@@ -210,7 +212,7 @@ class SharemindCodeGen(CodeGen):
                     self.config.output_path + "/" + name
                 )
             else:
-                hdfs_cmd = "cp {}.csv {}.csv".format(
+                hdfs_cmd = "mv {}.csv {}.csv".format(
                     code_path + "/" + job_name + "/" + name,
                     self.config.output_path + "/" + name
                 )
@@ -274,6 +276,22 @@ class SharemindCodeGen(CodeGen):
             "IN_REL_NAME": agg_op.get_in_rel().name,
             "KEY_COL_IDX": agg_op.group_cols[0].idx,
             "AGG_COL_IDX": agg_op.agg_col.idx
+        }
+        return pystache.render(template, data)
+
+    def _generate_leaky_index_aggregate(self, lky_idx_agg_op: LeakyIndexAggregate):
+        """ Generate code for LeakyIndexAggregate operations. """
+
+        template = open(
+            "{0}/leaky_index_aggregate_sum.tmpl".format(self.template_directory), 'r').read()
+            
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": lky_idx_agg_op.out_rel.name,
+            "IN_REL_NAME": lky_idx_agg_op.get_in_rel().name,
+            "AGG_COL_IDX": lky_idx_agg_op.agg_col.idx,
+            "KEYS_REL": lky_idx_agg_op.dist_keys.out_rel.name,
+            "INDEXES_REL": lky_idx_agg_op.keys_to_idx_map.out_rel.name
         }
         return pystache.render(template, data)
 
