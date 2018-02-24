@@ -288,6 +288,7 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()))
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        print(actual)
         self.check_workflow(actual, "ssn_leaky")
 
     def test_ssn_non_leaky(self):
