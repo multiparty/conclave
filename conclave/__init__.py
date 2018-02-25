@@ -64,7 +64,7 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     return job_queue
 
 
-def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig):
+def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch: bool = True):
     """
     Dispatches jobs to respective backends.
     :param job_queue: jobs to dispatch
@@ -76,8 +76,19 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig):
     if len(conclave_config.all_pids) > 1:
         networked_peer = _setup_networked_peer(conclave_config.network_config)
 
-    dispatch_all(conclave_config, networked_peer, job_queue)
-
+    if time_dispatch:
+        # TODO use timeit
+        import time
+        startTime = time.time()
+        dispatch_all(conclave_config, networked_peer, job_queue)
+        elapsedTime = time.time() - startTime
+        print("TIMED", conclave_config.name, round(elapsedTime, 3))
+        with open("timing_results.csv", "a+") as time_f:
+            out = ",".join([conclave_config.name, str(round(elapsedTime, 3))])
+            time_f.write(out + "\n")
+    else:
+        dispatch_all(conclave_config, networked_peer, job_queue)
+    
 
 def generate_and_dispatch(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
                           local_frameworks: list, apply_optimizations: bool = True):

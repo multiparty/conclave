@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import pickle
-
+import sys
 
 class IAMMsg:
     """ Message identifying peer. """
@@ -134,6 +134,7 @@ class SalmonPeer:
         # early messages got buffered so we need to
         # forward them to newly-registered the dispatcher
         for msg in self.msg_buffer:
+            print("msgmsg", msg)
             if isinstance(msg, DoneMsg):
                 self.dispatcher.receive_msg(msg)
         self.msg_buffer = [msg for msg in self.msg_buffer if isinstance(msg, DoneMsg)]
@@ -182,8 +183,10 @@ class SalmonPeer:
                 connection_made = asyncio.Future()
                 self.peer_connections[other_pid] = connection_made
                 to_wait_on.append(connection_made)
-        self.loop.run_until_complete(asyncio.gather(
-            *to_wait_on))
+        self.loop.run_until_complete(asyncio.gather(*to_wait_on))
+        # prevent new incoming connections
+        self.server.close()
+        self.loop.run_until_complete(self.server.wait_closed())
         # TODO: think about another round of synchronization here
         # done connecting
         # unwrap futures that hold ready connections
@@ -214,6 +217,6 @@ def setup_peer(config):
     """
     loop = asyncio.get_event_loop()
     peer = SalmonPeer(loop, config)
-    loop.run_until_complete(peer.server)
+    peer.server = loop.run_until_complete(peer.server)
     peer.connect_to_others()
     return peer

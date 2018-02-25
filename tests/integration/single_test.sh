@@ -12,9 +12,10 @@ trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
-export PYTHONPATH=${HOME}/Desktop/conclave
+export PYTHONPATH=${HOME}/conclave
 
 # set up data
+mkdir -p ${DIR}/data
 if [ "$(ls -A ${DIR}/data)" ]; then
     rm ${DIR}/data/*.csv
 else
