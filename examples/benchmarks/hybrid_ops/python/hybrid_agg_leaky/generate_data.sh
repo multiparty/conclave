@@ -6,6 +6,6 @@ do
     for party in 1 2 3;
         do
             OUT=/mnt/shared/hybrid_agg_data/${size}/in${party}.csv
-            python3 ${CC}/examples/gen_util.py ${OUT} 2 ${size} ${size} ${party}
+            python3 ${CC}/examples/gen_util.py ${OUT} 2 ${size} ${size} ${party} 0
         done
 done
