@@ -75,8 +75,8 @@ class SharemindCodeGen(CodeGen):
         job = SharemindJob(job_name, self.config.code_path + "/" + job_name,
                            controller_pid, input_parties)
         # check if this party participates in any way
-        if not op_code:
-            job.skip = True
+        # if not op_code:
+        #     job.skip = True
         return job, op_code
 
     def _generate_miner_code(self, nodes: list):
