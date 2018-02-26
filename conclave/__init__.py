@@ -14,7 +14,8 @@ from conclave.net import setup_peer
 def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
                   local_frameworks: list, apply_optimizations: bool = True):
     """
-    Applies optimization rewrite passes to protocol, partitions resulting condag, and generates backend specific code for
+    Applies optimization rewrite passes to protocol, partitions resulting condag, and generates backend specific code
+    for
     each sub-condag.
     :param protocol: protocol to compile
     :param conclave_config: conclave configuration
@@ -87,10 +88,11 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
         print("TIMED", conclave_config.name, round(elapsed_time, 3), formatted_time)
         with open("timing_results.csv", "a+") as time_f:
             out = ",".join([conclave_config.name, str(round(elapsed_time, 3)), str(formatted_time)])
+            time_f.write(conclave_config.name + "\n")
             time_f.write(out + "\n")
     else:
         dispatch_all(conclave_config, networked_peer, job_queue)
-    
+
 
 def generate_and_dispatch(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
                           local_frameworks: list, apply_optimizations: bool = True):
