@@ -11,14 +11,13 @@ from conclave.net import SalmonPeer
 from conclave.net import setup_peer
 
 
-def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
+def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
                   local_frameworks: list, apply_optimizations: bool = True):
     """
-    Applies optimization rewrite passes to protocol, partitions resulting condag, and generates backend specific code
-    for
-    each sub-condag.
+    Applies optimization rewrite passes to protocol, partitions resulting dag, and generates backend specific code
+    for each sub-dag.
     :param protocol: protocol to compile
-    :param conclave_config: conclave configuration
+    :param cfg: conclave configuration
     :param mpc_frameworks: available mpc backend frameworks
     :param local_frameworks: available local-processing backend frameworks
     :param apply_optimizations: flag indicating if optimization rewrite passes should be applied to condag
@@ -28,19 +27,13 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
     # currently only allow one local and one mpc framework
     assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
 
-    # set up code gen config object
-    if isinstance(conclave_config, CodeGenConfig):
-        cfg = conclave_config
-    else:
-        cfg = CodeGenConfig.from_dict(conclave_config)
-
     dag = condag.OpDag(protocol())
     # only apply optimizations if required
     if apply_optimizations:
-        dag = comp.rewrite_dag(dag, use_leaky_ops=conclave_config.use_leaky_ops)
-    # partition into subdags that will run in specific frameworks
+        dag = comp.rewrite_dag(dag, use_leaky_ops=cfg.use_leaky_ops)
+    # partition into sub-dags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
-    # for each sub condag run code gen and add resulting job to job queue
+    # for each sub-dag run code gen and add resulting job to job queue
     job_queue = []
     for job_num, (framework, sub_dag, stored_with) in enumerate(mapping):
         print(job_num, framework)
@@ -58,9 +51,8 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
             job_queue.append(job)
         else:
             raise Exception("Unknown framework: " + framework)
-
         # TODO: this probably doesn't belong here
-        if conclave_config.pid not in stored_with:
+        if cfg.pid not in stored_with:
             job.skip = True
     return job_queue
 
@@ -68,6 +60,7 @@ def generate_code(protocol: callable, conclave_config: CodeGenConfig, mpc_framew
 def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch: bool = True):
     """
     Dispatches jobs to respective backends.
+    :param time_dispatch: will record the execution time of dispatch if true
     :param job_queue: jobs to dispatch
     :param conclave_config: conclave configuration
     """
@@ -88,7 +81,6 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
         print("TIMED", conclave_config.name, round(elapsed_time, 3), formatted_time)
         with open("timing_results.csv", "a+") as time_f:
             out = ",".join([conclave_config.name, str(round(elapsed_time, 3)), str(formatted_time)])
-            time_f.write(conclave_config.name + "\n")
             time_f.write(out + "\n")
     else:
         dispatch_all(conclave_config, networked_peer, job_queue)
@@ -97,7 +89,7 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
 def generate_and_dispatch(protocol: callable, conclave_config: CodeGenConfig, mpc_frameworks: list,
                           local_frameworks: list, apply_optimizations: bool = True):
     """
-    Calls generate_code to generate code from protocol and :func:`~salmon.__init__.dispatch_jobs` to
+    Calls generate_code to generate code from protocol and :func:`~conclave.__init__.dispatch_jobs` to
     dispatch it.
     """
 
