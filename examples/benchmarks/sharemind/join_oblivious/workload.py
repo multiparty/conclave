@@ -16,7 +16,7 @@ def protocol():
     in1_dummy = cc.project(in1, "zzz_left_dummy", ["a", "b"])
 
     in2_columns = [
-        defCol("c", "INTEGER", [1]),
+        defCol("c", "INTEGER", [2]),
         defCol("d", "INTEGER", [2])
     ]
     in2 = cc.create("in2", in2_columns, {2})
@@ -51,4 +51,4 @@ if __name__ == "__main__":
     conclave_config.input_path = os.path.join("/mnt/shared", data_root)
     conclave_config.output_path = os.path.join("/mnt/shared", data_root)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
-    # dispatch_jobs(job_queue, conclave_config)
+    dispatch_jobs(job_queue, conclave_config)
