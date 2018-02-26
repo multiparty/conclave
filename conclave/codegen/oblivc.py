@@ -56,14 +56,14 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _generate_create(self, create_op: Create):
+    def _generate_close(self, close_op: Close):
         """ Generate code for Create operations. """
 
         template = open(
-            "{0}/create.tmpl".format(self.template_directory), 'r').read()
+            "{0}/close.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "RELNAME": create_op.out_rel.name,
+            "RELNAME": close_op.out_rel.name,
             "PID": self.pid
         }
 
@@ -127,11 +127,44 @@ class OblivcCodeGen(CodeGen):
         data = {
             "IN_REL": project_op.get_in_rel().name,
             "OUT_REL": project_op.out_rel.name,
-            "PROJ_COLS": [c.idx for c in selected_cols],
+            "PROJ_COLS": ','.join(c.idx for c in selected_cols),
             "NUM_COLS": len(selected_cols)
         }
 
         return pystache.render(template, data)
 
+    # TODO: will probably crash if no operands (scalar only) - add check in C template
+    def _generate_multiply(self, mult_op: Multiply):
+        """ Generate code for Multiply operations. """
+
+        template = open(
+            "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
+
+        op_cols = mult_op.operands
+        target_col = mult_op.target_col.idx
+        scalar = 1
+        operands = []
+
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                operands.append(op_col.idx)
+            else:
+                scalar = op_col
+
+        new_col = 0
+        if target_col not in set(operands):
+            new_col = 1
+
+        data = {
+            "IN_REL": mult_op.get_in_rel().name,
+            "OUT_REL": mult_op.out_rel.name,
+            "OPERANDS": ','.join(i for i in operands),
+            "SCALAR": scalar,
+            "NUM_OPS": len(operands),
+            "OP_COL_IDX": target_col,
+            "NEW_COL": new_col
+        }
+
+        return pystache.render(template, data)
 
 
