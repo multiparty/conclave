@@ -1,6 +1,5 @@
 import asyncio
-import re
-from subprocess import call, Popen, PIPE
+from subprocess import call
 
 
 class SharemindDispatcher:

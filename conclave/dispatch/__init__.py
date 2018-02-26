@@ -2,6 +2,15 @@ import conclave.job
 from . import sharemind, spark, python
 
 
+def _synchronize(networked_peer):
+    """
+    Waits for other peers to finish all jobs before shutting down.
+    """
+    # TODO
+    if networked_peer:
+        pass
+
+
 def dispatch_all(conclave_config, networked_peer, job_queue: list):
     """
     Dispatches jobs in job queue.
@@ -28,3 +37,5 @@ def dispatch_all(conclave_config, networked_peer, job_queue: list):
                 print(e)
         else:
             print("Skipping other party's job: ", job)
+
+    _synchronize(networked_peer)

@@ -306,7 +306,7 @@ D uint32[[2]] indexJoin(D uint32[[2]] leftRel, uint leftJoinCol, D uint32[[2]] r
             }
         }
     }
-    return result;
+    return shuffleRows(result);
 }
 
 template <domain D : shared3p>
