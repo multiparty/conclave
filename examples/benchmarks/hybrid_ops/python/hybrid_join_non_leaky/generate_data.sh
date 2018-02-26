@@ -1,7 +1,7 @@
 #!/bin/bash
 export PYTHONPATH=${HOME}/conclave
 CC=${HOME}/conclave
-for size in 10 100 1000 10000 100000 1000000;
+for size in 10 100 1000 2000 3000;
 do
     for party in 1 2;
         do
