@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <obliv.h>
+#include <obliv.oh>
+
+#include "concat.h"
+
+void loadData(protocolIo *io);
+void displayData(protocolIo *io);
+
+int main(int argc, char **argv)
+{
+	const char *remote_host = strtok({{{IP_AND_PORT}}}, ":");
+ 	const char *port = strtok(NULL, ":");
+  	ProtocolDesc pd;
+	protocolIo io;
+	io.src = {{{INPUT_PATH}}};
+	io.rows = ROWS;
+	io.cols = COLS;
+	loadData(&io);
+
+	printf("Connecting to %s on port %s ...\n", remote_host, port);
+    if({{{PID}}} == '1')
+    {
+      if(protocolAcceptTcp2P(&pd,port)!=0)
+      {
+        exit(1);
+      }
+    }
+    else
+    {
+      if(protocolConnectTcp2P(&pd,remote_host,port)!=0)
+      {
+        exit(1);
+      }
+    }
+
+	setCurrentParty(&pd,{{{PID}}}=='1'?1:2);
+
+  	execYaoProtocol(&pd,protocol,&io);
+  	cleanupProtocol(&pd);
+
+    displayData(&io);
+
+  	return 0;
+
+}
+
+void displayData(protocolIo *io)
+{
+    for (int i = 0; i < io->rows; i++)
+    {
+        for (int j = 0; j < io->cols; j++)
+        {
+            printf("|  %i|%i : %i  |", i, j, io->ret[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void loadData(protocolIo *io)
+{
+
+	int i = 0;
+  	char buffer[ROWS][COLS];
+  	char *record, *line;
+
+	FILE *fstream = fopen(io->src, "r");
+
+
+	if (fstream == NULL)
+	{
+	      printf("\n file opening failed ");
+	}
+
+	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
+	{
+		int *arr = malloc(sizeof(int) * COLS);
+		record = strtok(line, ",");
+
+		int j = 0;
+		while(record != NULL)
+		{
+			arr[j] = atoi(record);
+			record = strtok(NULL,",");
+			j++;
+		}
+		memcpy(io->mat[i], arr, sizeof(int) * COLS);
+		i++;
+	}
+
+	fclose(fstream);
+}
