@@ -461,6 +461,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "TYPE": "uint32",
             "OUT_REL": join_op.out_rel.name,
+            "LEAKY_SUFFIX": "Leaky" if self.config.use_leaky_ops else "",
             "LEFT_IN_REL": join_op.get_left_in_rel().name,
             "LEFT_KEY_COLS": "{" + left_key_cols_str + "}",
             "RIGHT_IN_REL": join_op.get_right_in_rel().name,

@@ -44,12 +44,13 @@ def setup():
 
 class TestSharemind(TestCase):
 
-    def check_workflow(self, dag, name):
+    def check_workflow(self, dag, name, use_leaky_ops=True):
         expected_rootdir = \
             "{}/sharemind_expected".format(os.path.dirname(os.path.realpath(__file__)))
 
         sm_cfg = SharemindCodeGenConfig()
         cfg = CodeGenConfig('cfg').with_sharemind_config(sm_cfg)
+        cfg.use_leaky_ops = use_leaky_ops
         cg = SharemindCodeGen(cfg, dag, 1)
 
         actual = cg._generate('code', '/tmp')[1]['miner']
@@ -161,6 +162,32 @@ class TestSharemind(TestCase):
         dag = protocol()
         self.check_workflow(dag, 'shuffle')
 
+    def test_join_leaky(self):
+
+        @dag_only
+        def protocol():
+            colsIn1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            in1 = sal.create("in1", colsIn1, {1})
+            colsIn2 = [
+                defCol("a", "INTEGER", [2]),
+                defCol("b", "INTEGER", [2])
+            ]
+            in2 = sal.create("in2", colsIn2, {2})
+
+            cl1 = sal._close(in1, "cl1", {1, 2, 3})
+            cl2 = sal._close(in2, "cl2", {1, 2, 3})
+            res = sal.join(cl1, cl2, "res", ["a"], ["a"])
+
+            opened = sal._open(res, "opened", 1)
+
+            return {in1, in2}
+
+        dag = protocol()
+        self.check_workflow(dag, 'join_leaky')
+
     def test_join(self):
 
         @dag_only
@@ -185,5 +212,4 @@ class TestSharemind(TestCase):
             return {in1, in2}
 
         dag = protocol()
-        self.check_workflow(dag, 'join')
-
+        self.check_workflow(dag, 'join', use_leaky_ops=False)

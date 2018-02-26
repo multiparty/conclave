@@ -36,16 +36,16 @@ if __name__ == "__main__":
     workflow_name = "hybrid-join-non-leaky-" + pid + "-" + data_root
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.network_config = {
-        "pid": int(pid),
-        "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
-        }
-    }
+    # conclave_config.network_config = {
+    #     "pid": int(pid),
+    #     "parties": {
+    #         1: {"host": "ca-spark-node-0", "port": 9001},
+    #         2: {"host": "cb-spark-node-0", "port": 9002},
+    #         3: {"host": "cc-spark-node-0", "port": 9003}
+    #     }
+    # }
     conclave_config.use_leaky_ops = False
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     conclave_config.input_path = os.path.join("/mnt/shared", data_root)

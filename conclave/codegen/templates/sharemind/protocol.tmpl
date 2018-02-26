@@ -58,7 +58,7 @@ D uint32[[2]] filterByKeepFlags(D uint32[[2]] rel, uint32[[1]] keepFlags) {
 }
 
 template <domain D : shared3p>
-D uint32[[2]] obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
+D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
     D uint32[[2]] leftShuffled = shuffleRows(left);
     D uint32[[2]] rightShuffled = shuffleRows(right);
     uint nrowsLeft = shape(left)[0];
@@ -67,6 +67,14 @@ D uint32[[2]] obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2
     D uint32[[2]] rightDupped = duplicate(rightShuffled, nrowsLeft);
     D uint32[[1]] eqFlags = (uint32) (leftStretched[:,leftJoinColIdx] == rightDupped[:,rightJoinColIdx]);
     return joinFromEqFlags(eqFlags, leftStretched, leftJoinColIdx, rightDupped, rightJoinColIdx);
+}
+
+template <domain D : shared3p>
+D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
+    D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
+    // TODO: assert join cols are singletons
+    D uint32[[2]] res = _obliviousJoin(leftRel, leftJoinCols[0], rightRel, rightJoinCols[0]);
+    return project(res, colsToKeep);
 }
 
 template <domain D : shared3p>
@@ -84,7 +92,7 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
 }
 
 template <domain D : shared3p>
-D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
+D uint32[[2]] joinLeaky(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
     D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
     // TODO: assert join cols are singletons
     // perform native join
@@ -96,6 +104,7 @@ D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
     );
     return project(res, colsToKeep);
 }
+
 template <domain D : shared3p>
 D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     uint nrows = shape(rows)[0];
