@@ -3,27 +3,6 @@ import os
 import tempfile
 
 
-"""
-*** EXAMPLE INVOCATION ***
-TODO this isn't up-to-date
-net_conf = NetworkConfig(
-    ["ca-spark-node-0", "cb-spark-node-0", "cc-spark-node-0"],
-    [8020, 8020, 8020],
-    1
-)
-
-spark_conf = SparkConfig("spark://ca-spark-node-0:8020")
-
-sharemind_conf = SharemindCodeGenConfig("/mnt/data")
-
-config_all = CodeGenConfig("big_job"). \
-    with_sharemind_config(sharemind_conf). \
-    with_spark_config(spark_conf). \
-    with_network_config(net_conf)
-    
-"""
-
-
 class NetworkConfig:
     """ Config object for network module. """
 
