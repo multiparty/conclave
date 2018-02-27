@@ -133,7 +133,6 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    # TODO: will probably crash if no operands (scalar only) - add check in C template
     def _generate_multiply(self, mult_op: Multiply):
         """ Generate code for Multiply operations. """
 
