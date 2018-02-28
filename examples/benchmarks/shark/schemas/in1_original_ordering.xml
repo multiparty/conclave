@@ -1,0 +1,7 @@
+<table name="in1_original_ordering" dataSource="DS1">
+    <column key="true" type="primitive">
+        <source name="idx" type="uint32"/>
+        <target name="idx" type="uint32"/>
+    </column>
+</table>
+<script name="import-script.sb"/>
