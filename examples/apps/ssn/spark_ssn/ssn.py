@@ -3,7 +3,7 @@ import conclave.dispatch as dis
 from conclave.comp import dag_only
 from conclave.utils import *
 from conclave.codegen import spark
-from conclave import CodeGenConfig
+from conclave.config import CodeGenConfig, SparkConfig
 import sys
 
 
@@ -42,7 +42,10 @@ def ssn(namenode, root, f_size, master_url):
         return set([in1, in2, in3])
 
     dag = protocol()
-    config = CodeGenConfig('ssn_spark_{}'.format(f_size))
+
+    spark_config = SparkConfig(master_url)
+
+    config = CodeGenConfig('ssn_spark_{}'.format(f_size)).with_spark_config(spark_config)
 
     config.code_path = "/mnt/shared/" + config.name
     config.input_path = "hdfs://{}/{}/{}" \
@@ -54,7 +57,7 @@ def ssn(namenode, root, f_size, master_url):
     job = cg.generate(config.name, config.output_path)
     job_queue = [job]
 
-    dis.dispatch_all(master_url, None, job_queue)
+    dis.dispatch_all(config, None, job_queue)
 
 
 if __name__ == "__main__":
