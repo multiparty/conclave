@@ -25,8 +25,6 @@ def ssn(namenode, root, f_size, master_url):
         ]
         in2 = sal.create("company0", colsInB, {2})
 
-        projb = sal.project(in2, "projb", ["a", "d"])
-
         colsInC = [
             defCol("a", "INTEGER", [2]),
             defCol("d", "INTEGER", [2])
