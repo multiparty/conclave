@@ -1,4 +1,4 @@
-<table name="company1" dataSource="DS1">
+<table name="company0" dataSource="DS1">
     <column key="true" type="primitive">
         <source name="c" type="uint32"/>
         <target name="c" type="uint32"/>
