@@ -1,4 +1,4 @@
-<table name="in1" dataSource="DS1">
+<table name="govreg" dataSource="DS1">
     <column key="true" type="primitive">
         <source name="a" type="uint32"/>
         <target name="a" type="uint32"/>
