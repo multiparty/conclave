@@ -13,6 +13,7 @@ def generate(out_path, num_cols, num_rows, input_range, seed, use_random):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     with open(out_path, "w+") as f:
+        f.write('"a","b"')
         for j in range(num_rows):
             if use_random:
                 f.write(",".join([str(randint(1, int(input_range))) for _ in range(num_cols)]))
