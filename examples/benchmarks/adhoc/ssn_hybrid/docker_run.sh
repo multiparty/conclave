@@ -13,7 +13,11 @@ docker exec -ti sharemind-client sh -c "cd /mnt/shared/ && bash ssn_hybrid/input
 docker exec -ti sharemind-client sh -c "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd /mnt/shared/ && bash ssn_hybrid/submit_scripts/submit_shark_join_1.sh"
 # local arranging
 python3 python/arrange_2.py
-# last step
+# last step shark join
 docker exec -ti sharemind-client sh -c "cd /mnt/shared/ && bash ssn_hybrid/input_scripts/ordering_3.sh"
 docker exec -ti sharemind-client sh -c "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd /mnt/shared/ && bash ssn_hybrid/submit_scripts/submit_shark_join_2.sh"
+# local hybrid aggregation step
+python3 python/hybrid_agg_3.py
+docker exec -ti sharemind-client sh -c "cd /mnt/shared/ && bash ssn_hybrid/input_scripts/hybrid_agg_keys.sh"
+docker exec -ti sharemind-client sh -c "export LD_LIBRARY_PATH=/usr/local/sharemind/lib/ && cd /mnt/shared/ && bash ssn_hybrid/submit_scripts/submit_hybrid_agg_3.sh"
 # done

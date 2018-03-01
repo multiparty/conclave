@@ -1,0 +1,11 @@
+<table name="sorted_by_key" dataSource="DS1">
+    <column key="true" type="primitive">
+        <source name="row_index" type="uint32"/>
+        <target name="row_index" type="uint32"/>
+    </column>
+    <column key="true" type="primitive">
+        <source name="column_a" type="uint32"/>
+        <target name="column_a" type="uint32"/>
+    </column>
+</table>
+<script name="import-script.sb"/>
