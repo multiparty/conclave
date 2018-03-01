@@ -351,10 +351,12 @@ D uint32[[2]] flagJoin(D uint32[[2]] eqFlags, D uint32[[2]] left, uint leftJoinC
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);
-    pd_shared3p uint32 [[2]] in1 = readFromDb("DS1", "in1");
-    pd_shared3p uint32 [[2]] in2 = readFromDb("DS1", "in2");
-    pd_shared3p uint32 [[2]] joined = join(in1, (uint){0}, in2, (uint){0}, (uint){0,1,3});
-    publish("joined", declassify(joined));
+    pd_shared3p uint32 [[2]] govreg = readFromDb("DS1", "govreg");
+    pd_shared3p uint32 [[2]] company0 = readFromDb("DS1", "company0");
+    pd_shared3p uint32 [[2]] company1 = readFromDb("DS1", "company1");
+    pd_shared3p uint32 [[2]] companies = cat(company0, company1);
+    pd_shared3p uint32 [[2]] joined = join(govreg, (uint){0}, companies, (uint){0}, (uint){0,1,3});
+    pd_shared3p uint32 [[2]] ssn_result = aggregateSum(joined, (uint)1, (uint)2);
+    publish("ssn_result", declassify(ssn_result));
     tdbCloseConnection(ds);
 }
-
