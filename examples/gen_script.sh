@@ -2,7 +2,7 @@
 
 write_data () {
 sudo mkdir /mnt/bench/$1
-sudo python3 gen_util.py /mnt/bench/$1/in1 4 $1 $1 'a,b,c,d'
+sudo python3 gen_util.py /mnt/bench/$1/in1 4 $1 $1 'a,b'
 hadoop fs -put /mnt/bench/$1 ~/bench/
 }
 

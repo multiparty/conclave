@@ -162,7 +162,7 @@ class SparkCodeGen(CodeGen):
             "{0}/{1}.tmpl".format(self.template_directory, 'concat'), 'r').read()
 
         data = {
-            'INRELS': [r.name for r in concat_op.get_in_rels()],
+            'INRELS': ', '.join(r.name for r in concat_op.get_in_rels()),
             'OUTREL': concat_op.out_rel.name,
             'CACHE_VAR': cache_var(concat_op)
         }
