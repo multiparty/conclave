@@ -431,9 +431,11 @@ void main() {
     pd_shared3p uint32 [[2]] in2_result = process_rel("in2");
     uint nrows = shape(in1_result)[0];
     uint ncols = shape(in1_result)[1];
-    pd_shared3p uint32 [[2]] shark_joined(nrows, ncols + ncols - 1);
-    shark_joined[ : , : ncols] = in1_result;
-    shark_joined[ : , ncols : ] = in2_result[ : , 1 : ]; // skip redundant key-column
-    publish("joined", declassify(shuffleRows(shark_joined)));
+    pd_shared3p uint32 [[2]] shark_joined(nrows, ncols + ncols - 2);
+    shark_joined[ : , : ncols - 1] = in1_result[ : , 1 : ]; // will agg on second column
+    shark_joined[ : , ncols - 1: ] = in2_result[ : , 1 : ]; // skip redundant key-column
+    pd_shared3p uint32 [[2]] joined_and_shuffled = shuffleRows(shark_joined);
+    persist("DS1", "joined_and_shuffled", joined_and_shuffled);
+    publish("group_by_keys", declassify(joined_and_shuffled[ : , 0]));
     tdbCloseConnection(ds);
 }
