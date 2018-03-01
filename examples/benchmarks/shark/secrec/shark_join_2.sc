@@ -433,6 +433,6 @@ void main() {
     pd_shared3p uint32 [[2]] shark_joined(nrows, ncols + ncols - 1);
     shark_joined[ : , : ncols] = in1_result;
     shark_joined[ : , ncols : ] = in2_result[ : , 1 : ]; // skip redundant key-column
-    publish("joined", declassify(shark_joined));
+    publish("joined", declassify(shuffleRows(shark_joined)));
     tdbCloseConnection(ds);
 }

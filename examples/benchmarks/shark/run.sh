@@ -3,7 +3,7 @@ SIZE=${1}
 # TODO inject headers?
 cd /mnt/shared/shark/
 # clean up
-rm /mnt/shared/shark/data/*.csv
+rm -rf /mnt/shared/shark/data/*.csv
 # initial input and shuffle
 bash input_scripts/initial_input_1.sh ${SIZE}
 bash submit_scripts/submit_shuffle_inputs_1.sh
