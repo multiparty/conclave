@@ -2,7 +2,7 @@
 
 write_out () {
 start=$(date +%s)
-perflock python3 $1 cb-spark-node-0:8020 ~/bench/ $2 spark://cb-spark-node-0:7077
+python3 $1 cb-spark-node-0:8020 ~/ssn/ $2 spark://cb-spark-node-0:7077
 end=$(date +%s)
 echo "runtime for $1 with $2 input rows was $((end - start))" >> bench.txt
 }
@@ -13,5 +13,5 @@ for i in "${sizes[@]}"
 do
   :
   write_out ssn.py $i
-  hadoop fs -rmr ~/bench/ssn_sp$i
+  hadoop fs -rmr ~/ssn/ssn_sp$i
 done

@@ -36,7 +36,7 @@ in_2 = sp.read.csv(
     
 
 
-cc = union_all(['in_1', 'in_2']) \
+cc = union_all([in_1, in_2]) \
     
 
 cc \
