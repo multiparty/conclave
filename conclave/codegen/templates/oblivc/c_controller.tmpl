@@ -4,24 +4,24 @@
 #include <obliv.h>
 #include <obliv.oh>
 
-#include "concat.h"
+#include "protocol.h"
 
 void loadData(protocolIo *io);
 void displayData(protocolIo *io);
 
 int main(int argc, char **argv)
 {
-	const char *remote_host = strtok({{{IP_AND_PORT}}}, ":");
+	const char *remote_host = strtok("{{{IP_AND_PORT}}}", ":");
  	const char *port = strtok(NULL, ":");
   	ProtocolDesc pd;
 	protocolIo io;
-	io.src = {{{INPUT_PATH}}};
+	io.src = "{{{INPUT_PATH}}}";
 	io.rows = ROWS;
 	io.cols = COLS;
 	loadData(&io);
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
-    if({{{PID}}} == '1')
+    if("{{{PID}}}" == "1")
     {
       if(protocolAcceptTcp2P(&pd,port)!=0)
       {
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
       }
     }
 
-	setCurrentParty(&pd,{{{PID}}}=='1'?1:2);
+	setCurrentParty(&pd,{{{PID}}});
 
   	execYaoProtocol(&pd,protocol,&io);
   	cleanupProtocol(&pd);
