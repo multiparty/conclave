@@ -254,6 +254,54 @@ void multiply
 	ret->mat = array;
 }
 
+void divide
+	(
+	intermediateMat *mat,
+	intermediateMat *ret,
+	int *operands,
+	int numOperands,
+	int scalar,
+	int opColIdx,
+	bool newCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+	if (newCol)
+	{
+		numCols++;
+	}
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			if (j != opColIdx)
+			{
+				array[i][j] = mat->mat[i][j];
+			}
+			else
+			{
+				int initCol = operands[0];
+				obliv int temp = mat->mat[i][initCol] / scalar;
+				for (int k = 1; k < numOperands; k++)
+				{
+					int colIdx = operands[k];
+					temp = temp / mat->mat[i][colIdx];
+				}
+				array[i][j] = temp;
+			}
+		}
+	}
+
+	ret->cols = numCols;
+	ret->rows = numRows;
+	ret->mat = array;
+}
+
 void revealResult
 	(
 	intermediateMat *mat,

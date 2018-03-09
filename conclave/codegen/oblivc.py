@@ -8,6 +8,8 @@ from conclave.codegen import CodeGen
 from conclave.dag import *
 from conclave.job import OblivCJob
 
+# TODO: convert all 'int' declarations to float in oc template files
+
 
 class OblivcCodeGen(CodeGen):
     """
@@ -202,6 +204,41 @@ class OblivcCodeGen(CodeGen):
         data = {
             "IN_REL": mult_op.get_in_rel().name,
             "OUT_REL": mult_op.out_rel.name,
+            "OPERANDS": ','.join(i for i in operands),
+            "SCALAR": scalar,
+            "NUM_OPS": len(operands),
+            "OP_COL_IDX": target_col,
+            "NEW_COL": new_col
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_divide(self, div_op: Divide):
+        """
+        Generate code for Multiply operations.
+        """
+
+        template = open(
+            "{0}/divide.tmpl".format(self.template_directory), 'r').read()
+
+        op_cols = div_op.operands
+        target_col = div_op.target_col.idx
+        scalar = 1
+        operands = []
+
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                operands.append(op_col.idx)
+            else:
+                scalar = op_col
+
+        new_col = 0
+        if target_col not in set(operands):
+            new_col = 1
+
+        data = {
+            "IN_REL": div_op.get_in_rel().name,
+            "OUT_REL": div_op.out_rel.name,
             "OPERANDS": ','.join(i for i in operands),
             "SCALAR": scalar,
             "NUM_OPS": len(operands),
