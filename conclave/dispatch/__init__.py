@@ -1,5 +1,5 @@
 import conclave.job
-from . import sharemind, spark, python
+from . import sharemind, spark, python, oblivc
 
 
 def dispatch_all(conclave_config, networked_peer, job_queue: list):
@@ -15,7 +15,8 @@ def dispatch_all(conclave_config, networked_peer, job_queue: list):
             spark.SparkDispatcher(
                 conclave_config.system_configs["spark"].spark_master_url)
             if "spark" in conclave_config.system_configs else None,
-        conclave.job.PythonJob: python.PythonDispatcher()
+        conclave.job.PythonJob: python.PythonDispatcher(),
+        conclave.job.OblivCJob: oblivc.OblivCDispatcher()
     }
 
     # dispatch each job
