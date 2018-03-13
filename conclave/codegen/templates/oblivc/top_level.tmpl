@@ -302,6 +302,188 @@ void divide
 	ret->mat = array;
 }
 
+void compareExchange
+	(
+		obliv int **array,
+		int keyCol,
+		int numCols,
+		int i,
+		int j
+	)
+{
+
+	obliv int x = array[i][keyCol];
+	obliv int y = array[j][keyCol];
+
+	obliv int c = x < y;
+	obliv int d = 1 - c;
+
+	obliv int *temp1 = malloc(sizeof(obliv int) * numCols);
+	obliv int *temp2 = malloc(sizeof(obliv int) * numCols);
+
+	for (int k = 0; k < numCols; k++)
+	{
+		obliv int a = array[i][k];
+		obliv int b = array[j][k];
+
+		temp1[k] = (c * a) + (d * b);
+		temp2[k] = (d * a) + (c * b);
+	}
+
+	array[i] = temp1;
+	array[j] = temp2;
+
+}
+
+void oddEvenMerge
+	(
+		obliv int **array,
+		int keyCol,
+		int numCols,
+		int lo,
+		int n,
+		int r
+	)
+{
+	int m = r * 2;
+	if (m < n)
+	{
+		oddEvenMerge(array, keyCol, numCols, lo, n, m);
+		oddEvenMerge(array, keyCol, numCols, lo + r, n, m);
+
+		for (int i = lo + r; (i + r) < (lo + n); i += m)
+		{
+			compareExchange(array, keyCol, numCols, i, i + r);
+		}
+	} else {
+		compareExchange(array, keyCol, numCols, lo, lo + r);
+	}
+}
+
+void oddEvenSort
+	(
+		obliv int **array,
+		int keyCol,
+		int numCols,
+		int lo,
+		int n
+	)
+{
+	if (n > 1)
+	{
+		int m = n / 2;
+		oddEvenSort(array, keyCol, numCols, lo, m);
+		oddEvenSort(array, keyCol, numCols, lo + m, m);
+		oddEvenMerge(array, keyCol, numCols, lo, n, 1);
+	}
+}
+
+void sortBy
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+	}
+
+	oddEvenSort(array, keyCol, numCols, 0, numRows);
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+	ret->mat = array;
+
+}
+
+void aggIfEq
+	(
+		obliv int **arr,
+		int idx
+	)
+{
+
+	obliv int c = arr[idx][0] == arr[idx + 1][0];
+
+	obliv int tempOne = arr[idx][1] + (c * arr[idx + 1][1]);
+	obliv int tempTwo = (1 - c) * arr[idx + 1][1];
+
+	arr[idx][1] = tempOne;
+	arr[idx + 1][1] = tempTwo;
+}
+
+void oddEvenAgg
+	(
+		obliv int **arr,
+		int lo,
+		int n
+	)
+{
+	if (n > 1)
+	{
+		int m = n / 2;
+		oddEvenAgg(arr, lo, m);
+		oddEvenAgg(arr, lo + m, m);
+		for (int i = 0; i < m; i++)
+		{
+			aggIfEq(arr, lo + i);
+		}
+	}
+	else
+	{
+		aggIfEq(arr, 0);
+	}
+}
+
+void agg
+	(
+		intermediateMat *mat,
+		intermediateMat *ret
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	/*
+	For now, assumes there is exactly one keyCol at the 0th index,
+	and one groupCol at the 1st index. Thus, calling agg() must be
+	preceded by a call to project() that extracts the keyCol & groupCol
+	and arranges them in the correct order.
+
+	TODO: generalize protocol for multiple groupCols.
+	*/
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+	}
+
+	oddEvenSort(array, 0, numCols, 0, numRows);
+	oddEvenAgg(array, 0, numRows);
+
+	ret->mat = array;
+	ret->rows = numRows;
+	ret->cols = numCols;
+
+}
+
 void revealResult
 	(
 	intermediateMat *mat,
