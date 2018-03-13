@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <obliv.oh>
 
-#include "protocol.h"
+#include "workflow.h"
 
 int checkInputCols
 	(
@@ -449,30 +449,23 @@ void oddEvenAgg
 void agg
 	(
 		intermediateMat *mat,
-		intermediateMat *ret
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
 	)
 {
 	int numRows = mat->rows;
 	int numCols = 2;
 
-	/*
-	For now, assumes there is exactly one keyCol at the 0th index,
-	and one groupCol at the 1st index. Thus, calling agg() must be
-	preceded by a call to project() that extracts the keyCol & groupCol
-	and arranges them in the correct order.
-
-	TODO: generalize protocol for multiple groupCols.
-	*/
-
 	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	// TODO: generalize for multiple keyCols
 
 	for (int i = 0; i < numRows; i++)
 	{
 		array[i] = malloc(sizeof(**array) * numCols);
-		for (int j = 0; j < numCols; j++)
-		{
-			array[i][j] = mat->mat[i][j];
-		}
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
 	}
 
 	oddEvenSort(array, 0, numCols, 0, numRows);
@@ -481,7 +474,6 @@ void agg
 	ret->mat = array;
 	ret->rows = numRows;
 	ret->cols = numCols;
-
 }
 
 void revealResult
@@ -509,7 +501,7 @@ void revealResult
 void protocol(void *args)
 {
 
-	protocolIo *io = (protocolIo*) args;
+    protocolIo *io = (protocolIo*) args;
 
 {{{OP_CODE}}}
 

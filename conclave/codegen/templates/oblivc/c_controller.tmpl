@@ -4,14 +4,14 @@
 #include <obliv.h>
 #include <obliv.oh>
 
-#include "protocol.h"
+#include "workflow.h"
 
 void loadData(protocolIo *io);
 void displayData(protocolIo *io);
 
 int main(int argc, char **argv)
 {
-	const char *remote_host = strtok("{{{IP_AND_PORT}}}", ":");
+	const char *remote_host = strtok(argv[1], ":");
  	const char *port = strtok(NULL, ":");
   	ProtocolDesc pd;
 	protocolIo io;
