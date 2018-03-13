@@ -47,6 +47,45 @@ class OblivcCodeGen(CodeGen):
 
         return job
 
+    def _generate(self, job_name: [str, None], output_directory: [str, None]):
+        """ Generate code for DAG passed"""
+
+        op_code = ""
+
+        # topological traversal
+        nodes = self.dag.top_sort()
+
+        # TODO: handle subclassing more gracefully
+        # for each op
+        for node in nodes:
+            if isinstance(node, Aggregate):
+                op_code += self._generate_aggregate(node)
+            elif isinstance(node, Concat):
+                op_code += self._generate_concat(node)
+            elif isinstance(node, Create):
+                self._generate_create(node)
+            elif isinstance(node, Close):
+                op_code += self._generate_close(node)
+            elif isinstance(node, Join):
+                op_code += self._generate_join(node)
+            elif isinstance(node, Open):
+                op_code += self._generate_open(node)
+            elif isinstance(node, Project):
+                op_code += self._generate_project(node)
+            elif isinstance(node, Multiply):
+                op_code += self._generate_multiply(node)
+            elif isinstance(node, Divide):
+                op_code += self._generate_divide(node)
+            elif isinstance(node, SortBy):
+                op_code += self._generate_sort_by(node)
+            elif isinstance(node, Open):
+                op_code += self._generate_open(node)
+            else:
+                print("encountered unknown operator type", repr(node))
+
+        # expand top-level job template and return code
+        return self._generate_job(job_name, self.config.code_path, op_code)
+
     def _generate_job(self, job_name: str, code_directory: str, op_code: str):
         """
         Returns generated Spark code and Job object.
@@ -89,20 +128,24 @@ class OblivcCodeGen(CodeGen):
 
             self.input_rel_name = create_op.out_rel.name
 
-        return ''
+        return self
 
     def _generate_close(self, close_op: Close):
         """
         Generate code to close input data for MPC computation.
         """
 
+        stored_with_set = close_op.get_in_rel().stored_with
+
+        assert(len(stored_with_set) > 0)
+
         template = open(
-            "{0}/close.tmpl".format(self.template_directory), 'r').read()
+             "{0}/close.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "RELNAME": close_op.out_rel.name,
-            "PID": self.pid
-        }
+             "RELNAME": close_op.out_rel.name,
+             "STORED_WITH": list(stored_with_set)[0]
+         }
 
         return pystache.render(template, data)
 
@@ -155,6 +198,7 @@ class OblivcCodeGen(CodeGen):
 
         data = {
             "IN_REL": open_op.get_in_rel().name,
+            "PARTY": 0
         }
 
         return pystache.render(template, data)
@@ -248,6 +292,44 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _generate_sort_by(self, sort_op: SortBy):
+        """
+        Generate code for SortBy operations.
+        """
+
+        template = open(
+            "{}/sort_by.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": sort_op.get_in_rel().name,
+            "OUT_REL": sort_op.out_rel.name,
+            "KEY_COL": sort_op.sort_by_col.idx
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_aggregate(self, agg_op: Aggregate):
+        """
+        Generate code for Aggregate operations.
+        """
+
+        # TODO: codegen assumes '+' aggregator, generalize
+
+        template = open(
+            "{}/agg.tmpl".format(self.template_directory), 'r').read()
+
+        # TODO: generalize codegen to handle multiple group_cols
+        assert(len(agg_op.group_cols) == 1)
+
+        data = {
+            "IN_REL": agg_op.get_in_rel().name,
+            "OUT_REL": agg_op.out_rel.name,
+            "KEY_COL": agg_op.group_cols[0].idx,
+            "AGG_COL": agg_op.agg_col.idx
+        }
+
+        return pystache.render(template, data)
+
     def _write_bash(self):
         """
         Generate bash script that runs Obliv-c jobs.
@@ -257,7 +339,8 @@ class OblivcCodeGen(CodeGen):
                         .format(self.template_directory), 'r').read()
 
         data = {
-            "OC_COMP_PATH": self.oc_config.oc_path
+            "OC_COMP_PATH": self.oc_config.oc_path,
+            "IP_AND_PORT": self.oc_config.ip_and_port
         }
 
         return pystache.render(template, data)
@@ -281,7 +364,6 @@ class OblivcCodeGen(CodeGen):
 
         data = {
             "PID": self.pid,
-            "IP_AND_PORT": self.oc_config.ip_and_port,
             "INPUT_PATH": self.config.input_path + '/' + self.input_rel_name + '.csv'
         }
 
