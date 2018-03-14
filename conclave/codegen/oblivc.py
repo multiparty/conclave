@@ -178,8 +178,8 @@ class OblivcCodeGen(CodeGen):
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "JOINCOL_ONE": join_op.left_join_cols[0],
-            "JOINCOL_TWO": join_op.right_join_cols[0],
+            "JOINCOL_ONE": join_op.left_join_cols[0].idx,
+            "JOINCOL_TWO": join_op.right_join_cols[0].idx,
             "LEFT": join_op.get_left_in_rel().name,
             "RIGHT": join_op.get_right_in_rel().name,
             "OUTREL": join_op.out_rel.name
@@ -216,7 +216,7 @@ class OblivcCodeGen(CodeGen):
         data = {
             "IN_REL": project_op.get_in_rel().name,
             "OUT_REL": project_op.out_rel.name,
-            "PROJ_COLS": ','.join(c.idx for c in selected_cols),
+            "PROJ_COLS": ','.join(str(c.idx) for c in selected_cols),
             "NUM_COLS": len(selected_cols)
         }
 
@@ -237,12 +237,12 @@ class OblivcCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'idx'):
-                operands.append(op_col.idx)
+                operands.append(str(op_col.idx))
             else:
                 scalar = op_col
 
         new_col = 0
-        if target_col not in set(operands):
+        if str(target_col) != operands[0]:
             new_col = 1
 
         data = {
@@ -272,12 +272,12 @@ class OblivcCodeGen(CodeGen):
 
         for op_col in op_cols:
             if hasattr(op_col, 'idx'):
-                operands.append(op_col.idx)
+                operands.append(str(op_col.idx))
             else:
                 scalar = op_col
 
         new_col = 0
-        if target_col not in set(operands):
+        if str(target_col) != operands[0]:
             new_col = 1
 
         data = {
