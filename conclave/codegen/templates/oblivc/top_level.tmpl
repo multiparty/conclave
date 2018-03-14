@@ -18,7 +18,7 @@ int checkInputCols
 	}
 	else
 	{
-	return colsOne;
+	    return colsOne;
 	}
 }
 
@@ -308,14 +308,23 @@ void compareExchange
 		int keyCol,
 		int numCols,
 		int i,
-		int j
+		int j,
+		bool ascending
 	)
 {
-
 	obliv int x = array[i][keyCol];
 	obliv int y = array[j][keyCol];
 
-	obliv int c = x < y;
+	obliv int c;
+	if (ascending)
+	{
+		c = x < y;
+	}
+	else
+	{
+		c = x > y;
+	}
+
 	obliv int d = 1 - c;
 
 	obliv int *temp1 = malloc(sizeof(obliv int) * numCols);
@@ -332,7 +341,6 @@ void compareExchange
 
 	array[i] = temp1;
 	array[j] = temp2;
-
 }
 
 void oddEvenMerge
@@ -342,21 +350,22 @@ void oddEvenMerge
 		int numCols,
 		int lo,
 		int n,
-		int r
+		int r,
+		bool ascending
 	)
 {
 	int m = r * 2;
 	if (m < n)
 	{
-		oddEvenMerge(array, keyCol, numCols, lo, n, m);
-		oddEvenMerge(array, keyCol, numCols, lo + r, n, m);
+		oddEvenMerge(array, keyCol, numCols, lo, n, m, ascending);
+		oddEvenMerge(array, keyCol, numCols, lo + r, n, m, ascending);
 
 		for (int i = lo + r; (i + r) < (lo + n); i += m)
 		{
-			compareExchange(array, keyCol, numCols, i, i + r);
+			compareExchange(array, keyCol, numCols, i, i + r, ascending);
 		}
 	} else {
-		compareExchange(array, keyCol, numCols, lo, lo + r);
+		compareExchange(array, keyCol, numCols, lo, lo + r, ascending);
 	}
 }
 
@@ -366,15 +375,16 @@ void oddEvenSort
 		int keyCol,
 		int numCols,
 		int lo,
-		int n
+		int n,
+		bool ascending
 	)
 {
 	if (n > 1)
 	{
 		int m = n / 2;
-		oddEvenSort(array, keyCol, numCols, lo, m);
-		oddEvenSort(array, keyCol, numCols, lo + m, m);
-		oddEvenMerge(array, keyCol, numCols, lo, n, 1);
+		oddEvenSort(array, keyCol, numCols, lo, m, ascending);
+		oddEvenSort(array, keyCol, numCols, lo + m, m, ascending);
+		oddEvenMerge(array, keyCol, numCols, lo, n, 1, ascending);
 	}
 }
 
@@ -399,12 +409,11 @@ void sortBy
 		}
 	}
 
-	oddEvenSort(array, keyCol, numCols, 0, numRows);
+	oddEvenSort(array, keyCol, numCols, 0, numRows, true);
 
 	ret->rows = numRows;
 	ret->cols = numCols;
 	ret->mat = array;
-
 }
 
 void aggIfEq
@@ -454,12 +463,12 @@ void agg
 		int aggCol
 	)
 {
+
+	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
 	int numRows = mat->rows;
 	int numCols = 2;
 
 	obliv int **array = malloc(sizeof(*array) * numRows);
-
-	// TODO: generalize for multiple keyCols
 
 	for (int i = 0; i < numRows; i++)
 	{
@@ -468,11 +477,36 @@ void agg
 		array[i][1] = mat->mat[i][aggCol];
 	}
 
-	oddEvenSort(array, 0, numCols, 0, numRows);
+	oddEvenSort(array, 0, numCols, 0, numRows, true);
 	oddEvenAgg(array, 0, numRows);
 
-	ret->mat = array;
-	ret->rows = numRows;
+	// TODO: move shuffle into it's own function.
+	oddEvenSort(array, 1, numCols, 0, numRows, false);
+
+	obliv int outRows = 0;
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv if (array[i][1] != 0)
+		{
+			outRows++;
+		}
+	}
+
+	int numOutRows;
+	revealOblivInt(&numOutRows, outRows, 0);
+
+	obliv int **retArray = malloc(sizeof(*retArray) * numOutRows);
+
+	for (int i = 0; i < numOutRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1];
+	}
+
+	ret->mat = retArray;
+	ret->rows = numOutRows;
 	ret->cols = numCols;
 }
 
