@@ -358,13 +358,15 @@ class OblivcCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_controller(self):
+        # TODO: find a way to get leaf node's name here for OUTPUT_PATH var
 
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "PID": self.pid,
-            "INPUT_PATH": self.config.input_path + '/' + self.input_rel_name + '.csv'
+            "INPUT_PATH": self.config.input_path + '/' + self.input_rel_name + '.csv',
+            "OUTPUT_PATH": self.config.output_path + '.csv'
         }
 
         return pystache.render(template, data)

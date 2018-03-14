@@ -8,6 +8,7 @@
 
 void loadData(protocolIo *io);
 void displayData(protocolIo *io);
+void writeData(protocolIo *io);
 
 int main(int argc, char **argv)
 {
@@ -16,6 +17,7 @@ int main(int argc, char **argv)
   	ProtocolDesc pd;
 	protocolIo io;
 	io.src = "{{{INPUT_PATH}}}";
+	io.out = "{{{OUTPUT_PATH}}}";
 	io.rows = ROWS;
 	io.cols = COLS;
 	loadData(&io);
@@ -41,10 +43,26 @@ int main(int argc, char **argv)
   	execYaoProtocol(&pd,protocol,&io);
   	cleanupProtocol(&pd);
 
-    displayData(&io);
+    writeData(&io);
 
   	return 0;
 
+}
+
+void writeData(protocolIo *io)
+{
+	FILE *fp;
+	fp = fopen(io->out, "w+");
+
+	for (int i = 0; i < io->rows; i++)
+	{
+		for (int j = 0; j < io->cols - 1; j++)
+		{
+			fprintf(fp, "%i,", io->ret[i][j]);
+		}
+		fprintf(fp, "%i\n", io->ret[i][io->cols - 1]);
+	}
+	fclose(fp);
 }
 
 void displayData(protocolIo *io)
