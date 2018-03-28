@@ -1,39 +1,50 @@
 import yaml
 import argparse
+from typing import Callable, Dict
+
 from conclave import generate_and_dispatch
 from conclave import CodeGenConfig
 from conclave.config import SharemindCodeGenConfig
 from conclave.config import SparkConfig
+from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
-from typing import Callable, Dict
 
 
 def setup(conf: Dict):
-    pid = conf["pid"]
-    hdfs_node_name = conf["spark"]["hdfs"]["node_name"]
-    hdfs_root = conf["spark"]["hdfs"]["root"]
-    spark_master_url = conf["spark"]["master_url"]
 
+    # GENERAL
+    pid = conf["pid"]
     workflow_name = conf["workflow_name"]
 
-    sm_config = SharemindCodeGenConfig(conf["code_path"])
+    # SPARK
+    hdfs_path = conf["spark"]["hdfs"]["path"]
+    spark_master_url = conf["spark"]["master_url"]
     spark_config = SparkConfig(spark_master_url)
 
+    # SHAREMIND
+    sm_config = SharemindCodeGenConfig(conf["code_path"])
+
+    # OBLIV-C
+    oc_path = conf["oblivc"]["oc_path"]
+    ip_port = conf["oblivc"]["ip_port"]
+    oc_config = OblivcConfig(oc_path, ip_port)
+
+    # NET
+    hosts = conf["sharemind"]["parties"]
+    net_config = NetworkConfig(hosts, pid)
+
+    # CONCLAVE SYSTEM CONFIG
     conclave_config = CodeGenConfig(workflow_name) \
         .with_sharemind_config(sm_config) \
-        .with_spark_config(spark_config)
+        .with_spark_config(spark_config) \
+        .with_oc_config(oc_config) \
+        .with_network_config(net_config)
 
     conclave_config.code_path = conf["code_path"] + workflow_name
-    conclave_config.input_path = "hdfs://{}/{}/{}".format(
-        hdfs_node_name, hdfs_root, conf["name"])
-    conclave_config.output_path = "hdfs://{}/{}/{}".format(
-        hdfs_node_name, hdfs_root, conf["name"])
+    conclave_config.input_path = conf["data_path"] + conf["name"]
+    conclave_config.output_path = conf["data_path"] + conf["name"]
     conclave_config.pid = pid
     conclave_config.name = workflow_name
-
-    network_config = NetworkConfig(conf["sharemind"]["parties"], pid)
-
-    conclave_config.with_network_config(network_config)
 
     return conclave_config
 
