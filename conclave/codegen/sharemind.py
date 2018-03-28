@@ -75,8 +75,8 @@ class SharemindCodeGen(CodeGen):
         job = SharemindJob(job_name, self.config.code_path + "/" + job_name,
                            controller_pid, input_parties)
         # check if this party participates in any way
-        if not op_code:
-            job.skip = True
+        # if not op_code:
+        #     job.skip = True
         return job, op_code
 
     def _generate_miner_code(self, nodes: list):
@@ -87,7 +87,9 @@ class SharemindCodeGen(CodeGen):
         # TODO: handle subclassing more gracefully
         miner_code = ""
         for node in nodes:
-            if isinstance(node, IndexAggregate):
+            if isinstance(node, LeakyIndexAggregate):
+                miner_code += self._generate_leaky_index_aggregate(node)
+            elif isinstance(node, IndexAggregate):
                 miner_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
                 miner_code += self._generate_aggregate(node)
@@ -97,6 +99,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_create(node)
             elif isinstance(node, Divide):
                 miner_code += self._generate_divide(node)
+            elif isinstance(node, FlagJoin):
+                miner_code += self._generate_flag_join(node)
             elif isinstance(node, IndexJoin):
                 miner_code += self._generate_index_join(node)
             elif isinstance(node, Join):
@@ -208,7 +212,7 @@ class SharemindCodeGen(CodeGen):
                     self.config.output_path + "/" + name
                 )
             else:
-                hdfs_cmd = "cp {}.csv {}.csv".format(
+                hdfs_cmd = "mv {}.csv {}.csv".format(
                     code_path + "/" + job_name + "/" + name,
                     self.config.output_path + "/" + name
                 )
@@ -272,6 +276,22 @@ class SharemindCodeGen(CodeGen):
             "IN_REL_NAME": agg_op.get_in_rel().name,
             "KEY_COL_IDX": agg_op.group_cols[0].idx,
             "AGG_COL_IDX": agg_op.agg_col.idx
+        }
+        return pystache.render(template, data)
+
+    def _generate_leaky_index_aggregate(self, lky_idx_agg_op: LeakyIndexAggregate):
+        """ Generate code for LeakyIndexAggregate operations. """
+
+        template = open(
+            "{0}/leaky_index_aggregate_sum.tmpl".format(self.template_directory), 'r').read()
+            
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": lky_idx_agg_op.out_rel.name,
+            "IN_REL_NAME": lky_idx_agg_op.get_in_rel().name,
+            "AGG_COL_IDX": lky_idx_agg_op.agg_col.idx,
+            "KEYS_REL": lky_idx_agg_op.dist_keys.out_rel.name,
+            "INDEXES_REL": lky_idx_agg_op.keys_to_idx_map.out_rel.name
         }
         return pystache.render(template, data)
 
@@ -371,13 +391,39 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    def _generate_flag_join(self, flag_join_op: FlagJoin):
+        """ Generate code for FlagJoin operations. """
+
+        template = open(
+            "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
+        flags_rel = flag_join_op.join_flag_op.out_rel
+        left_rel = flag_join_op.left_parent.out_rel
+        right_rel = flag_join_op.right_parent.out_rel
+        # sharemind adds all columns from right-rel to the result
+        # so we need to explicitely exclude these
+        cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
+        cols_to_exclude = [col.idx + len(left_rel.columns)
+                           for col in flag_join_op.right_join_cols]
+        cols_to_keep_str = ",".join(
+            [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": flag_join_op.out_rel.name,
+            "FLAGS_REL": flags_rel.name,
+            "LEFT_IN_REL": flag_join_op.get_left_in_rel().name,
+            "LEFT_KEY_COLS": str(flag_join_op.left_join_cols[0].idx),
+            "RIGHT_IN_REL": flag_join_op.get_right_in_rel().name,
+            "RIGHT_KEY_COLS": str(flag_join_op.right_join_cols[0].idx),
+            "COLS_TO_KEEP": "{" + cols_to_keep_str + "}"
+        }
+        return pystache.render(template, data)
+
     def _generate_index_join(self, index_join_op: IndexJoin):
         """ Generate code for Index Join operations. """
 
         template = open(
             "{0}/index_join.tmpl".format(self.template_directory), 'r').read()
-        left_rel = index_join_op.left_parent.out_rel
-        right_rel = index_join_op.right_parent.out_rel
         index_rel = index_join_op.index_rel.out_rel
 
         data = {
@@ -415,6 +461,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "TYPE": "uint32",
             "OUT_REL": join_op.out_rel.name,
+            "LEAKY_SUFFIX": "Leaky" if self.config.use_leaky_ops else "",
             "LEFT_IN_REL": join_op.get_left_in_rel().name,
             "LEFT_KEY_COLS": "{" + left_key_cols_str + "}",
             "RIGHT_IN_REL": join_op.get_right_in_rel().name,

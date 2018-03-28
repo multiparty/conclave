@@ -2,14 +2,15 @@
 Embedded language for relational workflows.
 """
 import copy
-from conclave import rel
-import conclave.dag as saldag
+
+import conclave.dag as cc_dag
 import conclave.utils as utils
+from conclave import rel
 
 
 def create(rel_name: str, columns: list, stored_with: set):
     """
-    Define Create relation.
+    Define Create operation.
 
     :param rel_name: Name of returned Create node.
     :param columns: List of column objects.
@@ -20,14 +21,14 @@ def create(rel_name: str, columns: list, stored_with: set):
     columns = [rel.Column(rel_name, col_name, idx, type_str, collusion_set)
                for idx, (col_name, type_str, collusion_set) in enumerate(columns)]
     out_rel = rel.Relation(rel_name, columns, stored_with)
-    op = saldag.Create(out_rel)
+    op = cc_dag.Create(out_rel)
     return op
 
 
-def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: list,
+def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: list,
               over_col_name: str, aggregator: str, agg_out_col_name: str):
     """
-    Define Aggregate relation.
+    Define Aggregate operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Aggregate node.
@@ -63,7 +64,7 @@ def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: l
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Aggregate(out_rel, input_op_node, group_cols, over_col, aggregator)
+    op = cc_dag.Aggregate(out_rel, input_op_node, group_cols, over_col, aggregator)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -71,10 +72,10 @@ def aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: l
     return op
 
 
-def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_names: list,
+def index_aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: list,
                     over_col_name: str, aggregator: str, agg_out_col_name: str, eq_flag_op, sorted_keys_op):
     """
-    Define Index Aggregate relation.
+    Define IndexAggregate operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned IndexAggregate node.
@@ -88,11 +89,11 @@ def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_na
     """
 
     agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
-    idx_agg_op = saldag.IndexAggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
+    idx_agg_op = cc_dag.IndexAggregate.from_aggregate(agg_op, eq_flag_op, sorted_keys_op)
 
     input_op_node.children.remove(agg_op)
     input_op_node.children.add(idx_agg_op)
-    
+
     eq_flag_op.children.add(idx_agg_op)
     sorted_keys_op.children.add(idx_agg_op)
 
@@ -102,9 +103,30 @@ def index_aggregate(input_op_node: saldag.OpNode, output_name: str, group_col_na
     return idx_agg_op
 
 
-def sort_by(input_op_node: saldag.OpNode, output_name: str, sort_by_col_name: str):
+def _leaky_index_aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: list, over_col_name: str,
+                           aggregator: str, agg_out_col_name: str, dist_keys_op: cc_dag.OpNode,
+                           keys_to_idx_map: cc_dag.OpNode):
     """
-    Define Sort By relation.
+    Define IndexAggregateLeaky operation.
+    """
+    agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
+    idx_agg_op = cc_dag.LeakyIndexAggregate.from_aggregate(agg_op, dist_keys_op, keys_to_idx_map)
+
+    input_op_node.children.remove(agg_op)
+    input_op_node.children.add(idx_agg_op)
+
+    dist_keys_op.children.add(idx_agg_op)
+    keys_to_idx_map.children.add(idx_agg_op)
+
+    idx_agg_op.parents.add(dist_keys_op)
+    idx_agg_op.parents.add(keys_to_idx_map)
+
+    return idx_agg_op
+
+
+def sort_by(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: str):
+    """
+    Define SortBy operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned SortBy node.
@@ -128,7 +150,7 @@ def sort_by(input_op_node: saldag.OpNode, output_name: str, sort_by_col_name: st
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.SortBy(out_rel, input_op_node, sort_by_col)
+    op = cc_dag.SortBy(out_rel, input_op_node, sort_by_col)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -136,9 +158,9 @@ def sort_by(input_op_node: saldag.OpNode, output_name: str, sort_by_col_name: st
     return op
 
 
-def project(input_op_node: saldag.OpNode, output_name: str, selected_col_names: list):
+def project(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names: list):
     """
-    Define Project relation.
+    Define Project operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Project node.
@@ -161,7 +183,7 @@ def project(input_op_node: saldag.OpNode, output_name: str, selected_col_names: 
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Project(out_rel, input_op_node, selected_cols)
+    op = cc_dag.Project(out_rel, input_op_node, selected_cols)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -169,9 +191,9 @@ def project(input_op_node: saldag.OpNode, output_name: str, selected_col_names: 
     return op
 
 
-def distinct(input_op_node: saldag.OpNode, output_name: str, selected_col_names: list):
+def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names: list):
     """
-    Define Distinct relation.
+    Define Distinct operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Distinct node.
@@ -194,7 +216,7 @@ def distinct(input_op_node: saldag.OpNode, output_name: str, selected_col_names:
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Distinct(out_rel, input_op_node, selected_cols)
+    op = cc_dag.Distinct(out_rel, input_op_node, selected_cols)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -202,9 +224,9 @@ def distinct(input_op_node: saldag.OpNode, output_name: str, selected_col_names:
     return op
 
 
-def divide(input_op_node: saldag.OpNode, output_name: str, target_col_name: str, operands: list):
+def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str, operands: list):
     """
-    Define Divide relation.
+    Define Divide operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Divide node.
@@ -246,7 +268,7 @@ def divide(input_op_node: saldag.OpNode, output_name: str, target_col_name: str,
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Divide(out_rel, input_op_node, target_column, operands)
+    op = cc_dag.Divide(out_rel, input_op_node, target_column, operands)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -254,10 +276,10 @@ def divide(input_op_node: saldag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter(input_op_node: saldag.OpNode, output_name: str, filter_col_name: str, operator: str, filter_expr: str):
+def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str, filter_expr: str):
     # TODO: Not implemented in codegen as far as I can tell
     """
-    Define Filter relation.
+    Define Filter operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Filter node.
@@ -282,7 +304,7 @@ def filter(input_op_node: saldag.OpNode, output_name: str, filter_col_name: str,
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Filter(out_rel, input_op_node, filter_col, operator, filter_expr)
+    op = cc_dag.Filter(out_rel, input_op_node, filter_col, operator, filter_expr)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -290,9 +312,9 @@ def filter(input_op_node: saldag.OpNode, output_name: str, filter_col_name: str,
     return op
 
 
-def multiply(input_op_node: saldag.OpNode, output_name: str, target_col_name: str, operands: list):
+def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str, operands: list):
     """
-    Define Multiply relation.
+    Define Multiply operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Multiply node.
@@ -334,7 +356,7 @@ def multiply(input_op_node: saldag.OpNode, output_name: str, target_col_name: st
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Multiply(out_rel, input_op_node, target_column, operands)
+    op = cc_dag.Multiply(out_rel, input_op_node, target_column, operands)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -343,10 +365,10 @@ def multiply(input_op_node: saldag.OpNode, output_name: str, target_col_name: st
 
 
 # TODO: is a self-join a problem?
-def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
+def join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
          left_col_names: list, right_col_names: list):
     """
-    Define Join relation.
+    Define Join operation.
 
     :param left_input_node: Left parent node for the node returned by this method.
     :param right_input_node: Right parent node for the node returned by this method.
@@ -409,10 +431,10 @@ def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output
     # which is just len(left_in_rel.columns)
     continue_idx = len(left_in_rel.columns)
     out_rel_cols = out_key_cols \
-        + _cols_from_rel(
-            start_idx, left_in_rel, [left_join_col.idx for left_join_col in left_join_cols]) \
-        + _cols_from_rel(
-            continue_idx, right_in_rel, [right_join_col.idx for right_join_col in right_join_cols])
+                   + _cols_from_rel(
+        start_idx, left_in_rel, [left_join_col.idx for left_join_col in left_join_cols]) \
+                   + _cols_from_rel(
+        continue_idx, right_in_rel, [right_join_col.idx for right_join_col in right_join_cols])
 
     # The result of the join will be stored with the union
     # of the parties storing left and right
@@ -423,7 +445,7 @@ def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output
     out_rel.update_columns()
 
     # Create join operator
-    op = saldag.Join(
+    op = cc_dag.Join(
         out_rel,
         left_input_node,
         right_input_node,
@@ -440,7 +462,7 @@ def join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output
 
 def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = None):
     """
-    Define Concat relation.
+    Define Concat operation.
 
     :param input_op_nodes: List of parent nodes for the node returned by this method.
     :param output_name: Name of returned Concat node.
@@ -450,7 +472,7 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
 
     # Make sure we have at least two input node as a
     # sanity check--could relax this in the future
-    assert(len(input_op_nodes) >= 2)
+    assert (len(input_op_nodes) >= 2)
 
     # Get input relations from input nodes
     in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
@@ -459,9 +481,9 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
     # number of columns
     num_cols = len(in_rels[0].columns)
     for in_rel in in_rels:
-        assert(len(in_rel.columns) == num_cols)
+        assert (len(in_rel.columns) == num_cols)
     if column_names is not None:
-        assert(len(column_names) == num_cols)
+        assert (len(column_names) == num_cols)
 
     # Copy over columns from existing relation
     out_rel_cols = copy.deepcopy(in_rels[0].columns)
@@ -483,7 +505,7 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.Concat(out_rel, input_op_nodes)
+    op = cc_dag.Concat(out_rel, input_op_nodes)
 
     # Add it as a child to each input node
     for input_op_node in input_op_nodes:
@@ -492,9 +514,9 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
     return op
 
 
-def index(input_op_node: saldag.OpNode, output_name: str, idx_col_name: str = "index"):
+def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "index"):
     """
-    Define Index relation.
+    Define Index operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Index node.
@@ -515,16 +537,16 @@ def index(input_op_node: saldag.OpNode, output_name: str, idx_col_name: str = "i
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
-    op = saldag.Index(out_rel, input_op_node, idx_col_name)
+    op = cc_dag.Index(out_rel, input_op_node, idx_col_name)
     # Add it as a child to input node
     input_op_node.children.add(op)
 
     return op
 
 
-def shuffle(input_op_node: saldag.OpNode, output_name: str):
+def shuffle(input_op_node: cc_dag.OpNode, output_name: str):
     """
-    Define Shuffle relation.
+    Define Shuffle operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Shuffle node.
@@ -540,16 +562,16 @@ def shuffle(input_op_node: saldag.OpNode, output_name: str):
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
-    op = saldag.Shuffle(out_rel, input_op_node)
+    op = cc_dag.Shuffle(out_rel, input_op_node)
     # Add it as a child to input node
     input_op_node.children.add(op)
 
     return op
 
 
-def collect(input_op_node: saldag.OpNode, target_party: int):
+def collect(input_op_node: cc_dag.OpNode, target_party: int):
     """
-    Define Collect relation.
+    Define Collect operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param target_party: PID of party that receives outputs.
@@ -558,14 +580,14 @@ def collect(input_op_node: saldag.OpNode, target_party: int):
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
-    in_rel.stored_with = set([target_party])
+    in_rel.stored_with = {target_party}
 
 
 # Below functions are NOT part of the public API! Only used to simplify codegen testing
 
-def _comp_neighs(input_op_node: saldag.OpNode, output_name: str, comp_col_name: str):
+def _comp_neighs(input_op_node: cc_dag.OpNode, output_name: str, comp_col_name: str):
     """
-    Define CompNeighs relation.
+    Define CompNeighs operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned CompNeighs node.
@@ -590,7 +612,7 @@ def _comp_neighs(input_op_node: saldag.OpNode, output_name: str, comp_col_name: 
     out_rel.update_columns()
 
     # Create our operator node
-    op = saldag.CompNeighs(out_rel, input_op_node, comp_col)
+    op = cc_dag.CompNeighs(out_rel, input_op_node, comp_col)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -598,10 +620,10 @@ def _comp_neighs(input_op_node: saldag.OpNode, output_name: str, comp_col_name: 
     return op
 
 
-def _index_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode, output_name: str,
-                left_col_names: list, right_col_names: list, index_op_node: saldag.Index):
+def _index_join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
+                left_col_names: list, right_col_names: list, index_op_node: cc_dag.Index):
     """
-    Define Index Join relation.
+    Define IndexJoin operation.
 
     :param left_input_node: Left parent node for the node returned by this method.
     :param right_input_node: Right parent node for the node returned by this method.
@@ -614,7 +636,7 @@ def _index_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
 
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
-    idx_join_op = saldag.IndexJoin.from_join(join_op, index_op_node)
+    idx_join_op = cc_dag.IndexJoin.from_join(join_op, index_op_node)
 
     left_input_node.children.remove(join_op)
     right_input_node.children.remove(join_op)
@@ -626,9 +648,9 @@ def _index_join(left_input_node: saldag.OpNode, right_input_node: saldag.OpNode,
     return idx_join_op
 
 
-def _persist(input_op_node: saldag.OpNode, output_name: str):
+def _persist(input_op_node: cc_dag.OpNode, output_name: str):
     """
-    Define Perist relation.
+    Define Persist operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Persist node.
@@ -637,14 +659,14 @@ def _persist(input_op_node: saldag.OpNode, output_name: str):
 
     out_rel = copy.deepcopy(input_op_node.out_rel)
     out_rel.rename(output_name)
-    persist_op = saldag.Persist(out_rel, input_op_node)
+    persist_op = cc_dag.Persist(out_rel, input_op_node)
     input_op_node.children.add(persist_op)
     return persist_op
 
 
-def _close(input_op_node: saldag.OpNode, output_name: str, target_parties: set):
+def _close(input_op_node: cc_dag.OpNode, output_name: str, target_parties: set):
     """
-    Define Close relation.
+    Define Close operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Close node.
@@ -655,14 +677,14 @@ def _close(input_op_node: saldag.OpNode, output_name: str, target_parties: set):
     out_rel = copy.deepcopy(input_op_node.out_rel)
     out_rel.stored_with = target_parties
     out_rel.rename(output_name)
-    close_op = saldag.Close(out_rel, input_op_node)
+    close_op = cc_dag.Close(out_rel, input_op_node)
     input_op_node.children.add(close_op)
     return close_op
 
 
-def _open(input_op_node: saldag.OpNode, output_name: str, target_party: int):
+def _open(input_op_node: cc_dag.OpNode, output_name: str, target_party: int):
     """
-    Define Open relation.
+    Define Open operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Open node.
@@ -671,8 +693,48 @@ def _open(input_op_node: saldag.OpNode, output_name: str, target_party: int):
     """
 
     out_rel = copy.deepcopy(input_op_node.out_rel)
-    out_rel.stored_with = set([target_party])
+    out_rel.stored_with = {target_party}
     out_rel.rename(output_name)
-    open_op = saldag.Open(out_rel, input_op_node)
+    open_op = cc_dag.Open(out_rel, input_op_node)
     input_op_node.children.add(open_op)
     return open_op
+
+
+def _join_flags(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
+                left_col_names: list, right_col_names: list, out_col_name: str = "flags"):
+    """
+    Define JoinFlags operation.
+    """
+    join_op = join(left_input_node, right_input_node,
+                   output_name, left_col_names, right_col_names)
+    join_flags_op = cc_dag.JoinFlags.from_join(join_op)
+    out_col = rel.Column(output_name, out_col_name, 0, "INTEGER", join_flags_op.out_rel.columns[0].coll_sets)
+    out_rel = rel.Relation(output_name, [out_col], join_flags_op.out_rel.stored_with)
+    join_flags_op.out_rel = out_rel
+    join_flags_op.is_mpc = True
+
+    left_input_node.children.remove(join_op)
+    right_input_node.children.remove(join_op)
+
+    left_input_node.children.add(join_flags_op)
+    right_input_node.children.add(join_flags_op)
+
+    return join_flags_op
+
+
+def _flag_join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
+               left_col_names: list, right_col_names: list, join_flags_op_node: cc_dag.OpNode):
+    """
+    Define FlagJoin operation.
+    """
+    join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
+    flag_join_op = cc_dag.FlagJoin.from_join(join_op, join_flags_op_node)
+
+    left_input_node.children.remove(join_op)
+    right_input_node.children.remove(join_op)
+
+    left_input_node.children.add(flag_join_op)
+    right_input_node.children.add(flag_join_op)
+    join_flags_op_node.children.add(flag_join_op)
+
+    return flag_join_op

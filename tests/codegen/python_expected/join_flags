@@ -1,0 +1,8 @@
+if __name__ == "__main__":
+    print("start python")
+    in_1 = read_rel('/tmp/in_1.csv')
+    in_2 = read_rel('/tmp/in_2.csv')
+    join_flags  = join_flags(in_1, in_2, 0, 0)
+    write_rel('/tmp', 'join_flags.csv', join_flags, '"flags"')
+
+    print("done python")

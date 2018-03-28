@@ -30,7 +30,11 @@ class CodeGen:
         # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
-            if isinstance(node, IndexAggregate):
+            if isinstance(node, HybridAggregate):
+                op_code += self._generate_hybrid_aggregate(node)
+            elif isinstance(node, LeakyIndexAggregate):
+                op_code += self._generate_leaky_hybrid_aggregate(node)
+            elif isinstance(node, IndexAggregate):
                 op_code += self._generate_index_aggregate(node)
             elif isinstance(node, Aggregate):
                 op_code += self._generate_aggregate(node)
@@ -40,6 +44,10 @@ class CodeGen:
                 op_code += self._generate_create(node)
             elif isinstance(node, Close):
                 op_code += self._generate_close(node)
+            elif isinstance(node, JoinFlags):
+                op_code += self._generate_join_flags(node)
+            elif isinstance(node, FlagJoin):
+                op_code += self._generate_flag_join(node)
             elif isinstance(node, IndexJoin):
                 op_code += self._generate_index_join(node)
             elif isinstance(node, RevealJoin):

@@ -1,0 +1,11 @@
+<table name="company0" dataSource="DS1">
+    <column key="true" type="primitive">
+        <source name="c" type="uint32"/>
+        <target name="c" type="uint32"/>
+    </column>
+    <column key="true" type="primitive">
+        <source name="d" type="uint32"/>
+        <target name="d" type="uint32"/>
+    </column>
+</table>
+<script name="import-script.sb"/>

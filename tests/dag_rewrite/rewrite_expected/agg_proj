@@ -4,11 +4,11 @@ PROJECT [a, b] FROM (in_1([a {1}, b {1}]) {1}) AS proj_a_0([a {1}, b {1}]) {1}
 PROJECT [a, b] FROM (in_2([a {2}, b {2}]) {2}) AS proj_a_1([a {2}, b {2}]) {2}
 PROJECT [a, b] FROM (proj_a_0([a {1}, b {1}]) {1}) AS proj_b_0([a {1}, b {1}]) {1}
 AGG [b, +] FROM (proj_b_0([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
-CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2}
+CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2, 3}
 PROJECT [a, b] FROM (proj_a_1([a {2}, b {2}]) {2}) AS proj_b_1([a {2}, b {2}]) {2}
 AGG [b, +] FROM (proj_b_1([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
-CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2}
-CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2}, agg_1_close([a {2}, total_b {2}]) {1, 2}] AS rel([a {1,2}, b {1,2}]) {1, 2}
-AGGMPC [b, +] FROM (rel([a {1,2}, b {1,2}]) {1, 2}) GROUP BY [a] AS agg_obl([a {1,2}, total_b {1,2}]) {1, 2}
-OPENMPC agg_obl([a {1,2}, total_b {1,2}]) {1, 2} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
+CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2, 3}
+CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2, 3}, agg_1_close([a {2}, total_b {2}]) {1, 2, 3}] AS rel([a {1,2}, b {1,2}]) {1, 2, 3}
+AGGMPC [b, +] FROM (rel([a {1,2}, b {1,2}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2}, total_b {1,2}]) {1, 2, 3}
+OPENMPC agg_obl([a {1,2}, total_b {1,2}]) {1, 2, 3} INTO agg_obl_open([a {1,2}, total_b {1,2}]) {1}
 PROJECT [a, total_b] FROM (agg_obl_open([a {1,2}, total_b {1,2}]) {1}) AS proj_c([a {1,2}, total_b {1,2}]) {1}

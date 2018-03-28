@@ -52,7 +52,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
                 available.add(node)
             else:
                 # mark all descendants as unavailable
-                descendants = Dag(set([node])).get_all_nodes()
+                descendants = Dag({node}).get_all_nodes()
                 unavailable = unavailable.union(descendants)
         return True
 

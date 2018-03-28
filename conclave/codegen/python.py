@@ -38,6 +38,15 @@ class PythonCodeGen(CodeGen):
         job = PythonJob(job_name, "{}/{}".format(code_directory, job_name))
         return job, op_code
 
+    def _generate_concat(self, concat_op: saldag.Concat):
+        """ Generate code for Concat operations. """
+        in_rel_str = " + ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
+        return "{}{} = {}\n".format(
+            self.space,
+            concat_op.out_rel.name,
+            in_rel_str
+        )
+
     def _generate_aggregate(self, agg_op: saldag.Aggregate):
         """ Generate code for Aggregate operations. """
         # TODO handle multi-column case
@@ -79,6 +88,17 @@ class PythonCodeGen(CodeGen):
             self.space,
             create_op.out_rel.name,
             self.config.input_path + "/" + create_op.out_rel.name + ".csv"
+        )
+
+    def _generate_join_flags(self, join_flags_op: saldag.JoinFlags):
+        """ Generate code for JoinFlags operations. """
+        return "{}{}  = join_flags({}, {}, {}, {})\n".format(
+            self.space,
+            join_flags_op.out_rel.name,
+            join_flags_op.get_left_in_rel().name,
+            join_flags_op.get_right_in_rel().name,
+            join_flags_op.left_join_cols[0].idx,
+            join_flags_op.right_join_cols[0].idx
         )
 
     def _generate_join(self, join_op: saldag.Join):

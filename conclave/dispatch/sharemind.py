@@ -1,6 +1,5 @@
 import asyncio
-import re
-from subprocess import call, Popen, PIPE
+from subprocess import call
 
 
 class SharemindDispatcher:
@@ -66,17 +65,17 @@ class SharemindDispatcher:
         self._submit_to_miners(job)
 
         # notify other parties that job is done
-        for input_party in job.input_parties:
-            if input_party != self.peer.pid:
-                self.peer.send_done_msg(input_party, job.name + ".controller")
+        for party in self.peer.parties:
+            if party != self.peer.pid:
+                self.peer.send_done_msg(party, job.name + ".controller")
 
         print("done")
 
     def _regular_dispatch(self, job):
         """ Dispatch Sharemind job not as controller. """
-
-        # submit data to miners
-        self._input_data(job)
+        if self.peer.pid in job.input_parties:
+            # submit data to miners
+            self._input_data(job)
 
         # notify controller that we're done
         self.peer.send_done_msg(job.controller, job.name + ".input")

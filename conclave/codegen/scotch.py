@@ -1,12 +1,11 @@
-from conclave.codegen import CodeGen
 import conclave.dag as saldag
+from conclave.codegen import CodeGen
 
 
 class ScotchCodeGen(CodeGen):
     """ Codegen subclass for generating relational debugging language. """
 
     def __init__(self, config, dag: saldag.Dag):
-
         super(ScotchCodeGen, self).__init__(config, dag)
 
     def _generate_job(self, job_name, output_directory, op_code: str):
@@ -14,8 +13,47 @@ class ScotchCodeGen(CodeGen):
 
         return op_code
 
+    def _generate_join_flags(self, join_flags_op: saldag.JoinFlags):
+        """ Generate code for JoinFlags operations. """
+
+        return "({}) JOINFLAGS{} ({}) ON [{}] AND [{}] AS {}\n".format(
+            join_flags_op.get_left_in_rel().dbg_str(),
+            "MPC" if join_flags_op.is_mpc else "",
+            join_flags_op.get_right_in_rel().dbg_str(),
+            ",".join([c.name for c in join_flags_op.left_join_cols]),
+            ",".join([c.name for c in join_flags_op.right_join_cols]),
+            join_flags_op.out_rel.dbg_str()
+        )
+
+    def _generate_flag_join(self, flag_join_op: saldag.FlagJoin):
+        """ Generate code for FlagJoin operations. """
+
+        return "({}) FLAGJOIN{} ({}) WITH FLAGS ({}) ON [{}] AND [{}] AS {}\n".format(
+            flag_join_op.get_left_in_rel().dbg_str(),
+            "MPC" if flag_join_op.is_mpc else "",
+            flag_join_op.get_right_in_rel().dbg_str(),
+            flag_join_op.join_flag_op.out_rel.dbg_str(),
+            ",".join([c.name for c in flag_join_op.left_join_cols]),
+            ",".join([c.name for c in flag_join_op.right_join_cols]),
+            flag_join_op.out_rel.dbg_str()
+        )
+
+    def _generate_leaky_hybrid_aggregate(self, lky_idx_agg_op: saldag.LeakyIndexAggregate):
+        """ Generate code for LeakyIndexAggregate operations. """
+
+        return "LKYIDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] WITH KEYS {} AND MAP {} AS {}\n".format(
+            "MPC" if lky_idx_agg_op.is_mpc else "",
+            lky_idx_agg_op.agg_col.get_name(),
+            lky_idx_agg_op.aggregator,
+            lky_idx_agg_op.get_in_rel().dbg_str(),
+            ",".join([group_col.get_name() for group_col in lky_idx_agg_op.group_cols]),
+            lky_idx_agg_op.dist_keys.out_rel.name,
+            lky_idx_agg_op.keys_to_idx_map.out_rel.name,
+            lky_idx_agg_op.out_rel.dbg_str()
+        )
+
     def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
-        """ Generate code for Index Aggregate operations. """
+        """ Generate code for IndexAggregate operations. """
 
         return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if idx_agg_op.is_mpc else "",
@@ -24,6 +62,19 @@ class ScotchCodeGen(CodeGen):
             idx_agg_op.get_in_rel().dbg_str(),
             ",".join([group_col.get_name() for group_col in idx_agg_op.group_cols]),
             idx_agg_op.out_rel.dbg_str()
+        )
+
+    def _generate_hybrid_aggregate(self, hybrid_agg_op: saldag.HybridAggregate):
+        """ Generate code for Aggregate operations. """
+
+        return "HYBRIDAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {} WITH STP {}\n".format(
+            "MPC" if hybrid_agg_op.is_mpc else "",
+            hybrid_agg_op.agg_col.get_name(),
+            hybrid_agg_op.aggregator,
+            hybrid_agg_op.get_in_rel().dbg_str(),
+            ",".join([group_col.get_name() for group_col in hybrid_agg_op.group_cols]),
+            hybrid_agg_op.out_rel.dbg_str(),
+            hybrid_agg_op.trusted_party
         )
 
     def _generate_aggregate(self, agg_op: saldag.Aggregate):
@@ -39,7 +90,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_concat(self, concat_op: saldag.Concat):
-        """ Generate code for concat operations. """
+        """ Generate code for Concat operations. """
 
         in_rel_str = ", ".join([in_rel.dbg_str() for in_rel in concat_op.get_in_rels()])
         return "CONCAT{} [{}] AS {}\n".format(
@@ -49,7 +100,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_create(self, create_op: saldag.Create):
-        """ Generate code to create relations. """
+        """ Generate code to Create relations. """
 
         col_type_str = ", ".join(
             [col.type_str for col in create_op.out_rel.columns])
@@ -69,7 +120,7 @@ class ScotchCodeGen(CodeGen):
             divide_op.get_in_rel().dbg_str(),
             divide_op.out_rel.dbg_str()
         )
-        
+
     def _generate_multiply(self, multiply_op: saldag.Multiply):
         """ Generate code for Multiply operations. """
 
@@ -95,7 +146,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_index_join(self, index_join_op: saldag.IndexJoin):
-        """ Generate code for Index Join operations. """
+        """ Generate code for IndexJoin operations. """
 
         return "({}) IDXJOIN{} ({}) WITH INDECES ({}) ON [{}] AND [{}] AS {}\n".format(
             index_join_op.get_left_in_rel().dbg_str(),
@@ -108,7 +159,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_reveal_join(self, reveal_join_op: saldag.RevealJoin):
-        """ Generate code for Reveal Join operations. """
+        """ Generate code for RevealJoin operations. """
 
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
             reveal_join_op.get_left_in_rel().dbg_str(),
@@ -119,7 +170,7 @@ class ScotchCodeGen(CodeGen):
         )
 
     def _generate_hybrid_join(self, hybrid_join_op: saldag.HybridJoin):
-        """ Generate code for Hybrid Join operations. """
+        """ Generate code for HybridJoin operations. """
 
         return "({}) HYBRIDJOIN ({}) ON {} AND {} AS {}\n".format(
             hybrid_join_op.get_left_in_rel().dbg_str(),
@@ -175,7 +226,7 @@ class ScotchCodeGen(CodeGen):
         """ Generate code for Filer operations. """
 
         filterStr = "{} {} {}".format(filter_op.target_col,
-                filter_op.operator, filter_op.filter_expr)
+                                      filter_op.operator, filter_op.filter_expr)
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
             filterStr,
