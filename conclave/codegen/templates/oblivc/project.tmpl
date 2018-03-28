@@ -1,0 +1,6 @@
+
+	intermediateMat {{{OUT_REL}}};
+	int projCols[] = { {{{PROJ_COLS}}} };
+	{{{OUT_REL}}}.cols = {{{NUM_COLS}}};
+
+	project(&{{{IN_REL}}}, &{{{OUT_REL}}}, projCols);

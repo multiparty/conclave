@@ -7,7 +7,6 @@ class NetworkConfig:
     """ Config object for network module. """
 
     def __init__(self, parties: list, pid: int = 1):
-        """ Initialize NetworkConfig object. """
 
         self.inited = True
         self.pid = pid
@@ -35,7 +34,6 @@ class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
     def __init__(self, home_path='/tmp', use_docker=True, use_hdfs=True):
-        """ Initialize SharemindCodeGenConfig object. """
 
         self.home_path = home_path
         self.use_docker = use_docker
@@ -46,9 +44,19 @@ class SparkConfig:
     """ Spark configuration."""
 
     def __init__(self, spark_master_url):
-        """ Initialize SparkConfig object. """
 
         self.spark_master_url = spark_master_url
+
+
+class OblivcConfig:
+    """
+    Obliv-c configuration.
+    """
+
+    def __init__(self, oc_path: str, ip_and_port: str):
+
+        self.oc_path = oc_path
+        self.ip_and_port = ip_and_port
 
 
 class CodeGenConfig:
@@ -85,6 +93,7 @@ class CodeGenConfig:
 
         if not self.inited:
             self.__init__()
+
         self.pid = pid
 
         return self
@@ -94,6 +103,7 @@ class CodeGenConfig:
 
         if not self.inited:
             self.__init__()
+
         self.delimiter = delimiter
 
         return self
@@ -103,6 +113,7 @@ class CodeGenConfig:
 
         if not self.inited:
             self.__init__()
+
         self.system_configs["sharemind"] = cfg
 
         return self
@@ -112,9 +123,18 @@ class CodeGenConfig:
 
         if not self.inited:
             self.__init__()
+
         self.system_configs["spark"] = cfg
 
         return self
+
+    def with_oc_config(self, cfg: OblivcConfig):
+        """ Add OblivcConfig object to this object. """
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["oblivc"] = cfg
 
     def with_network_config(self, cfg: NetworkConfig):
         """ Add network config to this object. """

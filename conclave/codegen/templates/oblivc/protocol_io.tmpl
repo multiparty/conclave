@@ -1,0 +1,25 @@
+#include <obliv.h>
+#include <obliv.oh>
+
+#define ROWS {{{NUM_ROWS}}}
+#define COLS {{{NUM_COLS}}}
+
+typedef struct
+{
+	char *src;
+	int rows;
+	int cols;
+	int mat[ROWS][COLS];
+	int **ret;
+
+} protocolIo;
+
+typedef struct
+{
+	int rows;
+	int cols;
+	obliv int **mat;
+
+} intermediateMat;
+
+void protocol(void *args);
