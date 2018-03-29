@@ -81,7 +81,7 @@ void loadData(protocolIo *io)
 {
 
 	int i = 0;
-  	char buffer[ROWS][COLS];
+  	char buffer[ROWS * sizeof(float)][COLS * sizeof(float)];
   	char *record, *line;
 
 	FILE *fstream = fopen(io->src, "r");

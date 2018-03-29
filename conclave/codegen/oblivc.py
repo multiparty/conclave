@@ -364,7 +364,8 @@ class OblivcCodeGen(CodeGen):
 
         for node in nodes:
             if isinstance(node, Create):
-                in_path = node.out_rel.name
+                if self.pid in node.out_rel.stored_with:
+                    in_path = node.out_rel.name
             if isinstance(node, Open):
                 out_path = node.out_rel.name
 
@@ -373,8 +374,8 @@ class OblivcCodeGen(CodeGen):
 
         data = {
             "PID": self.pid,
-            "INPUT_PATH": self.config.input_path + '/' + in_path + '.csv',
-            "OUTPUT_PATH": self.config.output_path + '/' + out_path + '_' + str(self.pid) + '.csv'
+            "INPUT_PATH": "{0}/{1}.csv".format(self.config.input_path, in_path),
+            "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.output_path, out_path, str(self.pid))
         }
 
         return pystache.render(template, data)
