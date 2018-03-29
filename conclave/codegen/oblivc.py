@@ -356,7 +356,6 @@ class OblivcCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_controller(self):
-        # TODO: find a way to get leaf node's name here for OUTPUT_PATH var
 
         nodes = self.dag.top_sort()
 
