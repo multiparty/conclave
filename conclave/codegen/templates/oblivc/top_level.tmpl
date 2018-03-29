@@ -317,22 +317,33 @@ void compareExchange
 	obliv float y = array[j][keyCol];
 
 	obliv float c;
+	obliv float d;
 	if (ascending)
 	{
 		obliv if (x < y)
 		{
-			c += 1;
+			c = 1;
+			d = 0;
+		}
+		else
+		{
+			c = 0;
+			d = 1;
 		}
 	}
 	else
 	{
 		obliv if (x > y)
 		{
-			c += 1;
+			c = 1;
+			d = 0;
+		}
+		else
+		{
+			c = 0;
+			d = 1;
 		}
 	}
-
-	obliv float d = 1 - c;
 
 	obliv float *temp1 = malloc(sizeof(obliv float) * numCols);
 	obliv float *temp2 = malloc(sizeof(obliv float) * numCols);
