@@ -10,8 +10,8 @@ typedef struct
 	char *out;
 	int rows;
 	int cols;
-	int mat[ROWS][COLS];
-	int **ret;
+	float mat[ROWS][COLS];
+	float **ret;
 
 } protocolIo;
 
@@ -19,7 +19,7 @@ typedef struct
 {
 	int rows;
 	int cols;
-	obliv int **mat;
+	obliv float **mat;
 
 } intermediateMat;
 
