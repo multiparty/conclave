@@ -8,7 +8,7 @@ from conclave.codegen import CodeGen
 from conclave.dag import *
 from conclave.job import OblivCJob
 
-# TODO: convert all 'int' declarations to float in oc template files
+# TODO: out filepath is not passing in codegen
 
 
 class OblivcCodeGen(CodeGen):
@@ -125,8 +125,6 @@ class OblivcCodeGen(CodeGen):
 
             self.num_cols = len(create_op.out_rel.columns)
             self.num_rows = self.count_rows(create_op.out_rel.name)
-
-            self.input_rel_name = create_op.out_rel.name
 
         return self
 
@@ -360,13 +358,24 @@ class OblivcCodeGen(CodeGen):
     def _generate_controller(self):
         # TODO: find a way to get leaf node's name here for OUTPUT_PATH var
 
+        nodes = self.dag.top_sort()
+
+        in_path = ''
+        out_path = ''
+
+        for node in nodes:
+            if isinstance(node, Create):
+                in_path = node.out_rel.name
+            if isinstance(node, Open):
+                out_path = node.out_rel.name
+
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "PID": self.pid,
-            "INPUT_PATH": self.config.input_path + '/' + self.input_rel_name + '.csv',
-            "OUTPUT_PATH": self.config.output_path + '.csv'
+            "INPUT_PATH": self.config.input_path + '/' + in_path + '.csv',
+            "OUTPUT_PATH": self.config.output_path + '/' + out_path + '_' + str(self.pid) + '.csv'
         }
 
         return pystache.render(template, data)

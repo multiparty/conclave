@@ -100,7 +100,7 @@ void loadData(protocolIo *io)
 		int j = 0;
 		while(record != NULL)
 		{
-			arr[j] = atoi(record);
+			arr[j] = atof(record);
 			record = strtok(NULL,",");
 			j++;
 		}
