@@ -91,7 +91,6 @@ def run(protocol: Callable):
         yaml.add_constructor("!join", join)
         conf = yaml.load(fp)
 
-    # Setup conclave
     conclave_config = setup(conf)
 
     download_data(conclave_config)
