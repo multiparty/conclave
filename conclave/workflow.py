@@ -8,6 +8,8 @@ from conclave.config import SharemindCodeGenConfig
 from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
+from conclave.config import SwiftConfig
+from conclave.swift import GetData, PutData
 
 
 def setup(conf: Dict):
@@ -15,6 +17,10 @@ def setup(conf: Dict):
     # GENERAL
     pid = conf["pid"]
     workflow_name = conf["workflow_name"]
+
+    # SWIFT
+    cfg = conf["swift"]
+    swift_config = SwiftConfig(cfg)
 
     # SPARK
     hdfs_path = conf["spark"]["hdfs"]["path"]
@@ -38,6 +44,7 @@ def setup(conf: Dict):
         .with_sharemind_config(sm_config) \
         .with_spark_config(spark_config) \
         .with_oc_config(oc_config) \
+        .with_swift_config(swift_config) \
         .with_network_config(net_config)
 
     conclave_config.code_path = conf["code_path"] + workflow_name
@@ -47,6 +54,28 @@ def setup(conf: Dict):
     conclave_config.name = workflow_name
 
     return conclave_config
+
+
+def download_data(conclave_config):
+    """
+    Download data from Swift to local filesystem.
+    """
+
+    swift_cfg = conclave_config['swift']['source']
+
+    obj = GetData(swift_cfg, conclave_config.input_path)
+    obj.get_data()
+
+
+def post_data(conclave_config):
+    """
+    Store data held locally on Swift.
+    """
+
+    swift_cfg = conclave_config['swift']['destination']
+
+    obj = PutData(swift_cfg, conclave_config.output_path)
+    obj.store_data()
 
 
 def run(protocol: Callable):
@@ -65,7 +94,11 @@ def run(protocol: Callable):
     # Setup conclave
     conclave_config = setup(conf)
 
+    download_data(conclave_config)
+
     generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
+
+    post_data(conclave_config)
 
 
 # Custom yaml join
