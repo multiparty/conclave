@@ -30,6 +30,21 @@ class NetworkConfig:
         return network_config
 
 
+class SwiftConfig:
+    """
+    Configuration for accessing data from Swift.
+    """
+
+    def __init__(self, cfg):
+
+        self.auth_url = cfg['AUTH']['auth_url']
+        self.username = cfg['AUTH']['username']
+        self.password = cfg['AUTH']['password']
+        self.user_domain_name = cfg['PROJ']['user_domain_name']
+        self.project_domain_name = cfg['PROJ']['project_domain_name']
+        self.project_name = cfg['PROJ']['project_name']
+
+
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
@@ -115,6 +130,15 @@ class CodeGenConfig:
             self.__init__()
 
         self.system_configs["sharemind"] = cfg
+
+        return self
+
+    def with_swift_config(self, cfg: SwiftConfig):
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["swift"] = cfg
 
         return self
 
