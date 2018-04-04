@@ -22,9 +22,6 @@ class GetData:
         Deletes the object after returning if specified
         """
 
-        # TODO: whole get process is screwed up here.
-        # TODO: need to figure out if 'container_name' is distinct from other fields already in cfg
-
         try:
             container_name = self.cfg['container_name']
             k = os.path.join('input', 'data')
@@ -110,9 +107,7 @@ class PutData:
             container_name = self.cfg['container_name']
             key = os.path.join('output', 'data')
             self._put_object(container_name, key, zipped_file_content)
+            swift_handler.delete_empty_dir(key)
 
         except Exception as err:
             print(err)
-
-        finally:
-            swift_handler.delete_empty_dir(key)

@@ -23,7 +23,6 @@ def setup(conf: Dict):
     swift_config = SwiftConfig(cfg)
 
     # SPARK
-    hdfs_path = conf["spark"]["hdfs"]["path"]
     spark_master_url = conf["spark"]["master_url"]
     spark_config = SparkConfig(spark_master_url)
 
@@ -61,7 +60,7 @@ def download_data(conclave_config):
     Download data from Swift to local filesystem.
     """
 
-    swift_cfg = conclave_config['swift']['source']
+    swift_cfg = conclave_config.system_configs['swift']['source']
 
     obj = GetData(swift_cfg, conclave_config.input_path)
     obj.get_data()
@@ -72,7 +71,7 @@ def post_data(conclave_config):
     Store data held locally on Swift.
     """
 
-    swift_cfg = conclave_config['swift']['destination']
+    swift_cfg = conclave_config.system_configs['swift']['dest']
 
     obj = PutData(swift_cfg, conclave_config.output_path)
     obj.store_data()

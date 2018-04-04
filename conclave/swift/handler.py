@@ -34,11 +34,11 @@ class SwiftHandler:
         Initiates a Swift connection and returns a Swift connection object.
         """
 
-        auth_url = config.auth_url
-        username = config.username
-        password = config.password
-        project_domain_name = config.project_domain_name
-        project_name = config.project_name
+        auth_url = config["auth_url"]
+        username = config["username"]
+        password = config["password"]
+        project_domain_name = config["project_domain_name"]
+        project_name = config["project_name"]
 
         scoped_session = self._get_scoped_session(auth_url, username, password, project_domain_name, project_name)
         swift_connection = swift_client.Connection(session=scoped_session)
