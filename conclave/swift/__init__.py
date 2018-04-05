@@ -3,7 +3,6 @@ Helper class for get_data and put_data
 Establishes swift connection and returns a connection object
 """
 
-import configparser
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from swiftclient import client as swift_client
@@ -30,22 +29,16 @@ class SwiftHandler:
         scoped_session = session.Session(auth=password_auth)
         return scoped_session
 
-    def init_swift_connection(self, cfg_path):
+    def init_swift_connection(self, cfg):
         """
         Returns a Swift connection object
-        Swift credentials should be stored as a .cfg file at <cfg_path>
         """
 
-        config = configparser.ConfigParser()
-
-        with open(cfg_path, 'r') as f:
-            config.read_file(f)
-
-        os_auth_url = config['AUTHORIZATION']['osAuthUrl']
-        username = config['AUTHORIZATION']['username']
-        password = config['AUTHORIZATION']['password']
-        os_project_domain = config['PROJECT']['osProjectDomain']
-        os_project_name = config['PROJECT']['osProjectName']
+        os_auth_url = cfg['AUTHORIZATION']['osAuthUrl']
+        username = cfg['AUTHORIZATION']['username']
+        password = cfg['AUTHORIZATION']['password']
+        os_project_domain = cfg['PROJECT']['osProjectDomain']
+        os_project_name = cfg['PROJECT']['osProjectName']
 
         scoped_session = self.get_scoped_session(
             os_auth_url, username, password, os_project_domain, os_project_name)
@@ -60,17 +53,21 @@ class SwiftData:
     Upload files to a swift container, download files from a container, and create a container.
     """
 
-    def __init__(self, config_path):
+    def __init__(self, cfg):
 
-        self.config_path = config_path
-        self.swiftConnection = SwiftHandler().init_swift_connection(self.config_path)
+        self.cfg = cfg
+        self.swift_connection = SwiftHandler().init_swift_connection(self.cfg)
 
     def create_container(self, container_name):
         """
         Create a container.
         """
 
-        self.swiftConnection.put_container(container_name)
+        if self.swift_connection is None:
+            print("Previous connection was closed. Reinitialize this object.")
+            return self
+
+        self.swift_connection.put_container(container_name)
         print("Container {0} created.".format(container_name))
 
     def get_data(self, container_name, key, output_dir):
@@ -78,7 +75,11 @@ class SwiftData:
         Retrieve data from an existing container.
         """
 
-        response, contents = self.swiftConnection.get_object(container_name, key)
+        if self.swift_connection is None:
+            print("Previous connection was closed. Reinitialize this object.")
+            return self
+
+        response, contents = self.swift_connection.get_object(container_name, key)
 
         with open("{0}/{1}".format(output_dir, key), 'wb') as out_file:
             out_file.write(contents)
@@ -89,7 +90,22 @@ class SwiftData:
         Put data into an existing container.
         """
 
+        if self.swift_connection is None:
+            print("Previous connection was closed. Reinitialize this object.")
+            return self
+
         c = open(file_path).read()
 
-        self.swiftConnection.put_object(container_name, key , c, content_type='text/plain')
+        self.swift_connection.put_object(container_name, key, c, content_type='text/plain')
         print('Placed object {0} in container {1}'.format(key, container_name))
+
+    def close_connection(self):
+        """
+        Close a swift connection.
+        """
+
+        if self.swift_connection is not None:
+            self.swift_connection.close()
+            self.swift_connection = None
+
+        return self
