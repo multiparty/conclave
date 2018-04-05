@@ -1,113 +1,95 @@
-import os
-import zipfile
-import shutil
-from io import BytesIO
-from conclave.swift.handler import SwiftHandler
+"""
+Helper class for get_data and put_data
+Establishes swift connection and returns a connection object
+"""
+
+import configparser
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
+from swiftclient import client as swift_client
 
 
-class GetData:
+class SwiftHandler:
     """
-    Retrieve data from Swift and store locally.
-    """
-
-    def __init__(self, cfg, write_to):
-
-        self.cfg = cfg
-        self.write_to = write_to
-        self.swift_connection = None
-
-    def _get_object(self, b_delete):
-        """
-        Returns an object associated with the specified k in the specified container
-        Deletes the object after returning if specified
-        """
-
-        try:
-            container_name = self.cfg['container_name']
-            k = os.path.join('input', 'data')
-            swift_data_object = self.swift_connection.get_object(container_name, k)
-
-            if b_delete:
-                self.swift_connection.delete_object(container_name, k)
-                print('Deleted object with key {}'.format(k))
-
-            return swift_data_object
-
-        except Exception as exp:
-            print(exp)
-
-        return
-
-    def get_data(self):
-        """
-        Gets the data from the Swift storage, zips and/or encodes it and sends it to the client
-        """
-
-        try:
-            swift_handler = SwiftHandler()
-            self.swift_connection = swift_handler.init_swift_connection(self.cfg)
-            data_object = self._get_object(False)
-
-        except Exception as err:
-            print(err)
-            return
-
-        object_value = data_object[1]
-        file_content = object_value
-        file_bytes = BytesIO(file_content)
-
-        zipfile_obj = zipfile.ZipFile(file_bytes, 'r', compression=zipfile.ZIP_DEFLATED)
-
-        if not os.path.exists(self.write_to):
-            os.makedirs(self.write_to)
-        zipfile_obj.extractall(self.write_to)
-
-
-class PutData:
-    """
-    Place data held locally on Swift.
+    Initiates a connection to a project domain.
     """
 
-    def __init__(self, cfg, write_from):
-
-        self.cfg = cfg
-        self.write_from = write_from
-        self.swift_connection = None
-
-    def _put_object(self, container_name, key, value):
+    @staticmethod
+    def get_scoped_session(os_auth_url, username, password, os_project_domain, os_project_name):
         """
-        Creates an object with the given key and value and puts the object in the specified container
+        Create and return a scoped session.
         """
 
-        try:
-            self.swift_connection.put_object(container_name, key, contents=value, content_type='text/plain')
-            print('Object added with key {}'.format(key))
+        password_auth = v3.Password(auth_url=os_auth_url,
+                                    user_domain_name='default',
+                                    username=username, password=password,
+                                    project_domain_name=os_project_domain,
+                                    project_name=os_project_name,
+                                    unscoped=False)
 
-        except Exception as exp:
-            print('Exception: {}'.format(exp))
+        scoped_session = session.Session(auth=password_auth)
+        return scoped_session
 
-    def store_data(self):
+    def init_swift_connection(self, cfg_path):
         """
-        Creates an object of the file and stores it into the container as key-value object
+        Returns a Swift connection object
+        Swift credentials should be stored as a .cfg file at <cfg_path>
         """
 
-        shutil.make_archive('/tmp/ziparchive', 'zip', self.write_from)
+        config = configparser.ConfigParser()
 
-        # TODO: might need to remove hardcoding here if /tmp/ has permissions issues
-        try:
-            with open('/tmp/ziparchive.zip', 'rb') as f:
-                zipped_file_content = f.read()
-        finally:
-            os.remove('/tmp/ziparchive.zip')
+        with open(cfg_path, 'r') as f:
+            config.read_file(f)
 
-        swift_handler = SwiftHandler()
-        self.swift_connection = swift_handler.init_swift_connection(self.cfg)
+        os_auth_url = config['AUTHORIZATION']['osAuthUrl']
+        username = config['AUTHORIZATION']['username']
+        password = config['AUTHORIZATION']['password']
+        os_project_domain = config['PROJECT']['osProjectDomain']
+        os_project_name = config['PROJECT']['osProjectName']
 
-        try:
-            container_name = self.cfg['container_name']
-            key = os.path.join('output', 'data')
-            self._put_object(container_name, key, zipped_file_content)
-            swift_handler.delete_empty_dir(key)
+        scoped_session = self.get_scoped_session(
+            os_auth_url, username, password, os_project_domain, os_project_name)
 
-        except Exception as err:
-            print(err)
+        swift_connection = swift_client.Connection(session=scoped_session)
+
+        return swift_connection
+
+
+class SwiftData:
+    """
+    Upload files to a swift container, download files from a container, and create a container.
+    """
+
+    def __init__(self, config_path):
+
+        self.config_path = config_path
+        self.swiftConnection = SwiftHandler().init_swift_connection(self.config_path)
+
+    def create_container(self, container_name):
+        """
+        Create a container.
+        """
+
+        self.swiftConnection.put_container(container_name)
+        print("Container {0} created.".format(container_name))
+
+    def get_data(self, container_name, key, output_dir):
+        """
+        Retrieve data from an existing container.
+        """
+
+        response, contents = self.swiftConnection.get_object(container_name, key)
+
+        with open("{0}/{1}".format(output_dir, key), 'wb') as out_file:
+            out_file.write(contents)
+        print("Wrote object {0} to {1}.".format(key, output_dir))
+
+    def put_data(self, container_name, file_path, key):
+        """
+        Put data into an existing container.
+        """
+
+        c = open(file_path).read()
+
+        self.swiftConnection.put_object(container_name, key , c, content_type='text/plain')
+        print('Placed object {0} in container {1}'.format(key, container_name))
