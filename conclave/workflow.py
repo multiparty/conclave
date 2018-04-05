@@ -9,7 +9,7 @@ from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
 from conclave.config import SwiftConfig
-from conclave.swift import GetData, PutData
+from conclave.swift import SwiftData
 
 
 def setup(conf: Dict):
@@ -62,8 +62,12 @@ def download_data(conclave_config):
 
     swift_cfg = conclave_config.system_configs['swift']['source']
 
-    obj = GetData(swift_cfg, conclave_config.input_path)
-    obj.get_data()
+    swift_data = SwiftData(swift_cfg)
+
+    # TODO: need to get args to pass here (from config?)
+    swift_data.get_data()
+
+    swift_data.close_connection()
 
 
 def post_data(conclave_config):
@@ -73,8 +77,12 @@ def post_data(conclave_config):
 
     swift_cfg = conclave_config.system_configs['swift']['dest']
 
-    obj = PutData(swift_cfg, conclave_config.output_path)
-    obj.store_data()
+    swift_data = SwiftData(swift_cfg)
+
+    # TODO: need to get args to pass here (from config?)
+    swift_data.put_data()
+
+    swift_data.close_connection()
 
 
 def run(protocol: Callable):
