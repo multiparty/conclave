@@ -41,8 +41,6 @@ class SwiftConfig:
         self.dest = cfg['dest']
 
 
-
-
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
