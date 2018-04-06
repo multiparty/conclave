@@ -1,0 +1,43 @@
+# GENERAL
+pid: <int>
+workflow_name: <str>
+
+# TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
+# /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
+# for use on OS containers.
+input_path: <str>
+output_path: <str>
+code_path: <str>
+
+# SPARK
+spark:
+  master_url: <ip>:<port>
+
+# OBLIV-C
+oc_path: <str>
+ip_and_port: <ip>:<port>
+
+# SWIFT
+swift:
+	source:
+    AUTHORIZATION:
+      osAuthUrl: <str>
+      username: <str>
+      password: <str>
+    PROJECT:
+      osProjectDomain: <str>
+      osProjectName: <str>
+    DATA:
+      container_name: <str>
+      files: <list>
+  destination:
+    AUTHORIZATION:
+      osAuthUrl: <str>
+      username: <str>
+      password: <str>
+    PROJECT:
+      osProjectDomain: <str>
+      osProjectName: <str>
+    DATA:
+      container_name: <str>
+      files: <list>
