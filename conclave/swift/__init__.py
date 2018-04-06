@@ -70,7 +70,7 @@ class SwiftData:
         self.swift_connection.put_container(container_name)
         print("Container {0} created.".format(container_name))
 
-    def get_data(self, container_name, key, output_dir):
+    def get_data(self, container_name, key, file_path):
         """
         Retrieve data from an existing container.
         """
@@ -81,11 +81,11 @@ class SwiftData:
 
         response, contents = self.swift_connection.get_object(container_name, key)
 
-        with open("{0}/{1}".format(output_dir, key), 'wb') as out_file:
+        with open("{0}/{1}".format(file_path, key), 'wb') as out_file:
             out_file.write(contents)
-        print("Wrote object {0} to {1}.".format(key, output_dir))
+        print("Wrote object {0} to {1}.".format(key, file_path))
 
-    def put_data(self, container_name, file_path, key):
+    def put_data(self, container_name, key, file_path):
         """
         Put data into an existing container.
         """
