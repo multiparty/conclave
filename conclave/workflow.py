@@ -26,6 +26,7 @@ def setup(conf: Dict):
     spark_master_url = conf["spark"]["master_url"]
     spark_config = SparkConfig(spark_master_url)
 
+    # TODO: deprecated, not using SM anymore.
     # SHAREMIND
     sm_config = SharemindCodeGenConfig(conf["code_path"])
 
@@ -34,6 +35,7 @@ def setup(conf: Dict):
     ip_port = conf["oblivc"]["ip_port"]
     oc_config = OblivcConfig(oc_path, ip_port)
 
+    # TODO: deprecated, not using SM anymore.
     # NET
     hosts = conf["sharemind"]["parties"]
     net_config = NetworkConfig(hosts, pid)
@@ -46,11 +48,13 @@ def setup(conf: Dict):
         .with_swift_config(swift_config) \
         .with_network_config(net_config)
 
-    conclave_config.code_path = conf["code_path"] + workflow_name
-    conclave_config.input_path = conf["data_path"] + conf["name"]
-    conclave_config.output_path = conf["data_path"] + conf["name"]
     conclave_config.pid = pid
     conclave_config.name = workflow_name
+
+    # TODO hardcode these three lines, will be constant on OS containers.
+    conclave_config.code_path = "{0}/{1}".format(conf["code_path"], workflow_name)
+    conclave_config.input_path = "{0}/{1}-in/".format(conf["input_path"], conf["name"])
+    conclave_config.output_path = "{0}/{1}-out/".format(conf["output_path"], conf["name"])
 
     return conclave_config
 
@@ -61,54 +65,54 @@ def download_data(conclave_config):
     """
 
     swift_cfg = conclave_config.system_configs['swift']['source']
+    data_dir = conclave_config['input_path']
+    container = swift_cfg['DATA']['container_name']
+    files = swift_cfg['DATA']['files']
 
     swift_data = SwiftData(swift_cfg)
 
-    # TODO: need to get args to pass here (from config?)
-    swift_data.get_data()
+    for file in files:
+        swift_data.get_data(container, file, data_dir)
 
     swift_data.close_connection()
 
 
 def post_data(conclave_config):
     """
-    Store data held locally on Swift.
+    Store locally held data on Swift.
     """
 
-    swift_cfg = conclave_config.system_configs['swift']['dest']
+    swift_cfg = conclave_config.system_configs['swift']['destination']
+    data_dir = conclave_config['input_path']
+    container = swift_cfg['DATA']['container_name']
+    files = swift_cfg['DATA']['files']
 
     swift_data = SwiftData(swift_cfg)
 
-    # TODO: need to get args to pass here (from config?)
-    swift_data.put_data()
+    for file in files:
+        swift_data.put_data(container, file, data_dir)
 
     swift_data.close_connection()
 
 
 def run(protocol: Callable):
-    # Parse arguments
+    """
+    Load parameters from config, download data from Swift,
+    dispatch computation, and push results back to Swift.
+    """
     parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
     parser.add_argument("--conf", metavar="/config/file.yml", type=str,
                         help="path of the config file", default="conf-ca.yml", required=False)
 
     args = parser.parse_args()
 
-    # Load config file
     with open(args.conf) as fp:
-        yaml.add_constructor("!join", join)
         conf = yaml.load(fp)
 
     conclave_config = setup(conf)
 
     download_data(conclave_config)
-
     generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
-
     post_data(conclave_config)
 
-
-# Custom yaml join
-def join(loader, node):
-    seq = loader.construct_sequence(node)
-    return "".join([str(i) for i in seq])
 
