@@ -49,6 +49,10 @@ class OblivCJob(Job):
     Job subclass for Obliv-C jobs.
     """
 
-    def __init__(self, name: str, code_dir: str):
+    def __init__(self, name: str, code_dir: str, input_parties: [list, None]=None):
 
         super(OblivCJob, self).__init__(name, code_dir)
+        if input_parties is None:
+            self.input_parties = [1, 2]
+        else:
+            self.input_parties = input_parties
