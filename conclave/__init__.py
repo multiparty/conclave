@@ -5,6 +5,7 @@ from conclave.codegen import scotch
 from conclave.codegen.python import PythonCodeGen
 from conclave.codegen.sharemind import SharemindCodeGen
 from conclave.codegen.spark import SparkCodeGen
+from conclave.codegen.oblivc import OblivcCodeGen
 from conclave.config import CodeGenConfig
 from conclave.dispatch import dispatch_all
 from conclave.net import SalmonPeer
@@ -28,11 +29,14 @@ def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
     assert len(mpc_frameworks) == 1 and len(local_frameworks) == 1
 
     dag = condag.OpDag(protocol())
+
     # only apply optimizations if required
     if apply_optimizations:
         dag = comp.rewrite_dag(dag, use_leaky_ops=cfg.use_leaky_ops)
+
     # partition into sub-dags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)
+
     # for each sub-dag run code gen and add resulting job to job queue
     job_queue = []
     for job_num, (framework, sub_dag, stored_with) in enumerate(mapping):
@@ -49,11 +53,17 @@ def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
             name = "{}-python-job-{}".format(cfg.name, job_num)
             job = PythonCodeGen(cfg, sub_dag).generate(name, cfg.output_path)
             job_queue.append(job)
+        elif framework == "obliv-c":
+            name = "{}-oblivc-job-{}".format(cfg.name, job_num)
+            job = OblivcCodeGen(cfg, sub_dag, cfg.pid).generate(name, cfg.output_path)
+            job_queue.append(job)
         else:
             raise Exception("Unknown framework: " + framework)
+
         # TODO: this probably doesn't belong here
         if cfg.pid not in stored_with:
             job.skip = True
+
     return job_queue
 
 
@@ -66,6 +76,7 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
     """
 
     networked_peer = None
+
     # if more than one party is involved in the protocol, we need a networked peer
     if len(conclave_config.all_pids) > 1:
         networked_peer = _setup_networked_peer(conclave_config.network_config)
@@ -74,11 +85,13 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
         # TODO use timeit
         import time
         import datetime
+
         start_time = time.time()
         dispatch_all(conclave_config, networked_peer, job_queue)
         elapsed_time = time.time() - start_time
         formatted_time = datetime.timedelta(milliseconds=(elapsed_time * 1000))
         print("TIMED", conclave_config.name, round(elapsed_time, 3), formatted_time)
+
         with open("timing_results.csv", "a+") as time_f:
             out = ",".join([conclave_config.name, str(round(elapsed_time, 3)), str(formatted_time)])
             time_f.write(out + "\n")
