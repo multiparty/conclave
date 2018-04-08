@@ -167,10 +167,12 @@ class SalmonPeer:
                 other_port = self.parties[other_pid]["port"]
                 print("Will connect to {} at {}:{}".format(
                     other_pid, other_host, other_port))
+
                 # create connection
                 # using deprecated asyncio.async for 3.4.3 support
                 conn = asyncio.async(_create_connection_retry(
                     lambda: SalmonProtocol(self), other_host, other_port))
+
                 self.peer_connections[other_pid] = conn
                 # once connection is ready, register own ID with other peer
                 conn.add_done_callback(functools.partial(_send_IAM, self.pid))
