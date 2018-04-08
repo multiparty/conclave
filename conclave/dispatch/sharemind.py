@@ -36,16 +36,6 @@ class SharemindDispatcher:
         except Exception:
             print("Failed job")
 
-        '''
-        #p = Popen(["bash", cmd], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        #output, err = p.communicate(b"")
-        #rc = p.returncode
-        #if rc == 0:
-        #    print("job success")
-        #else:
-        #    print("non-zero return code with error:", err)
-        '''
-
     def _dispatch_as_controller(self, job):
         """ Dispatch Sharemind job as controller for computation. """
 
