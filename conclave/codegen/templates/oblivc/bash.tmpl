@@ -1,4 +1,7 @@
+#!/bin/bash
 
-{{{OC_COMP_PATH}}} workflow.c workflow.oc
+{{{OC_COMP_PATH}}} {{{PATH}}}/workflow.c {{{PATH}}}/workflow.oc -o {{{PATH}}}/a.out
+
+cd {{{PATH}}}
 
 ./a.out {{{IP_AND_PORT}}}

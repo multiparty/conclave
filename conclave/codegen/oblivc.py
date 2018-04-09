@@ -62,10 +62,11 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_aggregate(node)
             elif isinstance(node, Concat):
                 op_code += self._generate_concat(node)
-            elif isinstance(node, Create):
-                self._generate_create(node)
             elif isinstance(node, Close):
                 op_code += self._generate_close(node)
+            elif isinstance(node, Create):
+                op_code += self._generate_create(node)
+                self._set_create_params(node)
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
             elif isinstance(node, Open):
@@ -117,6 +118,25 @@ class OblivcCodeGen(CodeGen):
 
     def _generate_create(self, create_op: Create):
         """
+        Generate code to feed data into MPC computation.
+        """
+
+        stored_with_set = create_op.out_rel.stored_with
+
+        assert(len(stored_with_set) > 0)
+
+        template = open(
+            "{0}/close.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "RELNAME": create_op.out_rel.name,
+            "STORED_WITH": list(stored_with_set)[0]
+        }
+
+        return pystache.render(template, data)
+
+    def _set_create_params(self, create_op: Create):
+        """
         Generate controller file that dispatches MPC computation.
         Generate header and file that stores necessary structs and IO information.
         """
@@ -128,6 +148,7 @@ class OblivcCodeGen(CodeGen):
 
         return self
 
+    # TODO: should not read from workflow.h:protocolIO. Should just take an arbitrary mat
     def _generate_close(self, close_op: Close):
         """
         Generate code to close input data for MPC computation.
@@ -328,7 +349,7 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _write_bash(self):
+    def _write_bash(self, job_name):
         """
         Generate bash script that runs Obliv-c jobs.
         """
@@ -338,7 +359,8 @@ class OblivcCodeGen(CodeGen):
 
         data = {
             "OC_COMP_PATH": self.oc_config.oc_path,
-            "IP_AND_PORT": self.oc_config.ip_and_port
+            "IP_AND_PORT": self.oc_config.ip_and_port,
+            "PATH": self.config.code_path + job_name
         }
 
         return pystache.render(template, data)
@@ -398,7 +420,7 @@ class OblivcCodeGen(CodeGen):
         controller = open("{}/{}/workflow.c".format(self.config.code_path, job_name), 'w')
         controller.write(controller_code)
 
-        bash_code = self._write_bash()
+        bash_code = self._write_bash(job_name)
         bash = open("{}/{}/bash.sh".format(self.config.code_path, job_name), 'w')
         bash.write(bash_code)
 
