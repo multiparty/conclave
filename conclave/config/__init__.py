@@ -18,14 +18,13 @@ class NetworkConfig:
     def set_network_config(self):
         """ Return network configuration dict. """
 
-        network_config = {
-            "pid": self.pid,
-            "parties": {
-                1: {"host": self.parties[0]['host'], "port": self.parties[0]['port']},
-                2: {"host": self.parties[1]['host'], "port": self.parties[1]['port']},
-                3: {"host": self.parties[2]['host'], "port": self.parties[2]['port']}
-            }
-        }
+        network_config = {}
+        network_config['pid'] = self.pid
+        network_config["parties"] = {}
+        for i in range(len(self.parties)):
+            network_config["parties"][i] = {}
+            network_config["parties"][i]["host"] = self.parties[i]["host"]
+            network_config["parties"][i]["port"] = self.parties[i]["port"]
 
         return network_config
 
@@ -85,6 +84,7 @@ class CodeGenConfig:
             self.code_path = tempfile.mkdtemp(suffix="-code", prefix="salmon-")
             self.name = os.path.basename(self.code_path)
         self.use_leaky_ops = True
+        self.use_swift = False
         self.input_path = '/tmp'
         self.output_path = '/tmp'
         self.system_configs = {}
@@ -155,6 +155,8 @@ class CodeGenConfig:
             self.__init__()
 
         self.system_configs["oblivc"] = cfg
+
+        return self
 
     def with_network_config(self, cfg: NetworkConfig):
         """ Add network config to this object. """
