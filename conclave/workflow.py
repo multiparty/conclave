@@ -16,6 +16,8 @@ def setup(conf: Dict):
     # GENERAL
     pid = conf["pid"]
     workflow_name = conf["workflow_name"]
+    use_swift = conf["use_swift"]
+    all_pids = conf['all_pids']
 
     # SWIFT
     cfg = conf["swift"]
@@ -30,9 +32,8 @@ def setup(conf: Dict):
     ip_port = conf["oblivc"]["ip_port"]
     oc_config = OblivcConfig(oc_path, ip_port)
 
-    # TODO: deprecated, not using SM anymore.
     # NET
-    hosts = conf["sharemind"]["parties"]
+    hosts = conf["net"]["parties"]
     net_config = NetworkConfig(hosts, pid)
 
     # CONCLAVE SYSTEM CONFIG
@@ -43,11 +44,20 @@ def setup(conf: Dict):
         .with_network_config(net_config)
 
     conclave_config.pid = pid
+    conclave_config.all_pids = all_pids
     conclave_config.name = workflow_name
+    conclave_config.use_swift = use_swift
 
+    # TODO these paths will be static for OS deployment, not from cfg
+    conclave_config.code_path = conf["code_path"]
+    conclave_config.input_path = conf["input_path"]
+    conclave_config.output_path = conf["output_path"]
+
+    '''
     conclave_config.code_path = "/tmp/{0}-code/".format(workflow_name)
-    conclave_config.input_path = "/tmp/{0}-in/".format(conf["name"])
-    conclave_config.output_path = "/tmp/{0}-out/".format(conf["name"])
+    conclave_config.input_path = "/tmp/{0}-in/".format(workflow_name)
+    conclave_config.output_path = "/tmp/{0}-out/".format(workflow_name)
+    '''
 
     return conclave_config
 
@@ -104,8 +114,13 @@ def run(protocol: Callable):
 
     conclave_config = setup(conf)
 
-    download_data(conclave_config)
-    generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
-    post_data(conclave_config)
+    if conclave_config.use_swift:
+        download_data(conclave_config)
+        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["spark"])
+        post_data(conclave_config)
+
+    else:
+
+        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["spark"], apply_optimizations=False)
 
 
