@@ -27,15 +27,12 @@ class OblivCDispatcher:
             print(e)
 
     def party_one_dispatch(self, job):
+        # TODO: parties hardcoded as 1 & 2 right now - might be different in future
 
-        # TODO: clean up
-        other_pid = 2
-        for pid in job.input_parties:
-            if pid != self.peer.pid:
-                other_pid = pid
+        self._dispatch(job)
 
         # notify controller that we're done
-        self.peer.send_done_msg(other_pid, job.name + ".party_one")
+        self.peer.send_done_msg(2, job.name + ".party_one")
 
     def party_two_dispatch(self, job):
 

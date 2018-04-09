@@ -25,7 +25,7 @@ def dispatch_all(conclave_config, networked_peer, job_queue: list):
                 conclave_config.system_configs["spark"].spark_master_url)
             if "spark" in conclave_config.system_configs else None,
         conclave.job.PythonJob: python.PythonDispatcher(),
-        conclave.job.OblivCJob: oblivc.OblivCDispatcher()
+        conclave.job.OblivCJob: oblivc.OblivCDispatcher(networked_peer) if networked_peer else None
     }
 
     # dispatch each job
