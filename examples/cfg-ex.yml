@@ -1,6 +1,8 @@
 # GENERAL
 pid: <int>
+all_pids: <list>
 workflow_name: <str>
+use_swift: <bool>
 
 # TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
 # /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
@@ -14,12 +16,21 @@ spark:
   master_url: <ip>:<port>
 
 # OBLIV-C
-oc_path: <str>
-ip_and_port: <ip>:<port>
+oblivc:
+  oc_path: <str>
+  ip_port: <ip>:<port>
+
+# NET
+net:
+  parties:
+    - host: <ip>
+      port: <port>
+    - host: <ip>
+      port: <port>
 
 # SWIFT
 swift:
-	source:
+  source:
     AUTHORIZATION:
       osAuthUrl: <str>
       username: <str>
@@ -30,7 +41,7 @@ swift:
     DATA:
       container_name: <str>
       files: <list>
-  destination:
+  dest:
     AUTHORIZATION:
       osAuthUrl: <str>
       username: <str>
