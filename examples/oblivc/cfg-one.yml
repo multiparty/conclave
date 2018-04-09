@@ -17,7 +17,7 @@ spark:
 
 # OBLIV-C
 oblivc:
-  oc_path: occ
+  oc_path: /Users/ben/Desktop/dev/obliv-c/bin/oblivcc
   ip_port: localhost:9000
 
 # NET
