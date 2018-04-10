@@ -1,2 +1,3 @@
 pystache>=0.5.4
 PyYAML>=3.12
+keystoneauth1>=2.4.3
