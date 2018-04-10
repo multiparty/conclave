@@ -23,9 +23,9 @@ oblivc:
 # NET
 net:
   parties:
-    - host: ubuntu-oblivc
+    - host: 10.10.10.28
       port: 9001
-    - host: ubuntu-oblivc-2
+    - host: 10.10.10.17
       port: 9002
 
 # SWIFT
@@ -41,7 +41,7 @@ swift:
     DATA:
       container_name: <str>
       files: <list>
-  destination:
+  dest:
     AUTHORIZATION:
       osAuthUrl: <str>
       username: <str>
