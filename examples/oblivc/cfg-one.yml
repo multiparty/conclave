@@ -23,9 +23,9 @@ oblivc:
 # NET
 net:
   parties:
-    - host: 10.10.10.28
+    - host: ubuntu-oblivc
       port: 9001
-    - host: 10.10.10.17
+    - host: ubuntu-oblivc-2
       port: 9002
 
 # SWIFT
