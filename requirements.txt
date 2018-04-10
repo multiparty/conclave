@@ -1,2 +1,4 @@
 pystache>=0.5.4
 PyYAML>=3.12
+python-keystoneclient
+python-swiftclient
