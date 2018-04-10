@@ -116,11 +116,11 @@ def run(protocol: Callable):
 
     if conclave_config.use_swift:
         download_data(conclave_config)
-        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["spark"])
+        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"])
         post_data(conclave_config)
 
     else:
 
-        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["spark"], apply_optimizations=False)
+        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"], apply_optimizations=False)
 
 
