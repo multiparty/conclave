@@ -34,6 +34,9 @@ class OblivCDispatcher:
         # notify controller that we're done
         self.peer.send_done_msg(2, job.name + ".party_one")
 
+        self.to_wait_on = {job.controller: asyncio.Future()}
+        self.loop.run_until_complete(self.to_wait_on[job.controller])
+
     def party_two_dispatch(self, job):
 
         for input_party in job.input_parties:
@@ -52,6 +55,9 @@ class OblivCDispatcher:
                 self.peer.send_done_msg(party, job.name + ".party_two")
 
     def dispatch(self, job):
+
+        # register self as current dispatcher with peer
+        self.peer.register_dispatcher(self)
 
         if self.peer.pid == 1:
             self.party_one_dispatch(job)
