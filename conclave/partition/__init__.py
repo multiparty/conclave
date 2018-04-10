@@ -1,16 +1,7 @@
-from . import part
 from conclave.dag import OpDag, Dag, Create, Open, Persist, OpNode
 from copy import copy, deepcopy
 from conclave.codegen.scotch import ScotchCodeGen
 from conclave.config import CodeGenConfig
-
-
-def part_dag(dag: Dag):
-    """ Exhaustive search partition function. """
-    sorted_nodes = dag.top_sort()
-    best = part.get_best_partition(sorted_nodes)
-
-    return best
 
 
 def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):

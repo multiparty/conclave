@@ -25,7 +25,7 @@ def protocol():
 
     join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
 
-    mul1 = sal.multiply(join1, 'mul', 'a', ['a', 5])
+    mul1 = sal.multiply(join1, 'mul', 'a', ['a', 'b'])
 
     out = sal.collect(mul1, 2)
 
