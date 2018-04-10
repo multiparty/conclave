@@ -51,7 +51,6 @@ def setup(conf: Dict):
     # TODO these paths will be static for OS deployment, not from cfg
     conclave_config.code_path = conf["code_path"]
     conclave_config.input_path = conf["input_path"]
-    conclave_config.output_path = conf["output_path"]
 
     '''
     conclave_config.code_path = "/tmp/{0}-code/".format(workflow_name)
