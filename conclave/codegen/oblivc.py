@@ -397,7 +397,7 @@ class OblivcCodeGen(CodeGen):
         data = {
             "PID": self.pid,
             "INPUT_PATH": "{0}/{1}.csv".format(self.config.input_path, in_path),
-            "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.output_path, out_path, str(self.pid))
+            "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid))
         }
 
         return pystache.render(template, data)
