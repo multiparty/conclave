@@ -120,6 +120,6 @@ def run(protocol: Callable):
 
     else:
 
-        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"], apply_optimizations=False)
+        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"], apply_optimizations=True)
 
 
