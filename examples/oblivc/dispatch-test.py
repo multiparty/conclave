@@ -21,13 +21,13 @@ def protocol():
     in1.is_mpc = True
 
     in2 = sal.create("in2", cols_in_b, {2})
-    in1.is_mpc = True
+    in2.is_mpc = True
 
     join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
 
-    mul1 = sal.multiply(join1, 'mul', 'a', ['a', 'b'])
+    open_join1 = sal._open(join1, 'opened1', 1)
 
-    out = sal.collect(mul1, 2)
+    sal.collect(open_join1, 1)
 
     return {in1, in2}
 
