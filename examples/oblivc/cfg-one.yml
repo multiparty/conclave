@@ -7,8 +7,8 @@ use_swift: False
 # TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
 # /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
 # for use on OS containers.
-input_path: /home/ubuntu/input/
-code_path: /home/ubuntu/
+input_path: /Users/ben/Desktop/
+code_path: /Users/ben/Desktop/p1/
 
 # SPARK
 spark:
@@ -16,8 +16,8 @@ spark:
 
 # OBLIV-C
 oblivc:
-  oc_path: /home/ubuntu/obliv-c/bin/oblivcc
-  ip_port: 10.10.10.28:9000
+  oc_path: /Users/ben/Desktop/dev/obliv-c/bin/oblivcc
+  ip_port: localhost:9000
 
 # NET
 net:

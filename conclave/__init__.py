@@ -32,7 +32,7 @@ def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
 
     # only apply optimizations if required
     if apply_optimizations:
-        dag = comp.rewrite_dag(dag, use_leaky_ops=cfg.use_leaky_ops)
+        dag = comp.rewrite_dag(dag, all_parties=cfg.all_pids, use_leaky_ops=cfg.use_leaky_ops)
 
     # partition into sub-dags that will run in specific frameworks
     mapping = part.heupart(dag, mpc_frameworks, local_frameworks)

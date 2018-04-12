@@ -20,11 +20,9 @@ def protocol():
     in1 = sal.create("in1", cols_in_a, {1})
     in2 = sal.create("in2", cols_in_b, {2})
 
-    cc1 = sal.concat([in1, in2], 'cc1', ['a', 'b'])
+    join1 = sal.join(in1, in2, 'join1', ['a'], ['a'])
 
-    agg1 = sal.aggregate(cc1, 'agg1', ['b'], 'a', '+', 'b')
-
-    sal.collect(agg1, 1)
+    sal.collect(join1, 1)
 
     return {in1, in2}
 
