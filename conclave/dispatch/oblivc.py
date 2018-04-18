@@ -45,10 +45,6 @@ class OblivCDispatcher:
 
         self._dispatch(job)
 
-        # wait until other peer is done submitting
-        futures = self.to_wait_on.values()
-        self.loop.run_until_complete(asyncio.gather(*futures))
-
         # notify other parties that job is done
         for party in self.peer.parties:
             if party != self.peer.pid:
