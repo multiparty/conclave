@@ -79,7 +79,7 @@ class CodeGenConfig:
         self.delimiter = ','
         if job_name is not None:
             self.name = job_name
-            self.code_path = "/tmp/{}-code".format(job_name)
+            self.code_path = "/tmp/{}-code/".format(job_name)
         else:
             self.code_path = tempfile.mkdtemp(suffix="-code", prefix="salmon-")
             self.name = os.path.basename(self.code_path)
