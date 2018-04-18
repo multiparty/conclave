@@ -8,6 +8,7 @@ use_swift: False
 # /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
 # for use on OS containers.
 input_path: /Users/ben/Desktop/
+output_path: /Users/ben/Desktop/
 code_path: /Users/ben/Desktop/p1/
 
 # SPARK
