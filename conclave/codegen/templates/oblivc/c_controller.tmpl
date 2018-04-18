@@ -91,6 +91,9 @@ int countRows(protocolIo *io)
 	      printf("\n file opening failed ");
 	}
 
+	// skip header
+    fgets(buffer, sizeof(buffer), fstream);
+
 	int numRecords = 0;
 	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
 	{
@@ -122,6 +125,9 @@ void loadData(protocolIo *io)
 	{
 	      printf("\n file opening failed ");
 	}
+
+	// skip header
+	fgets(buffer, sizeof(buffer), fstream);
 
 	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
 	{
