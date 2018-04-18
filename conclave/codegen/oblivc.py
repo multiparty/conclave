@@ -8,8 +8,6 @@ from conclave.codegen import CodeGen
 from conclave.dag import *
 from conclave.job import OblivCJob
 
-# TODO: out filepath is not passing in codegen
-
 
 class OblivcCodeGen(CodeGen):
     """
@@ -26,9 +24,6 @@ class OblivcCodeGen(CodeGen):
             sys.exit(1)
 
         self.oc_config = config.system_configs['oblivc']
-
-        self.controller = ''
-        self.header = ''
 
         super(OblivcCodeGen, self).__init__(config, dag)
 
@@ -142,9 +137,7 @@ class OblivcCodeGen(CodeGen):
         """
 
         if self.pid in create_op.out_rel.stored_with:
-
             self.num_cols = len(create_op.out_rel.columns)
-            self.num_rows = self.count_rows(create_op.out_rel.name)
 
         return self
 
@@ -371,7 +364,6 @@ class OblivcCodeGen(CodeGen):
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "NUM_ROWS": self.num_rows,
             "NUM_COLS": self.num_cols
         }
 
