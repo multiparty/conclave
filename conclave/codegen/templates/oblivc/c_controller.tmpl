@@ -6,9 +6,10 @@
 
 #include "workflow.h"
 
-void loadData(protocolIo *io, int ROWS, int COLS);
+void loadData(protocolIo *io);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
+int countRows(protocolIo *io);
 
 
 int main(int argc, char **argv)
@@ -19,9 +20,9 @@ int main(int argc, char **argv)
 	protocolIo io;
 	io.src = "{{{INPUT_PATH}}}";
 	io.out = "{{{OUTPUT_PATH}}}";
-	io.rows = atoi(argv[2]);
-	io.cols = atoi(argv[3]);
-	loadData(&io, io.rows, io.cols);
+	io.cols = COLS;
+	io.rows = countRows(&io);
+	loadData(&io);
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
@@ -78,7 +79,35 @@ void displayData(protocolIo *io)
     }
 }
 
-void loadData(protocolIo *io, int ROWS, int COLS)
+int countRows(protocolIo *io)
+{
+	char buffer[1024];
+  	char *record, *line;
+
+	FILE *fstream = fopen(io->src, "r");
+
+	if (fstream == NULL)
+	{
+	      printf("\n file opening failed ");
+	}
+
+	int numRecords = 0;
+	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
+	{
+		record = strtok(line, ",");
+		while(record != NULL)
+		{
+			numRecords++;
+			record = strtok(NULL,",");
+		}
+	}
+
+	int numRows = numRecords / io->cols;
+
+	return numRows;
+}
+
+void loadData(protocolIo *io)
 {
 
 	int i = 0;
@@ -87,7 +116,7 @@ void loadData(protocolIo *io, int ROWS, int COLS)
 
 	FILE *fstream = fopen(io->src, "r");
 
-	float **array = malloc(sizeof(*array) * ROWS);
+	float **array = malloc(sizeof(*array) * io->rows);
 
 	if (fstream == NULL)
 	{
@@ -96,7 +125,7 @@ void loadData(protocolIo *io, int ROWS, int COLS)
 
 	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
 	{
-		array[i] = malloc(sizeof(**array) * COLS);
+		array[i] = malloc(sizeof(**array) * io->cols);
 		record = strtok(line, ",");
 
 		int j = 0;
