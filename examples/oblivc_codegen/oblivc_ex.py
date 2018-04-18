@@ -116,7 +116,6 @@ def divide():
 
     rel = sal.concat([cl1, cl2], "rel")
 
-    # input_op_node: saldag.OpNode, output_name: str, target_col_name: str, operands: list
     div = sal.divide(rel, "div1", "a", ["a", "b", "c"])
 
     div2 = sal.divide(div, "div2", "e", ["b", "d"])
