@@ -6,9 +6,10 @@
 
 #include "workflow.h"
 
-void loadData(protocolIo *io);
+void loadData(protocolIo *io, int ROWS, int COLS);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
+
 
 int main(int argc, char **argv)
 {
@@ -18,9 +19,9 @@ int main(int argc, char **argv)
 	protocolIo io;
 	io.src = "{{{INPUT_PATH}}}";
 	io.out = "{{{OUTPUT_PATH}}}";
-	io.rows = ROWS;
-	io.cols = COLS;
-	loadData(&io);
+	io.rows = atoi(argv[2]);
+	io.cols = atoi(argv[3]);
+	loadData(&io, io.rows, io.cols);
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
@@ -77,15 +78,16 @@ void displayData(protocolIo *io)
     }
 }
 
-void loadData(protocolIo *io)
+void loadData(protocolIo *io, int ROWS, int COLS)
 {
 
 	int i = 0;
-  	char buffer[ROWS * sizeof(float)][COLS * sizeof(float)];
+  	char buffer[1024];
   	char *record, *line;
 
 	FILE *fstream = fopen(io->src, "r");
 
+	float **array = malloc(sizeof(*array) * ROWS);
 
 	if (fstream == NULL)
 	{
@@ -94,19 +96,20 @@ void loadData(protocolIo *io)
 
 	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
 	{
-		float *arr = malloc(sizeof(float) * COLS);
+		array[i] = malloc(sizeof(**array) * COLS);
 		record = strtok(line, ",");
 
 		int j = 0;
 		while(record != NULL)
 		{
-			arr[j] = atof(record);
+			array[i][j] = atof(record);
 			record = strtok(NULL,",");
 			j++;
 		}
-		memcpy(io->mat[i], arr, sizeof(float) * COLS);
 		i++;
 	}
+
+	io->mat = array;
 
 	fclose(fstream);
 }
