@@ -16,7 +16,7 @@ spark:
 
 # OBLIV-C
 oblivc:
-  oc_path: /home/ubuntu/obliv-c/bin/oblivcc/
+  oc_path: /home/ubuntu/obliv-c/bin/oblivcc
   ip_port: 10.10.10.28:9000
 
 # NET
