@@ -1,16 +1,13 @@
 #include <obliv.h>
 #include <obliv.oh>
 
-#define ROWS {{{NUM_ROWS}}}
-#define COLS {{{NUM_COLS}}}
-
 typedef struct
 {
 	char *src;
 	char *out;
 	int rows;
 	int cols;
-	float mat[ROWS][COLS];
+	float **mat;
 	float **ret;
 
 } protocolIo;
