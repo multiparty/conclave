@@ -97,7 +97,7 @@ def post_data(conclave_config):
     swift_data.close_connection()
 
 
-def run(protocol: Callable):
+def run(protocol: Callable, mpc_framework: str="obliv-c", local_framework: str="python"):
     """
     Load parameters from config, download data from Swift,
     dispatch computation, and push results back to Swift.
@@ -115,11 +115,11 @@ def run(protocol: Callable):
 
     if conclave_config.use_swift:
         download_data(conclave_config)
-        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"])
+        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework])
         post_data(conclave_config)
 
     else:
 
-        generate_and_dispatch(protocol, conclave_config, ["obliv-c"], ["python"], apply_optimizations=True)
+        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=True)
 
 
