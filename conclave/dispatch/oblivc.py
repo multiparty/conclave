@@ -34,9 +34,6 @@ class OblivCDispatcher:
 
         self._dispatch(job)
 
-        self.to_wait_on = {job.submit_party: asyncio.Future()}
-        self.loop.run_until_complete(self.to_wait_on[job.submit_party])
-
     def party_two_dispatch(self, job):
 
         for input_party in job.input_parties:
@@ -44,11 +41,6 @@ class OblivCDispatcher:
                 self.to_wait_on[input_party] = asyncio.Future()
 
         self._dispatch(job)
-
-        # notify other parties that job is done
-        for party in self.peer.parties:
-            if party != self.peer.pid:
-                self.peer.send_done_msg(party, job.name + ".party_two")
 
     def dispatch(self, job):
 
