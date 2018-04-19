@@ -60,7 +60,6 @@ class OblivcCodeGen(CodeGen):
             elif isinstance(node, Close):
                 op_code += self._generate_close(node)
             elif isinstance(node, Create):
-                op_code += self._generate_create(node)
                 self._set_create_params(node)
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
@@ -99,36 +98,6 @@ class OblivcCodeGen(CodeGen):
         job = OblivCJob(job_name, "{}/{}".format(code_directory, job_name))
 
         return job, op_code
-
-    def count_rows(self, rel_name: str):
-        """
-        Count number of rows in input CSV file
-        """
-
-        with open(self.config.input_path + rel_name + '.csv', 'r') as in_file:
-            file_obj = csv.reader(in_file, delimiter=self.config.delimiter)
-            rows = sum(1 for row in file_obj)
-
-        return rows
-
-    def _generate_create(self, create_op: Create):
-        """
-        Generate code to feed data into MPC computation.
-        """
-
-        stored_with_set = create_op.out_rel.stored_with
-
-        assert(len(stored_with_set) > 0)
-
-        template = open(
-            "{0}/close.tmpl".format(self.template_directory), 'r').read()
-
-        data = {
-            "RELNAME": create_op.out_rel.name,
-            "STORED_WITH": list(stored_with_set)[0]
-        }
-
-        return pystache.render(template, data)
 
     def _set_create_params(self, create_op: Create):
         """
