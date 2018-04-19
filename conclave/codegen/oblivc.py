@@ -102,8 +102,7 @@ class OblivcCodeGen(CodeGen):
 
     def _set_create_params(self, create_op: Create):
         """
-        Generate controller file that dispatches MPC computation.
-        Generate header and file that stores necessary structs and IO information.
+        For each Create node, store its name and number of columns.
         """
 
         self.create_params[create_op.out_rel.name] = {}
@@ -332,6 +331,9 @@ class OblivcCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_header(self):
+        """
+        Generate header file that stores struct data.
+        """
 
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
@@ -341,7 +343,6 @@ class OblivcCodeGen(CodeGen):
         for in_rel in self.create_params.keys():
             structs_code += "\tIo {};\n".format(in_rel)
 
-        # TODO: structs from create ops dict
         data = {
             "STRUCTS": structs_code
         }
@@ -349,6 +350,9 @@ class OblivcCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _add_to_struct_code(self, node):
+        """
+        Generates code to pass locally held data to MPC computation.
+        """
 
         node_name = node.out_rel.name
 
@@ -360,6 +364,9 @@ class OblivcCodeGen(CodeGen):
         return "".join([path_str, cols_str, rows_str, load_str])
 
     def _generate_controller(self):
+        """
+        Populates controller file that loads data and dispatches computation.
+        """
 
         nodes = self.dag.top_sort()
 
@@ -372,6 +379,8 @@ class OblivcCodeGen(CodeGen):
                 if self.pid in node.out_rel.stored_with:
                     struct_code += self._add_to_struct_code(node)
                 else:
+                    # if data isn't held locally, must populate struct field with mock data.
+                    # Doesn't affect computation but OC requires that something be there.
                     struct_code += "\tloadMockData(&io.{0});\n\n".format(node.out_rel.name)
 
             if isinstance(node, Open):
