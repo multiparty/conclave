@@ -59,13 +59,3 @@ class OblivCDispatcher:
         self.peer.dispatcher = None
         self.to_wait_on = {}
         self.early = set()
-
-    def receive_msg(self, msg):
-        """ Receive message from other party in computation. """
-
-        done_peer = msg.pid
-        if done_peer in self.to_wait_on:
-            self.to_wait_on[done_peer].set_result(True)
-        else:
-            self.early.add(done_peer)
-            print("early message", msg)
