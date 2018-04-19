@@ -6,10 +6,11 @@
 
 #include "workflow.h"
 
-void loadData(protocolIo *io);
+void loadData(Io *io);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
-int countRows(protocolIo *io);
+int countRows(Io *io);
+void loadMockData(Io *io);
 
 
 int main(int argc, char **argv)
@@ -18,12 +19,10 @@ int main(int argc, char **argv)
  	const char *port = strtok(NULL, ":");
   	ProtocolDesc pd;
 	protocolIo io;
-	io.src = "{{{INPUT_PATH}}}";
-	io.out = "{{{OUTPUT_PATH}}}";
-	io.cols = COLS;
-	io.rows = countRows(&io);
-	loadData(&io);
 
+	io.out = "{{{OUTPUT_PATH}}}";
+
+{{{STRUCT_CODE}}}
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
     {
@@ -45,7 +44,7 @@ int main(int argc, char **argv)
   	execYaoProtocol(&pd,protocol,&io);
   	cleanupProtocol(&pd);
 
-    {{{WRITE_STR}}}
+    {{{WRITE_CODE}}}
 
   	return 0;
 
@@ -56,22 +55,22 @@ void writeData(protocolIo *io)
 	FILE *fp;
 	fp = fopen(io->out, "w+");
 
-	for (int i = 0; i < io->rows; i++)
+	for (int i = 0; i < io->outRows; i++)
 	{
-		for (int j = 0; j < io->cols - 1; j++)
+		for (int j = 0; j < io->outCols - 1; j++)
 		{
 			fprintf(fp, "%g,", io->ret[i][j]);
 		}
-		fprintf(fp, "%g\n", io->ret[i][io->cols - 1]);
+		fprintf(fp, "%g\n", io->ret[i][io->outCols - 1]);
 	}
 	fclose(fp);
 }
 
 void displayData(protocolIo *io)
 {
-    for (int i = 0; i < io->rows; i++)
+    for (int i = 0; i < io->outRows; i++)
     {
-        for (int j = 0; j < io->cols; j++)
+        for (int j = 0; j < io->outCols; j++)
         {
             printf("|  %i|%i : %g  |", i, j, io->ret[i][j]);
         }
@@ -79,7 +78,7 @@ void displayData(protocolIo *io)
     }
 }
 
-int countRows(protocolIo *io)
+int countRows(Io *io)
 {
 	char buffer[1024];
   	char *record, *line;
@@ -110,7 +109,22 @@ int countRows(protocolIo *io)
 	return numRows;
 }
 
-void loadData(protocolIo *io)
+void loadMockData(Io *io)
+{
+	float **array = malloc(sizeof(*array) * io->rows);
+	for (int i = 0; i < 5; i++)
+	{
+		array[i] = malloc(sizeof(**array) * 4);
+		for (int j = 0; j < 5; j++)
+		{
+			array[i][j] = 0.0;
+		}
+	}
+
+	io->mat = array;
+}
+
+void loadData(Io *io)
 {
 
 	int i = 0;
