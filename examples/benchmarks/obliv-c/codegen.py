@@ -7,12 +7,11 @@ from conclave.comp import dag_only
 import sys
 
 
-def generate(dag_one, name):
+def generate_code(dag_one, name):
     """
-    sys.argv[1] - file path to directory containing input file
-    (full path is <path> + <input_rel_name> + '.csv')
+    sys.argv[1] - party ID (1 or 2)
 
-    sys.argv[2] - path to obliv-c compiler (at /obliv-c/bin/oblivcc)
+    sys.argv[2] - path to obliv-c compiler (at /.../obliv-c/bin/oblivcc)
 
     sys.argv[3] - <host_ip>:<port>
     """
@@ -219,25 +218,25 @@ def project():
 if __name__ == "__main__":
 
     dag = agg()
-    generate(dag, 'agg')
+    generate_code(dag, 'agg')
 
     dag = join()
-    generate(dag, 'join')
+    generate_code(dag, 'join')
 
     dag = concat()
-    generate(dag, 'concat')
+    generate_code(dag, 'concat')
 
     dag = col_divide()
-    generate(dag, 'col_divide')
+    generate_code(dag, 'col_divide')
 
     dag = scal_divide()
-    generate(dag, 'scal_divide')
+    generate_code(dag, 'scal_divide')
 
     dag = col_multiply()
-    generate(dag, 'col_multiply')
+    generate_code(dag, 'col_multiply')
 
     dag = scal_multiply()
-    generate(dag, 'scal_multiply')
+    generate_code(dag, 'scal_multiply')
 
     dag = project()
-    generate(dag, 'project')
+    generate_code(dag, 'project')
