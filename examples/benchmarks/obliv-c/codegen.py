@@ -20,6 +20,7 @@ def generate_code(dag_one, name):
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = '/home/ubuntu/'
+    cfg.code_path = '/home/ubuntu/protocols/'
 
     cfg.with_oc_config(oc_conf)
 
