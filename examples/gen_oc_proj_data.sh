@@ -2,7 +2,7 @@
 
 write_data () {
 sudo mkdir /mnt/bench/$1
-sudo python3 gen_util.py /mnt/bench/$1/in1 2 $1 $1 'a,b'
+sudo python3 gen_util.py /mnt/bench/$1/in1 4 $1 $1 'a,b,c,d'
 }
 
 sizes=( 15 150 300 450 600 750 900 1050 1200 1350 )
