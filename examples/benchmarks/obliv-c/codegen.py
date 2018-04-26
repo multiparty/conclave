@@ -13,20 +13,19 @@ def generate(dag_one, name):
     (full path is <path> + <input_rel_name> + '.csv')
 
     sys.argv[2] - path to obliv-c compiler (at /obliv-c/bin/oblivcc)
+
+    sys.argv[3] - <host_ip>:<port>
     """
 
-    oc_conf = config.OblivcConfig(sys.argv[2], "localhost:9000")
+    oc_conf = config.OblivcConfig(sys.argv[2], sys.argv[3])
 
     cfg = config.CodeGenConfig(name)
-    cfg.input_path = sys.argv[1]
+    cfg.input_path = '/home/ubuntu/'
 
     cfg.with_oc_config(oc_conf)
 
-    cg1 = OblivcCodeGen(cfg, dag_one, 1)
-    cg1.generate('protocol1', '/tmp')
-
-    cg2 = OblivcCodeGen(cfg, dag_one, 2)
-    cg2.generate('protocol2', '/tmp')
+    cg1 = OblivcCodeGen(cfg, dag_one, sys.argv[1])
+    cg1.generate('protocol', '/home/ubuntu/')
 
 
 def setup_four_cols():
