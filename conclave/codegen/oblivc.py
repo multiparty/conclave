@@ -51,8 +51,6 @@ class OblivcCodeGen(CodeGen):
         # topological traversal
         nodes = self.dag.top_sort()
 
-        # TODO: handle subclassing more gracefully
-        # for each op
         for node in nodes:
             if isinstance(node, Aggregate):
                 op_code += self._generate_aggregate(node)
