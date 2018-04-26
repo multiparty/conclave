@@ -374,7 +374,7 @@ class OblivcCodeGen(CodeGen):
 
         for node in nodes:
             if isinstance(node, Create):
-                if self.pid in node.out_rel.stored_with:
+                if int(self.pid) in node.out_rel.stored_with:
                     struct_code += self._add_to_struct_code(node)
                 else:
                     # if data isn't held locally, must populate struct field with mock data.
@@ -383,7 +383,7 @@ class OblivcCodeGen(CodeGen):
 
             if isinstance(node, Open):
                 out_path = node.out_rel.name
-                if self.pid in node.out_rel.stored_with:
+                if int(self.pid) in node.out_rel.stored_with:
                     write_str += 'writeData(&io);'
 
         template = open(
