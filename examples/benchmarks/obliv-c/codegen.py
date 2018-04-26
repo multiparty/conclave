@@ -19,8 +19,7 @@ def generate_code(dag_one, name):
     oc_conf = config.OblivcConfig(sys.argv[2], sys.argv[3])
 
     cfg = config.CodeGenConfig(name)
-    cfg.input_path = '/home/ubuntu/'
-    cfg.code_path = '/home/ubuntu/protocols/'
+    cfg.input_path = '/home/ubuntu/protocols/{}-code/'.format(name)
 
     cfg.with_oc_config(oc_conf)
 
