@@ -13,7 +13,7 @@ int checkInputCols
 {
 	if (colsOne != colsTwo)
 	{
-		printf("Unequal number of cols.\n");
+		printf("Unequal number of cols.");
 		exit(1);
 	}
 	else
@@ -24,7 +24,7 @@ int checkInputCols
 
 void matToObliv
 	(
-	Io *io,
+	protocolIo *io,
 	int party,
 	intermediateMat *ret
 	)
@@ -543,8 +543,8 @@ void revealResult
 		}
 	}
 	io->ret = array;
-	io->outRows = mat->rows;
-	io->outCols = mat->cols;
+	io->rows = mat->rows;
+	io->cols = mat->cols;
 }
 
 void protocol(void *args)
