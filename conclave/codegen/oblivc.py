@@ -321,7 +321,7 @@ class OblivcCodeGen(CodeGen):
         data = {
             "OC_COMP_PATH": self.oc_config.oc_path,
             "IP_AND_PORT": self.oc_config.ip_and_port,
-            "PATH": self.config.code_path + job_name
+            "PATH": self.config.code_path + '/' + job_name
         }
 
         return pystache.render(template, data)
