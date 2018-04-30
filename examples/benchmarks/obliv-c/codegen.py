@@ -14,18 +14,20 @@ def generate_code(dag_one, name):
     sys.argv[2] - path to obliv-c compiler (at /.../obliv-c/bin/oblivcc)
 
     sys.argv[3] - <host_ip>:<port>
+
+    sys.argv[4] - output code path, input data directory path
     """
 
     oc_conf = config.OblivcConfig(sys.argv[2], sys.argv[3])
 
     cfg = config.CodeGenConfig(name)
-    cfg.input_path = '/home/ubuntu/'
-    cfg.code_path = '/home/ubuntu/protocols/{}-code'.format(name)
+    cfg.input_path = sys.argv[4]
+    cfg.code_path = '{0}protocols/{1}-code'.format(sys.argv[4], name)
 
     cfg.with_oc_config(oc_conf)
 
     cg1 = OblivcCodeGen(cfg, dag_one, sys.argv[1])
-    cg1.generate('protocol', '/home/ubuntu/')
+    cg1.generate('protocol', sys.argv[4])
 
 
 def setup_four_cols():
