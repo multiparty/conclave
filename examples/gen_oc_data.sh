@@ -5,7 +5,7 @@ sudo mkdir /mnt/bench/$1
 sudo python3 gen_util.py /mnt/bench/$1/in1 2 $1 $1 'a,b'
 }
 
-sizes=( 15 150 300 450 600 750 900 1050 1200 1350 )
+sizes=( 2 4 8 16 32 64 128 256 512 1028 2056 )
 
 sudo mkdir /mnt/bench
 
