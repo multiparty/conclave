@@ -47,10 +47,10 @@ class OblivCDispatcher:
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
-        if self.peer.pid == 1:
+        if int(self.peer.pid) == 1:
             self.party_one_dispatch(job)
 
-        elif self.peer.pid == 2:
+        elif int(self.peer.pid) == 2:
             self.party_two_dispatch(job)
 
         else:

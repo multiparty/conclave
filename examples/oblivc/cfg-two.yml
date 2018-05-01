@@ -17,15 +17,15 @@ spark:
 
 # OBLIV-C
 oblivc:
-  oc_path: /Users/ben/Desktop/dev/obliv-c/bin/oblivcc
-  ip_port: localhost:9000
+  oc_path: occ
+  ip_port: 10.10.10.9:30002
 
 # NET
 net:
   parties:
-    - host: 10.10.10.28
+    - host: 10.10.10.9
       port: 9001
-    - host: 10.10.10.17
+    - host: 10.10.10.28
       port: 9002
 
 # SWIFT
