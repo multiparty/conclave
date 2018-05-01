@@ -25,7 +25,7 @@ net:
   parties:
     - host: 10.10.10.9
       port: 9001
-    - host: 10.10.10.28
+    - host: 10.10.10.29
       port: 9002
 
 # SWIFT
