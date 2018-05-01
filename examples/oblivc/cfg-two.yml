@@ -7,9 +7,9 @@ use_swift: False
 # TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
 # /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
 # for use on OS containers.
-input_path: /Users/ben/Desktop/
-output_path: /Users/ben/Desktop/
-code_path: /Users/ben/Desktop/p2/
+input_path: /home/ubuntu/
+output_path: /home/ubuntu/
+code_path: /home/ubuntu/protocol/
 
 # SPARK
 spark:
