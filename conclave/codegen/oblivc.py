@@ -357,9 +357,11 @@ class OblivcCodeGen(CodeGen):
         path_str = "\tio.{0}.src = \"{1}/{2}.csv\";\n".format(node_name, self.config.input_path, node_name)
         cols_str = "\tio.{0}.cols = {1};\n".format(node_name, len(node.out_rel.columns))
         rows_str = "\tio.{0}.rows = countRows(&io.{1});\n".format(node_name, node_name)
+        cols = "\tint COLS = io.{0}.cols;\n".format(node_name)
+        rows = "\tint ROWS = io.{0}.rows;\n".format(node_name)
         load_str = "\tloadData(&io.{0});\n\n".format(node_name)
 
-        return "".join([path_str, cols_str, rows_str, load_str])
+        return "".join([path_str, cols_str, rows_str, cols, rows, load_str])
 
     def _generate_controller(self):
         """
@@ -371,6 +373,7 @@ class OblivcCodeGen(CodeGen):
         out_path = ''
         struct_code = ''
         write_str = ''
+        mock_str = ''
 
         for node in nodes:
             if isinstance(node, Create):
@@ -379,12 +382,14 @@ class OblivcCodeGen(CodeGen):
                 else:
                     # if data isn't held locally, must populate struct field with mock data.
                     # Doesn't affect computation but OC requires that something be there.
-                    struct_code += "\tloadMockData(&io.{0});\n\n".format(node.out_rel.name)
+                    mock_str += "\tloadMockData(&io.{0}, ROWS, COLS);\n\n".format(node.out_rel.name)
 
             if isinstance(node, Open):
                 out_path = node.out_rel.name
                 if int(self.pid) in node.out_rel.stored_with:
                     write_str += 'writeData(&io);'
+
+        struct_code += mock_str
 
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()

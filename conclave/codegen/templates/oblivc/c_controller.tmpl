@@ -10,7 +10,7 @@ void loadData(Io *io);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
 int countRows(Io *io);
-void loadMockData(Io *io);
+void loadMockData(Io *io, int ROWS, int COLS);
 
 
 int main(int argc, char **argv)
@@ -109,13 +109,13 @@ int countRows(Io *io)
 	return numRows;
 }
 
-void loadMockData(Io *io)
+void loadMockData(Io *io, int ROWS, int COLS)
 {
-	float **array = malloc(sizeof(*array) * io->rows);
-	for (int i = 0; i < 5; i++)
+	float **array = malloc(sizeof(*array) * ROWS);
+	for (int i = 0; i < ROWS; i++)
 	{
-		array[i] = malloc(sizeof(**array) * 4);
-		for (int j = 0; j < 5; j++)
+		array[i] = malloc(sizeof(**array) * COLS);
+		for (int j = 0; j < COLS; j++)
 		{
 			array[i][j] = 0.0;
 		}
