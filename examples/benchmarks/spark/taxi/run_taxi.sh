@@ -4,13 +4,27 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export PYTHONPATH=${HOME}/conclave
 export PATH=${PATH}:${HOME}/spark-2.2.0-bin-hadoop2.6/bin
 
-if [[ $# -lt 2 ]]; then
-  echo "usage: run-taxi.sh <party ID> <cluster prefix>"
-  exit 1
-fi
+run_bench () {
+    sudo python3 gen_data.py /mnt/taxi/bench/ $1 1
+    sudo python3 gen_data.py /mnt/taxi/bench/ $1 2
+    sudo python3 gen_data.py /mnt/taxi/bench/ $1 3
+    hadoop fs -put /mnt/taxi/bench/* ~/taxi/
 
-hadoop fs -rm -r /home/ubuntu/taxi/local_rev*
-hadoop fs -rm -r /home/ubuntu/taxi/scaled_down*
-hadoop fs -rm -r /home/ubuntu/taxi/hhi_open*
+    sudo rm -r /mnt/taxi/bench/*
 
-python3 ${DIR}/taxi.py $1 $2-spark-node-0:8020 /home/ubuntu spark://$2-spark-node-0:7077
+    start=`date +%s`
+    spark-submit --conf "spark.local.dir=/mnt/hdfs/spark-tmp" --master spark://cc-spark-node-0:7077 /tmp/job-1/code/workflow.py hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow1 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow2 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow3 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/hhi
+    end=`date +%s`
+    runtime=$((end-start))
+    echo "$1 -- runtime" >> /tmp/runtime.txt
+
+    hadoop fs -rm -r /home/ubuntu/taxi/*
+}
+
+sizes=( 10 100 1000 )
+
+for i in "${sizes[@]}"
+do
+  :
+  run_bench $i
+done
