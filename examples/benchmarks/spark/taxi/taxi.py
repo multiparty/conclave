@@ -1,21 +1,16 @@
 import sys
 import conclave.lang as sal
-from conclave.config import CodeGenConfig, SharemindCodeGenConfig, SparkConfig, NetworkConfig
+from conclave.config import CodeGenConfig, SparkConfig
 from conclave.codegen.spark import SparkCodeGen
-from conclave import generate_and_dispatch
 from conclave.utils import *
 from conclave.comp import dag_only
 
 
-def generate(dag, name):
+def generate(dag, cfg):
 
-    cfg = CodeGenConfig('cfg')
     cg = SparkCodeGen(cfg, dag)
 
-    actual = cg._generate('code', '/tmp')[1]
-
-    with open('/tmp/' + name + '.py', 'w') as out:
-        out.write(actual)
+    actual = cg.generate('code', '/tmp')
 
 
 @dag_only
@@ -77,6 +72,18 @@ if __name__ == "__main__":
     hdfs_root = sys.argv[3]
     spark_master_url = sys.argv[4]
 
+    workflow_name = "job-" + str(pid)
+    spark_config = SparkConfig(spark_master_url)
+    conclave_config = CodeGenConfig(workflow_name) \
+        .with_spark_config(spark_config)
+    conclave_config.code_path = "/tmp/" + workflow_name
+    conclave_config.input_path = "hdfs://{}/{}/taxi".format(
+        hdfs_namenode, hdfs_root)
+    conclave_config.output_path = "hdfs://{}/{}/taxi".format(
+        hdfs_namenode, hdfs_root)
+    conclave_config.pid = pid
+    conclave_config.name = workflow_name
+
     dag = protocol()
 
-    generate(dag, 'taxi')
+    generate(dag, conclave_config)
