@@ -1,9 +1,7 @@
 import sys
 import conclave.lang as sal
-from conclave import CodeGenConfig
+from conclave.config import CodeGenConfig, SharemindCodeGenConfig, SparkConfig, NetworkConfig
 from conclave import generate_and_dispatch
-from conclave.codegen.sharemind import SharemindCodeGenConfig
-from conclave.codegen.spark import SparkConfig
 from conclave.utils import *
 
 
@@ -80,12 +78,15 @@ if __name__ == "__main__":
     conclave_config.name = workflow_name
     network_config = {
         "pid": pid,
-        "parties": {
-            1: {"host": "ca-spark-node-0", "port": 9001},
-            2: {"host": "cb-spark-node-0", "port": 9002},
-            3: {"host": "cc-spark-node-0", "port": 9003}
-        }
+        "parties": [
+            {"host": "ca-spark-node-0", "port": 9001},
+            {"host": "cb-spark-node-0", "port": 9002},
+            {"host": "cc-spark-node-0", "port": 9003}
+        ]
     }
-    conclave_config.with_network_config(network_config)
+
+    net_conf = NetworkConfig(network_config["parties"], pid)
+
+    conclave_config.with_network_config(net_conf)
 
     generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
