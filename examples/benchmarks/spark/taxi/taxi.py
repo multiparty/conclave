@@ -1,10 +1,24 @@
 import sys
 import conclave.lang as sal
 from conclave.config import CodeGenConfig, SharemindCodeGenConfig, SparkConfig, NetworkConfig
+from conclave.codegen.spark import SparkCodeGen
 from conclave import generate_and_dispatch
 from conclave.utils import *
+from conclave.comp import dag_only
 
 
+def generate(dag, name):
+
+    cfg = CodeGenConfig('cfg')
+    cg = SparkCodeGen(cfg, dag)
+
+    actual = cg._generate('code', '/tmp')[1]
+
+    with open('/tmp/' + name + '.py', 'w') as out:
+        out.write(actual)
+
+
+@dag_only
 def protocol():
 
     cols_in_1 = [
@@ -63,30 +77,6 @@ if __name__ == "__main__":
     hdfs_root = sys.argv[3]
     spark_master_url = sys.argv[4]
 
-    workflow_name = "job-" + str(pid)
-    sm_config = SharemindCodeGenConfig("/mnt/shared")
-    spark_config = SparkConfig(spark_master_url)
-    conclave_config = CodeGenConfig(workflow_name) \
-        .with_sharemind_config(sm_config) \
-        .with_spark_config(spark_config)
-    conclave_config.code_path = "/mnt/shared/" + workflow_name
-    conclave_config.input_path = "hdfs://{}/{}/taxi".format(
-        hdfs_namenode, hdfs_root)
-    conclave_config.output_path = "hdfs://{}/{}/taxi".format(
-        hdfs_namenode, hdfs_root)
-    conclave_config.pid = pid
-    conclave_config.name = workflow_name
-    network_config = {
-        "pid": pid,
-        "parties": [
-            {"host": "ca-spark-node-0", "port": 9001},
-            {"host": "cb-spark-node-0", "port": 9002},
-            {"host": "cc-spark-node-0", "port": 9003}
-        ]
-    }
+    dag = protocol()
 
-    net_conf = NetworkConfig(network_config["parties"], pid)
-
-    conclave_config.with_network_config(net_conf)
-
-    generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"])
+    generate(dag, 'taxi')
