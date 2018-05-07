@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <obliv.oh>
+#include <math.h>
 
 #include "workflow.h"
 
@@ -20,6 +21,55 @@ int checkInputCols
 	{
 	    return colsOne;
 	}
+}
+
+int nextPowerOf2(int n)
+{
+    int p = 1;
+    if (n && !(n & (n - 1)))
+        return n;
+
+    while (p < n)
+        p <<= 1;
+
+    return p;
+}
+
+obliv float** padInput
+    (
+    obliv float **arr,
+    int numCols,
+    int numRows,
+    int nextVal
+    )
+{
+
+    obliv float **ret = malloc(sizeof(*ret) * nextVal);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        ret[i] = malloc(sizeof(**ret) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            ret[i][j] = arr[i][j];
+        }
+    }
+
+    for (int i = numRows; i < nextVal; i++)
+    {
+        ret[i] = malloc(sizeof(**ret) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            ret[i][j] = 0;
+        }
+    }
+
+    return ret;
+}
+
+bool isPowerOfTwo(int n)
+{
+   return (ceil(log2(n)) == floor(log2(n)));
 }
 
 void matToObliv
@@ -470,6 +520,49 @@ void oddEvenAgg
 	}
 }
 
+void _agg
+	(
+		intermediateMat *ret,
+		obliv float **array,
+		int keyCol,
+		int aggCol,
+		int numCols,
+		int numRows
+	)
+	{
+		oddEvenSort(array, 0, numCols, 0, numRows, true);
+		oddEvenAgg(array, 0, numRows);
+
+		// TODO: move shuffle into it's own function.
+		oddEvenSort(array, 1, numCols, 0, numRows, false);
+
+		obliv int outRows = 0;
+
+		for (int i = 0; i < numRows; i++)
+		{
+			obliv if (array[i][1] != 0)
+			{
+				outRows++;
+			}
+		}
+
+		int numOutRows;
+		revealOblivInt(&numOutRows, outRows, 0);
+
+		obliv float **retArray = malloc(sizeof(*retArray) * numOutRows);
+
+		for (int i = 0; i < numOutRows; i++)
+		{
+			retArray[i] = malloc(sizeof(**retArray) * numCols);
+			retArray[i][0] = array[i][0];
+			retArray[i][1] = array[i][1];
+		}
+
+		ret->mat = retArray;
+		ret->rows = numOutRows;
+		ret->cols = numCols;
+	}
+
 void agg
 	(
 		intermediateMat *mat,
@@ -478,7 +571,6 @@ void agg
 		int aggCol
 	)
 {
-
 	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
 	int numRows = mat->rows;
 	int numCols = 2;
@@ -492,37 +584,16 @@ void agg
 		array[i][1] = mat->mat[i][aggCol];
 	}
 
-	oddEvenSort(array, 0, numCols, 0, numRows, true);
-	oddEvenAgg(array, 0, numRows);
-
-	// TODO: move shuffle into it's own function.
-	oddEvenSort(array, 1, numCols, 0, numRows, false);
-
-	obliv int outRows = 0;
-
-	for (int i = 0; i < numRows; i++)
+	if (!isPowerOfTwo(numRows))
 	{
-		obliv if (array[i][1] != 0)
-		{
-			outRows++;
-		}
+		int paddedVal = nextPowerOf2(numRows);
+		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
+		_agg(ret, padded, keyCol, aggCol, numCols, paddedVal);
 	}
-
-	int numOutRows;
-	revealOblivInt(&numOutRows, outRows, 0);
-
-	obliv float **retArray = malloc(sizeof(*retArray) * numOutRows);
-
-	for (int i = 0; i < numOutRows; i++)
+	else
 	{
-		retArray[i] = malloc(sizeof(**retArray) * numCols);
-		retArray[i][0] = array[i][0];
-		retArray[i][1] = array[i][1];
+		_agg(ret, array, keyCol, aggCol, numCols, numRows);
 	}
-
-	ret->mat = retArray;
-	ret->rows = numOutRows;
-	ret->cols = numCols;
 }
 
 void revealResult

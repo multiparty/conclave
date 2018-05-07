@@ -380,11 +380,12 @@ class OblivcCodeGen(CodeGen):
                 else:
                     load_str = "\tloadMockData(&io.{0});\n".format(node.out_rel.name)
                     col_str = "\tio.{0}.cols = COLS;\n".format(node.out_rel.name)
-                    row_str = "io.{0}.rows = ROWS;\n".format(node.out_rel.name)
+                    row_str = "\tio.{0}.rows = ROWS;\n".format(node.out_rel.name)
                     mock_str += "".join([load_str, col_str, row_str])
 
             if isinstance(node, Open):
                 if int(self.pid) in node.out_rel.stored_with:
+                    out_path = node.out_rel.name
                     write_str += 'writeData(&io);'
 
         struct_code += mock_str
