@@ -6,10 +6,11 @@
 
 #include "workflow.h"
 
-void loadData(protocolIo *io);
+void loadData(float mat[ROWS][COLS], char *src);
+void loadMockData(float mat[ROWS][COLS]);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
-int countRows(protocolIo *io);
+int countRows(char *src, int cols);
 
 
 int main(int argc, char **argv)
@@ -18,11 +19,9 @@ int main(int argc, char **argv)
  	const char *port = strtok(NULL, ":");
   	ProtocolDesc pd;
 	protocolIo io;
-	io.src = "{{{INPUT_PATH}}}";
 	io.out = "{{{OUTPUT_PATH}}}";
-	io.cols = COLS;
-	io.rows = countRows(&io);
-	loadData(&io);
+
+	{{{STRUCT_CODE}}}
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
@@ -45,7 +44,7 @@ int main(int argc, char **argv)
   	execYaoProtocol(&pd,protocol,&io);
   	cleanupProtocol(&pd);
 
-    {{{WRITE_STR}}}
+    {{{WRITE_CODE}}}
 
   	return 0;
 
@@ -56,22 +55,22 @@ void writeData(protocolIo *io)
 	FILE *fp;
 	fp = fopen(io->out, "w+");
 
-	for (int i = 0; i < io->rows; i++)
+	for (int i = 0; i < io->out_rows; i++)
 	{
-		for (int j = 0; j < io->cols - 1; j++)
+		for (int j = 0; j < io->out_cols - 1; j++)
 		{
 			fprintf(fp, "%g,", io->ret[i][j]);
 		}
-		fprintf(fp, "%g\n", io->ret[i][io->cols - 1]);
+		fprintf(fp, "%g\n", io->ret[i][io->out_cols - 1]);
 	}
 	fclose(fp);
 }
 
 void displayData(protocolIo *io)
 {
-    for (int i = 0; i < io->rows; i++)
+    for (int i = 0; i < io->out_rows; i++)
     {
-        for (int j = 0; j < io->cols; j++)
+        for (int j = 0; j < io->out_cols; j++)
         {
             printf("|  %i|%i : %g  |", i, j, io->ret[i][j]);
         }
@@ -79,12 +78,12 @@ void displayData(protocolIo *io)
     }
 }
 
-int countRows(protocolIo *io)
+int countRows(char *src, int cols)
 {
 	char buffer[1024];
   	char *record, *line;
 
-	FILE *fstream = fopen(io->src, "r");
+	FILE *fstream = fopen(src, "r");
 
 	if (fstream == NULL)
 	{
@@ -105,17 +104,28 @@ int countRows(protocolIo *io)
 		}
 	}
 
-	int numRows = numRecords / io->cols;
+	int numRows = numRecords / cols;
 
 	return numRows;
 }
 
-void loadData(protocolIo *io)
+void loadMockData(float mat[ROWS][COLS])
+{
+    for (int i = 0; i < 1000; i++)
+    {
+        for (int j = 0; j < 50; j++)
+        {
+            mat[i][j] = 0.0;
+        }
+    }
+}
+
+void loadData(float mat[ROWS][COLS], char *src)
 {
   	char buffer[1024];
   	char *record, *line;
 
-	FILE *fstream = fopen(io->src, "r");
+	FILE *fstream = fopen(src, "r");
 
 	if (fstream == NULL)
 	{
@@ -135,13 +145,13 @@ void loadData(protocolIo *io)
 				if (record != NULL)
 				{
 
-					io->mat[i][j] = atof(record);
+					mat[i][j] = atof(record);
 					record = strtok(NULL,",");
 
 				}
 				else
 				{
-					io->mat[i][j] = 1;
+					mat[i][j] = 1;
 
 				}
 			}
@@ -150,7 +160,7 @@ void loadData(protocolIo *io)
 		{
 			for (int j = 0; j < 50; j++)
 			{
-				io->mat[i][j] = 1;
+				mat[i][j] = 1;
 			}
 		}
 	}

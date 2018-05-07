@@ -24,6 +24,7 @@ class OblivcCodeGen(CodeGen):
             sys.exit(1)
 
         self.oc_config = config.system_configs['oblivc']
+        self.create_params = {}
 
         super(OblivcCodeGen, self).__init__(config, dag)
 
@@ -50,8 +51,6 @@ class OblivcCodeGen(CodeGen):
         # topological traversal
         nodes = self.dag.top_sort()
 
-        # TODO: handle subclassing more gracefully
-        # for each op
         for node in nodes:
             if isinstance(node, Aggregate):
                 op_code += self._generate_aggregate(node)
@@ -101,12 +100,11 @@ class OblivcCodeGen(CodeGen):
 
     def _set_create_params(self, create_op: Create):
         """
-        Generate controller file that dispatches MPC computation.
-        Generate header and file that stores necessary structs and IO information.
+        For each Create node, store its name and number of columns.
         """
 
-        if int(self.pid) in create_op.out_rel.stored_with:
-            self.num_cols = len(create_op.out_rel.columns)
+        self.create_params[create_op.out_rel.name] = {}
+        self.create_params[create_op.out_rel.name]["COLS"] = len(create_op.out_rel.columns)
 
         return self
 
@@ -115,16 +113,20 @@ class OblivcCodeGen(CodeGen):
         Generate code to close input data for MPC computation.
         """
 
-        stored_with_set = close_op.get_in_rel().stored_with
+        stored_with_set = copy.deepcopy(close_op.get_in_rel().stored_with)
 
         assert(len(stored_with_set) > 0)
+
+        # name of struct that will be read from
+        parent_name = close_op.get_in_rel().name
 
         template = open(
              "{0}/close.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-             "RELNAME": close_op.out_rel.name,
-             "STORED_WITH": list(stored_with_set)[0]
+            "RELNAME": close_op.out_rel.name,
+            "STORED_WITH": stored_with_set.pop(),
+            "PARENT": parent_name
          }
 
         return pystache.render(template, data)
@@ -327,41 +329,74 @@ class OblivcCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_header(self):
+        """
+        Generate header file that stores struct data.
+        """
 
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
+        structs_code = ''
+
+        for in_rel in self.create_params.keys():
+            structs_code += "\tIo {};\n".format(in_rel)
+
         data = {
-            "NUM_COLS": self.num_cols
+            "STRUCTS": structs_code
         }
 
         return pystache.render(template, data)
 
+    def _add_to_struct_code(self, node):
+        """
+        Generates code to pass locally held data to MPC computation.
+        """
+
+        node_name = node.out_rel.name
+
+        path_str = "\tchar *{0}_src = \"{1}/{2}.csv\";\n".format(node_name, self.config.input_path, node_name)
+        cols_str = "\tio.{0}.cols = {1};\n".format(node_name, len(node.out_rel.columns))
+        rows_str = "\tio.{0}.rows = countRows({0}_src, io.{0}.cols);\n".format(node_name)
+        load_str = "\tloadData(&io.{0}.mat, {0}_src);\n".format(node_name)
+
+        return "".join([path_str, cols_str, rows_str, load_str])
+
     def _generate_controller(self):
+        """
+        Populates controller file that loads data and dispatches computation.
+        """
 
         nodes = self.dag.top_sort()
 
-        in_path = ''
         out_path = ''
+        struct_code = ''
         write_str = ''
+        mock_str = ''
 
         for node in nodes:
             if isinstance(node, Create):
                 if int(self.pid) in node.out_rel.stored_with:
-                    in_path = node.out_rel.name
+                    struct_code += self._add_to_struct_code(node)
+                else:
+                    load_str = "\tloadMockData(&io.{0});\n".format(node.out_rel.name)
+                    col_str = "\tio.{0}.cols = COLS;\n".format(node.out_rel.name)
+                    row_str = "io.{0}.rows = ROWS;\n".format(node.out_rel.name)
+                    mock_str += "".join([load_str, col_str, row_str])
+
             if isinstance(node, Open):
-                out_path = node.out_rel.name
                 if int(self.pid) in node.out_rel.stored_with:
                     write_str += 'writeData(&io);'
+
+        struct_code += mock_str
 
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "PID": self.pid,
-            "INPUT_PATH": "{0}/{1}.csv".format(self.config.input_path, in_path),
             "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid)),
-            "WRITE_STR": write_str
+            "WRITE_CODE": write_str,
+            "STRUCT_CODE": struct_code
         }
 
         return pystache.render(template, data)

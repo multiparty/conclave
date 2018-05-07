@@ -24,7 +24,7 @@ int checkInputCols
 
 void matToObliv
 	(
-	protocolIo *io,
+	Io *io,
 	int party,
 	intermediateMat *ret
 	)
@@ -543,8 +543,8 @@ void revealResult
 		}
 	}
 	io->ret = array;
-	io->rows = mat->rows;
-	io->cols = mat->cols;
+	io->out_rows = mat->rows;
+	io->out_cols = mat->cols;
 }
 
 void protocol(void *args)
