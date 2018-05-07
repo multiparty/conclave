@@ -16,7 +16,7 @@ run_bench () {
     spark-submit --conf "spark.local.dir=/mnt/hdfs/spark-tmp" --master spark://cc-spark-node-0:7077 /tmp/job-1/code/workflow.py hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow1 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow2 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/yellow3 hdfs://cc-spark-node-0:8020//home/ubuntu/taxi/hhi
     end=`date +%s`
     runtime=$((end-start))
-    echo "$1 -- runtime" >> /tmp/runtime.txt
+    echo "$1 -- $runtime" >> /tmp/runtime.txt
 
     hadoop fs -rm -r /home/ubuntu/taxi/*
 }

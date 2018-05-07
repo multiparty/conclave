@@ -1,21 +1,17 @@
 #include <obliv.h>
 #include <obliv.oh>
 
-typedef struct
-{
-	char *src;
-	int rows;
-	int cols;
-	float **mat;
-} Io;
+#define COLS 4
 
 typedef struct
 {
-{{{STRUCTS}}}
-    int outRows;
-    int outCols;
+	char *src;
 	char *out;
+	int rows;
+	int cols;
+	float mat[1000][50];
 	float **ret;
+
 } protocolIo;
 
 typedef struct
@@ -23,6 +19,8 @@ typedef struct
 	int rows;
 	int cols;
 	obliv float **mat;
+
 } intermediateMat;
 
 void protocol(void *args);
+

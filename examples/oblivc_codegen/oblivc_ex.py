@@ -23,10 +23,10 @@ def generate(dag_one, name):
     cfg.with_oc_config(oc_conf)
 
     cg1 = OblivcCodeGen(cfg, dag_one, 1)
-    cg1.generate('protocol1', '/tmp')
+    cg1.generate('protocol1', '/tmp/prot/')
 
     cg2 = OblivcCodeGen(cfg, dag_one, 2)
-    cg2.generate('protocol2', '/tmp')
+    cg2.generate('protocol2', '/tmp/prot/')
 
 
 def setup():
