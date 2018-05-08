@@ -29,10 +29,10 @@ class OblivCDispatcher:
     def party_one_dispatch(self, job):
         # TODO: parties hardcoded as 1 & 2 right now - might be different in future
 
-        self._dispatch(job)
-
         # notify other party that we're done
         self.peer.send_done_msg(2, job.name + ".party_one")
+
+        self._dispatch(job)
 
     def party_two_dispatch(self, job):
 
@@ -42,6 +42,8 @@ class OblivCDispatcher:
 
         futures = self.to_wait_on.values()
         self.loop.run_until_complete(asyncio.gather(*futures))
+
+        asyncio.sleep(15)
 
         self._dispatch(job)
 
