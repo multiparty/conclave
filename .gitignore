@@ -1,6 +1,8 @@
 # Added manually.
 .idea/
 .DS_Store
+examples/oblivc/local-cfg-one.yml
+examples/oblivc/local-cfg-two.yml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
