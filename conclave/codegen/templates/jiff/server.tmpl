@@ -1,0 +1,7 @@
+
+var express = require('express');
+var app = express();
+var http = require('http').Server(app);
+var jiff_instance = require({{{JIFF_PATH}}}/lib/jiff-server').make_jiff(http, { logs: false });
+
+jiff_instance.totalparty_map['1'] = {{{PARTY_COUNT}}};
