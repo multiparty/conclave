@@ -11,7 +11,7 @@ This framework allows users to define data analysis workflows in familiar fronte
 Dependencies
 ------------
 
-Conclave requires a Python 3.x environment. On Ubuntu (14.04+), installing the `python3`, `python3-pystache`, and `python3-nose` should get everything that's needed.
+Conclave requires a Python 3.x environment. On Ubuntu (14.04+), installing the `python3`, `python3-pystache` should get everything that's needed.
 
 Testing
 -------
