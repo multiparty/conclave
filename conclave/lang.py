@@ -109,6 +109,7 @@ def _leaky_index_aggregate(input_op_node: cc_dag.OpNode, output_name: str, group
     """
     Define IndexAggregateLeaky operation.
     """
+
     agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
     idx_agg_op = cc_dag.LeakyIndexAggregate.from_aggregate(agg_op, dist_keys_op, keys_to_idx_map)
 
@@ -705,6 +706,7 @@ def _join_flags(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode,
     """
     Define JoinFlags operation.
     """
+
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
     join_flags_op = cc_dag.JoinFlags.from_join(join_op)
@@ -727,6 +729,7 @@ def _flag_join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, 
     """
     Define FlagJoin operation.
     """
+
     join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
     flag_join_op = cc_dag.FlagJoin.from_join(join_op, join_flags_op_node)
 

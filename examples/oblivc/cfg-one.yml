@@ -15,6 +15,12 @@ code_path: /home/ubuntu/protocol/
 spark:
   master_url: local
 
+
+# TODO: add Jiff config later.
+jiff:
+  jiff_path: <str>
+  ip_port: <str>
+
 # OBLIV-C
 oblivc:
   oc_path: /home/ubuntu/obliv-c/bin/oblivcc

@@ -34,6 +34,19 @@ class JiffCodeGen(CodeGen):
 
         return job
 
+    def _generate_job(self, job_name: str, code_directory: str, op_code: str):
+
+        template = open(
+            "{0}/top_level.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        op_code = pystache.render(template, data)
+
+        # job = JiffJob(job_name, "{}/{}".format(code_directory, job_name))
+
+        # return job, op_code
+
     def _generate(self, job_name: [str, None], output_directory: [str, None]):
         """ Generate code for DAG passed"""
 
@@ -73,6 +86,8 @@ class JiffCodeGen(CodeGen):
 
     def _generate_create(self, create_op: Create):
 
+        # assuming party with pid 1 will always be server party,
+        # change if this isn't true
         if self.pid == 1:
 
             template = open(
@@ -84,4 +99,89 @@ class JiffCodeGen(CodeGen):
             }
 
             self.server_code += pystache.render(template, data)
+
+    def _generate_aggregate(self, agg_op: Aggregate):
+
+        template = open(
+            "{0}/aggregate.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            # input values here
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_concat(self, concat_op: Concat):
+
+        template = open(
+            "{0}/concat.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_close(self, close_op: Close):
+
+        template = open(
+            "{0}/close.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_join(self, join_op: Join):
+
+        template = open(
+            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_open(self, open_op: Open):
+
+        template = open(
+            "{0}/open.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_project(self, project_op: Project):
+
+        template = open(
+            "{0}/project.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_multiply(self, mult_op: Multiply):
+
+        template = open(
+            "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_divide(self, div_op: Divide):
+
+        template = open(
+            "{0}/divide.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+    def _generate_sort_by(self, sort_op: SortBy):
+
+        template = open(
+            "{0}/sort.tmpl".format(self.template_directory), 'r').read()
+
+        data = {}
+
+        return pystache.render(template, data)
+
+
 
