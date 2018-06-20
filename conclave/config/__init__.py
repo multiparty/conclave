@@ -69,6 +69,16 @@ class OblivcConfig:
         self.ip_and_port = ip_and_port
 
 
+class JiffConfig:
+    """ Jiff configuration. """
+
+    def __init__(self, jiff_path: str, party_count: str):
+        # "JIFF_PATH": self.jiff_config["jiff_path"],
+        # "PARTY_COUNT": self.config["all_pids"]
+        self.jiff_path = jiff_path
+        self.party_count = party_count
+
+
 class CodeGenConfig:
     """ Config object for code generation module. """
 
@@ -145,6 +155,16 @@ class CodeGenConfig:
             self.__init__()
 
         self.system_configs["spark"] = cfg
+
+        return self
+
+    def with_jiff_config(self, cfg: JiffConfig):
+        """ Add jiffConfig object to this object. """
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["jiff"] = cfg
 
         return self
 
