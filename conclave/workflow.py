@@ -19,29 +19,43 @@ def setup(conf: Dict):
     use_swift = conf["use_swift"]
     all_pids = conf['all_pids']
 
-    # SWIFT
-    cfg = conf["swift"]
-    swift_config = SwiftConfig(cfg)
-
-    # SPARK
-    spark_master_url = conf["spark"]["master_url"]
-    spark_config = SparkConfig(spark_master_url)
-
-    # OBLIV-C
-    oc_path = conf["oblivc"]["oc_path"]
-    ip_port = conf["oblivc"]["ip_port"]
-    oc_config = OblivcConfig(oc_path, ip_port)
-
     # NET
     hosts = conf["net"]["parties"]
     net_config = NetworkConfig(hosts, pid)
+
+    try:
+        # SWIFT
+        cfg = conf["swift"]
+        swift_config = SwiftConfig(cfg)
+    except KeyError:
+        print("No Swift config present.")
+
+    try:
+        # SPARK
+        spark_master_url = conf["spark"]["master_url"]
+        spark_config = SparkConfig(spark_master_url)
+    except KeyError:
+        spark_config = SparkConfig("0.0.0.0")
+        print("No Spark config present.")
+
+    try:
+        # OBLIV-C
+        oc_path = conf["oblivc"]["oc_path"]
+        ip_port = conf["oblivc"]["ip_port"]
+        oc_config = OblivcConfig(oc_path, ip_port)
+    except KeyError:
+        oc_config = OblivcConfig('/tmp/', 'localhost:9000')
+        print("No Obliv-C config present.")
 
     # CONCLAVE SYSTEM CONFIG
     conclave_config = CodeGenConfig(workflow_name) \
         .with_spark_config(spark_config) \
         .with_oc_config(oc_config) \
-        .with_swift_config(swift_config) \
         .with_network_config(net_config)
+
+    if use_swift:
+        conclave_config = conclave_config \
+            .with_swift_config(swift_config)
 
     conclave_config.pid = pid
     conclave_config.all_pids = all_pids
@@ -118,9 +132,7 @@ def run(protocol: Callable, mpc_framework: str="obliv-c", local_framework: str="
         download_data(conclave_config)
         generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework])
         post_data(conclave_config)
-
     else:
-
         generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=True)
 
 
