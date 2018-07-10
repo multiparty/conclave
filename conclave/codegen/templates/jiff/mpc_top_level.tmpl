@@ -1,0 +1,25 @@
+(function(exports, node) {
+  var saved_instance;
+
+  exports.connect = function (hostname, computation_id, options) {
+    var opt = Object.assign({}, options);
+    // Added options goes here
+
+    if(node)
+      jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+
+    saved_instance = jiff.make_jiff(hostname, computation_id, opt);
+    return saved_instance;
+  };
+
+  /**
+   * The MPC computation
+   */
+  exports.compute = function (input, jiff_instance) {
+    if(jiff_instance == null) jiff_instance = saved_instance;
+
+    {{{OP_CODE}}}
+
+    return jiff_instance.open(result);
+  };
+}((typeof exports == 'undefined' ? this.mpc = {} : exports), typeof exports != 'undefined'));
