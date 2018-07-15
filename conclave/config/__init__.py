@@ -72,11 +72,12 @@ class OblivcConfig:
 class JiffConfig:
     """ Jiff configuration. """
 
-    def __init__(self, jiff_path: str, party_count: str):
-        # "JIFF_PATH": self.jiff_config["jiff_path"],
-        # "PARTY_COUNT": self.config["all_pids"]
+    def __init__(self, jiff_path: str, party_count: str, server_pid: int, server_ip: str, server_port: int):
         self.jiff_path = jiff_path
         self.party_count = party_count
+        self.server_pid = server_pid
+        self.server_ip = server_ip
+        self.server_port = server_port
 
 
 class CodeGenConfig:
