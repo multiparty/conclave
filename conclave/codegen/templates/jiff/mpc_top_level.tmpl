@@ -52,7 +52,7 @@
     }
   };
 
-  const concat = function(inRels)
+  const concatenate = function(inRels)
   {
     var result = [];
 
@@ -66,6 +66,84 @@
 
     return result;
   };
+
+  const join = function(leftRel, rightRel, joinCol)
+  {
+    var result = []
+
+    for (var i = 0; i < leftRel.length; i++)
+    {
+      var leftJoinCol = leftRel[i][joinCol];
+      for (var j = 0; j < rightRel.length; j++)
+      {
+        var rightJoinCol = rightRel[j][joinCol];
+        if (leftJoinCol.eq(rightJoinCol))
+        {
+          var newLeft = leftRel[i].slice();
+          var newRight = rightRel[j].slice();
+          var jOne = newLeft.splice(joinCol, 1);
+          var jTwo = newRight.splice(joinCol, 1);
+          var newRow = [leftJoinCol].concat(newLeft).concat(newRight);
+          result.push(newRow);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  const multiply = function(inRel, newCol, targetCol, operands, scalar)
+  {
+    var result = [];
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      var targetVal = inRel[i][targetCol].cmult(scalar);
+      for (var j = 0; j < operands.length; j++)
+      {
+        targetVal = targetVal.smult(inRel[i][operands[j]]);
+      }
+      if (newCol)
+      {
+        var newRow = inRel[i].concat([targetVal]);
+        result.push(newRow);
+      }
+      else
+      {
+        inRel[i][targetCol] = targetVal;
+        result.push(inRel[i]);
+      }
+    }
+
+    return result;
+
+  }
+
+  const divide = function(inRel, newCol, targetCol, operands, scalar)
+  {
+    var result = [];
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      var targetVal = inRel[i][targetCol].cdiv(scalar);
+      for (var j = 0; j < operands.length; j++)
+      {
+        targetVal = targetVal.sdiv(inRel[i][operands[j]]);
+      }
+      if (newCol)
+      {
+        var newRow = inRel[i].concat([targetVal]);
+        result.push(newRow);
+      }
+      else
+      {
+        inRel[i][targetCol] = targetVal;
+        result.push(inRel[i]);
+      }
+    }
+
+    return result;
+  }
 
   const open = function(inRel, jiff_instance)
   {
