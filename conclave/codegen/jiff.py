@@ -21,7 +21,35 @@ class JiffCodeGen(CodeGen):
         super(JiffCodeGen, self).__init__(config, dag)
 
         self.server_code = ''
+        self.party_code = ''
         self.jiff_config = config.system_configs['jiff']
+
+    def generate_server_code(self):
+
+        template = open(
+            "{0}/server.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "JIFF_PATH": self.jiff_config.jiff_path,
+            "PORT": self.jiff_config.server_port
+        }
+
+        self.server_code += pystache.render(template, data)
+
+        return self
+
+    def generate_party_code(self):
+
+        template = open(
+            "{0}/party.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "SERVER_IP_PORT": "{0}:{1}".format(self.config.server_ip, self.config.server_port)
+        }
+
+        self.party_code += pystache.render(template, data)
+
+        return self
 
     def generate(self, job_name: str, output_directory: str):
         """
@@ -29,8 +57,11 @@ class JiffCodeGen(CodeGen):
         Write results to file.
         """
 
-        #job, jiff_code = self._generate(job_name, output_directory)
-        jiff_code = self._generate(job_name, output_directory)
+        if self.pid == self.jiff_config.server_pid:
+            self.generate_server_code()
+        self.generate_party_code()
+
+        job, jiff_code = self._generate(job_name, output_directory)
 
         self._generate_job(job_name, output_directory, jiff_code)
 
