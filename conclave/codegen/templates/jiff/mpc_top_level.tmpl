@@ -67,22 +67,23 @@
     return result;
   };
 
-  const join = function(leftRel, rightRel, joinCol)
+  const join = function(leftRel, rightRel, leftJoinColIdx, rightJoinColIdx)
   {
+
     var result = []
 
     for (var i = 0; i < leftRel.length; i++)
     {
-      var leftJoinCol = leftRel[i][joinCol];
+      var leftJoinCol = leftRel[i][leftJoinColIdx];
       for (var j = 0; j < rightRel.length; j++)
       {
-        var rightJoinCol = rightRel[j][joinCol];
+        var rightJoinCol = rightRel[j][rightJoinColIdx];
         if (leftJoinCol.eq(rightJoinCol))
         {
           var newLeft = leftRel[i].slice();
           var newRight = rightRel[j].slice();
-          var jOne = newLeft.splice(joinCol, 1);
-          var jTwo = newRight.splice(joinCol, 1);
+          var jOne = newLeft.splice(leftJoinColIdx, 1);
+          var jTwo = newRight.splice(rightJoinColIdx, 1);
           var newRow = [leftJoinCol].concat(newLeft).concat(newRight);
           result.push(newRow);
         }
