@@ -44,7 +44,7 @@ class JiffCodeGen(CodeGen):
             "{0}/party.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "SERVER_IP_PORT": "{0}:{1}".format(self.config.server_ip, self.config.server_port)
+            "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port)
         }
 
         self.party_code += pystache.render(template, data)
@@ -67,7 +67,7 @@ class JiffCodeGen(CodeGen):
 
         return job
 
-    def _generate_job(self, job_name: str, code_directory: str, op_code: str):
+    def _generate_job(self, job_name: str, op_code: str):
 
         template = open(
             "{0}/top_level.tmpl".format(self.template_directory), 'r').read()
@@ -77,15 +77,11 @@ class JiffCodeGen(CodeGen):
         }
 
         op_code = pystache.render(template, data)
-        job = JiffJob(job_name, "{}/{}".format(code_directory, job_name))
+        job = JiffJob(job_name, "{}/{}".format(self.config.code_path, job_name))
 
         self._write_code(op_code, job_name)
 
         return job, op_code
-
-    def _write_code(self, code, job_name):
-        with open("/tmp/test.py","w+") as f:
-            f.write(code)
 
     def _generate(self, job_name: [str, None], output_directory: [str, None]):
         """ Generate code for DAG passed"""
@@ -119,7 +115,7 @@ class JiffCodeGen(CodeGen):
             else:
                 print("encountered unknown operator type", repr(node))
 
-        return self._generate_job(job_name, self.config.code_path, op_code)
+        return self._generate_job(job_name, op_code)
 
     def _generate_create(self, create_op: Create):
 
@@ -275,6 +271,35 @@ class JiffCodeGen(CodeGen):
         data = {}
 
         return pystache.render(template, data)
+
+    def _generate_bash(self):
+        # TODO: need clear way to run jiff server/party/mpc files outside of jiff repository
+
+        bash_code = ''
+
+        if self.pid == self.jiff_config.server_pid:
+            bash_code += 'node server.js'
+
+        return bash_code
+
+    def _write_code(self, code, job_name):
+
+        os.makedirs("{}/{}".format(self.config.code_path, job_name), exist_ok=True)
+
+        if self.pid == self.jiff_config.server_pid:
+            server_file = open("{}/{}/server.js".format(self.config.code_path, job_name), 'w')
+            server_file.write(self.server_code)
+
+        party_file = open("{}/{}/party.js".format(self.config.code_path, job_name), 'w')
+        party_file.write(self.party_code)
+
+        protocol_file = open("{}/{}/mpc.js".format(self.config.code_path, job_name), 'w')
+        protocol_file.write(code)
+
+        bash_code = self._generate_bash()
+        bash_file = open("{}/{}/run.sh".format(self.config.code_path, job_name), 'w')
+        bash_file.write(bash_code)
+
 
 
 
