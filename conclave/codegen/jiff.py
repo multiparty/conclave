@@ -61,9 +61,11 @@ class JiffCodeGen(CodeGen):
             self.generate_server_code()
         self.generate_party_code()
 
-        job, jiff_code = self._generate(job_name, output_directory)
+        job, op_code = self._generate(job_name, output_directory)
 
-        self._generate_job(job_name, output_directory, jiff_code)
+        self._write_code(op_code, job_name)
+
+        return job
 
     def _generate_job(self, job_name: str, code_directory: str, op_code: str):
 
@@ -71,16 +73,15 @@ class JiffCodeGen(CodeGen):
             "{0}/top_level.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "OP_CODE":op_code
+            "OP_CODE": op_code
         }
 
         op_code = pystache.render(template, data)
+        job = JiffJob(job_name, "{}/{}".format(code_directory, job_name))
 
         self._write_code(op_code, job_name)
 
-        #job = JiffJob(job_name, "{}/{}".format(code_directory, job_name))
-
-        #return job, op_code
+        return job, op_code
 
     def _write_code(self, code, job_name):
         with open("/tmp/test.py","w+") as f:
@@ -100,9 +101,7 @@ class JiffCodeGen(CodeGen):
             elif isinstance(node, Concat):
                 op_code += self._generate_concat(node)
             elif isinstance(node, Close):
-                op_code += self._generate_close(node)
-            elif isinstance(node, Create):
-                self._generate_create(node)
+                op_code += ''
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
             elif isinstance(node, Open):
@@ -120,27 +119,28 @@ class JiffCodeGen(CodeGen):
             else:
                 print("encountered unknown operator type", repr(node))
 
-        return op_code
-        # expand top-level job template and return code
-        #return self._generate_job(job_name, self.config.code_path, op_code)
+        return self._generate_job(job_name, self.config.code_path, op_code)
 
     def _generate_create(self, create_op: Create):
 
-        # assuming party with pid 1 will always be server party,
-        # change if this isn't true
-        if self.pid == 1:
+        # check that the input data belongs to exactly one party
+        assert(len(create_op.out_rel.stored_with) == 1)
 
-            template = open(
-                "{0}/server.tmpl".format(self.template_directory), 'r').read()
+        copied_set = copy.deepcopy(create_op.out_rel.stored_with)
+        data_holder = copied_set.pop()
 
-            data = {
-                "JIFF_PATH": self.jiff_config.jiff_path,
-                "PARTY_COUNT": self.config.all_pids
-            }
+        template = open(
+            "{0}/create.tmpl".format(self.template_directory), 'r').read()
 
-            self.server_code += pystache.render(template, data)
+        data = {
+            "OUTREL": create_op.out_rel.name,
+            "ID": data_holder
+        }
+
+        return pystache.render(template, data)
 
     def _generate_aggregate(self, agg_op: Aggregate):
+        # TODO: implement in codegen
 
         template = open(
             "{0}/aggregate.tmpl".format(self.template_directory), 'r').read()
@@ -149,23 +149,20 @@ class JiffCodeGen(CodeGen):
             # input values here
         }
 
-        return pystache.render(template, data)
+        #return pystache.render(template, data)
+        return ''
 
     def _generate_concat(self, concat_op: Concat):
+
+        # in_rel_str = " + ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
 
         template = open(
             "{0}/concat.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
-
-        return pystache.render(template, data)
-
-    def _generate_close(self, close_op: Close):
-
-        template = open(
-            "{0}/close.tmpl".format(self.template_directory), 'r').read()
-
-        data = {}
+        data = {
+            "OUTREL": concat_op.out_rel.name,
+            "INRELS": ", ".join(in_rel.name for in_rel in concat_op.get_in_rels())
+        }
 
         return pystache.render(template, data)
 
@@ -174,11 +171,18 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/join.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        data = {
+            "OUTREL": join_op.out_rel.name,
+            "LEFTREL": join_op.get_left_in_rel().name,
+            "RIGHTREL": join_op.get_right_in_rel().name,
+            "LEFT_JOINCOL": join_op.left_join_cols[0].idx,
+            "RIGHT_JOINCOL": join_op.right_join_cols[0].idx
+        }
 
         return pystache.render(template, data)
 
     def _generate_open(self, open_op: Open):
+        # TODO: implement in codegen
 
         template = open(
             "{0}/open.tmpl".format(self.template_directory), 'r').read()
@@ -193,9 +197,9 @@ class JiffCodeGen(CodeGen):
             "{0}/project.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "IN_REL": project_op.get_in_rel().name,
-            "OUT_REL": project_op.out_rel.name,
-            "PROJ_COLS": '[' + ','.join(str(c.idx) for c in project_op.selected_cols) + ']',
+            "INREL": project_op.get_in_rel().name,
+            "OUTREL": project_op.out_rel.name,
+            "PROJCOLS": '[' + ','.join(str(c.idx) for c in project_op.selected_cols) + ']',
         }
 
         return pystache.render(template, data)
@@ -205,7 +209,29 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        op_cols = mult_op.operands
+        target_col = mult_op.target_col.idx
+        scalar = 1
+        operands = []
+
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                operands.append(str(op_col.idx))
+            else:
+                scalar = op_col
+
+        new_col = 0
+        if str(target_col) != operands[0]:
+            new_col = 1
+
+        data = {
+            "OUTREL": mult_op.out_rel.name,
+            "INREL": mult_op.get_in_rel().name,
+            "NEWCOL": new_col,
+            "TARGETCOL": target_col,
+            "OPERANDS": '[' + ','.join(str(c.idx) for c in op_cols) + ']',
+            "SCALAR": scalar
+        }
 
         return pystache.render(template, data)
 
@@ -214,11 +240,34 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/divide.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        op_cols = div_op.operands
+        target_col = div_op.target_col.idx
+        scalar = 1
+        operands = []
+
+        for op_col in op_cols:
+            if hasattr(op_col, 'idx'):
+                operands.append(str(op_col.idx))
+            else:
+                scalar = op_col
+
+        new_col = 0
+        if str(target_col) != operands[0]:
+            new_col = 1
+
+        data = {
+            "OUTREL": div_op.out_rel.name,
+            "INREL": div_op.get_in_rel().name,
+            "NEWCOL": new_col,
+            "TARGETCOL": target_col,
+            "OPERANDS": '[' + ','.join(str(c.idx) for c in op_cols) + ']',
+            "SCALAR": scalar
+        }
 
         return pystache.render(template, data)
 
     def _generate_sort_by(self, sort_op: SortBy):
+        # TODO: implement in codegen
 
         template = open(
             "{0}/sort.tmpl".format(self.template_directory), 'r').read()
