@@ -53,6 +53,7 @@ class SinglePartyJob(Job):
         self.compute_party = compute_party
         self.input_parties = input_parties
 
+
 class JiffJob(Job):
     """
     Jiff subclass for jiff jobs.
@@ -60,7 +61,8 @@ class JiffJob(Job):
 
     def __init__(self, name: str, code_dir: str):
 
-        super(Job, self).__init__(name, code_dir)
+        super(JiffJob, self).__init__(name, code_dir)
+
 
 class OblivCJob(Job):
     """
