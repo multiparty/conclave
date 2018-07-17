@@ -14,9 +14,8 @@ def generate(dag_one, name):
 
     sys.argv[2] - path to obliv-c compiler (at /obliv-c/bin/oblivcc)
     """
-    # "JIFF_PATH": self.jiff_config["jiff_path"],
-    # "PARTY_COUNT": self.config["all_pids"]
-    jiff_conf = config.JiffConfig({"jiff_path":"/tmp"},("127.0.0.1","8080"))
+    # jiff_path: str, party_count: str, server_pid: int, server_ip: str, server_port: int
+    jiff_conf = config.JiffConfig("/tmp", 2, 1, "localhost", 9000)
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
