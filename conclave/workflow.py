@@ -8,6 +8,7 @@ from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
 from conclave.config import SwiftConfig
+from conclave.config import JiffConfig
 from conclave.swift import SwiftData
 
 
@@ -32,6 +33,14 @@ def setup(conf: Dict):
     ip_port = conf["oblivc"]["ip_port"]
     oc_config = OblivcConfig(oc_path, ip_port)
 
+    # JIFF
+    jiff_path  = conf["jiff"]["jiff_path"]
+    party_count = conf["jiff"]["party_count"]
+    server_pid = conf["jiff"]["server_pid"]
+    server_ip = conf["jiff"]["server_ip"]
+    server_port = conf["jiff"]["server_port"]
+    jiff_config = JiffConfig(jiff_path, party_count, server_pid, server_ip, server_port)
+
     # NET
     hosts = conf["net"]["parties"]
     net_config = NetworkConfig(hosts, pid)
@@ -41,6 +50,7 @@ def setup(conf: Dict):
         .with_spark_config(spark_config) \
         .with_oc_config(oc_config) \
         .with_swift_config(swift_config) \
+        .with_jiff_config(jiff_config) \
         .with_network_config(net_config)
 
     conclave_config.pid = pid
@@ -52,12 +62,6 @@ def setup(conf: Dict):
     conclave_config.code_path = conf["code_path"]
     conclave_config.output_path = conf["output_path"]
     conclave_config.input_path = conf["input_path"]
-
-    '''
-    conclave_config.code_path = "/tmp/{0}-code/".format(workflow_name)
-    conclave_config.input_path = "/tmp/{0}-in/".format(workflow_name)
-    conclave_config.output_path = "/tmp/{0}-out/".format(workflow_name)
-    '''
 
     return conclave_config
 
