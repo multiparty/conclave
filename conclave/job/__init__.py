@@ -59,9 +59,10 @@ class JiffJob(Job):
     Jiff subclass for jiff jobs.
     """
 
-    def __init__(self, name: str, code_dir: str):
+    def __init__(self, name: str, code_dir: str, server_pid: int):
 
         super(JiffJob, self).__init__(name, code_dir)
+        self.server_pid = server_pid
 
 
 class OblivCJob(Job):
