@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pystache
 
@@ -70,20 +69,20 @@ class JiffCodeGen(CodeGen):
     def _generate_job(self, job_name: str, op_code: str):
 
         template = open(
-            "{0}/top_level.tmpl".format(self.template_directory), 'r').read()
+            "{0}/mpc_top_level.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "OP_CODE": op_code
         }
 
         op_code = pystache.render(template, data)
-        job = JiffJob(job_name, "{}/{}".format(self.config.code_path, job_name))
+        job = JiffJob(job_name, "{}/{}".format(self.config.code_path, job_name), self.jiff_config.server_pid)
 
         self._write_code(op_code, job_name)
 
         return job, op_code
 
-    def _generate(self, job_name: [str, None], output_directory: [str, None]):
+    def _generate(self, job_name: [str, None], output_directory: str):
         """ Generate code for DAG passed"""
 
         op_code = ""
@@ -98,6 +97,8 @@ class JiffCodeGen(CodeGen):
                 op_code += self._generate_concat(node)
             elif isinstance(node, Close):
                 op_code += ''
+            elif isinstance(node, Create):
+                op_code += self._generate_create(node)
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
             elif isinstance(node, Open):
@@ -185,7 +186,8 @@ class JiffCodeGen(CodeGen):
 
         data = {}
 
-        return pystache.render(template, data)
+        # return pystache.render(template, data)
+        return ''
 
     def _generate_project(self, project_op: Project):
 
