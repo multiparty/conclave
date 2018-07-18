@@ -44,6 +44,27 @@ class PythonJob(Job):
         super(PythonJob, self).__init__(name, code_dir)
 
 
+class SinglePartyJob(Job):
+
+    def __init__(self, name: str, code_dir: str, fmwk: str, compute_party: int, input_parties: list):
+
+        super(SinglePartyJob, self).__init__(name, code_dir)
+        self.fmwk = fmwk
+        self.compute_party = compute_party
+        self.input_parties = input_parties
+
+
+class JiffJob(Job):
+    """
+    Jiff subclass for jiff jobs.
+    """
+
+    def __init__(self, name: str, code_dir: str, server_pid: int):
+
+        super(JiffJob, self).__init__(name, code_dir)
+        self.server_pid = server_pid
+
+
 class OblivCJob(Job):
     """
     Job subclass for Obliv-C jobs.
