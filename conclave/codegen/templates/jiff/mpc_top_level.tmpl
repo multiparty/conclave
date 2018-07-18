@@ -8,7 +8,7 @@
     var opt = Object.assign({}, options);
 
     if(node)
-      jiff = require('../../lib/jiff-client');
+      jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
 
     saved_instance = jiff.make_jiff(hostname, computation_id, opt);
     return saved_instance;
