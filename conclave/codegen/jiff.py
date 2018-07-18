@@ -72,7 +72,8 @@ class JiffCodeGen(CodeGen):
             "{0}/mpc_top_level.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            "OP_CODE": op_code
+            "OP_CODE": op_code,
+            "JIFF_PATH": self.jiff_config.jiff_path
         }
 
         op_code = pystache.render(template, data)
@@ -280,7 +281,10 @@ class JiffCodeGen(CodeGen):
         bash_code = ''
 
         if self.pid == self.jiff_config.server_pid:
-            bash_code += 'node server.js'
+            bash_code += 'node server.js\n'
+
+        # TODO: need to resolve input path here
+        bash_code += 'node party.js'
 
         return bash_code
 
