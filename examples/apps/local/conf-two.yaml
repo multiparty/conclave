@@ -1,40 +1,42 @@
 # GENERAL
-pid: <int>
-all_pids: <list>
-workflow_name: <str>
-use_swift: <bool>
+all_pids: [1,2]
+pid: 2
+workflow_name: test-workflow
+name: test
+delimiter: ','
 
-# TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
-# /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
-# for use on OS containers.
-input_path: <str>
-output_path: <str>
-code_path: <str>
+# SWIFT
+use_swift: False
 
 # SPARK
 spark:
-  master_url: <ip>:<port>
+  master_url: local
 
 # OBLIV-C
 oblivc:
-  oc_path: <str>
-  ip_port: <ip>:<port>
+  oc_path: /<path_to_oc_install>/
+  ip_port: localhost:9000
 
 # JIFF
 jiff:
-  jiff_path: <str>
-  party_count: <int>
-  server_pid: <int>
-  server_ip: <str>
-  server_port: <int>
+  jiff_path: /Users/ben/Desktop/dev/jiff/
+  party_count: 2
+  server_pid: 1
+  server_ip: localhost
+  server_port: 9002
 
 # NET
 net:
   parties:
-    - host: <ip>
-      port: <port>
-    - host: <ip>
-      port: <port>
+    - host: 127.0.0.1
+      port: 9000
+    - host: 127.0.0.1
+      port: 9001
+
+# INPUT & OUTPUT
+input_path: /Users/ben/Desktop/dev/cici-conclave/conclave/examples/apps/local/
+output_path: /tmp/
+code_path: /tmp/
 
 # SWIFT
 swift:
