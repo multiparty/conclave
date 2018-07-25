@@ -34,7 +34,7 @@ def setup(conf: Dict):
     oc_config = OblivcConfig(oc_path, ip_port)
 
     # JIFF
-    jiff_path  = conf["jiff"]["jiff_path"]
+    jiff_path = conf["jiff"]["jiff_path"]
     party_count = conf["jiff"]["party_count"]
     server_pid = conf["jiff"]["server_pid"]
     server_ip = conf["jiff"]["server_ip"]
