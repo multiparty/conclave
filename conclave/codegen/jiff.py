@@ -185,10 +185,12 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/open.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        data = {
+            "INREL": open_op.get_in_rel().name,
+            "OUTREL": open_op.out_rel.name
+        }
 
-        # return pystache.render(template, data)
-        return ''
+        return pystache.render(template, data)
 
     def _generate_project(self, project_op: Project):
 
