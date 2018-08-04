@@ -130,12 +130,10 @@
     return result;
   }
 
-  const open = function(inRel, jiff_instance)
+  const open = function(inRel)
   {
-    var results = jiff_instance.open_2D_array(inRel);
-
-
-    return result
+    var results = saved_instance.open_2D_array(inRel);
+    return results;
   };
 
   /**
