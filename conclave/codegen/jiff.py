@@ -46,6 +46,13 @@ class JiffCodeGen(CodeGen):
             "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port)
         }
 
+        nodes = self.dag.top_sort()
+        for node in nodes:
+            if isinstance(node, Open):
+                if self.pid in node.out_rel.stored_with:
+                    data['OUTPUT_FILE'] = node.out_rel.name
+                    break
+
         self.party_code += pystache.render(template, data)
 
         return self
