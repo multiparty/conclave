@@ -20,6 +20,14 @@ oblivc:
   oc_path: <str>
   ip_port: <ip>:<port>
 
+# JIFF
+jiff:
+  jiff_path: <str>
+  party_count: <int>
+  server_pid: <int>
+  server_ip: <str>
+  server_port: <int>
+
 # NET
 net:
   parties:

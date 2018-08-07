@@ -12,6 +12,6 @@ class PythonDispatcher:
               .format(job.name, job.code_dir))
 
         try:
-            call(["python3", cmd])
+            call(["python3.5", cmd])
         except Exception as e:
             print(e)
