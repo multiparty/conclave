@@ -1,5 +1,6 @@
 import yaml
 import argparse
+import os
 from typing import Callable, Dict
 
 from conclave import generate_and_dispatch
@@ -58,7 +59,6 @@ def setup(conf: Dict):
     conclave_config.name = workflow_name
     conclave_config.use_swift = use_swift
 
-    # TODO these paths will be static for OS deployment, not from cfg
     conclave_config.code_path = conf["code_path"]
     conclave_config.output_path = conf["output_path"]
     conclave_config.input_path = conf["input_path"]
@@ -71,15 +71,16 @@ def download_data(conclave_config):
     Download data from Swift to local filesystem.
     """
 
-    swift_cfg = conclave_config.system_configs['swift']['source']
-    data_dir = conclave_config['input_path']
+    swift_cfg = conclave_config.system_configs['swift'].source
+    data_dir = conclave_config.input_path
     container = swift_cfg['DATA']['container_name']
     files = swift_cfg['DATA']['files']
 
     swift_data = SwiftData(swift_cfg)
 
-    for file in files:
-        swift_data.get_data(container, file, data_dir)
+    if files is not None:
+        for file in files:
+            swift_data.get_data(container, file, data_dir)
 
     swift_data.close_connection()
 
@@ -87,22 +88,27 @@ def download_data(conclave_config):
 def post_data(conclave_config):
     """
     Store locally held data on Swift.
+
+    NOTE: if container_name doesn't exist, raises swiftclient.exceptions.ClientException
+
+    Should check to see if container exists in the future, and create it if it doesn't exist.
     """
 
-    swift_cfg = conclave_config.system_configs['swift']['destination']
-    data_dir = conclave_config['input_path']
+    swift_cfg = conclave_config.system_configs['swift'].dest
+    data_dir = conclave_config.output_path
     container = swift_cfg['DATA']['container_name']
-    files = swift_cfg['DATA']['files']
 
     swift_data = SwiftData(swift_cfg)
 
-    for file in files:
-        swift_data.put_data(container, file, data_dir)
+    for subdir, dirs, files in os.walk(data_dir):
+        for file in files:
+            if file[0] != '.':
+                swift_data.put_data(container, file, data_dir)
 
     swift_data.close_connection()
 
 
-def run(protocol: Callable, mpc_framework: str="obliv-c", local_framework: str="python"):
+def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="python"):
     """
     Load parameters from config, download data from Swift,
     dispatch computation, and push results back to Swift.
