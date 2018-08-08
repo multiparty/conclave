@@ -46,6 +46,13 @@ class JiffCodeGen(CodeGen):
             "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port)
         }
 
+        nodes = self.dag.top_sort()
+        for node in nodes:
+            if isinstance(node, Open):
+                if self.pid in node.out_rel.stored_with:
+                    data['OUTPUT_FILE'] = node.out_rel.name
+                    break
+
         self.party_code += pystache.render(template, data)
 
         return self
@@ -185,10 +192,12 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/open.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        data = {
+            "INREL": open_op.get_in_rel().name,
+            "OUTREL": open_op.out_rel.name
+        }
 
-        # return pystache.render(template, data)
-        return ''
+        return pystache.render(template, data)
 
     def _generate_project(self, project_op: Project):
 
@@ -275,10 +284,15 @@ class JiffCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _generate_bash(self):
-        # TODO: need clear way to run jiff server/party/mpc files outside of jiff repository
+    def _write_bash(self):
+        template = open("{}/bash.tmpl"
+                        .format(self.template_directory), 'r').read()
 
-        bash_code = ''
+        data = {
+            "JIFF_PATH": self.jiff_config.jiff_path
+        }
+
+        bash_code = pystache.render(template, data)
 
         if self.pid == self.jiff_config.server_pid:
             bash_code += 'node server.js\n'
@@ -302,7 +316,7 @@ class JiffCodeGen(CodeGen):
         protocol_file = open("{}/{}/mpc.js".format(self.config.code_path, job_name), 'w')
         protocol_file.write(code)
 
-        bash_code = self._generate_bash()
+        bash_code = self._write_bash()
         bash_file = open("{}/{}/run.sh".format(self.config.code_path, job_name), 'w')
         bash_file.write(bash_code)
 

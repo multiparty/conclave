@@ -92,10 +92,7 @@ def project():
     in1 = in_rels[0]
     in2 = in_rels[1]
 
-    cl1 = sal._close(in1, "cl1", set([1, 2]))
-    cl2 = sal._close(in2, "cl2", set([1, 2]))
-
-    rel = sal.concat([cl1, cl2], "rel")
+    rel = sal.concat([in1, in2], "rel")
 
     proj = sal.project(rel, 'proj1', ['b', 'a', 'c'])
 
