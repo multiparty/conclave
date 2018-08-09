@@ -93,9 +93,10 @@ def post_data(conclave_config):
 
     Should check to see if container exists in the future, and create it if it doesn't exist.
     """
+    input_swift_data = conclave_config.system_configs['swift'].source['DATA']['files']
 
     swift_cfg = conclave_config.system_configs['swift'].dest
-    data_dir = conclave_config.output_path
+    data_dir = conclave_config.input_path
     container = swift_cfg['DATA']['container_name']
 
     swift_data = SwiftData(swift_cfg)
@@ -103,7 +104,8 @@ def post_data(conclave_config):
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
             if file[0] != '.':
-                swift_data.put_data(container, file, data_dir)
+                if file not in input_swift_data:
+                    swift_data.put_data(container, file, data_dir)
 
     swift_data.close_connection()
 
