@@ -6,6 +6,7 @@ from conclave.codegen.python import PythonCodeGen
 from conclave.codegen.sharemind import SharemindCodeGen
 from conclave.codegen.spark import SparkCodeGen
 from conclave.codegen.oblivc import OblivcCodeGen
+from conclave.codegen.jiff import JiffCodeGen
 from conclave.codegen.single_party import SinglePartyCodegen
 from conclave.config import CodeGenConfig
 from conclave.dispatch import dispatch_all
@@ -59,6 +60,10 @@ def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
             elif framework == "obliv-c":
                 name = "{}-oblivc-job-{}".format(cfg.name, job_num)
                 job = OblivcCodeGen(cfg, sub_dag, cfg.pid).generate(name, cfg.output_path)
+                job_queue.append(job)
+            elif framework == "jiff":
+                name = "{}-jiff-job-{}".format(cfg.name, job_num)
+                job = JiffCodeGen(cfg, sub_dag, cfg.pid).generate(name, cfg.output_path)
                 job_queue.append(job)
             else:
                 raise Exception("Unknown framework: " + framework)
