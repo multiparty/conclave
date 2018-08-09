@@ -101,6 +101,7 @@ def post_data(conclave_config):
 
     swift_data = SwiftData(swift_cfg)
 
+    # hack hack hack
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
             if file[0] != '.':
