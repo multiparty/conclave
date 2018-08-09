@@ -131,6 +131,6 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
 
     else:
 
-        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=True)
+        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
 
 
