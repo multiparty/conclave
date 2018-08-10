@@ -24,6 +24,7 @@ def generate(dag_one, name):
     cfg = config.CodeGenConfig(name)
     cfg.input_path = input_path
     cfg.code_path = code_path
+    cfg.all_pids = [1, 2]
 
     cfg.with_jiff_config(jiff_conf)
 
@@ -54,36 +55,6 @@ def setup():
     in2 = sal.create("in2", colsInB, set([2]))
 
     return [in1, in2]
-
-
-def setup_three():
-
-    colsInA = [
-        defCol('a', 'INTEGER', [1]),
-        defCol('b', 'INTEGER', [1]),
-        defCol('c', 'INTEGER', [1]),
-        defCol('d', 'INTEGER', [1])
-    ]
-
-    colsInB = [
-        defCol("a", "INTEGER", [2]),
-        defCol("b", "INTEGER", [2]),
-        defCol("c", "INTEGER", [2]),
-        defCol("d", "INTEGER", [2])
-    ]
-
-    colsInC = [
-        defCol("a", "INTEGER", [2]),
-        defCol("b", "INTEGER", [2]),
-        defCol("c", "INTEGER", [2]),
-        defCol("d", "INTEGER", [2])
-    ]
-
-    in1 = sal.create("in1", colsInA, set([1]))
-    in2 = sal.create("in2", colsInB, set([2]))
-    in3 = sal.create("in3", colsInC, set([2]))
-
-    return [in1, in2, in3]
 
 @dag_only
 def project():
