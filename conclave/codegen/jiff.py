@@ -42,16 +42,19 @@ class JiffCodeGen(CodeGen):
         template = open(
             "{0}/party.tmpl".format(self.template_directory), 'r').read()
 
-        data = {
-            "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port)
-        }
+        out_node = ''
 
         nodes = self.dag.top_sort()
         for node in nodes:
             if isinstance(node, Open):
                 if self.pid in node.out_rel.stored_with:
-                    data['OUTPUT_FILE'] = node.out_rel.name
+                    out_node = node.out_rel.name
                     break
+
+        data = {
+            "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port),
+            "OUTPUT_FILE": "{0}/{1}.csv".format(self.config.input_path, out_node)
+        }
 
         self.party_code += pystache.render(template, data)
 
@@ -284,21 +287,32 @@ class JiffCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _gen_input_string(self):
+
+        nodes = self.dag.top_sort()
+
+        for node in nodes:
+            if isinstance(node, Create):
+                if int(self.pid) in node.out_rel.stored_with:
+
+                    node_name = node.out_rel.name
+                    input_path = self.config.input_path
+
+                    return "{0}/{1}.csv".format(input_path, node_name)
+
     def _write_bash(self):
+
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
 
         data = {
-            "JIFF_PATH": self.jiff_config.jiff_path
+            "JIFF_PATH": self.jiff_config.jiff_path,
+            "INPUT_PATH": self._gen_input_string(),
+            "PARTY_COUNT": len(self.config.all_pids),
+            "PARTY_ID": self.pid
         }
 
         bash_code = pystache.render(template, data)
-
-        if self.pid == self.jiff_config.server_pid:
-            bash_code += 'node server.js\n'
-
-        # TODO: need to resolve input path here
-        bash_code += 'node party.js'
 
         return bash_code
 
