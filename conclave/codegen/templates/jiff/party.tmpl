@@ -38,14 +38,15 @@ options.onConnect = function(jiff_instance) {
 
           var output = "{{{OUTPUT_FILE}}}";
           if(output.length > 0){
-            output += ".csv";
             var fs = require('fs');
             fs.writeFile(output, format_2d(v) , function(err) {
                 if(err) {
+                    jiff_instance.disconnect();
                     return console.log(err);
                 }
             });
           }
+          jiff_instance.disconnect();
 
       });
 
