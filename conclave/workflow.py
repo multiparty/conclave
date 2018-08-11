@@ -100,9 +100,11 @@ def post_data(conclave_config):
 
     swift_data = SwiftData(swift_cfg)
 
-    # hack hack hack
+    # this pushes all intermediate files to swift as well, will need some
+    # way to identify only final output files in the future
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
+            print(file)
             if file[0] != '.':
                 if file not in input_swift_data:
                     swift_data.put_data(container, file, data_dir)
@@ -128,7 +130,7 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
 
     if conclave_config.use_swift:
         download_data(conclave_config)
-        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework])
+        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
         post_data(conclave_config)
 
     else:
