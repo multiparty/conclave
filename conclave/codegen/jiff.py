@@ -66,8 +66,7 @@ class JiffCodeGen(CodeGen):
         Write results to file.
         """
 
-        if self.pid == self.jiff_config.server_pid:
-            self.generate_server_code()
+        self.generate_server_code()
         self.generate_party_code()
 
         job, op_code = self._generate(job_name, output_directory)
@@ -87,7 +86,7 @@ class JiffCodeGen(CodeGen):
         }
 
         op_code = pystache.render(template, data)
-        job = JiffJob(job_name, "{}/{}".format(self.config.code_path, job_name), self.jiff_config.server_pid)
+        job = JiffJob(job_name, "{}/{}".format(self.config.code_path, job_name))
 
         self._write_code(op_code, job_name)
 
@@ -216,6 +215,9 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_multiply(self, mult_op: Multiply):
+        """
+        NOTE: bug in "OPERANDS" -- can't c.idx for scalars
+        """
 
         template = open(
             "{0}/multiply.tmpl".format(self.template_directory), 'r').read()
@@ -240,7 +242,7 @@ class JiffCodeGen(CodeGen):
             "INREL": mult_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(str(c.idx) for c in op_cols) + ']',
+            "OPERANDS": '[' + ','.join(c for c in operands) + ']',
             "SCALAR": scalar
         }
 
@@ -271,7 +273,7 @@ class JiffCodeGen(CodeGen):
             "INREL": div_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(str(c.idx) for c in op_cols) + ']',
+            "OPERANDS": '[' + ','.join(str(c.idx) for c in operands) + ']',
             "SCALAR": scalar
         }
 
@@ -300,16 +302,19 @@ class JiffCodeGen(CodeGen):
 
                     return "{0}/{1}.csv".format(input_path, node_name)
 
-    def _write_bash(self):
+    def _write_bash(self, job_name):
 
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
+
+        print("CODE_PATH: {0}/{1}".format(self.config.code_path, job_name))
 
         data = {
             "JIFF_PATH": self.jiff_config.jiff_path,
             "INPUT_PATH": self._gen_input_string(),
             "PARTY_COUNT": len(self.config.all_pids),
-            "PARTY_ID": self.pid
+            "PARTY_ID": self.pid,
+            "CODE_PATH": "{0}/{1}".format(self.config.code_path, job_name)
         }
 
         bash_code = pystache.render(template, data)
@@ -320,9 +325,8 @@ class JiffCodeGen(CodeGen):
 
         os.makedirs("{}/{}".format(self.config.code_path, job_name), exist_ok=True)
 
-        if self.pid == self.jiff_config.server_pid:
-            server_file = open("{}/{}/server.js".format(self.config.code_path, job_name), 'w')
-            server_file.write(self.server_code)
+        server_file = open("{}/{}/server.js".format(self.config.code_path, job_name), 'w')
+        server_file.write(self.server_code)
 
         party_file = open("{}/{}/party.js".format(self.config.code_path, job_name), 'w')
         party_file.write(self.party_code)
@@ -330,7 +334,7 @@ class JiffCodeGen(CodeGen):
         protocol_file = open("{}/{}/mpc.js".format(self.config.code_path, job_name), 'w')
         protocol_file.write(code)
 
-        bash_code = self._write_bash()
+        bash_code = self._write_bash(job_name)
         bash_file = open("{}/{}/run.sh".format(self.config.code_path, job_name), 'w')
         bash_file.write(bash_code)
 
