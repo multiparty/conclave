@@ -37,10 +37,9 @@ def setup(conf: Dict):
     # JIFF
     jiff_path = conf["jiff"]["jiff_path"]
     party_count = conf["jiff"]["party_count"]
-    server_pid = conf["jiff"]["server_pid"]
     server_ip = conf["jiff"]["server_ip"]
     server_port = conf["jiff"]["server_port"]
-    jiff_config = JiffConfig(jiff_path, party_count, server_pid, server_ip, server_port)
+    jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port)
 
     # NET
     hosts = conf["net"]["parties"]
