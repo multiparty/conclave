@@ -15,10 +15,10 @@ class JiffDispatcher:
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
-        cmd = "{}/run.sh".format(job.code_dir)
+        cmd = "{0}/run.sh".format(job.code_dir)
 
-        print("{}: {}/run.sh dispatching"
-              .format(job.name, job.code_dir))
+        print("Jiff: {0}/run.sh dispatching"
+              .format(job.code_dir))
 
         try:
             call(["/bin/bash", cmd])
