@@ -479,6 +479,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "OUT_REL": open_op.out_rel.name,
             "IN_REL": open_op.get_in_rel().name,
+            "FILTER_FLAGS": "false" if self.config.use_leaky_ops else "true"
         }
         return pystache.render(template, data)
 

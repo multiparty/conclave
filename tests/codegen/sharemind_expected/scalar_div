@@ -11,7 +11,7 @@ void main() {
     pd_shared3p uint32 [[2]] div1 = divide(rel, (uint)0, (uint){0,1}, (uint){0,1});
     print("Will publish div1 as opened with size: ");
     print(shape(div1)[0]);
-    publish("opened", declassify(div1));
+    publish("opened", declassifyWrapper(div1, false));
 
     tdbCloseConnection(ds);
 }

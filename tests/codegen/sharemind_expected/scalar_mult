@@ -11,7 +11,7 @@ void main() {
     pd_shared3p uint32 [[2]] mult1 = multiply(rel, (uint)0, (uint){0,1}, (uint){0,1});
     print("Will publish mult1 as opened with size: ");
     print(shape(mult1)[0]);
-    publish("opened", declassify(mult1));
+    publish("opened", declassifyWrapper(mult1, false));
 
     tdbCloseConnection(ds);
 }

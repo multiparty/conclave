@@ -11,7 +11,7 @@ void main() {
     pd_shared3p uint32 [[2]] shuf = shuffleRows(rel);
     print("Will publish shuf as opened with size: ");
     print(shape(shuf)[0]);
-    publish("opened", declassify(shuf));
+    publish("opened", declassifyWrapper(shuf, false));
 
     tdbCloseConnection(ds);
 }

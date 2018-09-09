@@ -8,7 +8,7 @@ void main() {
     pd_shared3p uint32 [[2]] res = joinLeaky(cl1, (uint){0}, cl2, (uint){0}, (uint){0,1,3});
     print("Will publish res as opened with size: ");
     print(shape(res)[0]);
-    publish("opened", declassify(res));
+    publish("opened", declassifyWrapper(res, false));
 
     tdbCloseConnection(ds);
 }
