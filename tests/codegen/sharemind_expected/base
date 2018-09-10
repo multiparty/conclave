@@ -62,10 +62,10 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
         D uint32[[2]] right, uint rightJoinColIdx, bool filter) {
     uint ncolsLeft = shape(left)[1];
     uint ncolsRight = shape(right)[1];
-    D uint32[[2]] withFlags(size(eqFlags), 1 + ncolsLeft + ncolsRight);
+    D uint32[[2]] withFlags(size(eqFlags), ncolsLeft + ncolsRight + 1);
     withFlags[:, 0 : ncolsLeft] = left[:,0 : ncolsLeft];
     withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right[:,0 : ncolsRight];
-    withFlags[:,ncolsLeft + ncolsRight] = eqFlags;
+    withFlags[:,ncolsLeft + ncolsRight - 1] = eqFlags;
     if (filter) {
         D uint32[[2]] shuffledWithFlags = shuffleRows(withFlags);
         uint32[[1]] keepFlags = declassify(shuffledWithFlags[:,ncolsLeft + ncolsRight]);
@@ -429,10 +429,5 @@ uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
     } else {
         return declassify(rows);
     }
-}
-
-template <domain D : shared3p>
-uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
-    return declassifyWrapper(rows, false);
 }
 
