@@ -273,6 +273,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "TYPE": "uint32",
             "OUT_REL_NAME": agg_op.out_rel.name,
+            "LEAKY_SUFFIX": "Leaky" if self.config.use_leaky_ops else "",
             "IN_REL_NAME": agg_op.get_in_rel().name,
             "KEY_COL_IDX": agg_op.group_cols[0].idx,
             "AGG_COL_IDX": agg_op.agg_col.idx
