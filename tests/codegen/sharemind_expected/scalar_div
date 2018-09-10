@@ -1,11 +1,11 @@
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);
-    pd_shared3p uint32 [[2]] in1 = readFromDb("DS1", "in1");
+    pd_shared3p uint32 [[2]] in1 = readFromDb("DS1", "in1", false);
     pd_shared3p uint32 [[2]] cl1 = in1;
-    pd_shared3p uint32 [[2]] in2 = readFromDb("DS1", "in2");
+    pd_shared3p uint32 [[2]] in2 = readFromDb("DS1", "in2", false);
     pd_shared3p uint32 [[2]] cl2 = in2;
-    pd_shared3p uint32 [[2]] in3 = readFromDb("DS1", "in3");
+    pd_shared3p uint32 [[2]] in3 = readFromDb("DS1", "in3", false);
     pd_shared3p uint32 [[2]] cl3 = in3;
     pd_shared3p uint32 [[2]] rel = cat(cl1, cat(cl2, cl3));
     pd_shared3p uint32 [[2]] div1 = divide(rel, (uint)0, (uint){0,1}, (uint){0,1});

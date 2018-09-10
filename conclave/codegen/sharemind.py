@@ -363,7 +363,8 @@ class SharemindCodeGen(CodeGen):
             "{0}/read_from_db.tmpl".format(self.template_directory), 'r').read()
         data = {
             "NAME": create_op.out_rel.name,
-            "TYPE": "uint32"
+            "TYPE": "uint32",
+            "ADD_FLAGS": "false" if self.config.use_leaky_ops else "true"
         }
         return pystache.render(template, data)
 
