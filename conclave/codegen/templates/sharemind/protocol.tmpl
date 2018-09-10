@@ -65,7 +65,7 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
     D uint32[[2]] withFlags(size(eqFlags), ncolsLeft + ncolsRight + 1);
     withFlags[:, 0 : ncolsLeft] = left[:,0 : ncolsLeft];
     withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right[:,0 : ncolsRight];
-    withFlags[:,ncolsLeft + ncolsRight - 1] = eqFlags;
+    withFlags[:,ncolsLeft + ncolsRight] = eqFlags;
     if (filter) {
         D uint32[[2]] shuffledWithFlags = shuffleRows(withFlags);
         uint32[[1]] keepFlags = declassify(shuffledWithFlags[:,ncolsLeft + ncolsRight]);
@@ -160,7 +160,6 @@ template <domain D : shared3p>
 D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     uint nrows = shape(rows)[0];
     uint ncols = 3;
-
     D uint32 [[2]] input(nrows, ncols);
     D uint32 [[1]] _keepFlags = rows[:,shape(rows)[1] - 1];
     uint32 [[1]] ones(nrows) = 1;

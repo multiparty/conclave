@@ -454,7 +454,11 @@ class SharemindCodeGen(CodeGen):
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
         cols_to_keep = list(
-            range(len(left_rel.columns) + len(right_rel.columns)))
+            range(
+                len(left_rel.columns) 
+              + len(right_rel.columns)
+              + (1 if not self.config.use_leaky_ops else 0))) # account for flag column
+        print(cols_to_keep)
         cols_to_exclude = [col.idx + len(left_rel.columns)
                            for col in join_op.right_join_cols]
         cols_to_keep_str = ",".join(

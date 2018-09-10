@@ -33,12 +33,16 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    try:
+        use_leaky = sys.argv[2] == "-l"
+    except Exception:
+        use_leaky = False
     # define name for the workflow
     workflow_name = "real-oblivious-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1, 2, 3]
-    conclave_config.use_leaky_ops = False
+    conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", 
         use_docker=False, 
         use_hdfs=False)
