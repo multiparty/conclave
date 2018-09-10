@@ -431,11 +431,6 @@ uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
     }
 }
 
-template <domain D : shared3p>
-uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
-    return declassifyWrapper(rows, false);
-}
-
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);
