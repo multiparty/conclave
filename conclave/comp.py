@@ -678,70 +678,71 @@ class ExpandCompositeOps(DagRewriter):
         self.agg_counter += 1
         return "_hybrid_agg_" + str(self.agg_counter)
 
-    def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
-        """
-        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
-        """
-        suffix = self._create_unique_agg_suffix()
-        group_by_col_name = node.group_cols[0].name
+    # This is obsolete now
+    # def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
+    #     """
+    #     Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
+    #     """
+    #     suffix = self._create_unique_agg_suffix()
+    #     group_by_col_name = node.group_cols[0].name
 
-        shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
-        shuffled.is_mpc = True
-        node.parent.children.remove(node)
+    #     shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
+    #     shuffled.is_mpc = True
+    #     node.parent.children.remove(node)
 
-        persisted = cc._persist(shuffled, "persisted" + suffix)
-        persisted.isMPC = True
+    #     persisted = cc._persist(shuffled, "persisted" + suffix)
+    #     persisted.isMPC = True
 
-        keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
-        keys_closed.isMPC = True
+    #     keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
+    #     keys_closed.isMPC = True
 
-        keys_open = cc._open(keys_closed, "keys_open" + suffix, node.trusted_party)
-        keys_open.isMPC = True
+    #     keys_open = cc._open(keys_closed, "keys_open" + suffix, node.trusted_party)
+    #     keys_open.isMPC = True
 
-        indexed = cc.index(keys_open, "indexed" + suffix, "row_index")
-        indexed.isMPC = False
+    #     indexed = cc.index(keys_open, "indexed" + suffix, "row_index")
+    #     indexed.isMPC = False
 
-        distinct_keys = cc.distinct(keys_open, "distinct_keys" + suffix, [group_by_col_name])
-        distinct_keys.isMPC = False
+    #     distinct_keys = cc.distinct(keys_open, "distinct_keys" + suffix, [group_by_col_name])
+    #     distinct_keys.isMPC = False
 
-        # TODO use persist
-        persist_dist_keys = cc.project(distinct_keys, "persist_dist_keys" + suffix, [group_by_col_name])
-        persist_dist_keys.isMPC = False
+    #     # TODO use persist
+    #     persist_dist_keys = cc.project(distinct_keys, "persist_dist_keys" + suffix, [group_by_col_name])
+    #     persist_dist_keys.isMPC = False
 
-        indexed_distinct = cc.index(distinct_keys, "indexed_distinct" + suffix, "key_index")
-        indexed_distinct.isMPC = False
+    #     indexed_distinct = cc.index(distinct_keys, "indexed_distinct" + suffix, "key_index")
+    #     indexed_distinct.isMPC = False
 
-        indexes_joined = cc.join(indexed, indexed_distinct, "indexes_joined" + suffix, [group_by_col_name],
-                                 [group_by_col_name])
-        indexes_joined.isMPC = False
+    #     indexes_joined = cc.join(indexed, indexed_distinct, "indexes_joined" + suffix, [group_by_col_name],
+    #                              [group_by_col_name])
+    #     indexes_joined.isMPC = False
 
-        # TODO: could project row indexes away too
-        indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
-        indexes_only.isMPC = False
+    #     # TODO: could project row indexes away too
+    #     indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
+    #     indexes_only.isMPC = False
 
-        closed_distinct = cc._close(persist_dist_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
-        closed_distinct.isMPC = True
-        keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
-        keys_lookup.isMPC = True
+    #     closed_distinct = cc._close(persist_dist_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
+    #     closed_distinct.isMPC = True
+    #     keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
+    #     keys_lookup.isMPC = True
 
-        group_col_names = [col.name for col in node.group_cols]
-        out_over_col_name = node.out_rel.columns[-1].name
+    #     group_col_names = [col.name for col in node.group_cols]
+    #     out_over_col_name = node.out_rel.columns[-1].name
 
-        result = cc._leaky_index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name,
-                                           node.aggregator,
-                                           out_over_col_name,
-                                           closed_distinct,
-                                           keys_lookup)
-        result.is_mpc = True
-        # replace self with leaf of expanded subdag in each child node
-        for child in node.get_sorted_children():
-            child.replace_parent(node, result)
-        # add former children to children of leaf
-        result.children = node.children
+    #     result = cc._leaky_index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name,
+    #                                        node.aggregator,
+    #                                        out_over_col_name,
+    #                                        closed_distinct,
+    #                                        keys_lookup)
+    #     result.is_mpc = True
+    #     # replace self with leaf of expanded subdag in each child node
+    #     for child in node.get_sorted_children():
+    #         child.replace_parent(node, result)
+    #     # add former children to children of leaf
+    #     result.children = node.children
 
     def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
         """
-        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the non-leaky version.
+        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the size-leaking version.
         """
         suffix = self._create_unique_agg_suffix()
         group_by_col_name = node.group_cols[0].name
@@ -796,72 +797,74 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            self._rewrite_agg_leaky(node)
+            raise "not implemented"
+            # self._rewrite_agg_leaky(node)
         else:
             self._rewrite_agg_non_leaky(node)
 
-    def _rewrite_join_leaky(self, node: ccdag.HybridJoin):
+    # this is obsolete now
+    # def _rewrite_join_leaky(self, node: ccdag.HybridJoin):
+    #     """
+    #     Expand hybrid join into a sub-dag of primitive operators. This uses the leaky version.
+    #     """
+    #     suffix = self._create_unique_join_suffix()
+    #     # TODO column names should not be hard-coded
+
+    #     # in left parents' children, replace self with first primitive operator
+    #     # in expanded subdag
+    #     shuffled_a = cc.shuffle(node.left_parent, "shuffled_a" + suffix)
+    #     shuffled_a.is_mpc = True
+    #     node.left_parent.children.remove(node)
+
+    #     # same for right parent
+    #     shuffled_b = cc.shuffle(node.right_parent, "shuffled_b" + suffix)
+    #     shuffled_b.is_mpc = True
+    #     node.right_parent.children.remove(node)
+
+    #     persisted_b = cc._persist(shuffled_b, "persisted_b" + suffix)
+    #     persisted_b.is_mpc = True
+    #     persisted_a = cc._persist(shuffled_a, "persisted_a" + suffix)
+    #     persisted_a.is_mpc = True
+
+    #     keys_a_closed = cc.project(shuffled_a, "keys_a_closed" + suffix, ["a"])
+    #     keys_a_closed.is_mpc = True
+    #     keys_b_closed = cc.project(shuffled_b, "keys_b_closed" + suffix, ["c"])
+    #     keys_b_closed.is_mpc = True
+
+    #     keys_a = cc._open(keys_a_closed, "keys_a" + suffix, node.trusted_party)
+    #     keys_a.is_mpc = True
+    #     keys_b = cc._open(keys_b_closed, "keys_b" + suffix, node.trusted_party)
+    #     keys_b.is_mpc = True
+
+    #     indexed_a = cc.index(keys_a, "indexed_a" + suffix, "index_a")
+    #     indexed_a.is_mpc = False
+
+    #     indexed_b = cc.index(keys_b, "indexed_b" + suffix, "index_b")
+    #     indexed_b.is_mpc = False
+
+    #     joined_indices = cc.join(indexed_a, indexed_b, "joined_indices" + suffix, ["a"], ["c"])
+    #     joined_indices.is_mpc = False
+
+    #     indices_only = cc.project(
+    #         joined_indices, "indices_only" + suffix, ["index_a", "index_b"])
+    #     indices_only.is_mpc = False
+
+    #     stored_with_union = node.get_left_in_rel().stored_with.union(node.get_right_in_rel().stored_with)
+    #     indices_closed = cc._close(indices_only, "indices_closed" + suffix, stored_with_union)
+    #     indices_closed.is_mpc = True
+
+    #     joined = cc._index_join(persisted_a, persisted_b, node.out_rel.name, ["a"], ["c"], indices_closed)
+    #     joined.is_mpc = True
+
+    #     # replace self with leaf of expanded subdag in each child node
+    #     for child in node.get_sorted_children():
+    #         child.replace_parent(node, joined)
+    #     # add former children to children of leaf
+    #     joined.children = node.children
+
+    def _rewrite_hybrid_join_non_leaky(self, node: ccdag.HybridJoin):
         """
-        Expand hybrid join into a sub-dag of primitive operators. This uses the leaky version.
-        """
-        suffix = self._create_unique_join_suffix()
-        # TODO column names should not be hard-coded
-
-        # in left parents' children, replace self with first primitive operator
-        # in expanded subdag
-        shuffled_a = cc.shuffle(node.left_parent, "shuffled_a" + suffix)
-        shuffled_a.is_mpc = True
-        node.left_parent.children.remove(node)
-
-        # same for right parent
-        shuffled_b = cc.shuffle(node.right_parent, "shuffled_b" + suffix)
-        shuffled_b.is_mpc = True
-        node.right_parent.children.remove(node)
-
-        persisted_b = cc._persist(shuffled_b, "persisted_b" + suffix)
-        persisted_b.is_mpc = True
-        persisted_a = cc._persist(shuffled_a, "persisted_a" + suffix)
-        persisted_a.is_mpc = True
-
-        keys_a_closed = cc.project(shuffled_a, "keys_a_closed" + suffix, ["a"])
-        keys_a_closed.is_mpc = True
-        keys_b_closed = cc.project(shuffled_b, "keys_b_closed" + suffix, ["c"])
-        keys_b_closed.is_mpc = True
-
-        keys_a = cc._open(keys_a_closed, "keys_a" + suffix, node.trusted_party)
-        keys_a.is_mpc = True
-        keys_b = cc._open(keys_b_closed, "keys_b" + suffix, node.trusted_party)
-        keys_b.is_mpc = True
-
-        indexed_a = cc.index(keys_a, "indexed_a" + suffix, "index_a")
-        indexed_a.is_mpc = False
-
-        indexed_b = cc.index(keys_b, "indexed_b" + suffix, "index_b")
-        indexed_b.is_mpc = False
-
-        joined_indices = cc.join(indexed_a, indexed_b, "joined_indices" + suffix, ["a"], ["c"])
-        joined_indices.is_mpc = False
-
-        indices_only = cc.project(
-            joined_indices, "indices_only" + suffix, ["index_a", "index_b"])
-        indices_only.is_mpc = False
-
-        stored_with_union = node.get_left_in_rel().stored_with.union(node.get_right_in_rel().stored_with)
-        indices_closed = cc._close(indices_only, "indices_closed" + suffix, stored_with_union)
-        indices_closed.is_mpc = True
-
-        joined = cc._index_join(persisted_a, persisted_b, node.out_rel.name, ["a"], ["c"], indices_closed)
-        joined.is_mpc = True
-
-        # replace self with leaf of expanded subdag in each child node
-        for child in node.get_sorted_children():
-            child.replace_parent(node, joined)
-        # add former children to children of leaf
-        joined.children = node.children
-
-    def _rewrite_join_non_leaky(self, node: ccdag.HybridJoin):
-        """
-        Expand hybrid join into a sub-dag of primitive operators. This uses the non-leaky version.
+        Expand hybrid join into a sub-dag of primitive operators. This uses the size-leaking version.
         """
         suffix = self._create_unique_join_suffix()
         # TODO column names should not be hard-coded
@@ -917,9 +920,9 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:
-            self._rewrite_join_leaky(node)
+            raise "not implemented"
         else:
-            self._rewrite_join_non_leaky(node)
+            self._rewrite_hybrid_join_non_leaky(node)
 
 
 class StoredWithSimplifier(DagRewriter):
@@ -946,7 +949,7 @@ class StoredWithSimplifier(DagRewriter):
                 node.out_rel.stored_with = self.all_parties
 
 
-def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = True):
+def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = False):
     """ Combines and calls all rewrite operations. """
     if all_parties is None:
         all_parties = [1, 2, 3]

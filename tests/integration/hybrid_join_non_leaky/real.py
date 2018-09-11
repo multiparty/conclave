@@ -36,7 +36,7 @@ if __name__ == "__main__":
     workflow_name = "hybrid-join-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.use_leaky_ops = False
+    conclave_config.use_leaky_ops = True
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
