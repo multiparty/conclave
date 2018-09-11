@@ -15,7 +15,9 @@ typedef struct
 {
 	char *src;
 	char *out;
-{{{STRUCTS}}}
+	Io in1;
+	Io in2;
+
 	int out_rows;
 	int out_cols;
 	float **ret;
@@ -26,6 +28,7 @@ typedef struct
 {
 	int rows;
 	int cols;
+	obliv int keepRows[ROWS];
 	obliv float **mat;
 
 } intermediateMat;
