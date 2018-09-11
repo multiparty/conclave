@@ -1,8 +1,9 @@
+import os
 from unittest import TestCase
+
 import conclave.lang as sal
 from conclave.comp import mpc, scotch
 from conclave.utils import *
-import os
 
 
 class TestConclave(TestCase):
@@ -16,7 +17,6 @@ class TestConclave(TestCase):
         self.assertEqual(expected, code)
 
     def test_single_concat(self):
-
         @scotch
         @mpc
         def protocol():
@@ -49,7 +49,6 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'concat')
 
     def test_single_agg(self):
-
         @scotch
         @mpc
         def protocol():
@@ -80,11 +79,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'agg')
 
     def test_single_proj(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -112,11 +109,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'proj')
 
     def test_single_mult(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -144,11 +139,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'mult')
 
     def test_single_div(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -176,11 +169,9 @@ class TestConclave(TestCase):
         self.check_workflow(actual, 'div')
 
     def test_single_filter(self):
-
         @scotch
         @mpc
         def protocol():
-
             # define inputs
             cols_in_1 = [
                 defCol("a", "INTEGER", [1]),
@@ -197,15 +188,12 @@ class TestConclave(TestCase):
             rel = sal.concat([in_1, in_2], "rel")
 
             # specify the workflow
-            mult = sal.filter(rel, "filtered", "a", "=", 42)
+            filtered = sal.filter(rel, "filtered", "a", "==", scalar=42)
 
-            sal.collect(mult, 1)
+            sal.collect(filtered, 1)
 
             # return root nodes
             return {in_1, in_2}
 
         actual = protocol()
         self.check_workflow(actual, 'filter')
-
-
-

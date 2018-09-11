@@ -20,14 +20,14 @@ def protocol():
     ]
     diagnosis = cc.create("right", diagnosis_cols, {1})
     
-    meds_filtered = cc.filter_eq(medication, "meds_filtered", ["b"], [2])
-    diag_filtered = cc.filter_eq(diagnosis, "diag_filtered", ["d"], [3])
+    meds_filtered = cc.filter(medication, "meds_filtered", "b", "==", scalar=2)
+    diag_filtered = cc.filter(diagnosis, "diag_filtered", "d", "==", scalar=3)
 
     joined = cc.join(meds_filtered, diag_filtered, "joined", ["a"], ["c"])
     
     # cc.distinct_count(joined, "expected", "a")
 
-    return {left, right}
+    return {medication, diagnosis}
 
 
 if __name__ == "__main__":

@@ -225,11 +225,12 @@ class ScotchCodeGen(CodeGen):
     def _generate_filter(self, filter_op: saldag.Filter):
         """ Generate code for Filer operations. """
 
-        filterStr = "{} {} {}".format(filter_op.target_col,
-                                      filter_op.operator, filter_op.filter_expr)
+        filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
+                                       filter_op.operator,
+                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col)
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
-            filterStr,
+            filter_str,
             filter_op.get_in_rel().dbg_str(),
             filter_op.out_rel.dbg_str()
         )

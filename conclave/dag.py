@@ -559,11 +559,18 @@ class Divide(UnaryOpNode):
 
 class Filter(UnaryOpNode):
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operator: str, expr: str):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, filter_col: rel.Column, operator: str,
+                 other_col: rel.Column, scalar: int):
         super(Filter, self).__init__("filter", out_rel, parent)
+        self.is_scalar = other_col is None
+        if self.is_scalar:
+            assert scalar is not None
+        else:
+            assert scalar is None
+        self.other_col = other_col
+        self.scalar = scalar
         self.operator = operator
-        self.filter_expr = expr
-        self.target_col = target_col
+        self.filter_col = filter_col
         self.is_local = True
 
     def is_reversible(self):
