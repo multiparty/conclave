@@ -89,16 +89,13 @@ D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[
 
 template <domain D : shared3p>
 D uint32[[2]] _sizeObliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
-    D uint32[[2]] leftShuffled = shuffleRows(left);
-    D uint32[[2]] rightShuffled = shuffleRows(right);
-
     uint nrowsLeft = shape(left)[0];
     uint ncolsLeft = shape(left)[1];
     uint nrowsRight = shape(right)[0];
     uint ncolsRight = shape(right)[1];
 
-    D uint32[[2]] leftStretched = stretch(leftShuffled, nrowsRight);
-    D uint32[[2]] rightDupped = duplicate(rightShuffled, nrowsLeft);
+    D uint32[[2]] leftStretched = stretch(left, nrowsRight);
+    D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
     D uint32[[1]] eqFlags = (uint32) (leftStretched[:,leftJoinColIdx] == rightDupped[:,rightJoinColIdx]);
     D uint32[[1]] leftFlags = leftStretched[:, ncolsLeft - 1]; // last col is for keep flags
     D uint32[[1]] rightFlags = rightDupped[:, ncolsRight -1];
