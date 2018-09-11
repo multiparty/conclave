@@ -103,6 +103,10 @@ def distinct(rel, selected_cols):
     unwrapped = [row[0] for row in only_selected]
     return [[key] for key in set(unwrapped)]
 
+def cc_filter(cond_lambda, rel):
+
+    return list(filter(cond_lambda, rel))
+
 if __name__ == "__main__":
     print("start python")
 {{{OP_CODE}}}

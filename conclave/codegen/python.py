@@ -122,6 +122,20 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
+    def _generate_filter(self, filter_op: saldag.Filter):
+        """ Generate code for Filter operations. """
+        cond_lambda = "lambda row : row[{}] {} {}".format(
+            filter_op.filter_col.idx,
+            filter_op.operator,
+            filter_op.scalar if filter_op.is_scalar else "row[{}]".format(filter_op.other_col.idx)
+        )
+        return "{}{} = cc_filter({}, {})\n".format(
+            self.space,
+            filter_op.out_rel.name,
+            cond_lambda,
+            filter_op.get_in_rel().name
+        )
+
     def _generate_distinct(self, distinct_op: saldag.Distinct):
         """ Generate code for Distinct operations. """
         selected_cols = [col.idx for col in distinct_op.selected_cols]

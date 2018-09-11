@@ -291,6 +291,9 @@ def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str,
     :return: Filter OpNode
     """
 
+    # Make sure we're using valid operator option
+    assert operator in {"==", "<"}
+
     # Get input relation from input node
     in_rel = input_op_node.out_rel
 
