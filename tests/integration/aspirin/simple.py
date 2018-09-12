@@ -26,9 +26,9 @@ def protocol():
     heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
     joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
-    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
+    cases = cc.cc_filter(joined, "expected", "t", "<", other_col_name="o")
 
-    cc.distinct_count(cases, "expected", "a")
+    # cc.distinct_count(cases, "expected", "a")
 
     return {medication, diagnosis}
 
