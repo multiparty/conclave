@@ -107,3 +107,7 @@ def cc_filter(cond_lambda, rel):
 
     return list(filter(cond_lambda, rel))
 
+def distinct_count(rel, selected_col):
+
+    return [[len(distinct(rel, [selected_col]))]]
+

@@ -221,7 +221,7 @@ class ScotchCodeGen(CodeGen):
 
     @staticmethod
     def _generate_distinct_count(distinct_count_op: ccdag.DistinctCount):
-        """ Generate code for DistinctCount operations. """
+        """ Generate code for Distinct Count operations. """
 
         selected_col_str = str(distinct_count_op.selected_col)
         return "DISTINCT_COUNT{} [{}] FROM ({}) AS {}\n".format(

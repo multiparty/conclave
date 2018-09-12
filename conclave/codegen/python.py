@@ -4,13 +4,13 @@ import pystache
 
 from conclave.codegen import CodeGen
 from conclave.job import PythonJob
-import conclave.dag as saldag
+import conclave.dag as ccdag
 
 
 class PythonCodeGen(CodeGen):
     """ Codegen subclass for generating Python code. """
 
-    def __init__(self, config, dag: saldag.Dag, space="    ",
+    def __init__(self, config, dag: ccdag.Dag, space="    ",
                  template_directory="{}/templates/python".format(os.path.dirname(os.path.realpath(__file__)))):
         """ Initialize PythonCodeGen object. """
         super(PythonCodeGen, self).__init__(config, dag)
@@ -38,7 +38,7 @@ class PythonCodeGen(CodeGen):
         job = PythonJob(job_name, "{}/{}".format(code_directory, job_name))
         return job, op_code
 
-    def _generate_concat(self, concat_op: saldag.Concat):
+    def _generate_concat(self, concat_op: ccdag.Concat):
         """ Generate code for Concat operations. """
         in_rel_str = " + ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
         return "{}{} = {}\n".format(
@@ -47,7 +47,7 @@ class PythonCodeGen(CodeGen):
             in_rel_str
         )
 
-    def _generate_aggregate(self, agg_op: saldag.Aggregate):
+    def _generate_aggregate(self, agg_op: ccdag.Aggregate):
         """ Generate code for Aggregate operations. """
         # TODO handle multi-column case
         return "{}{} = aggregate({}, {}, {}, '{}')\n".format(
@@ -59,7 +59,7 @@ class PythonCodeGen(CodeGen):
             agg_op.aggregator
         )
 
-    def _generate_multiply(self, mult_op: saldag.Multiply):
+    def _generate_multiply(self, mult_op: ccdag.Multiply):
         """ Generate code for Multiply operations. """
         operands = [col.idx for col in mult_op.operands]
         lambda_expr = "lambda row : " + " * ".join(["row[{}]".format(idx) for idx in operands])
@@ -71,7 +71,7 @@ class PythonCodeGen(CodeGen):
             lambda_expr
         )
 
-    def _generate_output(self, leaf: saldag.OpNode):
+    def _generate_output(self, leaf: ccdag.OpNode):
         """ Generate code for storing a single output. """
         schema_header = ",".join(['"' + col.name + '"' for col in leaf.out_rel.columns])
         return "{}write_rel('{}', '{}.csv', {}, '{}')\n".format(
@@ -82,7 +82,7 @@ class PythonCodeGen(CodeGen):
             schema_header
         )
 
-    def _generate_create(self, create_op: saldag.Create):
+    def _generate_create(self, create_op: ccdag.Create):
         """ Generate code for loading input data. """
         return "{}{} = read_rel('{}')\n".format(
             self.space,
@@ -90,7 +90,7 @@ class PythonCodeGen(CodeGen):
             self.config.input_path + "/" + create_op.out_rel.name + ".csv"
         )
 
-    def _generate_join_flags(self, join_flags_op: saldag.JoinFlags):
+    def _generate_join_flags(self, join_flags_op: ccdag.JoinFlags):
         """ Generate code for JoinFlags operations. """
         return "{}{}  = join_flags({}, {}, {}, {})\n".format(
             self.space,
@@ -101,7 +101,7 @@ class PythonCodeGen(CodeGen):
             join_flags_op.right_join_cols[0].idx
         )
 
-    def _generate_join(self, join_op: saldag.Join):
+    def _generate_join(self, join_op: ccdag.Join):
         """ Generate code for Join operations. """
         return "{}{}  = join({}, {}, {}, {})\n".format(
             self.space,
@@ -112,7 +112,7 @@ class PythonCodeGen(CodeGen):
             join_op.right_join_cols[0].idx
         )
 
-    def _generate_project(self, project_op: saldag.Project):
+    def _generate_project(self, project_op: ccdag.Project):
         """ Generate code for Project operations. """
         selected_cols = [col.idx for col in project_op.selected_cols]
         return "{}{} = project({}, {})\n".format(
@@ -122,7 +122,7 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
-    def _generate_filter(self, filter_op: saldag.Filter):
+    def _generate_filter(self, filter_op: ccdag.Filter):
         """ Generate code for Filter operations. """
         cond_lambda = "lambda row : row[{}] {} {}".format(
             filter_op.filter_col.idx,
@@ -136,7 +136,7 @@ class PythonCodeGen(CodeGen):
             filter_op.get_in_rel().name
         )
 
-    def _generate_distinct(self, distinct_op: saldag.Distinct):
+    def _generate_distinct(self, distinct_op: ccdag.Distinct):
         """ Generate code for Distinct operations. """
         selected_cols = [col.idx for col in distinct_op.selected_cols]
         return "{}{} = distinct({}, {})\n".format(
@@ -146,7 +146,16 @@ class PythonCodeGen(CodeGen):
             selected_cols
         )
 
-    def _generate_sort_by(self, sort_by_op: saldag.SortBy):
+    def _generate_distinct_count(self, distinct_count_op: ccdag.DistinctCount):
+        """ Generate code for Distinct Count operations. """
+        return "{}{} = distinct_count({}, {})\n".format(
+            self.space,
+            distinct_count_op.out_rel.name,
+            distinct_count_op.get_in_rel().name,
+            distinct_count_op.selected_col.idx
+        )
+
+    def _generate_sort_by(self, sort_by_op: ccdag.SortBy):
         """ Generate code for SortBy operations. """
         return "{}{} = sort_by({}, {})\n".format(
             self.space,
@@ -155,7 +164,7 @@ class PythonCodeGen(CodeGen):
             sort_by_op.sort_by_col.idx
         )
 
-    def _generate_comp_neighs(self, comp_neighs_op: saldag.CompNeighs):
+    def _generate_comp_neighs(self, comp_neighs_op: ccdag.CompNeighs):
         """ Generate code for CompNeighs operations. """
         return "{}{} = comp_neighs({}, {})\n".format(
             self.space,
@@ -164,7 +173,7 @@ class PythonCodeGen(CodeGen):
             comp_neighs_op.comp_col.idx
         )
 
-    def _generate_index(self, index_op: saldag.Index):
+    def _generate_index(self, index_op: ccdag.Index):
         """ Generate code for Index operations. """
         return "{}{} = project_indeces({})\n".format(
             self.space,
@@ -172,7 +181,7 @@ class PythonCodeGen(CodeGen):
             index_op.get_in_rel().name
         )
 
-    def _generate_index_aggregate(self, index_agg_op: saldag.IndexAggregate):
+    def _generate_index_aggregate(self, index_agg_op: ccdag.IndexAggregate):
         # TODO: generalize
         return "{}{} = index_agg({}, {}, {}, {}, lambda x, y: x {} y)\n".format(
             self.space,
