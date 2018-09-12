@@ -277,7 +277,7 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
 
 
 def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
-           other_col_name: str = "", scalar: int = None):
+           other_col_name: str = None, scalar: int = None):
     """
     Define Filter operation.
 
@@ -304,8 +304,8 @@ def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str,
     filter_col = utils.find(in_rel.columns, filter_col_name)
     filter_col.coll_sets = set()
 
-    # Get index of other column (if there)
-    other_col = utils.find(in_rel.columns, other_col_name)
+    # Get index of other column (if there is one)
+    other_col = utils.find(in_rel.columns, other_col_name) if other_col_name else None
     if other_col:
         other_col.coll_sets = set()
 
