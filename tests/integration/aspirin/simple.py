@@ -10,21 +10,24 @@ from conclave.utils import defCol
 def protocol():
     medication_cols = [
         defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+        defCol("b", "INTEGER", [1]),
+        defCol("t", "INTEGER", [1])
     ]
     medication = cc.create("medication", medication_cols, {1})
 
     diagnosis_cols = [
         defCol("c", "INTEGER", [1]),
-        defCol("d", "INTEGER", [1])
+        defCol("d", "INTEGER", [1]),
+        defCol("o", "INTEGER", [1])
     ]
     diagnosis = cc.create("diagnosis", diagnosis_cols, {1})
     
-    meds_filtered = cc.filter(medication, "meds_filtered", "b", "==", scalar=2)
-    diag_filtered = cc.filter(diagnosis, "diag_filtered", "d", "==", scalar=3)
+    aspirin = cc.filter(medication, "aspirin", "b", "==", scalar=2)
+    heart_patients = cc.filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
-    joined = cc.join(meds_filtered, diag_filtered, "joined", ["a"], ["c"])
-    
+    joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
+    cases = cc.filter(joined, "cases", "t", "<", other_col_name="o")
+
     # cc.distinct_count(joined, "expected", "a")
 
     return {medication, diagnosis}
