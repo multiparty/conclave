@@ -539,6 +539,21 @@ class Distinct(UnaryOpNode):
             col, rel.Column) else col for col in old_cols]
 
 
+class DistinctCount(UnaryOpNode):
+    """
+    Distinct count operator.
+    """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str):
+        super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
+        self.selected_col = selected_col
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_in_rel().columns
+        old_col = copy.copy(self.selected_col)
+        self.selected_col = temp_cols[old_col.idx] if isinstance(old_col, rel.Column) else old_col
+
+
 class Divide(UnaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operands: list):

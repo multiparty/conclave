@@ -130,6 +130,8 @@ class DagRewriter:
                 self._rewrite_create(node)
             elif isinstance(node, ccdag.Distinct):
                 self._rewrite_distinct(node)
+            elif isinstance(node, ccdag.DistinctCount):
+                self._rewrite_distinct_count(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -177,6 +179,9 @@ class DagRewriter:
         pass
 
     def _rewrite_distinct(self, node: ccdag.Distinct):
+        pass
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
         pass
 
 
@@ -797,7 +802,7 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            raise "not implemented"
+            raise Exception("not implemented")
             # self._rewrite_agg_leaky(node)
         else:
             self._rewrite_agg_non_leaky(node)
@@ -920,7 +925,7 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:
-            raise "not implemented"
+            raise Exception("not implemented")
         else:
             self._rewrite_hybrid_join_non_leaky(node)
 

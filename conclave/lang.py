@@ -223,6 +223,38 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
 
     return op
 
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str):
+    """
+    Define DistinctCount operation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Distinct node.
+    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :return: Distinct OpNode.
+    """
+
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Find all columns by name
+    selected_col = utils.find(in_rel.columns, selected_col_name)
+
+    out_rel_cols = copy.deepcopy([selected_col])
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col)
+
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
 
 def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str, operands: list):
     """
