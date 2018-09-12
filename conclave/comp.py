@@ -296,6 +296,8 @@ class MPCPushDown(DagRewriter):
             if len(node.children) > 1 and node.is_boundary():
                 fork_node(node)
 
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+        self._rewrite_unary_default(node)
 
 class MPCPushUp(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundary up in workflows. """
@@ -586,6 +588,10 @@ class InsertOpenAndCloseOps(DagRewriter):
         self._rewrite_default_unary(node)
 
     def _rewrite_divide(self, node: ccdag.Divide):
+
+        self._rewrite_default_unary(node)
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
 
         self._rewrite_default_unary(node)
 

@@ -547,6 +547,7 @@ class DistinctCount(UnaryOpNode):
     def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str):
         super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
         self.selected_col = selected_col
+        self.is_reversible = False
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns

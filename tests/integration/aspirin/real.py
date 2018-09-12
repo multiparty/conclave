@@ -8,27 +8,29 @@ from conclave.utils import defCol
 
 
 def protocol():
-    left_cols = [
+    medication_cols = [
         defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+        defCol("b", "INTEGER", [1]),
+        defCol("t", "INTEGER", [1])
     ]
-    left = cc.create("left", left_cols, {1})
-    left_dummy = cc.project(left, "left_dummy", ["a", "b"])
+    medication = cc.create("medication", medication_cols, {1})
 
-    right_cols = [
+    diagnosis_cols = [
         defCol("c", "INTEGER", [2]),
-        defCol("d", "INTEGER", [2])
+        defCol("d", "INTEGER", [2]),
+        defCol("o", "INTEGER", [2])
     ]
-    right = cc.create("right", right_cols, {2})
-    right_dummy = cc.project(right, "right_dummy", ["c", "d"])
+    diagnosis = cc.create("diagnosis", diagnosis_cols, {2})
+    
+    aspirin = cc.cc_filter(medication, "aspirin", "b", "==", scalar=2)
+    heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
-    joined = cc.join(left_dummy, right_dummy, "joined", ["a"], ["c"])
-    cc.collect(
-        cc.aggregate(joined, "actual", ["b"], "d", "+", "total"),
-        1
-    )
+    joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
+    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
 
-    return {left, right}
+    cc.collect(cc.distinct_count(cases, "expected", "a"), 1)
+
+    return {medication, diagnosis}
 
 
 if __name__ == "__main__":
