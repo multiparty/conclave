@@ -276,8 +276,8 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
-           other_col_name: str = None, scalar: int = None):
+def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
+              other_col_name: str = None, scalar: int = None):
     """
     Define Filter operation.
 

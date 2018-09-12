@@ -22,13 +22,13 @@ def protocol():
     ]
     diagnosis = cc.create("diagnosis", diagnosis_cols, {1})
     
-    aspirin = cc.filter(medication, "aspirin", "b", "==", scalar=2)
-    heart_patients = cc.filter(diagnosis, "heart_patients", "d", "==", scalar=3)
+    aspirin = cc.cc_filter(medication, "aspirin", "b", "==", scalar=2)
+    heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
     joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
-    cases = cc.filter(joined, "cases", "t", "<", other_col_name="o")
+    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
 
-    # cc.distinct_count(cases, "expected", "a")
+    cc.distinct_count(cases, "expected", "a")
 
     return {medication, diagnosis}
 

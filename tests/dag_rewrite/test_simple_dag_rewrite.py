@@ -188,7 +188,7 @@ class TestConclave(TestCase):
             rel = sal.concat([in_1, in_2], "rel")
 
             # specify the workflow
-            filtered = sal.filter(rel, "filtered", "a", "==", scalar=42)
+            filtered = sal.cc_filter(rel, "filtered", "a", "==", scalar=42)
 
             sal.collect(filtered, 1)
 
