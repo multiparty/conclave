@@ -101,35 +101,6 @@ void matToObliv
 	ret->keepRows = keepRows;
 }
 
-void addRow
-	(
-	obliv float *srcOne,
-	obliv float *srcTwo,
-	obliv float *dest,
-	int colsInOne,
-	int colsInTwo,
-	int joinColTwo
-	) obliv
-{
-
-	obliv float a = 1;
-	dest[0] = a;
-	for (int i = 1; i < colsInOne + 1; i++)
-	{
-		dest[i] = srcOne[i - 1];
-	}
-
-	int m = colsInOne + 1;
-	for (int i = 0; i < colsInTwo; i++)
-	{
-		if (i != joinColTwo)
-		{
-			dest[m] = srcTwo[i];
-			m++;
-		}
-	}
-}
-
 void concat
 	(
 	intermediateMat *matOne,
@@ -178,10 +149,113 @@ void concat
 	ret->rows = numRows;
 	ret->cols = numCols;
 	ret->mat = array;
+}
 
+void addRow
+	(
+		obliv float *srcOne,
+		obliv float *srcTwo,
+		obliv float *dest,
+		int colsInOne,
+		int colsInTwo,
+		int joinColTwo
+	)
+{
+	for (int i = 0; i < colsInOne; i++)
+	{
+		dest[i] = srcOne[i];
+	}
+
+	int m = colsInOne;
+	for (int i = 0; i < colsInTwo; i++)
+	{
+		if (i != joinColTwo)
+		{
+			dest[m] = srcTwo[i];
+			m++;
+		}
+	}
 }
 
 void join
+	(
+	intermediateMat *matOne,
+	intermediateMat *matTwo,
+	intermediateMat *ret,
+	int joinColOne,
+	int joinColTwo
+	)
+{
+
+	int numColsOne = matOne->cols;
+	int numColsTwo = matTwo->cols;
+
+	int numRowsOne = matOne->rows;
+	int numRowsTwo = matTwo->rows;
+
+	int numOutCols = numColsOne + numColsTwo - 1;
+	int maxOutRows = numRowsOne * numRowsTwo;
+
+	obliv float **array = malloc(sizeof(*array) * maxOutRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * maxOutRows);
+
+	int currentRow = 0;
+	obliv int matchRows = 0;
+
+	for (int i = 0; i < numRowsOne; i++)
+	{
+		for (int j = 0; j < numRowsTwo; j++)
+		{
+			array[currentRow] = malloc(sizeof(**array) * numOutCols);
+			addRow(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
+			obliv if (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo])
+			{
+				keepRows[currentRow] = 1;
+			}
+			else
+			{
+				keepRows[currentRow] = 0;
+			}
+			currentRow++;
+		}
+	}
+
+	ret->rows = maxOutRows;
+	ret->cols = numOutCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void addRowLeaky
+	(
+	obliv float *srcOne,
+	obliv float *srcTwo,
+	obliv float *dest,
+	int colsInOne,
+	int colsInTwo,
+	int joinColTwo
+	) obliv
+{
+
+	obliv float a = 1;
+	dest[0] = a;
+	for (int i = 1; i < colsInOne + 1; i++)
+	{
+		dest[i] = srcOne[i - 1];
+	}
+
+	int m = colsInOne + 1;
+	for (int i = 0; i < colsInTwo; i++)
+	{
+		if (i != joinColTwo)
+		{
+			dest[m] = srcTwo[i];
+			m++;
+		}
+	}
+}
+
+void joinLeaky
 	(
 	intermediateMat *matOne,
 	intermediateMat *matTwo,
@@ -212,7 +286,7 @@ void join
 			array[currentRow] = calloc(numOutCols, sizeof(**array));
 			obliv if (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo])
 			{
-				addRow(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
+				addRowLeaky(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
 				matchRows++;
 			}
 			currentRow++;
@@ -708,7 +782,6 @@ void revealResult
 		{
 			outRows++;
 		}
-		printf("%i\n", keepFlags[i]);
 	}
 
 	float **array = malloc(sizeof(*array) * outRows);
