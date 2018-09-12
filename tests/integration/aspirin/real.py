@@ -26,9 +26,9 @@ def protocol():
     heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
     joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
-    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
-
-    cc.collect(cc.distinct_count(cases, "expected", "a"), 1)
+    cases = cc.cc_filter(joined, "actual", "t", "<", other_col_name="o")
+    cc.collect(cases, 1)
+    # cc.collect(cc.distinct_count(cases, "expected", "a"), 1)
 
     return {medication, diagnosis}
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     except Exception:
         use_leaky = False
     # define name for the workflow
-    workflow_name = "real-oblivious-test-" + pid
+    workflow_name = "real-aspirin-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1, 2, 3]

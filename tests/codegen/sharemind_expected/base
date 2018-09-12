@@ -427,3 +427,26 @@ uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
     }
 }
 
+template <domain D : shared3p>
+D uint32[[2]] filterLt(D uint32[[2]] rows,
+        uint[[1]] ltIndexesLeft,
+        uint[[1]] ltIndexesRight) {
+    assert(size(ltIndexesLeft) == size(ltIndexesRight));
+
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+    uint numComps = size(ltIndexesLeft);
+
+    // last column has keep flags
+    D uint32[[1]] finalFlags = rows[:,ncols - 1];
+    uint numLts = size(ltIndexesLeft);
+    for (uint c = 0; c < numLts; ++c) {
+        D uint32[[1]] compColLeft = rows[:,ltIndexesLeft[c]];
+        D uint32[[1]] compColRight = rows[:,ltIndexesRight[c]];
+        D uint32[[1]] compRes = (uint32) (compColLeft < compColRight);
+        finalFlags = finalFlags * compRes;
+    }
+    rows[:,ncols - 1] = finalFlags;
+    return rows;
+}
+

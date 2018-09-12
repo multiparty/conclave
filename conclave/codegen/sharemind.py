@@ -117,6 +117,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_shuffle(node)
             elif isinstance(node, Persist):
                 miner_code += self._generate_persist(node)
+            elif isinstance(node, Filter):
+                miner_code += self._generate_filter(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -528,6 +530,32 @@ class SharemindCodeGen(CodeGen):
             "IN_REL": project_op.get_in_rel().name,
             # hacking array brackets
             "SELECTED_COLS": "{" + selected_col_str + "}"
+        }
+        return pystache.render(template, data)
+
+    def _generate_filter(self, filter_op: Filter):
+        """ Generate code for Filter operations. """
+
+        template = open(
+            "{0}/filter.tmpl".format(self.template_directory), 'r').read()
+        # TODO
+        if filter_op.operator != "<":
+            raise Exception("No sharemind support for ==")
+        if filter_op.is_scalar:
+            raise Exception("No sharemind support for lt scalar")
+        if self.config.use_leaky_ops:
+            raise Exception("No sharemind support leaky filter")
+
+        left_col = filter_op.filter_col
+        right_col = filter_op.other_col
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": filter_op.out_rel.name,
+            "IN_REL": filter_op.get_in_rel().name,
+            # hacking array brackets
+            "LEFT_COL": "{" + str(left_col.idx) + "}",
+            "RIGHT_COL": "{" + str(right_col.idx) + "}"            
         }
         return pystache.render(template, data)
 
