@@ -111,23 +111,13 @@ void concat
 	int numCols = checkInputCols(matOne->cols, matTwo->cols);
 	int numRows = matOne->rows + matTwo->rows;
 
-	for (int i = 0; i < numRows; i++)
-	{
-		if (i < matOne->rows)
-		{
-			ret->keepRows[i] = matOne->keepRows[i];
-		}
-		else
-		{
-			int thisIdx = i - matOne->rows;
-			ret->keepRows[i] = matTwo->keepRows[thisIdx];
-		}
-	}
-
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 	obliv float **array = malloc(sizeof(*array) * numRows);
 
 	for (int i = 0; i < matOne->rows; i++)
 	{
+		keepRows[i] = matOne->keepRows[i];
+
 		array[i] = malloc(sizeof(**array) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
@@ -138,6 +128,8 @@ void concat
 	int m = 0;
 	for (int i = matOne->rows; i < numRows; i++)
 	{
+		keepRows[i] = matTwo->keepRows[m];
+
 		array[i] = malloc(sizeof(**array) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
@@ -149,6 +141,7 @@ void concat
 	ret->rows = numRows;
 	ret->cols = numCols;
 	ret->mat = array;
+	ret->keepRows = keepRows;
 }
 
 void addRow
@@ -200,7 +193,6 @@ void join
 	obliv int *keepRows = malloc(sizeof(obliv int) * maxOutRows);
 
 	int currentRow = 0;
-	obliv int matchRows = 0;
 
 	for (int i = 0; i < numRowsOne; i++)
 	{
@@ -208,9 +200,13 @@ void join
 		{
 			array[currentRow] = malloc(sizeof(**array) * numOutCols);
 			addRow(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
+
+			// check keepRow flags for both rows
+			obliv int keepThisRow = matOne->keepRows[i] * matTwo->keepRows[j];
+
 			obliv if (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo])
 			{
-				keepRows[currentRow] = 1;
+				keepRows[currentRow] = keepThisRow;
 			}
 			else
 			{
@@ -331,9 +327,12 @@ void project
 	int numCols = ret->cols;
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
+		keepRows[i] = mat->keepRows[i];
+
 		array[i] = malloc(sizeof(**array) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
@@ -344,6 +343,7 @@ void project
 
 	ret->rows = numRows;
 	ret->mat = array;
+	ret->keepRows = keepRows;
 }
 
 void multiply
@@ -359,15 +359,18 @@ void multiply
 {
 	int numRows = mat->rows;
 	int numCols = mat->cols;
+
 	if (newCol)
 	{
 		numCols++;
 	}
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
+		keepRows[i] = mat->keepRows[i];
 		array[i] = malloc(sizeof(**array) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
@@ -392,6 +395,7 @@ void multiply
 	ret->cols = numCols;
 	ret->rows = numRows;
 	ret->mat = array;
+	ret->keepRows = keepRows;
 }
 
 void divide
@@ -414,9 +418,11 @@ void divide
 	}
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
+		keepRows[i] = mat->keepRows[i];
 		array[i] = malloc(sizeof(**array) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
@@ -441,6 +447,7 @@ void divide
 	ret->cols = numCols;
 	ret->rows = numRows;
 	ret->mat = array;
+	ret->keepRows = keepRows;
 }
 
 void compareExchange
@@ -578,24 +585,56 @@ void sortBy
 	int numCols = mat->cols;
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
-	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		array[i] = malloc(sizeof(**array) * numCols);
-		keepRows[i] = mat->keepRows[i];
 		for (int j = 0; j < numCols; j++)
 		{
 			array[i][j] = mat->mat[i][j];
 		}
 	}
 
-	oddEvenSort(array, keyCol, numCols, 0, numRows, true);
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		oddEvenSort(padded, keepRows, keyCol, numCols, 0, numRows, true);
+
+		ret->mat = padded;
+		ret->keepRows = keepRows;
+	}
+	else
+	{
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		oddEvenSort(array, keepRows, keyCol, numCols, 0, numRows, true);
+
+		ret->mat = array;
+		ret->keepRows = keepRows;
+	}
 
 	ret->rows = numRows;
 	ret->cols = numCols;
-	ret->mat = array;
-	ret->keepRows = keepRows;
 }
 
 void shiftAgg
