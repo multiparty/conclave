@@ -156,8 +156,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for Join operations.
         """
 
-        template = open(
-            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        if not self.config.use_leaky_ops:
+            template = open(
+                "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/joinLeaky.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "JOINCOL_ONE": join_op.left_join_cols[0].idx,
@@ -303,11 +307,16 @@ class OblivcCodeGen(CodeGen):
         # TODO: generalize codegen to handle multiple group_cols
         assert(len(agg_op.group_cols) == 1)
 
+        leaky = 0
+        if self.config.use_leaky_ops:
+            leaky = 1
+
         data = {
             "IN_REL": agg_op.get_in_rel().name,
             "OUT_REL": agg_op.out_rel.name,
             "KEY_COL": agg_op.group_cols[0].idx,
-            "AGG_COL": agg_op.agg_col.idx
+            "AGG_COL": agg_op.agg_col.idx,
+            "USE_LEAKY": leaky
         }
 
         return pystache.render(template, data)
