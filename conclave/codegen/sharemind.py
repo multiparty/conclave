@@ -119,6 +119,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_persist(node)
             elif isinstance(node, Filter):
                 miner_code += self._generate_filter(node)
+            elif isinstance(node, DistinctCount):
+                miner_code += self._generate_distinct_count(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -555,7 +557,25 @@ class SharemindCodeGen(CodeGen):
             "IN_REL": filter_op.get_in_rel().name,
             # hacking array brackets
             "LEFT_COL": "{" + str(left_col.idx) + "}",
-            "RIGHT_COL": "{" + str(right_col.idx) + "}"            
+            "RIGHT_COL": "{" + str(right_col.idx) + "}"
+        }
+        return pystache.render(template, data)
+
+    def _generate_distinct_count(self, distinct_count_op: DistinctCount):
+        """ Generate code for DistinctCount operations. """
+
+        template = open(
+            "{0}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_leaky_ops:
+            raise Exception("No sharemind support leaky dist count")
+
+        selected_col = distinct_count_op.selected_col
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": distinct_count_op.out_rel.name,
+            "IN_REL": distinct_count_op.get_in_rel().name,
+            "SELECTED_COL": str(selected_col.idx)
         }
         return pystache.render(template, data)
 
