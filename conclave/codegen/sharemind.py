@@ -541,23 +541,20 @@ class SharemindCodeGen(CodeGen):
         template = open(
             "{0}/filter.tmpl".format(self.template_directory), 'r').read()
         # TODO
-        if filter_op.operator != "<":
-            raise Exception("No sharemind support for ==")
-        if filter_op.is_scalar:
-            raise Exception("No sharemind support for lt scalar")
         if self.config.use_leaky_ops:
             raise Exception("No sharemind support leaky filter")
 
         left_col = filter_op.filter_col
-        right_col = filter_op.other_col
+        right_operand = str(filter_op.other_col.idx) if not filter_op.is_scalar else str(filter_op.scalar)
 
         data = {
             "TYPE": "uint32",
             "OUT_REL": filter_op.out_rel.name,
+            "OP": "Lt" if filter_op.operator == "<" else "Eq",
             "IN_REL": filter_op.get_in_rel().name,
             # hacking array brackets
             "LEFT_COL": "{" + str(left_col.idx) + "}",
-            "RIGHT_COL": "{" + str(right_col.idx) + "}"
+            "RIGHT_COL": "{" + right_operand + "}"
         }
         return pystache.render(template, data)
 
