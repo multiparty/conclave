@@ -8,27 +8,35 @@ from conclave.utils import defCol
 
 
 def protocol():
-    medication_cols = [
-        defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1]),
-        defCol("t", "INTEGER", [1])
-    ]
+    pid_col_meds = "0"
+    med_col_meds = "4"
+    date_col_meds = "7"
+
+    pid_col_diags = "8"
+    diag_col_diags = "16"
+    date_col_diags = "18"
+
+    num_med_cols = 8 
+    medication_cols = [defCol(str(i), "INTEGER", [1]) for i in range(num_med_cols)]
+
     medication = cc.create("medication", medication_cols, {1})
 
-    diagnosis_cols = [
-        defCol("c", "INTEGER", [2]),
-        defCol("d", "INTEGER", [2]),
-        defCol("o", "INTEGER", [2])
-    ]
-    diagnosis = cc.create("diagnosis", diagnosis_cols, {2})
-    
-    aspirin = cc.cc_filter(medication, "aspirin", "b", "==", scalar=2)
-    heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
+    num_diag_cols = 13 
+    diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [2]) for i in range(num_diag_cols)]
 
-    joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
-    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
-    # cc.collect(cases, 1)
-    cc.collect(cc.distinct_count(cases, "actual", "a"), 1)
+    diagnosis = cc.create("diagnosis", diagnosis_cols, {2})
+
+    # only keep relevant columns
+    medication_proj = cc.project(medication, "medication_proj", [pid_col_meds, med_col_meds, date_col_meds])
+    diagnosis_proj = cc.project(diagnosis, "diagnosis_proj", [pid_col_diags, diag_col_diags, date_col_diags])
+    
+    aspirin = cc.cc_filter(medication_proj, "aspirin", med_col_meds, "==", scalar=1)
+    heart_patients = cc.cc_filter(diagnosis_proj, "heart_patients", diag_col_diags, "==", scalar=1)
+
+    joined = cc.join(aspirin, heart_patients, "joined", [pid_col_meds], [pid_col_diags])
+    cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
+
+    cc.collect(cc.distinct_count(cases, "actual", pid_col_meds), 1)
 
     return {medication, diagnosis}
 
@@ -56,6 +64,5 @@ if __name__ == "__main__":
     conclave_config.input_path = os.path.join(current_dir, "data")
     # and written to
     conclave_config.output_path = os.path.join(current_dir, "data")
-    # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)

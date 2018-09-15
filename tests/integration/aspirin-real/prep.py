@@ -16,7 +16,7 @@ def convert_date_to_int(date_str):
     return delta
 
 def convert_meds_row(row):
-    return " ".join([
+    return ",".join([
             row[0], # pid*
             "0", # ???
             "0", # year
@@ -32,7 +32,7 @@ def convert_diags_row(row):
     converted[0] = row[0] # pid
     converted[8] = "1" if row[8][0:3] == "414" else "2" # diag
     converted[10] = str(convert_date_to_int(row[10]))
-    return " ".join(converted)
+    return ",".join(converted)
 
 if __name__ == '__main__':
     input_data_dir = sys.argv[1] 
@@ -50,4 +50,6 @@ if __name__ == '__main__':
         diags_converted = [convert_diags_row(l.split(",")) for l in diag_in.readlines()]
         # write out
         meds_out.write("\n".join(meds_converted))
+        meds_out.write("\n")
         diag_out.write("\n".join(diags_converted))
+        diag_out.write("\n")
