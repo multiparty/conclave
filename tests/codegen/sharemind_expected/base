@@ -31,7 +31,7 @@ D uint32[[2]] duplicate(D uint32[[2]] rel, uint numDups) {
     uint numVals = numRows * numDups;
     D uint32[[2]] dupped(numVals, shape(rel)[1]);
     for (uint r = 0; r < numDups; r+=1) {
-        dupped[r * numRows : (r + 1) * numRows,:] = rel[:,:];
+        dupped[r * numRows : (r + 1) * numRows,:] = rel;
     }
     return dupped;
 }
@@ -63,8 +63,8 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
     uint ncolsLeft = shape(left)[1];
     uint ncolsRight = shape(right)[1];
     D uint32[[2]] withFlags(size(eqFlags), ncolsLeft + ncolsRight + 1);
-    withFlags[:, 0 : ncolsLeft] = left[:,0 : ncolsLeft];
-    withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right[:,0 : ncolsRight];
+    withFlags[:, 0 : ncolsLeft] = left;
+    withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right;
     withFlags[:,ncolsLeft + ncolsRight] = eqFlags;
     if (filter) {
         D uint32[[2]] shuffledWithFlags = shuffleRows(withFlags);
