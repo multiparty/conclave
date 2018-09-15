@@ -1,10 +1,8 @@
 import sys
 from datetime import date
 
+
 beginning_of_time = date(1970, 1, 1)
-input_data_dir = "input_data"
-medication_raw_fn = "medication.csv"
-diagnosis_raw_fn = "diagnosis.csv"
 
 def convert_date_to_int(date_str):
     month, day, year = [int(s) for s in date_str.strip().split("/")]
@@ -23,23 +21,33 @@ def convert_meds_row(row):
             "0", # ???
             "0", # year
             "0", # month
-            "1" if row[4] == "aspirin" else "2", # prescription*
+            "1" if ("aspirin" in row[4].lower()) else "2", # prescription*
             "0", # dosage
             "0", # administered
             str(convert_date_to_int(row[7])) # time-stamp*
         ])
 
 def convert_diags_row(row):
-    # 2,7,2006,2,1,1,1,1,008.45,1,02/07/06,008.45,008
     converted = ["0" for _ in row]
     converted[0] = row[0] # pid
-    converted[8] = "1" if row[8] == "008.45" else "2" # diag
+    converted[8] = "1" if row[8][0:3] == "414" else "2" # diag
     converted[10] = str(convert_date_to_int(row[10]))
-    return converted
+    return " ".join(converted)
+
+if __name__ == '__main__':
+    input_data_dir = sys.argv[1] 
+    output_data_dir = sys.argv[2] 
+    medication_raw_fn = "medication.csv"
+    diagnosis_raw_fn = "diagnosis.csv"
     
-with open("/".join([input_data_dir, medication_raw_fn])) as meds_in, \
-    open("/".join([input_data_dir, diagnosis_raw_fn])) as diag_in:
-    meds_rows_in = [convert_meds_row(l.split(",")) for l in meds_in.readlines()]
-    diags_rows_in = [convert_diags_row(l.split(",")) for l in diag_in.readlines()]
-    print(meds_rows_in)
-    print(diags_rows_in)
+    with open("/".join([input_data_dir, medication_raw_fn])) as meds_in, \
+        open("/".join([input_data_dir, diagnosis_raw_fn])) as diag_in, \
+        open("/".join([output_data_dir, medication_raw_fn]), "w") as meds_out, \
+        open("/".join([output_data_dir, diagnosis_raw_fn]), "w") as diag_out :
+        print("converting data")
+        # read and convert
+        meds_converted = [convert_meds_row(l.split(",")) for l in meds_in.readlines()]
+        diags_converted = [convert_diags_row(l.split(",")) for l in diag_in.readlines()]
+        # write out
+        meds_out.write("\n".join(meds_converted))
+        diag_out.write("\n".join(diags_converted))

@@ -22,20 +22,26 @@ else
     :
 fi
 
-cp $DIR/input_data/*.csv $DIR/data/
+# data needs custom pre-processing
+if [ "$(ls -A ${DIR}/prep.py)" ]; then
+    python3 ${DIR}/prep.py ${DIR}/input_data ${DIR}/data
+else
+	cp $DIR/input_data/*.csv $DIR/data/
+fi
 
-# run python workflow to generate expected results
-python3 ${DIR}/simple.py 1
 
-# run real workflow
-for i in 1 2 3;
-do
-    python3 ${DIR}/real.py ${i} &
-done
-wait
+# # run python workflow to generate expected results
+# python3 ${DIR}/simple.py 1
 
-# verify results
-python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
+# # run real workflow
+# for i in 1 2 3;
+# do
+#     python3 ${DIR}/real.py ${i} &
+# done
+# wait
 
-# clean up again
-rm ${DIR}/data/*.csv
+# # verify results
+# python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
+
+# # clean up again
+# rm ${DIR}/data/*.csv
