@@ -27,7 +27,7 @@ def protocol():
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "hybrid-agg-" + pid
+    workflow_name = "hybrid-agg-leaky-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.use_leaky_ops = False

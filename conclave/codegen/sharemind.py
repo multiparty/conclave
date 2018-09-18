@@ -117,6 +117,10 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_shuffle(node)
             elif isinstance(node, Persist):
                 miner_code += self._generate_persist(node)
+            elif isinstance(node, Filter):
+                miner_code += self._generate_filter(node)
+            elif isinstance(node, DistinctCount):
+                miner_code += self._generate_distinct_count(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -273,6 +277,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "TYPE": "uint32",
             "OUT_REL_NAME": agg_op.out_rel.name,
+            "LEAKY_SUFFIX": "Leaky" if self.config.use_leaky_ops else "",
             "IN_REL_NAME": agg_op.get_in_rel().name,
             "KEY_COL_IDX": agg_op.group_cols[0].idx,
             "AGG_COL_IDX": agg_op.agg_col.idx
@@ -363,7 +368,8 @@ class SharemindCodeGen(CodeGen):
             "{0}/read_from_db.tmpl".format(self.template_directory), 'r').read()
         data = {
             "NAME": create_op.out_rel.name,
-            "TYPE": "uint32"
+            "TYPE": "uint32",
+            "ADD_FLAGS": "false" if self.config.use_leaky_ops else "true"
         }
         return pystache.render(template, data)
 
@@ -452,7 +458,11 @@ class SharemindCodeGen(CodeGen):
         # sharemind adds all columns from right-rel to the result
         # so we need to explicitely exclude these
         cols_to_keep = list(
-            range(len(left_rel.columns) + len(right_rel.columns)))
+            range(
+                len(left_rel.columns) 
+              + len(right_rel.columns)
+              + (1 if not self.config.use_leaky_ops else 0))) # account for flag column
+        print(cols_to_keep)
         cols_to_exclude = [col.idx + len(left_rel.columns)
                            for col in join_op.right_join_cols]
         cols_to_keep_str = ",".join(
@@ -479,6 +489,7 @@ class SharemindCodeGen(CodeGen):
         data = {
             "OUT_REL": open_op.out_rel.name,
             "IN_REL": open_op.get_in_rel().name,
+            "FILTER_FLAGS": "false" if self.config.use_leaky_ops else "true"
         }
         return pystache.render(template, data)
 
@@ -521,6 +532,47 @@ class SharemindCodeGen(CodeGen):
             "IN_REL": project_op.get_in_rel().name,
             # hacking array brackets
             "SELECTED_COLS": "{" + selected_col_str + "}"
+        }
+        return pystache.render(template, data)
+
+    def _generate_filter(self, filter_op: Filter):
+        """ Generate code for Filter operations. """
+
+        template = open(
+            "{0}/filter.tmpl".format(self.template_directory), 'r').read()
+        # TODO
+        if self.config.use_leaky_ops:
+            raise Exception("No sharemind support leaky filter")
+
+        left_col = filter_op.filter_col
+        right_operand = str(filter_op.other_col.idx) if not filter_op.is_scalar else str(filter_op.scalar)
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": filter_op.out_rel.name,
+            "OP": "Lt" if filter_op.operator == "<" else "Eq",
+            "IN_REL": filter_op.get_in_rel().name,
+            # hacking array brackets
+            "LEFT_COL": "{" + str(left_col.idx) + "}",
+            "RIGHT_COL": "{" + right_operand + "}"
+        }
+        return pystache.render(template, data)
+
+    def _generate_distinct_count(self, distinct_count_op: DistinctCount):
+        """ Generate code for DistinctCount operations. """
+
+        template = open(
+            "{0}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_leaky_ops:
+            raise Exception("No sharemind support leaky dist count")
+
+        selected_col = distinct_count_op.selected_col
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL": distinct_count_op.out_rel.name,
+            "IN_REL": distinct_count_op.get_in_rel().name,
+            "SELECTED_COL": str(selected_col.idx)
         }
         return pystache.render(template, data)
 

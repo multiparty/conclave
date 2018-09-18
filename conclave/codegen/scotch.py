@@ -1,19 +1,21 @@
-import conclave.dag as saldag
+import conclave.dag as ccdag
 from conclave.codegen import CodeGen
 
 
 class ScotchCodeGen(CodeGen):
     """ Codegen subclass for generating relational debugging language. """
 
-    def __init__(self, config, dag: saldag.Dag):
+    def __init__(self, config, dag: ccdag.Dag):
         super(ScotchCodeGen, self).__init__(config, dag)
 
-    def _generate_job(self, job_name, output_directory, op_code: str):
+    @staticmethod
+    def _generate_job(job_name, output_directory, op_code: str):
         """ Top level job function. """
 
         return op_code
 
-    def _generate_join_flags(self, join_flags_op: saldag.JoinFlags):
+    @staticmethod
+    def _generate_join_flags(join_flags_op: ccdag.JoinFlags):
         """ Generate code for JoinFlags operations. """
 
         return "({}) JOINFLAGS{} ({}) ON [{}] AND [{}] AS {}\n".format(
@@ -25,7 +27,8 @@ class ScotchCodeGen(CodeGen):
             join_flags_op.out_rel.dbg_str()
         )
 
-    def _generate_flag_join(self, flag_join_op: saldag.FlagJoin):
+    @staticmethod
+    def _generate_flag_join(flag_join_op: ccdag.FlagJoin):
         """ Generate code for FlagJoin operations. """
 
         return "({}) FLAGJOIN{} ({}) WITH FLAGS ({}) ON [{}] AND [{}] AS {}\n".format(
@@ -38,7 +41,8 @@ class ScotchCodeGen(CodeGen):
             flag_join_op.out_rel.dbg_str()
         )
 
-    def _generate_leaky_hybrid_aggregate(self, lky_idx_agg_op: saldag.LeakyIndexAggregate):
+    @staticmethod
+    def _generate_leaky_hybrid_aggregate(lky_idx_agg_op: ccdag.LeakyIndexAggregate):
         """ Generate code for LeakyIndexAggregate operations. """
 
         return "LKYIDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] WITH KEYS {} AND MAP {} AS {}\n".format(
@@ -52,7 +56,8 @@ class ScotchCodeGen(CodeGen):
             lky_idx_agg_op.out_rel.dbg_str()
         )
 
-    def _generate_index_aggregate(self, idx_agg_op: saldag.IndexAggregate):
+    @staticmethod
+    def _generate_index_aggregate(idx_agg_op: ccdag.IndexAggregate):
         """ Generate code for IndexAggregate operations. """
 
         return "IDXAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
@@ -64,7 +69,8 @@ class ScotchCodeGen(CodeGen):
             idx_agg_op.out_rel.dbg_str()
         )
 
-    def _generate_hybrid_aggregate(self, hybrid_agg_op: saldag.HybridAggregate):
+    @staticmethod
+    def _generate_hybrid_aggregate(hybrid_agg_op: ccdag.HybridAggregate):
         """ Generate code for Aggregate operations. """
 
         return "HYBRIDAGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {} WITH STP {}\n".format(
@@ -77,7 +83,8 @@ class ScotchCodeGen(CodeGen):
             hybrid_agg_op.trusted_party
         )
 
-    def _generate_aggregate(self, agg_op: saldag.Aggregate):
+    @staticmethod
+    def _generate_aggregate(agg_op: ccdag.Aggregate):
         """ Generate code for Aggregate operations. """
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
@@ -89,7 +96,8 @@ class ScotchCodeGen(CodeGen):
             agg_op.out_rel.dbg_str()
         )
 
-    def _generate_concat(self, concat_op: saldag.Concat):
+    @staticmethod
+    def _generate_concat(concat_op: ccdag.Concat):
         """ Generate code for Concat operations. """
 
         in_rel_str = ", ".join([in_rel.dbg_str() for in_rel in concat_op.get_in_rels()])
@@ -99,7 +107,8 @@ class ScotchCodeGen(CodeGen):
             concat_op.out_rel.dbg_str()
         )
 
-    def _generate_create(self, create_op: saldag.Create):
+    @staticmethod
+    def _generate_create(create_op: ccdag.Create):
         """ Generate code to Create relations. """
 
         col_type_str = ", ".join(
@@ -109,7 +118,8 @@ class ScotchCodeGen(CodeGen):
             col_type_str
         )
 
-    def _generate_divide(self, divide_op: saldag.Divide):
+    @staticmethod
+    def _generate_divide(divide_op: ccdag.Divide):
         """ Generate code for Divide operations. """
 
         operand_col_str = " / ".join([str(col) for col in divide_op.operands])
@@ -121,7 +131,8 @@ class ScotchCodeGen(CodeGen):
             divide_op.out_rel.dbg_str()
         )
 
-    def _generate_multiply(self, multiply_op: saldag.Multiply):
+    @staticmethod
+    def _generate_multiply(multiply_op: ccdag.Multiply):
         """ Generate code for Multiply operations. """
 
         operand_col_str = " * ".join([str(col) for col in multiply_op.operands])
@@ -133,7 +144,8 @@ class ScotchCodeGen(CodeGen):
             multiply_op.out_rel.dbg_str()
         )
 
-    def _generate_join(self, join_op: saldag.Join):
+    @staticmethod
+    def _generate_join(join_op: ccdag.Join):
         """ Generate code for Join operations. """
 
         return "({}) JOIN{} ({}) ON [{}] AND [{}] AS {}\n".format(
@@ -145,7 +157,8 @@ class ScotchCodeGen(CodeGen):
             join_op.out_rel.dbg_str()
         )
 
-    def _generate_index_join(self, index_join_op: saldag.IndexJoin):
+    @staticmethod
+    def _generate_index_join(index_join_op: ccdag.IndexJoin):
         """ Generate code for IndexJoin operations. """
 
         return "({}) IDXJOIN{} ({}) WITH INDECES ({}) ON [{}] AND [{}] AS {}\n".format(
@@ -158,7 +171,8 @@ class ScotchCodeGen(CodeGen):
             index_join_op.out_rel.dbg_str()
         )
 
-    def _generate_reveal_join(self, reveal_join_op: saldag.RevealJoin):
+    @staticmethod
+    def _generate_reveal_join(reveal_join_op: ccdag.RevealJoin):
         """ Generate code for RevealJoin operations. """
 
         return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
@@ -169,7 +183,8 @@ class ScotchCodeGen(CodeGen):
             reveal_join_op.out_rel.dbg_str()
         )
 
-    def _generate_hybrid_join(self, hybrid_join_op: saldag.HybridJoin):
+    @staticmethod
+    def _generate_hybrid_join(hybrid_join_op: ccdag.HybridJoin):
         """ Generate code for HybridJoin operations. """
 
         return "({}) HYBRIDJOIN ({}) ON {} AND {} AS {}\n".format(
@@ -180,7 +195,8 @@ class ScotchCodeGen(CodeGen):
             hybrid_join_op.out_rel.dbg_str()
         )
 
-    def _generate_project(self, project_op: saldag.Project):
+    @staticmethod
+    def _generate_project(project_op: ccdag.Project):
         """ Generate code for Project operations. """
 
         selected_cols_str = ", ".join([str(col) for col in project_op.selected_cols])
@@ -191,7 +207,8 @@ class ScotchCodeGen(CodeGen):
             project_op.out_rel.dbg_str()
         )
 
-    def _generate_distinct(self, distinct_op: saldag.Distinct):
+    @staticmethod
+    def _generate_distinct(distinct_op: ccdag.Distinct):
         """ Generate code for Distinct operations. """
 
         selected_cols_str = ", ".join([str(col) for col in distinct_op.selected_cols])
@@ -202,7 +219,20 @@ class ScotchCodeGen(CodeGen):
             distinct_op.out_rel.dbg_str()
         )
 
-    def _generate_sort_by(self, sort_by_op: saldag.SortBy):
+    @staticmethod
+    def _generate_distinct_count(distinct_count_op: ccdag.DistinctCount):
+        """ Generate code for Distinct Count operations. """
+
+        selected_col_str = str(distinct_count_op.selected_col)
+        return "DISTINCT_COUNT{} [{}] FROM ({}) AS {}\n".format(
+            "MPC" if distinct_count_op.is_mpc else "",
+            selected_col_str,
+            distinct_count_op.get_in_rel().dbg_str(),
+            distinct_count_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_sort_by(sort_by_op: ccdag.SortBy):
         """ Generate code for Sort By operations. """
 
         return "SORTBY{} {} FROM ({}) AS {}\n".format(
@@ -212,7 +242,8 @@ class ScotchCodeGen(CodeGen):
             sort_by_op.out_rel.dbg_str()
         )
 
-    def _generate_comp_neighs(self, comp_neighs_op: saldag.CompNeighs):
+    @staticmethod
+    def _generate_comp_neighs(comp_neighs_op: ccdag.CompNeighs):
         """ Generate code for Comp Cols operations. """
 
         return "COMPNEIGHS{} {} FROM ({}) AS {}\n".format(
@@ -222,19 +253,22 @@ class ScotchCodeGen(CodeGen):
             comp_neighs_op.out_rel.dbg_str()
         )
 
-    def _generate_filter(self, filter_op: saldag.Filter):
+    @staticmethod
+    def _generate_filter(filter_op: ccdag.Filter):
         """ Generate code for Filer operations. """
 
-        filterStr = "{} {} {}".format(filter_op.target_col,
-                                      filter_op.operator, filter_op.filter_expr)
+        filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
+                                       filter_op.operator,
+                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col)
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
-            filterStr,
+            filter_str,
             filter_op.get_in_rel().dbg_str(),
             filter_op.out_rel.dbg_str()
         )
 
-    def _generate_shuffle(self, shuffle_op: saldag.Shuffle):
+    @staticmethod
+    def _generate_shuffle(shuffle_op: ccdag.Shuffle):
         """ Generate code for Shuffle operations. """
 
         return "SHUFFLE{} ({}) AS {}\n".format(
@@ -243,7 +277,8 @@ class ScotchCodeGen(CodeGen):
             shuffle_op.out_rel.dbg_str()
         )
 
-    def _generate_index(self, index_op: saldag.Index):
+    @staticmethod
+    def _generate_index(index_op: ccdag.Index):
         """ Generate code for Index operations. """
 
         return "INDEX{} ({}) AS {}\n".format(
@@ -252,7 +287,8 @@ class ScotchCodeGen(CodeGen):
             index_op.out_rel.dbg_str()
         )
 
-    def _generate_close(self, close_op: saldag.Close):
+    @staticmethod
+    def _generate_close(close_op: ccdag.Close):
         """ Generate code for Close operations. """
 
         return "CLOSE{} {} INTO {}\n".format(
@@ -261,7 +297,8 @@ class ScotchCodeGen(CodeGen):
             close_op.out_rel.dbg_str()
         )
 
-    def _generate_open(self, open_op: saldag.Open):
+    @staticmethod
+    def _generate_open(open_op: ccdag.Open):
         """ Generate code for Open operations. """
 
         return "OPEN{} {} INTO {}\n".format(
@@ -270,7 +307,8 @@ class ScotchCodeGen(CodeGen):
             open_op.out_rel.dbg_str()
         )
 
-    def _generate_persist(self, persist_op: saldag.Persist):
+    @staticmethod
+    def _generate_persist(persist_op: ccdag.Persist):
         """ Generate code for Persist operations. """
 
         return "PERSIST{} {} INTO {}\n".format(

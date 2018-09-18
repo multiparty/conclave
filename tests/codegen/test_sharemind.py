@@ -146,7 +146,21 @@ class TestSharemind(TestCase):
             return inputs
 
         dag = protocol()
-        self.check_workflow(dag, 'agg')
+        self.check_workflow(dag, 'agg', use_leaky_ops=False)
+
+    def test_agg_leaky(self):
+
+        @dag_only
+        def protocol():
+            inputs, rel = setup()
+            agg = sal.aggregate(rel, "agg", ["a", "b"], "c", "sum", "agg_1")
+
+            out = sal._open(agg, "opened", 1)
+
+            return inputs
+
+        dag = protocol()
+        self.check_workflow(dag, 'agg_leaky')
 
     def test_shuffle(self):
 

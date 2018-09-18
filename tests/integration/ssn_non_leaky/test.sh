@@ -21,7 +21,7 @@ cp $DIR/input_data/*.csv $DIR/data/
 python3 simple_ssn.py 1
 
 # run real workflow
-for i in 1 2 3;
+for i in {1..3};
 do
     python3 real_ssn.py $i &
 done

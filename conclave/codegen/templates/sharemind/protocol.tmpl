@@ -31,7 +31,7 @@ D uint32[[2]] duplicate(D uint32[[2]] rel, uint numDups) {
     uint numVals = numRows * numDups;
     D uint32[[2]] dupped(numVals, shape(rel)[1]);
     for (uint r = 0; r < numDups; r+=1) {
-        dupped[r * numRows : (r + 1) * numRows,:] = rel[:,:];
+        dupped[r * numRows : (r + 1) * numRows,:] = rel;
     }
     return dupped;
 }
@@ -58,6 +58,24 @@ D uint32[[2]] filterByKeepFlags(D uint32[[2]] rel, uint32[[1]] keepFlags) {
 }
 
 template <domain D : shared3p>
+D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint leftJoinColIdx,
+        D uint32[[2]] right, uint rightJoinColIdx, bool filter) {
+    uint ncolsLeft = shape(left)[1];
+    uint ncolsRight = shape(right)[1];
+    D uint32[[2]] withFlags(size(eqFlags), ncolsLeft + ncolsRight + 1);
+    withFlags[:, 0 : ncolsLeft] = left;
+    withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right;
+    withFlags[:,ncolsLeft + ncolsRight] = eqFlags;
+    if (filter) {
+        D uint32[[2]] shuffledWithFlags = shuffleRows(withFlags);
+        uint32[[1]] keepFlags = declassify(shuffledWithFlags[:,ncolsLeft + ncolsRight]);
+        return filterByKeepFlags(shuffledWithFlags[:,0:ncolsLeft + ncolsRight], keepFlags);
+    } else {
+        return withFlags;
+    }
+}
+
+template <domain D : shared3p>
 D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
     D uint32[[2]] leftShuffled = shuffleRows(left);
     D uint32[[2]] rightShuffled = shuffleRows(right);
@@ -66,47 +84,42 @@ D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[
     D uint32[[2]] leftStretched = stretch(leftShuffled, nrowsRight);
     D uint32[[2]] rightDupped = duplicate(rightShuffled, nrowsLeft);
     D uint32[[1]] eqFlags = (uint32) (leftStretched[:,leftJoinColIdx] == rightDupped[:,rightJoinColIdx]);
-    return joinFromEqFlags(eqFlags, leftStretched, leftJoinColIdx, rightDupped, rightJoinColIdx);
+    return joinFromEqFlags(eqFlags, leftStretched, leftJoinColIdx, rightDupped, rightJoinColIdx, true);
+}
+
+template <domain D : shared3p>
+D uint32[[2]] _sizeObliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
+    uint nrowsLeft = shape(left)[0];
+    uint ncolsLeft = shape(left)[1];
+    uint nrowsRight = shape(right)[0];
+    uint ncolsRight = shape(right)[1];
+
+    D uint32[[2]] leftStretched = stretch(left, nrowsRight);
+    D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
+    D uint32[[1]] eqFlags = (uint32) (leftStretched[:,leftJoinColIdx] == rightDupped[:,rightJoinColIdx]);
+    D uint32[[1]] leftFlags = leftStretched[:, ncolsLeft - 1]; // last col is for keep flags
+    D uint32[[1]] rightFlags = rightDupped[:, ncolsRight -1];
+    eqFlags = eqFlags * leftFlags * rightFlags;
+    return joinFromEqFlags(eqFlags, leftStretched[:,:ncolsLeft - 1],
+        leftJoinColIdx, rightDupped[:,:ncolsRight -1], rightJoinColIdx, false);
 }
 
 template <domain D : shared3p>
 D uint32[[2]] join(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
     D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
-    // TODO: assert join cols are singletons
-    D uint32[[2]] res = _obliviousJoin(leftRel, leftJoinCols[0], rightRel, rightJoinCols[0]);
+    D uint32[[2]] res = _sizeObliviousJoin(leftRel, leftJoinCols[0], rightRel, rightJoinCols[0]);
     return project(res, colsToKeep);
-}
-
-template <domain D : shared3p>
-D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint leftJoinColIdx,
-        D uint32[[2]] right, uint rightJoinColIdx) {
-    uint ncolsLeft = shape(left)[1];
-    uint ncolsRight = shape(right)[1];
-    D uint32[[2]] withFlags(size(eqFlags), 1 + ncolsLeft + ncolsRight);
-    withFlags[:, 0 : ncolsLeft] = left[:,0 : ncolsLeft];
-    withFlags[:, ncolsLeft : ncolsLeft + ncolsRight] = right[:,0 : ncolsRight];
-    withFlags[:,ncolsLeft + ncolsRight] = eqFlags;
-    D uint32[[2]] shuffledWithFlags = shuffleRows(withFlags);
-    uint32[[1]] keepFlags = declassify(shuffledWithFlags[:,ncolsLeft + ncolsRight]);
-    return filterByKeepFlags(shuffledWithFlags[:,0:ncolsLeft + ncolsRight], keepFlags);
 }
 
 template <domain D : shared3p>
 D uint32[[2]] joinLeaky(D uint32[[2]] leftRel, uint[[1]] leftJoinCols,
     D uint32[[2]] rightRel, uint[[1]] rightJoinCols, uint[[1]] colsToKeep) {
-    // TODO: assert join cols are singletons
-    // perform native join
-    D uint32[[2]] res = (uint32) tableJoinAes128(
-        (xor_uint32) leftRel,
-        leftJoinCols[0],
-        (xor_uint32) rightRel,
-        rightJoinCols[0]
-    );
+    D uint32[[2]] res = _obliviousJoin(leftRel, leftJoinCols[0], rightRel, rightJoinCols[0]);
     return project(res, colsToKeep);
 }
 
 template <domain D : shared3p>
-D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
+D uint32[[2]] aggregateSumLeaky(D uint32[[2]] rows, uint keyCol, uint valCol) {
     uint nrows = shape(rows)[0];
     uint ncols = 2;
 
@@ -138,6 +151,43 @@ D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     D uint32 [[2]] shuffledWithFlags = shuffleRows(result);
     uint32 [[1]] keepFlags = declassify(shuffledWithFlags[:,2]);
     return filterByKeepFlags(shuffledWithFlags[:,0:2], keepFlags);;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
+    uint nrows = shape(rows)[0];
+    uint ncols = 3;
+    D uint32 [[2]] input(nrows, ncols);
+    D uint32 [[1]] _keepFlags = rows[:,shape(rows)[1] - 1];
+    uint32 [[1]] ones(nrows) = 1;
+    input[:,0] = (rows[:,keyCol] * _keepFlags) + (ones - _keepFlags) * (-1); // assuming no real key entries are -1
+    input[:,1] = rows[:,valCol]; // zero out by keep flags
+    input[:,2] = _keepFlags;
+
+    D uint32 [[2]] sorted = sortingNetworkSort(input, (uint)0);
+    D uint32 [[2]] result(nrows,ncols);
+    result[:,0] = sorted[:,0];
+    result[:,1] = sorted[:,1];
+    D uint32 [[1]] keepFlags = sorted[:,2];
+
+    pd_shared3p uint32[[1]] leftKeyCols = result[0:nrows-1,0];
+    pd_shared3p uint32[[1]] rightKeyCols = result[1:,0];
+    pd_shared3p uint32[[1]] eqFlags = (uint32)(leftKeyCols == rightKeyCols);
+    for (uint r = 0; r < nrows - 1; r+=1) {
+        D uint32[[1]] left = result[r,:];
+        D uint32[[1]] right = result[r + 1,:];
+        D uint32 eqFlag = eqFlags[r];
+        D uint32 leftVal = left[1];
+        D uint32 rightVal = right[1];
+        result[r, 1] = leftVal * (1 - eqFlag);
+        result[r + 1, 1] = rightVal + leftVal * (eqFlag);
+        result[r, 2] = 1 - eqFlag;
+        result[r + 1, 2] = 1 - eqFlag;
+    }
+    // always keep last row
+    result[nrows - 1, 2] = 1;
+    result[:, 2] = result[:, 2] * keepFlags;
+    return result;
 }
 
 template <domain D : shared3p>
@@ -257,18 +307,27 @@ D uint32[[2]] divide(D uint32[[2]] rows, uint targetColIdx, uint[[1]] operands, 
     return divided;
 }
 
-pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
+pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl, bool flags) {
     uint ncols = tdbGetColumnCount(ds, tbl);
     uint nrows = tdbGetRowCount(ds, tbl);
 
-    pd_shared3p uint32 [[2]] mat(nrows, ncols);
+    uint actualCols = ncols + (uint) flags;
+
+    pd_shared3p uint32 [[2]] mat(nrows, actualCols);
     for (uint c = 0; c < ncols; ++c) {
         pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
         for (uint r = 0; r < nrows; ++r) {
             mat[r, c] = col[r];
         }
     }
+    if (flags) {
+        mat[:,ncols] = 1;
+    }
     return mat;
+}
+
+pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl) {
+    return readFromDb(ds, tbl, false);
 }
 
 template <domain D : shared3p>
@@ -344,8 +403,110 @@ D uint32[[2]] flagJoin(D uint32[[2]] eqFlags, D uint32[[2]] left, uint leftJoinC
     uint nrowsRight = shape(right)[0];
     D uint32[[2]] leftStretched = stretch(left, nrowsRight);
     D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
-    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], leftStretched, leftJoinCol, rightDupped, rightJoinCol);
+    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], 
+        leftStretched, 
+        leftJoinCol, 
+        rightDupped, 
+        rightJoinCol, 
+        true);
     return project(res, colsToKeep);
+}
+
+template <domain D : shared3p>
+uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
+    if (filter) {
+        uint ncols = shape(rows)[1];
+        return declassify(
+            filterByKeepFlags(
+                rows[:,:ncols - 1],
+                declassify(rows[:,ncols - 1])
+            )
+        );
+    } else {
+        return declassify(rows);
+    }
+}
+
+template <domain D : shared3p>
+D uint32[[2]] filterLt(D uint32[[2]] rows,
+        uint[[1]] ltIndexesLeft,
+        uint[[1]] ltIndexesRight) {
+    assert(size(ltIndexesLeft) == size(ltIndexesRight));
+
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+    uint numComps = size(ltIndexesLeft);
+
+    // last column has keep flags
+    D uint32[[1]] finalFlags = rows[:,ncols - 1];
+    uint numLts = size(ltIndexesLeft);
+    for (uint c = 0; c < numLts; ++c) {
+        D uint32[[1]] compColLeft = rows[:,ltIndexesLeft[c]];
+        D uint32[[1]] compColRight = rows[:,ltIndexesRight[c]];
+        D uint32[[1]] compRes = (uint32) (compColLeft < compColRight);
+        finalFlags = finalFlags * compRes;
+    }
+    rows[:,ncols - 1] = finalFlags;
+    return rows;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] filterEq(D uint32[[2]] rows,
+        uint[[1]] ltIndexesLeft,
+        uint[[1]] scalars) {
+    assert(size(ltIndexesLeft) == size(scalars));
+
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+    uint numComps = size(ltIndexesLeft);
+
+    // last column has keep flags
+    D uint32[[1]] finalFlags = rows[:,ncols - 1];
+    uint numLts = size(ltIndexesLeft);
+    for (uint c = 0; c < numLts; ++c) {
+        D uint32[[1]] compColLeft = rows[:,ltIndexesLeft[c]];
+        D uint32[[1]] compRes = (uint32) (compColLeft == (uint32) scalars[c]);
+        finalFlags *= compRes;
+    }
+    rows[:,ncols - 1] = finalFlags;
+    return rows;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol) {
+    uint nrows = shape(rows)[0];
+    uint ncols = shape(rows)[1];
+
+    D uint32 [[2]] input(nrows, 2);
+    input[:,0] = rows[:,keyCol];
+    input[:,1] = rows[:,ncols - 1];
+//    uint32 [[1]] ones(nrows) = 1;
+    // assumes -1 not in input
+    input[:,0] = (input[:,0] * input[:,1]) + (1 - input[:,1]) * (-1);
+
+    D uint32 [[2]] sorted = sortingNetworkSort(input, (uint) 0);
+//    printMatrix(declassify(sorted));
+    pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
+    pd_shared3p uint32[[1]] right = sorted[1:,0];
+
+
+//    print(size(left));
+//    print(size(right));
+    pd_shared3p uint32[[1]] eqFlags = 1 - (uint32)(left == right);
+    pd_shared3p uint32[[1]] eqFlagsPlusOne(nrows);
+    eqFlagsPlusOne[:nrows-1] = eqFlags;
+    eqFlagsPlusOne[nrows-1] = 1;
+//    print(size(eqFlagsPlusOne));
+//    print(nrows);
+//    printVector(declassify(eqFlagsPlusOne));
+//    printVector(declassify(sorted[:,1]));
+    D uint32 [[1]] final = eqFlagsPlusOne * sorted[:,1];
+//    printVector(declassify(foo));
+
+    D uint32 [[2]] res(1, 2);
+    res[0,0] = sum(final);
+    res[0,1] = 1;
+    return res;
 }
 
 void main() {

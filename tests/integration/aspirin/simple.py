@@ -8,35 +8,38 @@ from conclave.utils import defCol
 
 
 def protocol():
-    # define inputs
-    left_cols = [
+    medication_cols = [
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1]),
+        defCol("t", "INTEGER", [1])
     ]
-    left = cc.create("left", left_cols, {1})
-    left_dummy = cc.project(left, "zzz_left_dummy", ["a", "b"])
+    medication = cc.create("medication", medication_cols, {1})
 
-    right_cols = [
-        defCol("c", "INTEGER", [1], [2]),
-        defCol("d", "INTEGER", [2])
+    diagnosis_cols = [
+        defCol("c", "INTEGER", [1]),
+        defCol("d", "INTEGER", [1]),
+        defCol("o", "INTEGER", [1])
     ]
-    right = cc.create("right", right_cols, {2})
-    right_dummy = cc.project(right, "right_dummy", ["c", "d"])
+    diagnosis = cc.create("diagnosis", diagnosis_cols, {1})
+    
+    aspirin = cc.cc_filter(medication, "aspirin", "b", "==", scalar=2)
+    heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
-    actual = cc.join(left_dummy, right_dummy, "actual", ["a"], ["c"])
+    joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
+    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
 
-    cc.collect(actual, 1)
-    # create dag
-    return {left, right}
+    cc.distinct_count(cases, "expected", "a")
+
+    return {medication, diagnosis}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "hybrid-join-test-" + pid
+    workflow_name = "simple-aspirin-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.use_leaky_ops = True
+    conclave_config.all_pids = [1]
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -47,5 +50,5 @@ if __name__ == "__main__":
     # and written to
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
-    job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
+    job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
     dispatch_jobs(job_queue, conclave_config)

@@ -8,43 +8,46 @@ from conclave.utils import defCol
 
 
 def protocol():
-    govreg_cols = [
+    medication_cols = [
         defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+        defCol("b", "INTEGER", [1]),
+        defCol("t", "INTEGER", [1])
     ]
-    govreg = cc.create("a_govreg", govreg_cols, {1})
-    govreg_dummy = cc.project(govreg, "govreg_dummy", ["a", "b"])
+    medication = cc.create("medication", medication_cols, {1})
 
-    company0_cols = [
-        defCol("c", "INTEGER", [1], [2]),
-        defCol("d", "INTEGER", [2])
+    diagnosis_cols = [
+        defCol("c", "INTEGER", [2]),
+        defCol("d", "INTEGER", [2]),
+        defCol("o", "INTEGER", [2])
     ]
-    company0 = cc.create("company0", company0_cols, {2})
-    company0_dummy = cc.project(company0, "company0_dummy", ["c", "d"])
+    diagnosis = cc.create("diagnosis", diagnosis_cols, {2})
+    
+    aspirin = cc.cc_filter(medication, "aspirin", "b", "==", scalar=2)
+    heart_patients = cc.cc_filter(diagnosis, "heart_patients", "d", "==", scalar=3)
 
-    company1_cols = [
-        defCol("c", "INTEGER", [1], [3]),
-        defCol("d", "INTEGER", [3])
-    ]
-    company1 = cc.create("company1", company1_cols, {3})
-    company1_dummy = cc.project(company1, "company1_dummy", ["c", "d"])
+    joined = cc.join(aspirin, heart_patients, "joined", ["a"], ["c"])
+    cases = cc.cc_filter(joined, "cases", "t", "<", other_col_name="o")
+    # cc.collect(cases, 1)
+    cc.collect(cc.distinct_count(cases, "actual", "a"), 1)
 
-    companies = cc.concat([company0_dummy, company1_dummy], "companies")
-
-    joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
-    actual = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
-    cc.collect(actual, 1)
-
-    return {govreg, company0, company1}
+    return {medication, diagnosis}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    try:
+        use_leaky = sys.argv[2] == "-l"
+    except Exception:
+        use_leaky = False
     # define name for the workflow
-    workflow_name = "real-ssn-" + pid
+    workflow_name = "real-aspirin-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
+    conclave_config.all_pids = [1, 2, 3]
+    conclave_config.use_leaky_ops = use_leaky
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", 
+        use_docker=False, 
+        use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from

@@ -8,33 +8,28 @@ from conclave.utils import defCol
 
 
 def protocol():
-    govreg_cols = [
+    left_cols = [
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1])
     ]
-    govreg = cc.create("a_govreg", govreg_cols, {1})
-    company0_cols = [
-        defCol("c", "INTEGER", [1]),
-        defCol("d", "INTEGER", [1])
-    ]
-    company0 = cc.create("company0", company0_cols, {1})
-    company1_cols = [
-        defCol("c", "INTEGER", [1]),
-        defCol("d", "INTEGER", [1])
-    ]
-    company1 = cc.create("company1", company1_cols, {1})
-    companies = cc.concat([company0, company1], "companies")
+    left = cc.create("left", left_cols, {1})
 
-    joined = cc.join(govreg, companies, "joined", ["a"], ["c"])
+    right_cols = [
+        defCol("c", "INTEGER", [1]),
+        defCol("d", "INTEGER", [1])
+    ]
+    right = cc.create("right", right_cols, {1})
+    
+    joined = cc.join(left, right, "joined", ["a"], ["c"])
     cc.aggregate(joined, "expected", ["b"], "d", "+", "total")
 
-    return {govreg, company0, company1}
+    return {left, right}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "simple-ssn-" + pid
+    workflow_name = "simple-oblivious-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1]

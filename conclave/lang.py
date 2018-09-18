@@ -224,6 +224,38 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
 
     return op
 
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str):
+    """
+    Define DistinctCount operation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Distinct node.
+    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :return: Distinct OpNode.
+    """
+
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Find all columns by name
+    selected_col = utils.find(in_rel.columns, selected_col_name)
+
+    out_rel_cols = copy.deepcopy([selected_col])
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col)
+
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
 
 def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str, operands: list):
     """
@@ -277,18 +309,23 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str, filter_expr: str):
-    # TODO: Not implemented in codegen as far as I can tell
+def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
+              other_col_name: str = None, scalar: int = None):
     """
     Define Filter operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Filter node.
     :param filter_col_name: Name of column that relation gets filtered over.
-    :param operator: # TODO not sure what the difference between operator and filter_expr is
-    :param filter_expr:
+    :param operator: == or <
+    :param other_col_name: Name of column to compare to (possibly none).
+    :param scalar: Scalar to compare to(possibly none).
+
     :return: Filter OpNode
     """
+
+    # Make sure we're using valid operator option
+    assert operator in {"==", "<"}
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -300,12 +337,17 @@ def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str,
     filter_col = utils.find(in_rel.columns, filter_col_name)
     filter_col.coll_sets = set()
 
+    # Get index of other column (if there is one)
+    other_col = utils.find(in_rel.columns, other_col_name) if other_col_name else None
+    if other_col:
+        other_col.coll_sets = set()
+
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.Filter(out_rel, input_op_node, filter_col, operator, filter_expr)
+    op = cc_dag.Filter(out_rel, input_op_node, filter_col, operator, other_col, scalar)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
