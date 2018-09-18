@@ -19,6 +19,23 @@ def generate(dag_one, name):
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
+    cfg.use_leaky_ops = False
+
+    cfg.with_oc_config(oc_conf)
+
+    cg1 = OblivcCodeGen(cfg, dag_one, 1)
+    cg1.generate('protocol1', '/tmp/prot/')
+
+    cg2 = OblivcCodeGen(cfg, dag_one, 2)
+    cg2.generate('protocol2', '/tmp/prot/')
+
+
+def generate_leaky(dag_one, name):
+
+    oc_conf = config.OblivcConfig(sys.argv[2], "localhost:9000")
+
+    cfg = config.CodeGenConfig(name)
+    cfg.input_path = sys.argv[1]
 
     cfg.with_oc_config(oc_conf)
 
@@ -119,22 +136,18 @@ def join():
 @dag_only
 def concat():
 
-    in_rels = setup_three()
+    in_rels = setup()
     in1 = in_rels[0]
     in2 = in_rels[1]
-    in3 = in_rels[2]
 
     cl1 = sal._close(in1, "cl1", set([1, 2]))
     cl2 = sal._close(in2, "cl2", set([1, 2]))
-    cl3 = sal._close(in3, "cl3", set([1, 2]))
 
     rel = sal.concat([cl1, cl2], "rel")
 
-    rel2 = sal.concat([rel, cl3], "rel2")
+    opened = sal._open(rel, "opened", 1)
 
-    opened = sal._open(rel2, "opened", 1)
-
-    return set([in1, in2, in3])
+    return set([in1, in2])
 
 
 @dag_only
@@ -219,23 +232,29 @@ def project():
 
 if __name__ == "__main__":
 
-    dag = agg()
-    generate(dag, 'agg')
-
+    # dag = agg()
+    # generate(dag, 'agg')
+    #
     dag = join()
     generate(dag, 'join')
+    #
+    # dag = agg()
+    # generate_leaky(dag, 'aggLeaky')
+    #
+    dag = join()
+    generate_leaky(dag, 'joinLeaky')
 
-    dag = concat()
-    generate(dag, 'concat')
-
-    dag = multiply()
-    generate(dag, 'multiply')
-
-    dag = divide()
-    generate(dag, 'divide')
-
-    dag = sort_by()
-    generate(dag, 'sort_by')
-
-    dag = project()
-    generate(dag, 'project')
+    # dag = concat()
+    # generate(dag, 'concat')
+    #
+    # dag = multiply()
+    # generate(dag, 'multiply')
+    #
+    # dag = divide()
+    # generate(dag, 'divide')
+    #
+    # dag = sort_by()
+    # generate_leaky(dag, 'sort_by')
+    #
+    # dag = project()
+    # generate(dag, 'project')
