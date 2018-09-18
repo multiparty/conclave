@@ -16,12 +16,12 @@ def protocol():
     diag_col_diags = "16"
     date_col_diags = "18"
 
-    num_med_cols = 8
+    num_med_cols = 8 
     medication_cols = [defCol(str(i), "INTEGER", [1]) for i in range(num_med_cols)]
 
     medication = cc.create("medication", medication_cols, {1})
 
-    num_diag_cols = 13
+    num_diag_cols = 13 
     diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [2]) for i in range(num_diag_cols)]
 
     diagnosis = cc.create("diagnosis", diagnosis_cols, {2})
@@ -29,7 +29,7 @@ def protocol():
     # only keep relevant columns
     medication_proj = cc.project(medication, "medication_proj", [pid_col_meds, med_col_meds, date_col_meds])
     diagnosis_proj = cc.project(diagnosis, "diagnosis_proj", [pid_col_diags, diag_col_diags, date_col_diags])
-
+    
     aspirin = cc.cc_filter(medication_proj, "aspirin", med_col_meds, "==", scalar=1)
     heart_patients = cc.cc_filter(diagnosis_proj, "heart_patients", diag_col_diags, "==", scalar=1)
 
