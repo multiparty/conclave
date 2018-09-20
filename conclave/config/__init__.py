@@ -86,6 +86,7 @@ class CodeGenConfig:
         """ Initialize CodeGenConfig object. """
 
         self.inited = True
+        self.use_floats = False
         self.delimiter = ','
         if job_name is not None:
             self.name = job_name
