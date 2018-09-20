@@ -83,9 +83,6 @@ def index_agg(rel, over_col, distinct_keys, indeces, aggregator):
 
     empty = 0
     res = [[key[0], empty] for key in distinct_keys]
-    print("rel", rel)
-    print("res", res)
-    print("indeces", indeces)
     for row_idx, key_idx in indeces:
         res[key_idx][1] = aggregator(res[key_idx][1], rel[row_idx][over_col])
     return res
@@ -162,9 +159,17 @@ def public_join_as_server(host: str, port: int, rel: list, key_col: int):
     print("server started and listening")
     client_socket, address = server_socket.accept()
     other_rel = receive_rel(client_socket, 1)
-    send_rel(client_socket, other_rel)
+    my_keys = project_indeces(project(rel, [key_col]))
+
+    other_keys = project_indeces(other_rel)
+    joined = sort_by(join(my_keys, other_keys, 1, 1), 0)
+    other_cols = project(joined, [2])
+    send_rel(client_socket, other_cols)
+    res_rel = []
+    for idx in joined:
+        res_rel.append(rel[idx[1]])
     server_socket.close()
-    return rel
+    return res_rel
 
 
 def public_join_as_client(host: str, port: int, rel: list, key_col: int):
@@ -178,11 +183,14 @@ def public_join_as_client(host: str, port: int, rel: list, key_col: int):
         except Exception as e:
             print(e)
             connected = False
-            time.sleep(1)
-    send_rel(sock, rel)
+            time.sleep(.042)
+    send_rel(sock, project(rel, [key_col]))
     rel_back = receive_rel(sock, 1)
+    res_rel = []
+    for idx in rel_back:
+        res_rel.append(rel[idx[0]])
     sock.close()
-    return rel_back
+    return res_rel
 
 
 def pub_join(host: str, port: int, is_server: bool, rel: list, key_col: int):
