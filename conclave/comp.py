@@ -132,6 +132,8 @@ class DagRewriter:
                 self._rewrite_distinct(node)
             elif isinstance(node, ccdag.DistinctCount):
                 self._rewrite_distinct_count(node)
+            elif isinstance(node, ccdag.PubJoin):
+                self._rewrite_pub_join(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -184,6 +186,9 @@ class DagRewriter:
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
         pass
 
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        pass
+
 
 class MPCPushDown(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundaries down in workflows. """
@@ -193,7 +198,8 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
-    def _do_commute(self, top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
+    @staticmethod
+    def _do_commute(top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
         # TODO: over-simplified
         # TODO: add rules for other ops
 
@@ -205,7 +211,8 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewrite_default(self, node: ccdag.OpNode):
+    @staticmethod
+    def _rewrite_default(node: ccdag.OpNode):
         """
         Throughout the rewrite process, a node might switch from requiring
         MPC to no longer requiring it. This method updates a node's MPC
@@ -299,6 +306,10 @@ class MPCPushDown(DagRewriter):
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
         self._rewrite_unary_default(node)
 
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        self._rewrite_unary_default(node)
+
+
 class MPCPushUp(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundary up in workflows. """
 
@@ -308,7 +319,8 @@ class MPCPushUp(DagRewriter):
         super(MPCPushUp, self).__init__()
         self.reverse = True
 
-    def _rewrite_unary_default(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_unary_default(node: ccdag.UnaryOpNode):
         """ If a UnaryOpNode is at a lower MPC boundary, it can be computed locally. """
 
         par = next(iter(node.parents))
@@ -358,6 +370,9 @@ class MPCPushUp(DagRewriter):
     def _rewrite_create(self, node: ccdag.Create):
 
         pass
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        self._rewrite_unary_default(node)
 
 
 class CollSetPropDown(DagRewriter):
@@ -551,7 +566,8 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         super(InsertOpenAndCloseOps, self).__init__()
 
-    def _rewrite_default_unary(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_default_unary(node: ccdag.UnaryOpNode):
         """
         Insert Store node beneath a UnaryOpNode that
         is at a lower boundary of an MPC op.

@@ -22,11 +22,8 @@ def protocol():
     right = cc.create("right", right_cols, {2})
     right_dummy = cc.project(right, "right_dummy", ["c", "d"])
 
-    joined = cc.join(left_dummy, right_dummy, "joined", ["a"], ["c"])
-    cc.collect(
-        cc.aggregate(joined, "actual", ["b"], "d", "+", "total"),
-        1
-    )
+    left_join = cc._pub_join(left_dummy, "left_join", "a")
+    right_join = cc._pub_join(right_dummy, "right_join", "c", is_server=False)
 
     return {left, right}
 
@@ -44,7 +41,7 @@ if __name__ == "__main__":
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", 
-        use_docker=False, 
+        use_docker=True,
         use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
