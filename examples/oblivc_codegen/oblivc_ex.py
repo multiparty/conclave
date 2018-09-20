@@ -20,7 +20,6 @@ def generate(dag_one, name):
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
     cfg.use_leaky_ops = False
-    cfg.use_floats = True
 
     cfg.with_oc_config(oc_conf)
 
@@ -37,7 +36,6 @@ def generate_leaky(dag_one, name):
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
-    cfg.use_floats = True
 
     cfg.with_oc_config(oc_conf)
 
@@ -153,6 +151,25 @@ def concat():
 
 
 @dag_only
+def distinct_count():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    cl1 = sal._close(in1, "cl1", set([1, 2]))
+    cl2 = sal._close(in2, "cl2", set([1, 2]))
+
+    rel = sal.concat([cl1, cl2], "rel")
+
+    dis = sal.distinct_count(rel, 'dis', 'a')
+
+    opened = sal._open(dis, "opened", 1)
+
+    return set([in1, in2])
+
+
+@dag_only
 def divide():
 
     in_rels = setup()
@@ -234,29 +251,32 @@ def project():
 
 if __name__ == "__main__":
 
-    dag = agg()
-    generate(dag, 'agg')
+    # dag = agg()
+    # generate(dag, 'agg')
+    #
+    # dag = join()
+    # generate(dag, 'join')
+    #
+    # dag = agg()
+    # generate_leaky(dag, 'aggLeaky')
+    #
+    # dag = join()
+    # generate_leaky(dag, 'joinLeaky')
+    #
+    # dag = concat()
+    # generate(dag, 'concat')
+    #
+    # dag = multiply()
+    # generate(dag, 'multiply')
+    #
+    # dag = divide()
+    # generate(dag, 'divide')
+    #
+    # dag = sort_by()
+    # generate_leaky(dag, 'sort_by')
+    #
+    # dag = project()
+    # generate(dag, 'project')
 
-    dag = join()
-    generate(dag, 'join')
-
-    dag = agg()
-    generate_leaky(dag, 'aggLeaky')
-
-    dag = join()
-    generate_leaky(dag, 'joinLeaky')
-
-    dag = concat()
-    generate(dag, 'concat')
-
-    dag = multiply()
-    generate(dag, 'multiply')
-
-    dag = divide()
-    generate(dag, 'divide')
-
-    dag = sort_by()
-    generate_leaky(dag, 'sort_by')
-
-    dag = project()
-    generate(dag, 'project')
+    dag = distinct_count()
+    generate(dag, 'dis')

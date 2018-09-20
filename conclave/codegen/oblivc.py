@@ -74,6 +74,8 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_sort_by(node)
             elif isinstance(node, Open):
                 op_code += self._generate_open(node)
+            elif isinstance(node, DistinctCount):
+                op_code += self._generate_distinct_count(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -319,6 +321,22 @@ class OblivcCodeGen(CodeGen):
             "KEY_COL": agg_op.group_cols[0].idx,
             "AGG_COL": agg_op.agg_col.idx,
             "USE_LEAKY": leaky
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_distinct_count(self, distinct_count_op: DistinctCount):
+        """
+        Generate code for DistinctCount operations.
+        """
+
+        template = open(
+            "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": distinct_count_op.get_in_rel().name,
+            "OUT_REL": distinct_count_op.out_rel.name,
+            "KEY_COL": distinct_count_op.selected_col.idx
         }
 
         return pystache.render(template, data)
