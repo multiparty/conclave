@@ -6,7 +6,7 @@
 
 typedef struct
 {
-    float mat[ROWS][COLS];
+    {{{TYPE}}} mat[ROWS][COLS];
     int rows;
     int cols;
 } Io;
@@ -17,10 +17,9 @@ typedef struct
 	char *out;
 	Io in1;
 	Io in2;
-
 	int out_rows;
 	int out_cols;
-	float **ret;
+	{{{TYPE}}} **ret;
 
 } protocolIo;
 
@@ -28,8 +27,8 @@ typedef struct
 {
 	int rows;
 	int cols;
-	obliv int *keepRows;
-	obliv float **mat;
+	obliv {{{TYPE}}} *keepRows;
+	obliv {{{TYPE}}} **mat;
 
 } intermediateMat;
 
