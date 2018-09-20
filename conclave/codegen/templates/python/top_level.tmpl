@@ -162,9 +162,12 @@ def public_join_as_server(host: str, port: int, rel: list, key_col: int):
     print("server started and listening")
     client_socket, address = server_socket.accept()
     other_rel = receive_rel(client_socket, 1)
-    send_rel(client_socket, other_rel)
+    my_keys = project_indeces(project(rel, [key_col]))
+    other_keys = project_indeces(other_rel)
+    joined = sort_by(join(my_keys, other_keys, 1, 1), 0)
+    send_rel(client_socket, joined)
     server_socket.close()
-    return rel
+    return joined
 
 
 def public_join_as_client(host: str, port: int, rel: list, key_col: int):
@@ -178,9 +181,9 @@ def public_join_as_client(host: str, port: int, rel: list, key_col: int):
         except Exception as e:
             print(e)
             connected = False
-            time.sleep(1)
+            time.sleep(.042)
     send_rel(sock, rel)
-    rel_back = receive_rel(sock, 1)
+    rel_back = receive_rel(sock, 3)
     sock.close()
     return rel_back
 
