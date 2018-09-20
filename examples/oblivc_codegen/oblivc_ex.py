@@ -20,6 +20,7 @@ def generate(dag_one, name):
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
     cfg.use_leaky_ops = False
+    cfg.use_floats = True
 
     cfg.with_oc_config(oc_conf)
 
@@ -36,6 +37,7 @@ def generate_leaky(dag_one, name):
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = sys.argv[1]
+    cfg.use_floats = True
 
     cfg.with_oc_config(oc_conf)
 
@@ -246,15 +248,15 @@ if __name__ == "__main__":
 
     dag = concat()
     generate(dag, 'concat')
-    #
-    # dag = multiply()
-    # generate(dag, 'multiply')
-    #
-    # dag = divide()
-    # generate(dag, 'divide')
-    #
-    # dag = sort_by()
-    # generate_leaky(dag, 'sort_by')
-    #
-    # dag = project()
-    # generate(dag, 'project')
+
+    dag = multiply()
+    generate(dag, 'multiply')
+
+    dag = divide()
+    generate(dag, 'divide')
+
+    dag = sort_by()
+    generate_leaky(dag, 'sort_by')
+
+    dag = project()
+    generate(dag, 'project')
