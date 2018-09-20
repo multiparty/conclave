@@ -232,20 +232,20 @@ def project():
 
 if __name__ == "__main__":
 
-    # dag = agg()
-    # generate(dag, 'agg')
-    #
+    dag = agg()
+    generate(dag, 'agg')
+
     dag = join()
     generate(dag, 'join')
-    #
-    # dag = agg()
-    # generate_leaky(dag, 'aggLeaky')
-    #
+
+    dag = agg()
+    generate_leaky(dag, 'aggLeaky')
+
     dag = join()
     generate_leaky(dag, 'joinLeaky')
 
-    # dag = concat()
-    # generate(dag, 'concat')
+    dag = concat()
+    generate(dag, 'concat')
     #
     # dag = multiply()
     # generate(dag, 'multiply')
