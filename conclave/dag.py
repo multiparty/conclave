@@ -593,6 +593,21 @@ class Filter(UnaryOpNode):
         return False
 
 
+class PubJoin(UnaryOpNode):
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
+                 is_server: bool):
+        super(PubJoin, self).__init__("pub_join", out_rel, parent)
+        self.key_col = key_col
+        self.host = host
+        self.port = port
+        self.is_server = is_server
+        self.is_local = True
+
+    def is_reversible(self):
+        return False
+
+
 class Join(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
