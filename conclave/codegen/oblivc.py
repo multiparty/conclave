@@ -89,7 +89,9 @@ class OblivcCodeGen(CodeGen):
             "{}/top_level.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            'OP_CODE': op_code
+            'OP_CODE': op_code,
+            'TYPE': 'float' if self.config.use_floats else 'int',
+            'FEED_TYPE': 'Float' if self.config.use_floats else 'Int'
         }
 
         op_code = pystache.render(template, data)
@@ -351,7 +353,8 @@ class OblivcCodeGen(CodeGen):
             structs_code += "\tIo {};\n".format(in_rel)
 
         data = {
-            "STRUCTS": structs_code
+            "STRUCTS": structs_code,
+            "TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
@@ -406,7 +409,10 @@ class OblivcCodeGen(CodeGen):
             "PID": self.pid,
             "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid)),
             "WRITE_CODE": write_str,
-            "STRUCT_CODE": struct_code
+            "STRUCT_CODE": struct_code,
+            "TYPE": 'g' if self.config.use_floats else 'i',
+            "TYPE_CONV_STR": 'atof' if self.config.use_floats else 'atoi',
+            "NUM_TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
