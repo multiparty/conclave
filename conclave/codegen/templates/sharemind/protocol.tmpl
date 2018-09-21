@@ -499,8 +499,7 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol) {
     // assumes -1 not in input
     input[:,0] = (input[:,0] * input[:,1]) + (1 - input[:,1]) * (-1);
 
-    //D uint32 [[2]] sorted = sortingNetworkSort(input, (uint) 0);
-    D uint32 [[2]] sorted = input;
+    D uint32 [[2]] sorted = sortingNetworkSort(input, (uint) 0);
 //    printMatrix(declassify(sorted));
     pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
     pd_shared3p uint32[[1]] right = sorted[1:,0];
