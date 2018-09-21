@@ -77,7 +77,17 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
 
 template <domain D : shared3p>
 D uint32[[2]] concatCols(D uint32[[2]] left, D uint32[[2]] right, bool filter) {
-    return left;
+    assert(shape(left)[0] == shape(right)[0]);
+    uint ncolsLeft = shape(left)[1];
+    uint ncolsRight = shape(right)[1];
+
+//    printMatrix(declassify(left));
+//    printMatrix(declassify(right));
+    D uint32[[2]] withFlags(shape(left)[0], ncolsLeft + ncolsRight - 1);
+    withFlags[:, 0 : ncolsLeft] = left;
+    withFlags[:, ncolsLeft - 1: ncolsLeft + ncolsRight - 1] = right;
+
+    return withFlags;
 }
 
 template <domain D : shared3p>

@@ -190,7 +190,10 @@ def public_join_as_client(host: str, port: int, rel: list, key_col: int):
     for idx in rel_back:
         res_rel.append(rel[idx[0]])
     sock.close()
+    #num_cols = len(rel[0]) if rel else 0
+    #cols_to_keep = [i for i in range(num_cols) if i != key_col]
     return res_rel
+    #return project(res_rel, cols_to_keep)
 
 
 def pub_join(host: str, port: int, is_server: bool, rel: list, key_col: int):

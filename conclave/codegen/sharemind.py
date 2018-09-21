@@ -338,9 +338,9 @@ class SharemindCodeGen(CodeGen):
             "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
         data = {
             "TYPE": "uint32",
-            "OUT_REL_NAME": concat_cols_op.out_rel.name,
-            "IN_REL_NAME_LEFT": concat_cols_op.get_in_rels()[0].name,
-            "IN_REL_NAME_RIGHT": concat_cols_op.get_in_rels()[1].name
+            "OUT_REL": concat_cols_op.out_rel.name,
+            "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
+            "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
         }
         return pystache.render(template, data)
 

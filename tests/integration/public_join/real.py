@@ -45,7 +45,7 @@ if __name__ == "__main__":
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
+                                            use_docker=False,
                                             use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
-    # dispatch_jobs(job_queue, conclave_config)
+    dispatch_jobs(job_queue, conclave_config)
