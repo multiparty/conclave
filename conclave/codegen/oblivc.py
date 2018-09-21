@@ -76,6 +76,8 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_open(node)
             elif isinstance(node, DistinctCount):
                 op_code += self._generate_distinct_count(node)
+            elif isinstance(node, Filter):
+                op_code += self._generate_filter(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -134,6 +136,30 @@ class OblivcCodeGen(CodeGen):
          }
 
         return pystache.render(template, data)
+
+    def _generate_filter(self, filter_op: Filter):
+        """
+        Generate code for different filter operations.
+        """
+
+        if filter_op.is_scalar:
+
+            template = open(
+                "{0}/filter_eq_by_constant.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "CONSTANT": filter_op.scalar,
+                "USE_FLOATS": "true" if self.config.use_floats else "false"
+            }
+
+            return pystache.render(template, data)
+
+        else:
+
+            pass
 
     # TODO: generalize, oc code is limited to 2 input relations
     def _generate_concat(self, concat_op: Concat):

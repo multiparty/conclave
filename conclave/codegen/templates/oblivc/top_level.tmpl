@@ -933,6 +933,56 @@ void distinctCount
 	}
 }
 
+void filterEqByConstant
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int constant,
+		bool floats
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv {{{TYPE}}} **array = malloc(sizeof(*array) * numRows);
+	obliv {{{TYPE}}} *keepRows = malloc(sizeof(obliv {{{TYPE}}}) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv int eqFlag;
+		eqFlag = (mat->mat[i][keyCol] == constant);
+
+		array[i] = malloc(sizeof(**array) * numCols);
+
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+
+		if (floats)
+		{
+			obliv if (eqFlag)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+		else
+		{
+			keepRows[i] = mat->keepRows[i] * eqFlag;
+		}
+	}
+
+	ret->mat = array;
+	ret-> keepRows = keepRows;
+	ret->cols = numCols;
+	ret->rows = numRows;
+}
+
 void protocol(void *args)
 {
 
