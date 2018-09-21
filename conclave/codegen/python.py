@@ -2,9 +2,9 @@ import os
 
 import pystache
 
+import conclave.dag as ccdag
 from conclave.codegen import CodeGen
 from conclave.job import PythonJob
-import conclave.dag as ccdag
 
 
 class PythonCodeGen(CodeGen):
@@ -153,6 +153,18 @@ class PythonCodeGen(CodeGen):
             distinct_count_op.out_rel.name,
             distinct_count_op.get_in_rel().name,
             distinct_count_op.selected_col.idx
+        )
+
+    def _generate_pub_join(self, pub_join_op: ccdag.PubJoin):
+        """ Generate code for Pub Join operations. """
+        return "{}{} = pub_join(\"{}\", {}, {}, {}, {})\n".format(
+            self.space,
+            pub_join_op.out_rel.name,
+            pub_join_op.host,
+            pub_join_op.port,
+            "True" if pub_join_op.is_server else "False",
+            pub_join_op.get_in_rel().name,
+            pub_join_op.key_col.idx
         )
 
     def _generate_sort_by(self, sort_by_op: ccdag.SortBy):

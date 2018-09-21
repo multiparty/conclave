@@ -28,6 +28,18 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
+    def _generate_pub_join(pub_join_op: ccdag.PubJoin):
+        """ Generate code for JoinFlags operations. """
+
+        return "PUBJOIN{}{} ({}) ON [{}] AS {}\n".format(
+            "MPC" if pub_join_op.is_mpc else "",
+            "Server" if pub_join_op.is_server else "Client",
+            pub_join_op.get_in_rel().dbg_str(),
+            pub_join_op.key_col.name,
+            pub_join_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
     def _generate_flag_join(flag_join_op: ccdag.FlagJoin):
         """ Generate code for FlagJoin operations. """
 
@@ -105,6 +117,17 @@ class ScotchCodeGen(CodeGen):
             "MPC" if concat_op.is_mpc else "",
             in_rel_str,
             concat_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_concat_cols(concat_cols_op: ccdag.ConcatCols):
+        """ Generate code for ConcatCols operations. """
+
+        in_rel_str = ", ".join([in_rel.dbg_str() for in_rel in concat_cols_op.get_in_rels()])
+        return "CONCATCOLS{} [{}] AS {}\n".format(
+            "MPC" if concat_cols_op.is_mpc else "",
+            in_rel_str,
+            concat_cols_op.out_rel.dbg_str()
         )
 
     @staticmethod

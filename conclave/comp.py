@@ -132,6 +132,10 @@ class DagRewriter:
                 self._rewrite_distinct(node)
             elif isinstance(node, ccdag.DistinctCount):
                 self._rewrite_distinct_count(node)
+            elif isinstance(node, ccdag.PubJoin):
+                self._rewrite_pub_join(node)
+            elif isinstance(node, ccdag.ConcatCols):
+                self._rewrite_concat_cols(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -184,6 +188,12 @@ class DagRewriter:
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
         pass
 
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        pass
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        pass
+
 
 class MPCPushDown(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundaries down in workflows. """
@@ -193,7 +203,8 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
-    def _do_commute(self, top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
+    @staticmethod
+    def _do_commute(top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
         # TODO: over-simplified
         # TODO: add rules for other ops
 
@@ -205,7 +216,8 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewrite_default(self, node: ccdag.OpNode):
+    @staticmethod
+    def _rewrite_default(node: ccdag.OpNode):
         """
         Throughout the rewrite process, a node might switch from requiring
         MPC to no longer requiring it. This method updates a node's MPC
@@ -288,6 +300,10 @@ class MPCPushDown(DagRewriter):
 
         self._rewrite_default(node)
 
+    def _concat_cols(self, node: ccdag.ConcatCols):
+
+        self._rewrite_default(node)
+
     def _rewrite_concat(self, node: ccdag.Concat):
         """ Concat nodes with more than 1 child can be forked into multiple Concats. """
 
@@ -299,6 +315,10 @@ class MPCPushDown(DagRewriter):
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
         self._rewrite_unary_default(node)
 
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        self._rewrite_unary_default(node)
+
+
 class MPCPushUp(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundary up in workflows. """
 
@@ -308,7 +328,8 @@ class MPCPushUp(DagRewriter):
         super(MPCPushUp, self).__init__()
         self.reverse = True
 
-    def _rewrite_unary_default(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_unary_default(node: ccdag.UnaryOpNode):
         """ If a UnaryOpNode is at a lower MPC boundary, it can be computed locally. """
 
         par = next(iter(node.parents))
@@ -355,9 +376,16 @@ class MPCPushUp(DagRewriter):
                     par.out_rel.stored_with = copy.copy(out_stored_with)
             node.is_mpc = False
 
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO hack hack hack
+        node.is_mpc = True
+
     def _rewrite_create(self, node: ccdag.Create):
 
         pass
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        self._rewrite_unary_default(node)
 
 
 class CollSetPropDown(DagRewriter):
@@ -551,7 +579,8 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         super(InsertOpenAndCloseOps, self).__init__()
 
-    def _rewrite_default_unary(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_default_unary(node: ccdag.UnaryOpNode):
         """
         Insert Store node beneath a UnaryOpNode that
         is at a lower boundary of an MPC op.
@@ -659,6 +688,31 @@ class InsertOpenAndCloseOps(DagRewriter):
                 store_op = ccdag.Close(out_rel, None)
                 store_op.is_mpc = True
                 ccdag.insert_between(parent, node, store_op)
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO this is a mess...
+        out_stored_with = node.out_rel.stored_with
+        ordered_pars = node.get_sorted_parents()
+        in_stored_with = set()
+        for parent in ordered_pars:
+            par_stored_with = parent.out_rel.stored_with
+            in_stored_with |= par_stored_with
+        for parent in ordered_pars:
+            if not isinstance(parent, ccdag.Close):
+                out_rel = copy.deepcopy(parent.out_rel)
+                out_rel.rename(out_rel.name + "_close")
+                out_rel.stored_with = copy.copy(in_stored_with)
+                # create and insert close node
+                store_op = ccdag.Close(out_rel, None)
+                store_op.is_mpc = True
+                ccdag.insert_between(parent, node, store_op)
+
+        if node.is_leaf():
+            if len(in_stored_with) > 1 and len(out_stored_with) == 1:
+                target_party = next(iter(out_stored_with))
+                node.out_rel.stored_with = copy.copy(in_stored_with)
+                cc._open(node, node.out_rel.name + "_open", target_party)
+
 
 
 class ExpandCompositeOps(DagRewriter):

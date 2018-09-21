@@ -1,5 +1,10 @@
 import sys
 import re
+import socket
+import struct
+import time
+
+INT_SIZE = 4
 
 def write_rel(job_dir, rel_name, rel, schema_header):
 
@@ -78,9 +83,6 @@ def index_agg(rel, over_col, distinct_keys, indeces, aggregator):
 
     empty = 0
     res = [[key[0], empty] for key in distinct_keys]
-    print("rel", rel)
-    print("res", res)
-    print("indeces", indeces)
     for row_idx, key_idx in indeces:
         res[key_idx][1] = aggregator(res[key_idx][1], rel[row_idx][over_col])
     return res
@@ -110,6 +112,95 @@ def cc_filter(cond_lambda, rel):
 def distinct_count(rel, selected_col):
 
     return [[len(distinct(rel, [selected_col]))]]
+
+def receive_rel(sock: socket, num_cols: int):
+    num_elements_bytes = sock.recv(INT_SIZE)
+    num_elements = struct.unpack('i', num_elements_bytes)[0]
+    total_size = num_elements * INT_SIZE
+    byte_buf = bytearray(total_size)
+    view = memoryview(byte_buf)
+    while total_size:
+        received = sock.recv_into(view, total_size)
+        view = view[received:]
+        total_size -= received
+    element_it = struct.iter_unpack("i", byte_buf)
+
+    rel = []
+    col_idx = 0
+    row = []
+    for el in element_it:
+        row.append(el[0])
+        col_idx += 1
+        if col_idx >= num_cols:
+            rel.append(row)
+            col_idx = 0
+            row = []
+    return rel
+
+
+def send_rel(sock: socket, rel: list):
+    num_elements = len(rel) * (len(rel[0]) if rel else 0)
+    sock.sendall(struct.pack("i", num_elements))
+    as_bytes = bytearray(num_elements * INT_SIZE)
+    idx = 0
+    for row in rel:
+        for el in row:
+            struct.pack_into("i", as_bytes, idx, el)
+            idx += INT_SIZE
+    sock.sendall(as_bytes)
+
+
+def public_join_as_server(host: str, port: int, rel: list, key_col: int):
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((host, port))
+
+    server_socket.listen(5)
+    print("server started and listening")
+    client_socket, address = server_socket.accept()
+    other_rel = receive_rel(client_socket, 1)
+    my_keys = project_indeces(project(rel, [key_col]))
+
+    other_keys = project_indeces(other_rel)
+    joined = sort_by(join(my_keys, other_keys, 1, 1), 0)
+    other_cols = project(joined, [2])
+    send_rel(client_socket, other_cols)
+    res_rel = []
+    for idx in joined:
+        res_rel.append(rel[idx[1]])
+    server_socket.close()
+    return res_rel
+
+
+def public_join_as_client(host: str, port: int, rel: list, key_col: int):
+    sock = None
+    connected = False
+    while not connected:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((host, port))
+            connected = True
+        except Exception as e:
+            print(e)
+            connected = False
+            time.sleep(.042)
+    send_rel(sock, project(rel, [key_col]))
+    rel_back = receive_rel(sock, 1)
+    res_rel = []
+    for idx in rel_back:
+        res_rel.append(rel[idx[0]])
+    sock.close()
+    #num_cols = len(rel[0]) if rel else 0
+    #cols_to_keep = [i for i in range(num_cols) if i != key_col]
+    return res_rel
+    #return project(res_rel, cols_to_keep)
+
+
+def pub_join(host: str, port: int, is_server: bool, rel: list, key_col: int):
+    if is_server:
+        return public_join_as_server(host, port, rel, key_col)
+    else:
+        return public_join_as_client(host, port, rel, key_col)
 
 if __name__ == "__main__":
     print("start python")

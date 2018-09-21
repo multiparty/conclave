@@ -120,9 +120,9 @@ def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch
         formatted_time = datetime.timedelta(milliseconds=(elapsed_time * 1000))
         print("TIMED", conclave_config.name, round(elapsed_time, 3), formatted_time)
 
-        # with open("timing_results.csv", "a+") as time_f:
-        #     out = ",".join([conclave_config.name, str(round(elapsed_time, 3)), str(formatted_time)])
-        #     time_f.write(out + "\n")
+        with open("timing_results.csv", "a+") as time_f:
+            out = ",".join([conclave_config.name, str(round(elapsed_time, 3)), str(formatted_time)])
+            time_f.write(out + "\n")
     else:
         dispatch_all(conclave_config, networked_peer, job_queue)
 

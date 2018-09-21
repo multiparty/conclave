@@ -80,6 +80,10 @@ class CodeGen:
                 op_code += self._generate_sort_by(node)
             elif isinstance(node, CompNeighs):
                 op_code += self._generate_comp_neighs(node)
+            elif isinstance(node, PubJoin):
+                op_code += self._generate_pub_join(node)
+            elif isinstance(node, ConcatCols):
+                op_code += self._generate_concat_cols(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

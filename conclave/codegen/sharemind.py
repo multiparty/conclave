@@ -121,6 +121,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_filter(node)
             elif isinstance(node, DistinctCount):
                 miner_code += self._generate_distinct_count(node)
+            elif isinstance(node, ConcatCols):
+                miner_code += self._generate_concat_cols(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -326,6 +328,19 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL_NAME": close_op.out_rel.name,
             "IN_REL_NAME": close_op.get_in_rel().name
+        }
+        return pystache.render(template, data)
+
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+        template = open(
+            "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": concat_cols_op.out_rel.name,
+            "IN_REL_NAME_LEFT": concat_cols_op.get_in_rels()[0].name,
+            "IN_REL_NAME_RIGHT": concat_cols_op.get_in_rels()[1].name
         }
         return pystache.render(template, data)
 
