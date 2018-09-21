@@ -116,6 +116,27 @@ def agg():
     return set([in1, in2])
 
 
+# cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
+    # other_col_name: str = None, scalar: int = None)
+
+@dag_only
+def filter():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    cl1 = sal._close(in1, "cl1", set([1, 2]))
+    cl2 = sal._close(in2, "cl2", set([1, 2]))
+
+    rel = sal.concat([cl1, cl2], "rel")
+
+    filt = sal.cc_filter(rel, "filt", "a", "==", None, 1)
+
+    opened = sal._open(filt, "opened", 1)
+
+    return set([in1, in2])
+
 @dag_only
 def join():
 
@@ -277,6 +298,9 @@ if __name__ == "__main__":
     #
     # dag = project()
     # generate(dag, 'project')
+    #
+    # dag = distinct_count()
+    # generate(dag, 'dis')
 
-    dag = distinct_count()
-    generate(dag, 'dis')
+    dag = filter()
+    generate(dag, 'filt')
