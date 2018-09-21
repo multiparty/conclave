@@ -23,7 +23,11 @@ def protocol():
     right_dummy = cc.project(right, "right_dummy", ["c", "d"])
 
     left_join = cc._pub_join(left_dummy, "left_join", "a")
-    right_join = cc._pub_join(right_dummy, "right_join", "c", is_server=False)
+    right_join_proj = cc.project(
+        cc._pub_join(right_dummy, "right_join", "c", is_server=False), "right_join_proj", ["d"]
+    )
+    actual = cc.concat_cols([left_join, right_join_proj], "actual")
+    cc.collect(actual, 1)
 
     return {left, right}
 
@@ -40,9 +44,9 @@ if __name__ == "__main__":
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.use_leaky_ops = use_leaky
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", 
-        use_docker=True,
-        use_hdfs=False)
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
+                                            use_docker=True,
+                                            use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
@@ -53,4 +57,4 @@ if __name__ == "__main__":
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
-    dispatch_jobs(job_queue, conclave_config)
+    # dispatch_jobs(job_queue, conclave_config)

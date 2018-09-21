@@ -434,6 +434,34 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     return op
 
 
+def concat_cols(input_op_nodes: list, output_name: str):
+    """Defines operation for combining the columns from multiple relations into one."""
+    out_rel_cols = []
+    for input_op_node in input_op_nodes:
+        out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    # Get input relations from input nodes
+    in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
+
+    in_stored_with = [in_rel.stored_with for in_rel in in_rels]
+    out_stored_with = set().union(*in_stored_with)
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, out_stored_with)
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.ConcatCols(out_rel, input_op_nodes)
+
+    # Add it as a child to each input node
+    for input_op_node in input_op_nodes:
+        input_op_node.children.add(op)
+
+    return op
+
+
 # TODO: is a self-join a problem?
 def join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
          left_col_names: list, right_col_names: list):

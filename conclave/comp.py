@@ -134,6 +134,8 @@ class DagRewriter:
                 self._rewrite_distinct_count(node)
             elif isinstance(node, ccdag.PubJoin):
                 self._rewrite_pub_join(node)
+            elif isinstance(node, ccdag.ConcatCols):
+                self._rewrite_concat_cols(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -187,6 +189,9 @@ class DagRewriter:
         pass
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        pass
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
         pass
 
 
@@ -295,6 +300,10 @@ class MPCPushDown(DagRewriter):
 
         self._rewrite_default(node)
 
+    def _concat_cols(self, node: ccdag.ConcatCols):
+
+        self._rewrite_default(node)
+
     def _rewrite_concat(self, node: ccdag.Concat):
         """ Concat nodes with more than 1 child can be forked into multiple Concats. """
 
@@ -366,6 +375,10 @@ class MPCPushUp(DagRewriter):
                 if not par.is_root():
                     par.out_rel.stored_with = copy.copy(out_stored_with)
             node.is_mpc = False
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO hack hack hack
+        node.is_mpc = True
 
     def _rewrite_create(self, node: ccdag.Create):
 
@@ -675,6 +688,31 @@ class InsertOpenAndCloseOps(DagRewriter):
                 store_op = ccdag.Close(out_rel, None)
                 store_op.is_mpc = True
                 ccdag.insert_between(parent, node, store_op)
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO this is a mess...
+        out_stored_with = node.out_rel.stored_with
+        ordered_pars = node.get_sorted_parents()
+        in_stored_with = set()
+        for parent in ordered_pars:
+            par_stored_with = parent.out_rel.stored_with
+            in_stored_with |= par_stored_with
+        for parent in ordered_pars:
+            if not isinstance(parent, ccdag.Close):
+                out_rel = copy.deepcopy(parent.out_rel)
+                out_rel.rename(out_rel.name + "_close")
+                out_rel.stored_with = copy.copy(in_stored_with)
+                # create and insert close node
+                store_op = ccdag.Close(out_rel, None)
+                store_op.is_mpc = True
+                ccdag.insert_between(parent, node, store_op)
+
+        if node.is_leaf():
+            if len(in_stored_with) > 1 and len(out_stored_with) == 1:
+                target_party = next(iter(out_stored_with))
+                node.out_rel.stored_with = copy.copy(in_stored_with)
+                cc._open(node, node.out_rel.name + "_open", target_party)
+
 
 
 class ExpandCompositeOps(DagRewriter):

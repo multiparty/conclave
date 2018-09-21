@@ -120,6 +120,17 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
+    def _generate_concat_cols(concat_cols_op: ccdag.ConcatCols):
+        """ Generate code for ConcatCols operations. """
+
+        in_rel_str = ", ".join([in_rel.dbg_str() for in_rel in concat_cols_op.get_in_rels()])
+        return "CONCATCOLS{} [{}] AS {}\n".format(
+            "MPC" if concat_cols_op.is_mpc else "",
+            in_rel_str,
+            concat_cols_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
     def _generate_create(create_op: ccdag.Create):
         """ Generate code to Create relations. """
 

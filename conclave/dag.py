@@ -320,6 +320,38 @@ class Send(UnaryOpNode):
         return True
 
 
+class ConcatCols(NaryOpNode):
+    """ Object to store the concatenation of several relations' columns. """
+
+    def __init__(self, out_rel: rel.Relation, parents: list):
+        """ Initialize a ConcatCols object. """
+        parent_set = set(parents)
+        # sanity check for now
+        assert (len(parents) == len(parent_set))
+        super(ConcatCols, self).__init__("concat_cols", out_rel, parent_set)
+        self.ordered = parents
+        self.is_local = False
+
+    def is_reversible(self):
+        """ TODO pre-deadline hack."""
+        return False
+
+    def get_in_rels(self):
+        """ Returns the list of input relations to this node. """
+        return [parent.out_rel for parent in self.ordered]
+
+    def replace_parent(self, old_parent: OpNode, new_parent: OpNode):
+        """ Replace a particular parent node with another. """
+        super(ConcatCols, self).replace_parent(old_parent, new_parent)
+        # this will throw if old_parent not in list
+        idx = self.ordered.index(old_parent)
+        self.ordered[idx] = new_parent
+
+    def remove_parent(self, parent: OpNode):
+        # TODO
+        raise NotImplementedError()
+
+
 class Concat(NaryOpNode):
     """ Object to store the concatenation of several relations' datasets. """
 

@@ -76,6 +76,11 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
 }
 
 template <domain D : shared3p>
+D uint32[[2]] concatCols(D uint32[[2]] left, D uint32[[2]] right, bool filter) {
+    return left;
+}
+
+template <domain D : shared3p>
 D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
     D uint32[[2]] leftShuffled = shuffleRows(left);
     D uint32[[2]] rightShuffled = shuffleRows(right);
