@@ -933,6 +933,41 @@ void filterEqByConstant
 	ret->rows = numRows;
 }
 
+void filterLtByColumn
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int compCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv int ltFlag;
+		ltFlag = (mat->mat[i][keyCol] < mat->mat[i][compCol]);
+
+		array[i] = malloc(sizeof(**array) * numCols);
+
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+
+		keepRows[i] = mat->keepRows[i] * ltFlag;
+	}
+
+	ret->mat = array;
+	ret-> keepRows = keepRows;
+	ret->cols = numCols;
+	ret->rows = numRows;
+}
+
 void protocol(void *args)
 {
 

@@ -160,7 +160,17 @@ class OblivcCodeGen(CodeGen):
 
         else:
 
-            pass
+            template = open(
+                "{0}/filter_lt_by_column.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "COMP_COL": filter_op.other_col.idx
+            }
+
+            return pystache.render(template, data)
 
     # TODO: generalize, oc code is limited to 2 input relations
     def _generate_concat(self, concat_op: Concat):
