@@ -235,6 +235,8 @@ class MPCPushDown(DagRewriter):
         outside of MPC. This method tests whether such a transformation can be performed.
         """
         parent = next(iter(node.parents))
+        if isinstance(node, ccdag.Filter):
+            print(node, "parent", parent, parent.is_mpc)
         if parent.is_mpc:
             # if node is leaf stop
             if node.is_leaf():
@@ -279,6 +281,7 @@ class MPCPushDown(DagRewriter):
     def _rewrite_filter(self, node: ccdag.Filter):
 
         self._rewrite_unary_default(node)
+        print("node.is_mpc ", node.is_mpc)
 
     def _rewrite_multiply(self, node: ccdag.Multiply):
 
@@ -300,7 +303,7 @@ class MPCPushDown(DagRewriter):
 
         self._rewrite_default(node)
 
-    def _concat_cols(self, node: ccdag.ConcatCols):
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
 
         self._rewrite_default(node)
 
@@ -607,6 +610,7 @@ class InsertOpenAndCloseOps(DagRewriter):
             else:
                 raise Exception(
                     "different stored_with on non-lower-boundary unary op", node)
+                # pass
 
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
 
