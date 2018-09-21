@@ -89,13 +89,15 @@ class OblivcCodeGen(CodeGen):
         Returns generated Spark code and Job object.
         """
 
-        template = open(
-            "{}/top_level.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_floats:
+            template = open(
+                "{}/top_level_float.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/top_level_int.tmpl".format(self.template_directory), 'r').read()
 
         data = {
-            'OP_CODE': op_code,
-            'TYPE': 'float' if self.config.use_floats else 'int',
-            'FEED_TYPE': 'Float' if self.config.use_floats else 'Int'
+            'OP_CODE': op_code
         }
 
         op_code = pystache.render(template, data)
@@ -151,8 +153,7 @@ class OblivcCodeGen(CodeGen):
                 "IN_REL": filter_op.get_in_rel().name,
                 "OUT_REL": filter_op.out_rel.name,
                 "KEY_COL": filter_op.filter_col.idx,
-                "CONSTANT": filter_op.scalar,
-                "USE_FLOATS": "true" if self.config.use_floats else "false"
+                "CONSTANT": filter_op.scalar
             }
 
             return pystache.render(template, data)
