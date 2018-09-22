@@ -50,8 +50,9 @@ def protocol():
 if __name__ == "__main__":
     pid = sys.argv[1]
     data_root = sys.argv[2]
+    print(data_root)
     # define name for the workflow
-    workflow_name = "aspirin-local-filter-" + pid + "-" + data_root
+    workflow_name = "aspirin-large-join-" + pid + "-" + data_root
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.network_config = {
