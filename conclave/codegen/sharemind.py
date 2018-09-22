@@ -587,7 +587,8 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL": distinct_count_op.out_rel.name,
             "IN_REL": distinct_count_op.get_in_rel().name,
-            "SELECTED_COL": str(selected_col.idx)
+            "SELECTED_COL": str(selected_col.idx),
+            "USE_SORT": "true" if distinct_count_op.use_sort else "false"
         }
         return pystache.render(template, data)
 
