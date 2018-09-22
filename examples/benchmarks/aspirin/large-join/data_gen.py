@@ -40,7 +40,7 @@ def convert_diags_row(row: list):
     return ",".join(converted)
 
 
-def generate_meds_row(distinct_pids, ratio):
+def generate_meds_row(distinct_pids: int, ratio: int):
     row = ["0" for _ in range(8)]
     patient_id = random.randint(0, distinct_pids)
     med = "aspirin" if random.random() < ratio else "other"
@@ -52,9 +52,11 @@ def generate_meds_row(distinct_pids, ratio):
     return convert_meds_row(row)
 
 
-def generate_diags_row(distinct_pids, ratio):
+def generate_diags_row(distinct_pids: int, ratio: int, overlap_size: int):
     row = ["0" for _ in range(13)]
-    patient_id = random.randint(0, distinct_pids)
+    low = distinct_pids - overlap_size
+    high = 2 * distinct_pids - overlap_size
+    patient_id = random.randint(low, high)
     diagnosis = "414.05" if random.random() < ratio else "other"
     time_stamp = "01/01/01"  # fixed date for now since it has no influence on performance
     row[0] = str(patient_id)
@@ -79,6 +81,8 @@ if __name__ == '__main__':
                         help="mode (medication or diagnosis)", required=True)
     parser.add_argument("-s", "--seed", type=int,
                         help="random seed", required=False, default=42)
+    parser.add_argument("-i", "--intersect_size", type=int,
+                        help="number of intersecting patient IDs", required=True)
 
     args = parser.parse_args()
     random.seed(args.seed)
@@ -92,7 +96,7 @@ if __name__ == '__main__':
         gen = generate_meds_row
         raw_fn = "medication.csv"
     elif args.mode == "diagnosis":
-        gen = generate_diags_row
+        gen = lambda x, y : generate_diags_row(x, y, args.intersect_size)
         raw_fn = "diagnosis.csv"
     else:
         raise "Unknown mode " + str(args.mode)
@@ -100,11 +104,12 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(output_data_dir), exist_ok=True)
 
     with open("/".join([output_data_dir, raw_fn]), "w+") as out:
-        print("generating {} data for {} rows with {} distinct IDs and {} ratio".format(
+        print("generating {} data for {} rows with {} distinct IDs, {} overlap and {} ratio".format(
             args.mode,
             args.num_rows,
             args.distinct_pids,
-            args.ratio
+            args.intersect_size,
+            args.ratio,
         ))
         num_chunks = int(math.ceil(args.num_rows / chunk_size))  # might be unnecessary
         rows_left = args.num_rows

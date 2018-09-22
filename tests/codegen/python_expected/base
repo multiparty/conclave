@@ -159,12 +159,18 @@ def public_join_as_server(host: str, port: int, rel: list, key_col: int):
     print("server started and listening")
     client_socket, address = server_socket.accept()
     other_rel = receive_rel(client_socket, 1)
+    print("done receive")
     my_keys = project_indeces(project(rel, [key_col]))
+    print("done project")
 
     other_keys = project_indeces(other_rel)
+    print("start join")
     joined = sort_by(join(my_keys, other_keys, 1, 1), 0)
+    print("done join")
     other_cols = project(joined, [2])
+    print("done other project")
     send_rel(client_socket, other_cols)
+    print("done send")
     res_rel = []
     for idx in joined:
         res_rel.append(rel[idx[1]])
