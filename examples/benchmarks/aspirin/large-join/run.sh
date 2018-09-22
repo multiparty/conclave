@@ -1,6 +1,6 @@
 #!/bin/bash
 PARTY_ID=$1
-DATA_ROOT_DIR=aspirin_data/
+DATA_ROOT_DIR=aspirin_data/large_join
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # clean up data first
