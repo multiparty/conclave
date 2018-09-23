@@ -87,7 +87,7 @@ D uint32[[2]] concatCols(D uint32[[2]] left, D uint32[[2]] right, bool filter) {
     withFlags[:, 0 : ncolsLeft] = left;
     D uint32 foo = left[0, 0] * right[0, 0];
     withFlags[:, ncolsLeft - 1: ncolsLeft + ncolsRight - 1] = right;
-    print("done concatCols")
+    print("done concatCols");
     return withFlags;
 }
 
@@ -499,19 +499,26 @@ D uint32[[2]] filterEq(D uint32[[2]] rows,
 template <domain D : shared3p>
 D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
     print("start distinctCount");
+    pd_shared3p uint32 beacon = 1;
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
 
+    print("start selecting cols");
     D uint32 [[2]] input(nrows, 2);
     input[:,0] = rows[:,keyCol];
+    declassify(beacon);
     input[:,1] = rows[:,ncols - 1];
+    declassify(beacon);
+    print("done selecting cols");
 //    uint32 [[1]] ones(nrows) = 1;
     // assumes -1 not in input
     input[:,0] = (input[:,0] * input[:,1]) + (1 - input[:,1]) * (-1);
 
     D uint32 [[2]] sorted;
     if (useSort) {
+        print("start sort");
         sorted = sortingNetworkSort(input, (uint) 0);
+        print("done sort");
     } else {
         sorted = input;
     }
