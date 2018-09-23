@@ -135,6 +135,7 @@ def receive_rel(sock: socket, num_cols: int):
             rel.append(row)
             col_idx = 0
             row = []
+    byte_buf = None
     return rel
 
 
@@ -151,6 +152,7 @@ def send_rel(sock: socket, rel: list):
 
 
 def public_join_as_server(host: str, port: int, rel: list, key_col: int):
+    import gc
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
@@ -164,8 +166,11 @@ def public_join_as_server(host: str, port: int, rel: list, key_col: int):
     print("done project")
 
     other_keys = project_indeces(other_rel)
+    gc.collect()
     print("start join")
     joined = sort_by(join(my_keys, other_keys, 1, 1), 0)
+    other_keys = None
+    my_keys = None
     print("done join")
     other_cols = project(joined, [2])
     print("done other project")
