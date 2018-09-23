@@ -336,9 +336,11 @@ pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl, bool flags) {
     pd_shared3p uint32 [[2]] mat(nrows, actualCols);
     pd_shared3p uint32 beacon = 1;
     for (uint c = 0; c < ncols; ++c) {
+        print("start reading column");
         pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
         mat[ : , c] = col;
         declassify(beacon);
+        print("done reading column");
     }
     if (flags) {
         mat[:,ncols] = 1;

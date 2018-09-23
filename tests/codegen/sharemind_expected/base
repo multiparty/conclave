@@ -80,13 +80,14 @@ D uint32[[2]] concatCols(D uint32[[2]] left, D uint32[[2]] right, bool filter) {
     assert(shape(left)[0] == shape(right)[0]);
     uint ncolsLeft = shape(left)[1];
     uint ncolsRight = shape(right)[1];
-
+    print("start concatCols");
 //    printMatrix(declassify(left));
 //    printMatrix(declassify(right));
     D uint32[[2]] withFlags(shape(left)[0], ncolsLeft + ncolsRight - 1);
     withFlags[:, 0 : ncolsLeft] = left;
+    D uint32 foo = left[0, 0] * right[0, 0];
     withFlags[:, ncolsLeft - 1: ncolsLeft + ncolsRight - 1] = right;
-
+    print("done concatCols")
     return withFlags;
 }
 
@@ -263,10 +264,14 @@ template <domain D : shared3p>
 D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
     uint nrows = shape(rows)[0];
     uint ncols = size(selectedCols);
+    print("start project");
     D uint32 [[2]] projected(nrows, ncols);
+    D uint32 beacon = 1;
     for (uint c = 0; c < ncols; ++c) {
         projected[:, c] = rows[:, selectedCols[c]];
+        declassify(beacon);
     }
+    print("done project");
     return projected;
 }
 
@@ -331,9 +336,11 @@ pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl, bool flags) {
     pd_shared3p uint32 [[2]] mat(nrows, actualCols);
     pd_shared3p uint32 beacon = 1;
     for (uint c = 0; c < ncols; ++c) {
+        print("start reading column");
         pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
         mat[ : , c] = col;
         declassify(beacon);
+        print("done reading column");
     }
     if (flags) {
         mat[:,ncols] = 1;
@@ -447,7 +454,7 @@ D uint32[[2]] filterLt(D uint32[[2]] rows,
         uint[[1]] ltIndexesLeft,
         uint[[1]] ltIndexesRight) {
     assert(size(ltIndexesLeft) == size(ltIndexesRight));
-
+    print("start filterLt");
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
     uint numComps = size(ltIndexesLeft);
@@ -462,6 +469,7 @@ D uint32[[2]] filterLt(D uint32[[2]] rows,
         finalFlags = finalFlags * compRes;
     }
     rows[:,ncols - 1] = finalFlags;
+    print("done filterLt");
     return rows;
 }
 
@@ -470,7 +478,7 @@ D uint32[[2]] filterEq(D uint32[[2]] rows,
         uint[[1]] ltIndexesLeft,
         uint[[1]] scalars) {
     assert(size(ltIndexesLeft) == size(scalars));
-
+    print("start filterEq");
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
     uint numComps = size(ltIndexesLeft);
@@ -484,11 +492,13 @@ D uint32[[2]] filterEq(D uint32[[2]] rows,
         finalFlags *= compRes;
     }
     rows[:,ncols - 1] = finalFlags;
+    print("done filterEq");
     return rows;
 }
 
 template <domain D : shared3p>
 D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
+    print("start distinctCount");
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
 
@@ -526,6 +536,7 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
     D uint32 [[2]] res(1, 2);
     res[0,0] = sum(final);
     res[0,1] = 1;
+    print("done distinctCount");
     return res;
 }
 
