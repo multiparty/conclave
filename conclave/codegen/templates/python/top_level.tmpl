@@ -175,6 +175,7 @@ def public_join_as_server(host: str, port: int, rel: list, key_col: int):
     other_cols = project(joined, [2])
     print("done other project")
     send_rel(client_socket, other_cols)
+    other_cols = None
     print("done send")
     res_rel = []
     for idx in joined:
