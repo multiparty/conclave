@@ -437,7 +437,7 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     return op
 
 
-def concat_cols(input_op_nodes: list, output_name: str):
+def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
     """Defines operation for combining the columns from multiple relations into one."""
     out_rel_cols = []
     for input_op_node in input_op_nodes:
@@ -456,7 +456,7 @@ def concat_cols(input_op_nodes: list, output_name: str):
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.ConcatCols(out_rel, input_op_nodes)
+    op = cc_dag.ConcatCols(out_rel, input_op_nodes, use_mult)
 
     # Add it as a child to each input node
     for input_op_node in input_op_nodes:

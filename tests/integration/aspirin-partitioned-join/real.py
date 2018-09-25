@@ -44,7 +44,7 @@ def protocol():
                              other_op_node=left_diagnosis_proj)
     right_join = cc._pub_join(right_medication_proj, "right_join", pid_col_meds, is_server=False,
                               other_op_node=right_diagnosis_proj)
-    cc.collect(cc.concat_cols([left_join, right_join], "joined"), 1)
+    cc.collect(cc.concat_cols([left_join, right_join], "joined", use_mult=True), 1)
 
     return {
         left_medication,
