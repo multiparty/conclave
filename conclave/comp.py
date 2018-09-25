@@ -319,7 +319,7 @@ class MPCPushDown(DagRewriter):
         self._rewrite_unary_default(node)
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
-        self._rewrite_unary_default(node)
+        self._rewrite_default(node)
 
 
 class MPCPushUp(DagRewriter):
@@ -388,7 +388,9 @@ class MPCPushUp(DagRewriter):
         pass
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
-        self._rewrite_unary_default(node)
+
+        pass
+        # self._rewrite_unary_default(node)
 
 
 class CollSetPropDown(DagRewriter):

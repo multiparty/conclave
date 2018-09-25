@@ -224,7 +224,7 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
     return op
 
 
-def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool=False):
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool = False):
     """
     Define DistinctCount operation.
 
@@ -410,7 +410,8 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
 # TODO hack hack hack
 def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str, host: str = "ca-spark-node-0",
               port: int = 8042,
-              is_server: bool = True):
+              is_server: bool = True,
+              other_op_node: cc_dag.OpNode = None):
     # Get input relation from input node
     in_rel = input_op_node.out_rel
 
@@ -426,10 +427,12 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.PubJoin(out_rel, input_op_node, key_col, host, port, is_server)
+    op = cc_dag.PubJoin(out_rel, input_op_node, key_col, host, port, is_server, other_op_node)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
+    if other_op_node:
+        other_op_node.children.add(op)
 
     return op
 

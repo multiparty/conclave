@@ -157,15 +157,27 @@ class PythonCodeGen(CodeGen):
 
     def _generate_pub_join(self, pub_join_op: ccdag.PubJoin):
         """ Generate code for Pub Join operations. """
-        return "{}{} = pub_join(\"{}\", {}, {}, {}, {})\n".format(
-            self.space,
-            pub_join_op.out_rel.name,
-            pub_join_op.host,
-            pub_join_op.port,
-            "True" if pub_join_op.is_server else "False",
-            pub_join_op.get_in_rel().name,
-            pub_join_op.key_col.idx
-        )
+        if pub_join_op.right_parent is None:
+            return "{}{} = pub_join(\"{}\", {}, {}, {}, {})\n".format(
+                self.space,
+                pub_join_op.out_rel.name,
+                pub_join_op.host,
+                pub_join_op.port,
+                "True" if pub_join_op.is_server else "False",
+                pub_join_op.get_left_in_rel().name,
+                pub_join_op.key_col.idx
+            )
+        else:
+            return "{}{} = pub_join_part(\"{}\", {}, {}, {}, {}, {})\n".format(
+                self.space,
+                pub_join_op.out_rel.name,
+                pub_join_op.host,
+                pub_join_op.port,
+                "True" if pub_join_op.is_server else "False",
+                pub_join_op.get_left_in_rel().name,
+                pub_join_op.get_right_in_rel().name,
+                pub_join_op.key_col.idx
+            )
 
     def _generate_sort_by(self, sort_by_op: ccdag.SortBy):
         """ Generate code for SortBy operations. """

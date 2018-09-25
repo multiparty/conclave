@@ -626,11 +626,11 @@ class Filter(UnaryOpNode):
         return False
 
 
-class PubJoin(UnaryOpNode):
+class PubJoin(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
-                 is_server: bool):
-        super(PubJoin, self).__init__("pub_join", out_rel, parent)
+                 is_server: bool, other_op_node: OpNode):
+        super(PubJoin, self).__init__("pub_join", out_rel, parent, other_op_node)
         self.key_col = key_col
         self.host = host
         self.port = port
