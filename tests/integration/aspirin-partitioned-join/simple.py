@@ -4,6 +4,8 @@ import socket
 import struct
 import time
 
+import os
+
 INT_SIZE = 4
 
 def write_rel(job_dir, rel_name, rel, schema_header):
@@ -332,7 +334,7 @@ def pub_join_part(host: str, port: int, is_server: bool, rel: list, other_rel: l
         return public_join_as_client_part(host, port, rel, other_rel, key_col, key_col)
 
 if __name__ == "__main__":
-    data_root = "/home/sharemind/Desktop/conclave/tests/integration/aspirin-partitioned-join/data/"
+    data_root = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/data/"
     
     left_diagnosis = read_rel(data_root + "left_diagnosis.csv")
     left_diagnosis_proj = project(left_diagnosis, [0, 8, 10])

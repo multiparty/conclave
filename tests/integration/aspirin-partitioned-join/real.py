@@ -74,7 +74,7 @@ if __name__ == "__main__":
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=False,
+                                            use_docker=True,
                                             use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))
