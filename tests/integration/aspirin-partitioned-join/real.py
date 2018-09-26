@@ -44,7 +44,14 @@ def protocol():
                              other_op_node=left_diagnosis_proj)
     right_join = cc._pub_join(right_medication_proj, "right_join", pid_col_meds, is_server=False,
                               other_op_node=right_diagnosis_proj)
-    cc.collect(cc.concat_cols([left_join, right_join], "joined", use_mult=True), 1)
+    joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
+
+    # do filters after the join
+    cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
+    aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
+    heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
+
+    cc.collect(cc.distinct_count(heart_patients, "actual", pid_col_meds, use_sort=False), 1)
 
     return {
         left_medication,
@@ -67,7 +74,7 @@ if __name__ == "__main__":
     conclave_config.all_pids = [1, 2, 3]
     conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
+                                            use_docker=False,
                                             use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))

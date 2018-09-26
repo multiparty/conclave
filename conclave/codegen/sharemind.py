@@ -334,15 +334,26 @@ class SharemindCodeGen(CodeGen):
     def _generate_concat_cols(self, concat_cols_op: ConcatCols):
         if len(concat_cols_op.get_in_rels()) != 2:
             raise NotImplementedError("Only support concat cols of two relations")
-        template = open(
-            "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
-        data = {
-            "TYPE": "uint32",
-            "OUT_REL": concat_cols_op.out_rel.name,
-            "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
-            "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
-        }
-        return pystache.render(template, data)
+        if concat_cols_op.use_mult:
+            template = open(
+                "{0}/mult.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "TYPE": "uint32",
+                "OUT_REL": concat_cols_op.out_rel.name,
+                "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
+                "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
+            }
+            return pystache.render(template, data)
+        else:
+            template = open(
+                "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "TYPE": "uint32",
+                "OUT_REL": concat_cols_op.out_rel.name,
+                "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
+                "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
+            }
+            return pystache.render(template, data)
 
     def _generate_concat(self, concat_op: Concat):
         """ Generate code for Concat operations. """

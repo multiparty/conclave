@@ -417,9 +417,12 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
 
     # Get relevant columns and create copies
     out_rel_cols = copy.deepcopy(in_rel.columns)
+    if other_op_node:
+        out_rel_cols += copy.deepcopy(other_op_node.out_rel.columns[1:])
 
     # Get index of filter column
     key_col = utils.find(in_rel.columns, key_col_name)
+    assert key_col.idx == 0
     key_col.coll_sets = set()
 
     # Create output relation
@@ -440,8 +443,13 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
 def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
     """Defines operation for combining the columns from multiple relations into one."""
     out_rel_cols = []
-    for input_op_node in input_op_nodes:
-        out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    # TODO hack hack hack
+    if use_mult:
+        out_rel_cols += copy.deepcopy(input_op_nodes[0].out_rel.columns)
+    else:
+        for input_op_node in input_op_nodes:
+            out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    
     for col in out_rel_cols:
         col.coll_sets = set()
 
