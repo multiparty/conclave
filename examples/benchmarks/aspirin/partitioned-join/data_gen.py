@@ -40,28 +40,49 @@ def convert_diags_row(row: list):
     return ",".join(converted)
 
 
-def generate_meds_row(pids_low: int, pids_high: int, ratio: int):
+def generate_meds_row(pids_low: int, pids_high: int, ratio: int, convert: bool = True):
     row = ["0" for _ in range(8)]
     patient_id = random.randint(pids_low, pids_high)
     med = "aspirin" if random.random() < ratio else "other"
     time_stamp = "01/01/02"  # fixed date for now since it has no influence on performance
     row[0] = str(patient_id)
+    row[1] = "7"
+    row[2] = "2006"
+    row[3] = "9"
     row[4] = med
+    row[5] = "10 mg"
+    row[6] = "oral"
     row[7] = time_stamp
     # pre-convert
-    return convert_meds_row(row)
+    if convert:
+        return convert_meds_row(row)
+    else:
+        return ",".join(row)
 
 
-def generate_diags_row(pids_low: int, pids_high: int, ratio: int):
+def generate_diags_row(pids_low: int, pids_high: int, ratio: int, convert: bool = True):
     row = ["0" for _ in range(13)]
     patient_id = random.randint(pids_low, pids_high)
     diagnosis = "414.05" if random.random() < ratio else "other"
     time_stamp = "01/01/01"  # fixed date for now since it has no influence on performance
     row[0] = str(patient_id)
+    row[1] = "7"
+    row[2] = "2006"
+    row[3] = "2"
+    row[4] = "1"
+    row[5] = "1"
+    row[6] = "1"
+    row[7] = "1"
     row[8] = diagnosis
+    row[9] = "1"
     row[10] = time_stamp
+    row[11] = "008.45"
+    row[12] = "008"
     # pre-convert
-    return convert_diags_row(row)
+    if convert:
+        return convert_diags_row(row)
+    else:
+        return ",".join(row)
 
 
 def generate_data(args, gen, fn):
@@ -80,7 +101,7 @@ def generate_data(args, gen, fn):
         for c in range(num_chunks):
             num_to_gen = min(rows_left, chunk_size)
             print("left to generate", rows_left)
-            rows = [gen(args.low, args.upper, args.ratio) for _ in range(num_to_gen)]
+            rows = [gen(args.low, args.upper, args.ratio, not args.smcql) for _ in range(num_to_gen)]
             out.write("\n".join(rows))
             out.write("\n")
             rows_left -= num_to_gen
@@ -105,6 +126,8 @@ if __name__ == '__main__':
                         help="mode (medication or diagnosis)", required=True)
     parser.add_argument("-s", "--seed", type=int,
                         help="random seed", required=False, default=42)
+    parser.add_argument("-q", "--smcql", action='store_true',
+                        help="use smcql format")
 
     args = parser.parse_args()
     random.seed(args.seed)
@@ -112,9 +135,7 @@ if __name__ == '__main__':
     output_data_dir = args.output
 
     low = args.low
-    # args.distinct_pids - args.intersect_size
     high = args.upper
-    # 2 * args.distinct_pids - args.intersect_size
     args.distinct_pids = high - low
 
     os.makedirs(os.path.dirname(output_data_dir), exist_ok=True)
