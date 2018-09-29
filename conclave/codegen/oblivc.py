@@ -78,6 +78,8 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_distinct_count(node)
             elif isinstance(node, Filter):
                 op_code += self._generate_filter(node)
+            elif isinstance(node, ConcatCols):
+                pass
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -136,6 +138,28 @@ class OblivcCodeGen(CodeGen):
             "STORED_WITH": stored_with_set.pop(),
             "PARENT": parent_name
          }
+
+        return pystache.render(template, data)
+
+    def _generate_matrix_multiply(self, concat_cols_op: ConcatCols):
+        """
+        Generate code for element-wise matrix multiplication.
+        """
+
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+
+        if not concat_cols_op.use_mult:
+            raise NotImplementedError("Only support concat cols for with use_mult set to True")
+
+        template = open(
+            "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "LEFT_REL": concat_cols_op.get_in_rels()[0],
+            'RIGHT_REL': concat_cols_op.get_in_rels()[1],
+            "OUT_REL": concat_cols_op.out_rel.name
+        }
 
         return pystache.render(template, data)
 

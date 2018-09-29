@@ -977,6 +977,47 @@ void filterEqByConstant
 	ret->rows = numRows;
 }
 
+void multiplyMatrices
+	(
+		intermediateMat *matOne,
+		intermediateMat *matTwo,
+		intermediateMat *ret
+	)
+{
+	if (matOne->rows != matTwo->rows)
+	{
+		printf("Unequal number of rows for multiplyMatrices operator.");
+		exit(1);
+	}
+	if (matOne->cols != matTwo->cols)
+	{
+		printf("Unequal number of columns for multiplyMatrices operator.");
+		exit(1);
+	}
+
+	int numRows = matOne->rows;
+	int numCols = matOne->cols;
+
+	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = matOne->mat[i][j] * matTwo->mat[i][j];
+		}
+	}
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
 void protocol(void *args)
 {
 
