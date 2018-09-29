@@ -323,13 +323,14 @@ class Send(UnaryOpNode):
 class ConcatCols(NaryOpNode):
     """ Object to store the concatenation of several relations' columns. """
 
-    def __init__(self, out_rel: rel.Relation, parents: list):
+    def __init__(self, out_rel: rel.Relation, parents: list, use_mult: bool):
         """ Initialize a ConcatCols object. """
         parent_set = set(parents)
         # sanity check for now
         assert (len(parents) == len(parent_set))
         super(ConcatCols, self).__init__("concat_cols", out_rel, parent_set)
         self.ordered = parents
+        self.use_mult = use_mult
         self.is_local = False
 
     def is_reversible(self):
@@ -576,10 +577,11 @@ class DistinctCount(UnaryOpNode):
     Distinct count operator.
     """
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str, use_sort: bool):
         super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
         self.selected_col = selected_col
         self.is_reversible = False
+        self.use_sort = use_sort
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
@@ -625,11 +627,11 @@ class Filter(UnaryOpNode):
         return False
 
 
-class PubJoin(UnaryOpNode):
+class PubJoin(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
-                 is_server: bool):
-        super(PubJoin, self).__init__("pub_join", out_rel, parent)
+                 is_server: bool, other_op_node: OpNode):
+        super(PubJoin, self).__init__("pub_join", out_rel, parent, other_op_node)
         self.key_col = key_col
         self.host = host
         self.port = port

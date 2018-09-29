@@ -334,15 +334,26 @@ class SharemindCodeGen(CodeGen):
     def _generate_concat_cols(self, concat_cols_op: ConcatCols):
         if len(concat_cols_op.get_in_rels()) != 2:
             raise NotImplementedError("Only support concat cols of two relations")
-        template = open(
-            "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
-        data = {
-            "TYPE": "uint32",
-            "OUT_REL_NAME": concat_cols_op.out_rel.name,
-            "IN_REL_NAME_LEFT": concat_cols_op.get_in_rels()[0].name,
-            "IN_REL_NAME_RIGHT": concat_cols_op.get_in_rels()[1].name
-        }
-        return pystache.render(template, data)
+        if concat_cols_op.use_mult:
+            template = open(
+                "{0}/mult.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "TYPE": "uint32",
+                "OUT_REL": concat_cols_op.out_rel.name,
+                "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
+                "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
+            }
+            return pystache.render(template, data)
+        else:
+            template = open(
+                "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+            data = {
+                "TYPE": "uint32",
+                "OUT_REL": concat_cols_op.out_rel.name,
+                "LEFT_IN_REL": concat_cols_op.get_in_rels()[0].name,
+                "RIGHT_IN_REL": concat_cols_op.get_in_rels()[1].name
+            }
+            return pystache.render(template, data)
 
     def _generate_concat(self, concat_op: Concat):
         """ Generate code for Concat operations. """
@@ -587,7 +598,8 @@ class SharemindCodeGen(CodeGen):
             "TYPE": "uint32",
             "OUT_REL": distinct_count_op.out_rel.name,
             "IN_REL": distinct_count_op.get_in_rel().name,
-            "SELECTED_COL": str(selected_col.idx)
+            "SELECTED_COL": str(selected_col.idx),
+            "USE_SORT": "true" if distinct_count_op.use_sort else "false"
         }
         return pystache.render(template, data)
 

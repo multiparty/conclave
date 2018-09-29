@@ -4,6 +4,8 @@ import socket
 import struct
 import time
 
+import os
+
 INT_SIZE = 4
 
 def write_rel(job_dir, rel_name, rel, schema_header):
@@ -332,6 +334,28 @@ def pub_join_part(host: str, port: int, is_server: bool, rel: list, other_rel: l
         return public_join_as_client_part(host, port, rel, other_rel, key_col, key_col)
 
 if __name__ == "__main__":
-    print("start python")
-{{{OP_CODE}}}
-    print("done python")
+    data_root = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/data/"
+    
+    left_diagnosis = read_rel(data_root + "left_diagnosis.csv")
+    left_diagnosis_proj = project(left_diagnosis, [0, 8, 10])
+    left_medication = read_rel(data_root + "left_medication.csv")
+    left_medication_proj = project(left_medication, [0, 4, 7])
+
+    right_diagnosis = read_rel(data_root + "right_diagnosis.csv")
+    right_diagnosis_proj = project(right_diagnosis, [0, 8, 10])
+    right_medication = read_rel(data_root + "right_medication.csv")
+    right_medication_proj = project(right_medication, [0, 4, 7])
+
+    keys_left = key_union(left_diagnosis_proj, left_medication_proj, 0, 0)
+    keys_right = key_union(right_diagnosis_proj, right_medication_proj, 0, 0)
+    keys = keys_left & keys_right
+
+    meds = filter_by_keys(left_medication_proj + right_medication_proj, keys, 0)
+    diags = filter_by_keys(left_diagnosis_proj + right_diagnosis_proj, keys, 0)
+    
+    heart_patients = cc_filter(lambda row : row[1] == 1, diags)
+    aspirin = cc_filter(lambda row : row[1] == 1, meds)
+    joined  = join(aspirin, heart_patients, 0, 0)
+    cases = cc_filter(lambda row : row[4] < row[2], joined)
+    expected = distinct_count(cases, 0)
+    write_rel(data_root, "expected.csv", expected, '"0"')

@@ -225,7 +225,7 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
     return op
 
 
-def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str):
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool = False):
     """
     Define DistinctCount operation.
 
@@ -250,7 +250,7 @@ def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col)
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col, use_sort)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -411,15 +411,19 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
 # TODO hack hack hack
 def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str, host: str = "ca-spark-node-0",
               port: int = 8042,
-              is_server: bool = True):
+              is_server: bool = True,
+              other_op_node: cc_dag.OpNode = None):
     # Get input relation from input node
     in_rel = input_op_node.out_rel
 
     # Get relevant columns and create copies
     out_rel_cols = copy.deepcopy(in_rel.columns)
+    if other_op_node:
+        out_rel_cols += copy.deepcopy(other_op_node.out_rel.columns[1:])
 
     # Get index of filter column
     key_col = utils.find(in_rel.columns, key_col_name)
+    assert key_col.idx == 0
     key_col.coll_sets = set()
 
     # Create output relation
@@ -427,19 +431,26 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.PubJoin(out_rel, input_op_node, key_col, host, port, is_server)
+    op = cc_dag.PubJoin(out_rel, input_op_node, key_col, host, port, is_server, other_op_node)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
+    if other_op_node:
+        other_op_node.children.add(op)
 
     return op
 
 
-def concat_cols(input_op_nodes: list, output_name: str):
+def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
     """Defines operation for combining the columns from multiple relations into one."""
     out_rel_cols = []
-    for input_op_node in input_op_nodes:
-        out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    # TODO hack hack hack
+    if use_mult:
+        out_rel_cols += copy.deepcopy(input_op_nodes[0].out_rel.columns)
+    else:
+        for input_op_node in input_op_nodes:
+            out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    
     for col in out_rel_cols:
         col.coll_sets = set()
 
@@ -454,7 +465,7 @@ def concat_cols(input_op_nodes: list, output_name: str):
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.ConcatCols(out_rel, input_op_nodes)
+    op = cc_dag.ConcatCols(out_rel, input_op_nodes, use_mult)
 
     # Add it as a child to each input node
     for input_op_node in input_op_nodes:

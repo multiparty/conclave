@@ -76,6 +76,31 @@ D uint32[[2]] joinFromEqFlags(D uint32[[1]] eqFlags, D uint32[[2]] left, uint le
 }
 
 template <domain D : shared3p>
+D uint32[[2]] concatCols(D uint32[[2]] left, D uint32[[2]] right, bool filter) {
+    assert(shape(left)[0] == shape(right)[0]);
+    uint ncolsLeft = shape(left)[1];
+    uint ncolsRight = shape(right)[1];
+    print("start concatCols");
+//    printMatrix(declassify(left));
+//    printMatrix(declassify(right));
+    D uint32[[2]] withFlags(shape(left)[0], ncolsLeft + ncolsRight - 1);
+    withFlags[:, 0 : ncolsLeft] = left;
+    D uint32 foo = left[0, 0] * right[0, 0];
+    withFlags[:, ncolsLeft - 1: ncolsLeft + ncolsRight - 1] = right;
+    print("done concatCols");
+    return withFlags;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] mult(D uint32[[2]] left, D uint32[[2]] right) {
+    assert(shape(left)[0] == shape(right)[0]);
+    print("Start mult");
+    D uint32[[2]] res = left * right;
+    print("Done mult");
+    return res;
+}
+
+template <domain D : shared3p>
 D uint32[[2]] _obliviousJoin(D uint32[[2]] left, uint leftJoinColIdx, D uint32[[2]] right, uint rightJoinColIdx) {
     D uint32[[2]] leftShuffled = shuffleRows(left);
     D uint32[[2]] rightShuffled = shuffleRows(right);
@@ -248,10 +273,14 @@ template <domain D : shared3p>
 D uint32[[2]] project(D uint32[[2]] rows, uint[[1]] selectedCols) {
     uint nrows = shape(rows)[0];
     uint ncols = size(selectedCols);
+    print("start project");
     D uint32 [[2]] projected(nrows, ncols);
+    D uint32 beacon = 1;
     for (uint c = 0; c < ncols; ++c) {
         projected[:, c] = rows[:, selectedCols[c]];
+        declassify(beacon);
     }
+    print("done project");
     return projected;
 }
 
@@ -314,11 +343,13 @@ pd_shared3p uint32 [[2]] readFromDb(string ds, string tbl, bool flags) {
     uint actualCols = ncols + (uint) flags;
 
     pd_shared3p uint32 [[2]] mat(nrows, actualCols);
+    pd_shared3p uint32 beacon = 1;
     for (uint c = 0; c < ncols; ++c) {
+        print("start reading column");
         pd_shared3p uint32 [[1]] col = tdbReadColumn(ds, tbl, c);
-        for (uint r = 0; r < nrows; ++r) {
-            mat[r, c] = col[r];
-        }
+        mat[ : , c] = col;
+        declassify(beacon);
+        print("done reading column");
     }
     if (flags) {
         mat[:,ncols] = 1;
@@ -432,7 +463,7 @@ D uint32[[2]] filterLt(D uint32[[2]] rows,
         uint[[1]] ltIndexesLeft,
         uint[[1]] ltIndexesRight) {
     assert(size(ltIndexesLeft) == size(ltIndexesRight));
-
+    print("start filterLt");
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
     uint numComps = size(ltIndexesLeft);
@@ -447,6 +478,7 @@ D uint32[[2]] filterLt(D uint32[[2]] rows,
         finalFlags = finalFlags * compRes;
     }
     rows[:,ncols - 1] = finalFlags;
+    print("done filterLt");
     return rows;
 }
 
@@ -455,7 +487,7 @@ D uint32[[2]] filterEq(D uint32[[2]] rows,
         uint[[1]] ltIndexesLeft,
         uint[[1]] scalars) {
     assert(size(ltIndexesLeft) == size(scalars));
-
+    print("start filterEq");
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
     uint numComps = size(ltIndexesLeft);
@@ -469,23 +501,37 @@ D uint32[[2]] filterEq(D uint32[[2]] rows,
         finalFlags *= compRes;
     }
     rows[:,ncols - 1] = finalFlags;
+    print("done filterEq");
     return rows;
 }
 
 template <domain D : shared3p>
-D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol) {
+D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
+    print("start distinctCount");
+    pd_shared3p uint32 beacon = 1;
     uint nrows = shape(rows)[0];
     uint ncols = shape(rows)[1];
 
+    print("start selecting cols");
     D uint32 [[2]] input(nrows, 2);
     input[:,0] = rows[:,keyCol];
+    declassify(beacon);
     input[:,1] = rows[:,ncols - 1];
+    declassify(beacon);
+    print("done selecting cols");
 //    uint32 [[1]] ones(nrows) = 1;
     // assumes -1 not in input
     input[:,0] = (input[:,0] * input[:,1]) + (1 - input[:,1]) * (-1);
 
-    D uint32 [[2]] sorted = sortingNetworkSort(input, (uint) 0);
-//    printMatrix(declassify(sorted));
+    D uint32 [[2]] sorted;
+    if (useSort) {
+        print("start sort");
+        sorted = sortingNetworkSort(input, (uint) 0);
+        print("done sort");
+    } else {
+        sorted = input;
+    }
+
     pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
     pd_shared3p uint32[[1]] right = sorted[1:,0];
 
@@ -506,6 +552,7 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol) {
     D uint32 [[2]] res(1, 2);
     res[0,0] = sum(final);
     res[0,1] = 1;
+    print("done distinctCount");
     return res;
 }
 
