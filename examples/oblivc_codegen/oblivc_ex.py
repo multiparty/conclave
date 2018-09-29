@@ -131,7 +131,7 @@ def filter():
 
     rel = sal.concat([cl1, cl2], "rel")
 
-    filt = sal.cc_filter(rel, "filt", "a", "==", None, 1)
+    filt = sal.cc_filter(rel, "filt", "c", "<", "d", None)
 
     opened = sal._open(filt, "opened", 1)
 
@@ -274,13 +274,13 @@ if __name__ == "__main__":
 
     # dag = agg()
     # generate(dag, 'agg')
-    #
+    # #
     # dag = join()
     # generate(dag, 'join')
-    #
+    # #
     # dag = agg()
     # generate_leaky(dag, 'aggLeaky')
-    #
+    # #
     # dag = join()
     # generate_leaky(dag, 'joinLeaky')
     #
