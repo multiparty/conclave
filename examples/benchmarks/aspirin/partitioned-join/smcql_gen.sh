@@ -3,9 +3,14 @@
 PARTY=${1}
 SIZE=${2}
 
-TOTAL_SIZE=$((SIZE * 2))
-DIST=$((10 * TOTAL_SIZE / 100))
-OVER=$((20 * DIST / 100))
+if (( ${SIZE} > 500000))
+then
+    DIST=500000
+else
+    DIST=SIZE
+fi
+
+OVER=$((2 * DIST / 100))
 
 if (( ${PARTY} == 1 ))
 then
