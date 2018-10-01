@@ -7,7 +7,7 @@ if (( ${SIZE} > 500000))
 then
     DIST=500000
 else
-    DIST=SIZE
+    DIST=${SIZE}
 fi
 
 OVER=$((2 * DIST / 100))
