@@ -130,7 +130,7 @@ if __name__ == '__main__':
                         help="use smcql format")
 
     args = parser.parse_args()
-    random.seed(args.seed)
+    # random.seed(args.seed)
 
     output_data_dir = args.output
 
