@@ -95,8 +95,6 @@ def run_local():
 
         return {medication, diagnosis}
 
-    # define name for the workflow
-    workflow_name = "aspirin-real-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1]
@@ -105,10 +103,8 @@ def run_local():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
-    # point conclave to directory where data is to be read from...
-    conclave_config.input_path = os.path.join(current_dir, data_root)
-    # and written to
-    conclave_config.output_path = os.path.join(current_dir, data_root)
+    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
+    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(local_protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
     dispatch_jobs(job_queue, conclave_config)
