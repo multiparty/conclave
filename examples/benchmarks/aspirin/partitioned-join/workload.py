@@ -106,9 +106,9 @@ def run_local():
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     # point conclave to directory where data is to be read from...
-    conclave_config.input_path = os.path.join(current_dir, "data")
+    conclave_config.input_path = os.path.join(current_dir, data_root)
     # and written to
-    conclave_config.output_path = os.path.join(current_dir, "data")
+    conclave_config.output_path = os.path.join(current_dir, data_root)
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(local_protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=False)
     dispatch_jobs(job_queue, conclave_config)
