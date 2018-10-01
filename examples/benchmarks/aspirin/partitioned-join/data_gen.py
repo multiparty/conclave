@@ -88,13 +88,14 @@ def generate_diags_row(pids_low: int, pids_high: int, ratio: int, convert: bool 
 def generate_data(args, gen, fn):
     chunk_size = 1000000
     with open("/".join([output_data_dir, fn]), "w+") as out:
-        print("generating {} data for {} rows with {} distinct IDs, between {} and {} with {} ratio".format(
+        print("generating {} data for {} rows with {} distinct IDs, between {} and {} with {} ratio and seed {}".format(
             args.mode,
             args.num_rows,
             args.distinct_pids,
             args.low,
             args.upper,
             args.ratio,
+            args.seed
         ))
         num_chunks = int(math.ceil(args.num_rows / chunk_size))  # might be unnecessary
         rows_left = args.num_rows
@@ -130,7 +131,7 @@ if __name__ == '__main__':
                         help="use smcql format")
 
     args = parser.parse_args()
-    # random.seed(args.seed)
+    random.seed(args.seed)
 
     output_data_dir = args.output
 
