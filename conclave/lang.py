@@ -224,6 +224,39 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
     return op
 
 
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool = False):
+    """
+    Define DistinctCount operation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Distinct node.
+    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :return: Distinct OpNode.
+    """
+
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Find all columns by name
+    selected_col = utils.find(in_rel.columns, selected_col_name)
+
+    out_rel_cols = copy.deepcopy([selected_col])
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col, use_sort)
+
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
+
 def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str, operands: list):
     """
     Define Divide operation.
@@ -276,18 +309,23 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str, filter_expr: str):
-    # TODO: Not implemented in codegen as far as I can tell
+def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
+              other_col_name: str = None, scalar: int = None):
     """
     Define Filter operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Filter node.
     :param filter_col_name: Name of column that relation gets filtered over.
-    :param operator: # TODO not sure what the difference between operator and filter_expr is
-    :param filter_expr:
+    :param operator: == or <
+    :param other_col_name: Name of column to compare to (possibly none).
+    :param scalar: Scalar to compare to(possibly none).
+
     :return: Filter OpNode
     """
+
+    # Make sure we're using valid operator option
+    assert operator in {"==", "<"}
 
     # Get input relation from input node
     in_rel = input_op_node.out_rel
@@ -299,12 +337,17 @@ def filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str,
     filter_col = utils.find(in_rel.columns, filter_col_name)
     filter_col.coll_sets = set()
 
+    # Get index of other column (if there is one)
+    other_col = utils.find(in_rel.columns, other_col_name) if other_col_name else None
+    if other_col:
+        other_col.coll_sets = set()
+
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.Filter(out_rel, input_op_node, filter_col, operator, filter_expr)
+    op = cc_dag.Filter(out_rel, input_op_node, filter_col, operator, other_col, scalar)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -360,6 +403,72 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
 
     # Add it as a child to input node
     input_op_node.children.add(op)
+
+    return op
+
+
+# TODO hack hack hack
+def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str, host: str = "ca-spark-node-0",
+              port: int = 8042,
+              is_server: bool = True,
+              other_op_node: cc_dag.OpNode = None):
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Get relevant columns and create copies
+    out_rel_cols = copy.deepcopy(in_rel.columns)
+    if other_op_node:
+        out_rel_cols += copy.deepcopy(other_op_node.out_rel.columns[1:])
+
+    # Get index of filter column
+    key_col = utils.find(in_rel.columns, key_col_name)
+    assert key_col.idx == 0
+    key_col.coll_sets = set()
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.PubJoin(out_rel, input_op_node, key_col, host, port, is_server, other_op_node)
+
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+    if other_op_node:
+        other_op_node.children.add(op)
+
+    return op
+
+
+def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
+    """Defines operation for combining the columns from multiple relations into one."""
+    out_rel_cols = []
+    # TODO hack hack hack
+    if use_mult:
+        out_rel_cols += copy.deepcopy(input_op_nodes[0].out_rel.columns)
+    else:
+        for input_op_node in input_op_nodes:
+            out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
+    
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    # Get input relations from input nodes
+    in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
+
+    in_stored_with = [in_rel.stored_with for in_rel in in_rels]
+    out_stored_with = set().union(*in_stored_with)
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, out_stored_with)
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.ConcatCols(out_rel, input_op_nodes, use_mult)
+
+    # Add it as a child to each input node
+    for input_op_node in input_op_nodes:
+        input_op_node.children.add(op)
 
     return op
 

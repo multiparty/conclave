@@ -12,7 +12,7 @@ trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
-export PYTHONPATH=${HOME}/conclave
+export PYTHONPATH=${PYTHONPATH}:/${HOME}/Desktop/conclave
 
 # set up data
 mkdir -p ${DIR}/data
@@ -22,7 +22,13 @@ else
     :
 fi
 
-cp $DIR/input_data/*.csv $DIR/data/
+# data needs custom pre-processing
+if [ "$(ls -A ${DIR}/prep.py)" ]; then
+    python3 ${DIR}/prep.py ${DIR}/input_data ${DIR}/data
+else
+	cp $DIR/input_data/*.csv $DIR/data/
+fi
+
 
 # run python workflow to generate expected results
 python3 ${DIR}/simple.py 1

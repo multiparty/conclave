@@ -130,6 +130,12 @@ class DagRewriter:
                 self._rewrite_create(node)
             elif isinstance(node, ccdag.Distinct):
                 self._rewrite_distinct(node)
+            elif isinstance(node, ccdag.DistinctCount):
+                self._rewrite_distinct_count(node)
+            elif isinstance(node, ccdag.PubJoin):
+                self._rewrite_pub_join(node)
+            elif isinstance(node, ccdag.ConcatCols):
+                self._rewrite_concat_cols(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -179,6 +185,15 @@ class DagRewriter:
     def _rewrite_distinct(self, node: ccdag.Distinct):
         pass
 
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+        pass
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        pass
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        pass
+
 
 class MPCPushDown(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundaries down in workflows. """
@@ -188,7 +203,8 @@ class MPCPushDown(DagRewriter):
 
         super(MPCPushDown, self).__init__()
 
-    def _do_commute(self, top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
+    @staticmethod
+    def _do_commute(top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
         # TODO: over-simplified
         # TODO: add rules for other ops
 
@@ -200,7 +216,8 @@ class MPCPushDown(DagRewriter):
         else:
             return False
 
-    def _rewrite_default(self, node: ccdag.OpNode):
+    @staticmethod
+    def _rewrite_default(node: ccdag.OpNode):
         """
         Throughout the rewrite process, a node might switch from requiring
         MPC to no longer requiring it. This method updates a node's MPC
@@ -218,6 +235,8 @@ class MPCPushDown(DagRewriter):
         outside of MPC. This method tests whether such a transformation can be performed.
         """
         parent = next(iter(node.parents))
+        if isinstance(node, ccdag.Filter):
+            print(node, "parent", parent, parent.is_mpc)
         if parent.is_mpc:
             # if node is leaf stop
             if node.is_leaf():
@@ -262,6 +281,7 @@ class MPCPushDown(DagRewriter):
     def _rewrite_filter(self, node: ccdag.Filter):
 
         self._rewrite_unary_default(node)
+        print("node.is_mpc ", node.is_mpc)
 
     def _rewrite_multiply(self, node: ccdag.Multiply):
 
@@ -283,6 +303,10 @@ class MPCPushDown(DagRewriter):
 
         self._rewrite_default(node)
 
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+
+        self._rewrite_default(node)
+
     def _rewrite_concat(self, node: ccdag.Concat):
         """ Concat nodes with more than 1 child can be forked into multiple Concats. """
 
@@ -290,6 +314,12 @@ class MPCPushDown(DagRewriter):
             node.is_mpc = True
             if len(node.children) > 1 and node.is_boundary():
                 fork_node(node)
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+        self._rewrite_unary_default(node)
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        self._rewrite_default(node)
 
 
 class MPCPushUp(DagRewriter):
@@ -301,7 +331,8 @@ class MPCPushUp(DagRewriter):
         super(MPCPushUp, self).__init__()
         self.reverse = True
 
-    def _rewrite_unary_default(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_unary_default(node: ccdag.UnaryOpNode):
         """ If a UnaryOpNode is at a lower MPC boundary, it can be computed locally. """
 
         par = next(iter(node.parents))
@@ -348,9 +379,18 @@ class MPCPushUp(DagRewriter):
                     par.out_rel.stored_with = copy.copy(out_stored_with)
             node.is_mpc = False
 
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO hack hack hack
+        node.is_mpc = True
+
     def _rewrite_create(self, node: ccdag.Create):
 
         pass
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+
+        pass
+        # self._rewrite_unary_default(node)
 
 
 class CollSetPropDown(DagRewriter):
@@ -544,7 +584,8 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         super(InsertOpenAndCloseOps, self).__init__()
 
-    def _rewrite_default_unary(self, node: ccdag.UnaryOpNode):
+    @staticmethod
+    def _rewrite_default_unary(node: ccdag.UnaryOpNode):
         """
         Insert Store node beneath a UnaryOpNode that
         is at a lower boundary of an MPC op.
@@ -571,6 +612,7 @@ class InsertOpenAndCloseOps(DagRewriter):
             else:
                 raise Exception(
                     "different stored_with on non-lower-boundary unary op", node)
+                # pass
 
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
 
@@ -581,6 +623,10 @@ class InsertOpenAndCloseOps(DagRewriter):
         self._rewrite_default_unary(node)
 
     def _rewrite_divide(self, node: ccdag.Divide):
+
+        self._rewrite_default_unary(node)
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
 
         self._rewrite_default_unary(node)
 
@@ -649,6 +695,31 @@ class InsertOpenAndCloseOps(DagRewriter):
                 store_op.is_mpc = True
                 ccdag.insert_between(parent, node, store_op)
 
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        # TODO this is a mess...
+        out_stored_with = node.out_rel.stored_with
+        ordered_pars = node.get_sorted_parents()
+        in_stored_with = set()
+        for parent in ordered_pars:
+            par_stored_with = parent.out_rel.stored_with
+            in_stored_with |= par_stored_with
+        for parent in ordered_pars:
+            if not isinstance(parent, ccdag.Close):
+                out_rel = copy.deepcopy(parent.out_rel)
+                out_rel.rename(out_rel.name + "_close")
+                out_rel.stored_with = copy.copy(in_stored_with)
+                # create and insert close node
+                store_op = ccdag.Close(out_rel, None)
+                store_op.is_mpc = True
+                ccdag.insert_between(parent, node, store_op)
+
+        if node.is_leaf():
+            if len(in_stored_with) > 1 and len(out_stored_with) == 1:
+                target_party = next(iter(out_stored_with))
+                node.out_rel.stored_with = copy.copy(in_stored_with)
+                cc._open(node, node.out_rel.name + "_open", target_party)
+
+
 
 class ExpandCompositeOps(DagRewriter):
     """
@@ -678,70 +749,71 @@ class ExpandCompositeOps(DagRewriter):
         self.agg_counter += 1
         return "_hybrid_agg_" + str(self.agg_counter)
 
-    def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
-        """
-        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
-        """
-        suffix = self._create_unique_agg_suffix()
-        group_by_col_name = node.group_cols[0].name
+    # This is obsolete now
+    # def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
+    #     """
+    #     Expand hybrid aggregation into a sub-dag of primitive operators. This uses the leaky version.
+    #     """
+    #     suffix = self._create_unique_agg_suffix()
+    #     group_by_col_name = node.group_cols[0].name
 
-        shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
-        shuffled.is_mpc = True
-        node.parent.children.remove(node)
+    #     shuffled = cc.shuffle(node.parent, "shuffled" + suffix)
+    #     shuffled.is_mpc = True
+    #     node.parent.children.remove(node)
 
-        persisted = cc._persist(shuffled, "persisted" + suffix)
-        persisted.isMPC = True
+    #     persisted = cc._persist(shuffled, "persisted" + suffix)
+    #     persisted.isMPC = True
 
-        keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
-        keys_closed.isMPC = True
+    #     keys_closed = cc.project(shuffled, "keys_closed" + suffix, [group_by_col_name])
+    #     keys_closed.isMPC = True
 
-        keys_open = cc._open(keys_closed, "keys_open" + suffix, node.trusted_party)
-        keys_open.isMPC = True
+    #     keys_open = cc._open(keys_closed, "keys_open" + suffix, node.trusted_party)
+    #     keys_open.isMPC = True
 
-        indexed = cc.index(keys_open, "indexed" + suffix, "row_index")
-        indexed.isMPC = False
+    #     indexed = cc.index(keys_open, "indexed" + suffix, "row_index")
+    #     indexed.isMPC = False
 
-        distinct_keys = cc.distinct(keys_open, "distinct_keys" + suffix, [group_by_col_name])
-        distinct_keys.isMPC = False
+    #     distinct_keys = cc.distinct(keys_open, "distinct_keys" + suffix, [group_by_col_name])
+    #     distinct_keys.isMPC = False
 
-        # TODO use persist
-        persist_dist_keys = cc.project(distinct_keys, "persist_dist_keys" + suffix, [group_by_col_name])
-        persist_dist_keys.isMPC = False
+    #     # TODO use persist
+    #     persist_dist_keys = cc.project(distinct_keys, "persist_dist_keys" + suffix, [group_by_col_name])
+    #     persist_dist_keys.isMPC = False
 
-        indexed_distinct = cc.index(distinct_keys, "indexed_distinct" + suffix, "key_index")
-        indexed_distinct.isMPC = False
+    #     indexed_distinct = cc.index(distinct_keys, "indexed_distinct" + suffix, "key_index")
+    #     indexed_distinct.isMPC = False
 
-        indexes_joined = cc.join(indexed, indexed_distinct, "indexes_joined" + suffix, [group_by_col_name],
-                                 [group_by_col_name])
-        indexes_joined.isMPC = False
+    #     indexes_joined = cc.join(indexed, indexed_distinct, "indexes_joined" + suffix, [group_by_col_name],
+    #                              [group_by_col_name])
+    #     indexes_joined.isMPC = False
 
-        # TODO: could project row indexes away too
-        indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
-        indexes_only.isMPC = False
+    #     # TODO: could project row indexes away too
+    #     indexes_only = cc.project(indexes_joined, "indexes_only" + suffix, ["row_index", "key_index"])
+    #     indexes_only.isMPC = False
 
-        closed_distinct = cc._close(persist_dist_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
-        closed_distinct.isMPC = True
-        keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
-        keys_lookup.isMPC = True
+    #     closed_distinct = cc._close(persist_dist_keys, "closed_distinct" + suffix, node.get_in_rel().stored_with)
+    #     closed_distinct.isMPC = True
+    #     keys_lookup = cc._close(indexes_only, "keys_lookup" + suffix, node.get_in_rel().stored_with)
+    #     keys_lookup.isMPC = True
 
-        group_col_names = [col.name for col in node.group_cols]
-        out_over_col_name = node.out_rel.columns[-1].name
+    #     group_col_names = [col.name for col in node.group_cols]
+    #     out_over_col_name = node.out_rel.columns[-1].name
 
-        result = cc._leaky_index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name,
-                                           node.aggregator,
-                                           out_over_col_name,
-                                           closed_distinct,
-                                           keys_lookup)
-        result.is_mpc = True
-        # replace self with leaf of expanded subdag in each child node
-        for child in node.get_sorted_children():
-            child.replace_parent(node, result)
-        # add former children to children of leaf
-        result.children = node.children
+    #     result = cc._leaky_index_aggregate(persisted, node.out_rel.name, group_col_names, node.agg_col.name,
+    #                                        node.aggregator,
+    #                                        out_over_col_name,
+    #                                        closed_distinct,
+    #                                        keys_lookup)
+    #     result.is_mpc = True
+    #     # replace self with leaf of expanded subdag in each child node
+    #     for child in node.get_sorted_children():
+    #         child.replace_parent(node, result)
+    #     # add former children to children of leaf
+    #     result.children = node.children
 
     def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
         """
-        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the non-leaky version.
+        Expand hybrid aggregation into a sub-dag of primitive operators. This uses the size-leaking version.
         """
         suffix = self._create_unique_agg_suffix()
         group_by_col_name = node.group_cols[0].name
@@ -796,72 +868,74 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            self._rewrite_agg_leaky(node)
+            raise Exception("not implemented")
+            # self._rewrite_agg_leaky(node)
         else:
             self._rewrite_agg_non_leaky(node)
 
-    def _rewrite_join_leaky(self, node: ccdag.HybridJoin):
+    # this is obsolete now
+    # def _rewrite_join_leaky(self, node: ccdag.HybridJoin):
+    #     """
+    #     Expand hybrid join into a sub-dag of primitive operators. This uses the leaky version.
+    #     """
+    #     suffix = self._create_unique_join_suffix()
+    #     # TODO column names should not be hard-coded
+
+    #     # in left parents' children, replace self with first primitive operator
+    #     # in expanded subdag
+    #     shuffled_a = cc.shuffle(node.left_parent, "shuffled_a" + suffix)
+    #     shuffled_a.is_mpc = True
+    #     node.left_parent.children.remove(node)
+
+    #     # same for right parent
+    #     shuffled_b = cc.shuffle(node.right_parent, "shuffled_b" + suffix)
+    #     shuffled_b.is_mpc = True
+    #     node.right_parent.children.remove(node)
+
+    #     persisted_b = cc._persist(shuffled_b, "persisted_b" + suffix)
+    #     persisted_b.is_mpc = True
+    #     persisted_a = cc._persist(shuffled_a, "persisted_a" + suffix)
+    #     persisted_a.is_mpc = True
+
+    #     keys_a_closed = cc.project(shuffled_a, "keys_a_closed" + suffix, ["a"])
+    #     keys_a_closed.is_mpc = True
+    #     keys_b_closed = cc.project(shuffled_b, "keys_b_closed" + suffix, ["c"])
+    #     keys_b_closed.is_mpc = True
+
+    #     keys_a = cc._open(keys_a_closed, "keys_a" + suffix, node.trusted_party)
+    #     keys_a.is_mpc = True
+    #     keys_b = cc._open(keys_b_closed, "keys_b" + suffix, node.trusted_party)
+    #     keys_b.is_mpc = True
+
+    #     indexed_a = cc.index(keys_a, "indexed_a" + suffix, "index_a")
+    #     indexed_a.is_mpc = False
+
+    #     indexed_b = cc.index(keys_b, "indexed_b" + suffix, "index_b")
+    #     indexed_b.is_mpc = False
+
+    #     joined_indices = cc.join(indexed_a, indexed_b, "joined_indices" + suffix, ["a"], ["c"])
+    #     joined_indices.is_mpc = False
+
+    #     indices_only = cc.project(
+    #         joined_indices, "indices_only" + suffix, ["index_a", "index_b"])
+    #     indices_only.is_mpc = False
+
+    #     stored_with_union = node.get_left_in_rel().stored_with.union(node.get_right_in_rel().stored_with)
+    #     indices_closed = cc._close(indices_only, "indices_closed" + suffix, stored_with_union)
+    #     indices_closed.is_mpc = True
+
+    #     joined = cc._index_join(persisted_a, persisted_b, node.out_rel.name, ["a"], ["c"], indices_closed)
+    #     joined.is_mpc = True
+
+    #     # replace self with leaf of expanded subdag in each child node
+    #     for child in node.get_sorted_children():
+    #         child.replace_parent(node, joined)
+    #     # add former children to children of leaf
+    #     joined.children = node.children
+
+    def _rewrite_hybrid_join_non_leaky(self, node: ccdag.HybridJoin):
         """
-        Expand hybrid join into a sub-dag of primitive operators. This uses the leaky version.
-        """
-        suffix = self._create_unique_join_suffix()
-        # TODO column names should not be hard-coded
-
-        # in left parents' children, replace self with first primitive operator
-        # in expanded subdag
-        shuffled_a = cc.shuffle(node.left_parent, "shuffled_a" + suffix)
-        shuffled_a.is_mpc = True
-        node.left_parent.children.remove(node)
-
-        # same for right parent
-        shuffled_b = cc.shuffle(node.right_parent, "shuffled_b" + suffix)
-        shuffled_b.is_mpc = True
-        node.right_parent.children.remove(node)
-
-        persisted_b = cc._persist(shuffled_b, "persisted_b" + suffix)
-        persisted_b.is_mpc = True
-        persisted_a = cc._persist(shuffled_a, "persisted_a" + suffix)
-        persisted_a.is_mpc = True
-
-        keys_a_closed = cc.project(shuffled_a, "keys_a_closed" + suffix, ["a"])
-        keys_a_closed.is_mpc = True
-        keys_b_closed = cc.project(shuffled_b, "keys_b_closed" + suffix, ["c"])
-        keys_b_closed.is_mpc = True
-
-        keys_a = cc._open(keys_a_closed, "keys_a" + suffix, node.trusted_party)
-        keys_a.is_mpc = True
-        keys_b = cc._open(keys_b_closed, "keys_b" + suffix, node.trusted_party)
-        keys_b.is_mpc = True
-
-        indexed_a = cc.index(keys_a, "indexed_a" + suffix, "index_a")
-        indexed_a.is_mpc = False
-
-        indexed_b = cc.index(keys_b, "indexed_b" + suffix, "index_b")
-        indexed_b.is_mpc = False
-
-        joined_indices = cc.join(indexed_a, indexed_b, "joined_indices" + suffix, ["a"], ["c"])
-        joined_indices.is_mpc = False
-
-        indices_only = cc.project(
-            joined_indices, "indices_only" + suffix, ["index_a", "index_b"])
-        indices_only.is_mpc = False
-
-        stored_with_union = node.get_left_in_rel().stored_with.union(node.get_right_in_rel().stored_with)
-        indices_closed = cc._close(indices_only, "indices_closed" + suffix, stored_with_union)
-        indices_closed.is_mpc = True
-
-        joined = cc._index_join(persisted_a, persisted_b, node.out_rel.name, ["a"], ["c"], indices_closed)
-        joined.is_mpc = True
-
-        # replace self with leaf of expanded subdag in each child node
-        for child in node.get_sorted_children():
-            child.replace_parent(node, joined)
-        # add former children to children of leaf
-        joined.children = node.children
-
-    def _rewrite_join_non_leaky(self, node: ccdag.HybridJoin):
-        """
-        Expand hybrid join into a sub-dag of primitive operators. This uses the non-leaky version.
+        Expand hybrid join into a sub-dag of primitive operators. This uses the size-leaking version.
         """
         suffix = self._create_unique_join_suffix()
         # TODO column names should not be hard-coded
@@ -917,9 +991,9 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:
-            self._rewrite_join_leaky(node)
+            raise Exception("not implemented")
         else:
-            self._rewrite_join_non_leaky(node)
+            self._rewrite_hybrid_join_non_leaky(node)
 
 
 class StoredWithSimplifier(DagRewriter):
@@ -946,7 +1020,7 @@ class StoredWithSimplifier(DagRewriter):
                 node.out_rel.stored_with = self.all_parties
 
 
-def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = True):
+def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = False):
     """ Combines and calls all rewrite operations. """
     if all_parties is None:
         all_parties = [1, 2, 3]

@@ -320,6 +320,39 @@ class Send(UnaryOpNode):
         return True
 
 
+class ConcatCols(NaryOpNode):
+    """ Object to store the concatenation of several relations' columns. """
+
+    def __init__(self, out_rel: rel.Relation, parents: list, use_mult: bool):
+        """ Initialize a ConcatCols object. """
+        parent_set = set(parents)
+        # sanity check for now
+        assert (len(parents) == len(parent_set))
+        super(ConcatCols, self).__init__("concat_cols", out_rel, parent_set)
+        self.ordered = parents
+        self.use_mult = use_mult
+        self.is_local = False
+
+    def is_reversible(self):
+        """ TODO pre-deadline hack."""
+        return False
+
+    def get_in_rels(self):
+        """ Returns the list of input relations to this node. """
+        return [parent.out_rel for parent in self.ordered]
+
+    def replace_parent(self, old_parent: OpNode, new_parent: OpNode):
+        """ Replace a particular parent node with another. """
+        super(ConcatCols, self).replace_parent(old_parent, new_parent)
+        # this will throw if old_parent not in list
+        idx = self.ordered.index(old_parent)
+        self.ordered[idx] = new_parent
+
+    def remove_parent(self, parent: OpNode):
+        # TODO
+        raise NotImplementedError()
+
+
 class Concat(NaryOpNode):
     """ Object to store the concatenation of several relations' datasets. """
 
@@ -539,6 +572,23 @@ class Distinct(UnaryOpNode):
             col, rel.Column) else col for col in old_cols]
 
 
+class DistinctCount(UnaryOpNode):
+    """
+    Distinct count operator.
+    """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str, use_sort: bool):
+        super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
+        self.selected_col = selected_col
+        self.is_reversible = False
+        self.use_sort = use_sort
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_in_rel().columns
+        old_col = copy.copy(self.selected_col)
+        self.selected_col = temp_cols[old_col.idx] if isinstance(old_col, rel.Column) else old_col
+
+
 class Divide(UnaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operands: list):
@@ -559,11 +609,33 @@ class Divide(UnaryOpNode):
 
 class Filter(UnaryOpNode):
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode, target_col: rel.Column, operator: str, expr: str):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, filter_col: rel.Column, operator: str,
+                 other_col: rel.Column, scalar: int):
         super(Filter, self).__init__("filter", out_rel, parent)
+        self.is_scalar = other_col is None
+        if self.is_scalar:
+            assert scalar is not None
+        else:
+            assert scalar is None
+        self.other_col = other_col
+        self.scalar = scalar
         self.operator = operator
-        self.filter_expr = expr
-        self.target_col = target_col
+        self.filter_col = filter_col
+        self.is_local = True
+
+    def is_reversible(self):
+        return False
+
+
+class PubJoin(BinaryOpNode):
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
+                 is_server: bool, other_op_node: OpNode):
+        super(PubJoin, self).__init__("pub_join", out_rel, parent, other_op_node)
+        self.key_col = key_col
+        self.host = host
+        self.port = port
+        self.is_server = is_server
         self.is_local = True
 
     def is_reversible(self):
