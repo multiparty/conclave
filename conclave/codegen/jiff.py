@@ -307,8 +307,6 @@ class JiffCodeGen(CodeGen):
         template = open("{}/bash.tmpl"
                         .format(self.template_directory), 'r').read()
 
-        print("CODE_PATH: {0}/{1}".format(self.config.code_path, job_name))
-
         data = {
             "JIFF_PATH": self.jiff_config.jiff_path,
             "INPUT_PATH": self._gen_input_string(),
@@ -317,9 +315,19 @@ class JiffCodeGen(CodeGen):
             "CODE_PATH": "{0}/{1}".format(self.config.code_path, job_name)
         }
 
-        bash_code = pystache.render(template, data)
+        return pystache.render(template, data)
 
-        return bash_code
+    def _write_server_bash(self, job_name):
+
+        template = open("{}/server_bash.tmpl"
+                        .format(self.template_directory), 'r').read()
+
+        data = {
+            "JIFF_PATH": self.jiff_config.jiff_path,
+            "CODE_PATH": "{0}/{1}".format(self.config.code_path, job_name)
+        }
+
+        return pystache.render(template, data)
 
     def _write_code(self, code, job_name):
 
@@ -337,6 +345,12 @@ class JiffCodeGen(CodeGen):
         bash_code = self._write_bash(job_name)
         bash_file = open("{}/{}/run.sh".format(self.config.code_path, job_name), 'w')
         bash_file.write(bash_code)
+
+        if self.pid == self.jiff_config.server_pid:
+
+            server_bash_code = self._write_server_bash(job_name)
+            server_bash_file = open("{}/{}/run_server.sh".format(self.config.code_path, job_name), 'w')
+            server_bash_file.write(server_bash_code)
 
 
 
