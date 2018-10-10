@@ -77,6 +77,8 @@ class JiffConfig:
         self.party_count = party_count
         self.server_ip = server_ip
         self.server_port = server_port
+        self.server_pid = 1
+        self.use_openshift = False
 
 
 class CodeGenConfig:
