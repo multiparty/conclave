@@ -46,6 +46,14 @@ if __name__ == "__main__":
     workflow_name = "sharemind-ssn-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
+    conclave_config.network_config = {
+        "pid": int(pid),
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
     conclave_config.all_pids = [1, 2, 3]
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
