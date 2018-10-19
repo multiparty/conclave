@@ -37,7 +37,7 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
-    data_root = sys.argv[2]
+    data_root = os.path.join("/mnt/shared", sys.argv[2])
     # define name for the workflow
     workflow_name = "sharemind-agg-micro" + pid
     # configure conclave
