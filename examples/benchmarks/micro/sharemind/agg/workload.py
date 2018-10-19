@@ -37,6 +37,7 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    data_root = sys.argv[2]
     # define name for the workflow
     workflow_name = "sharemind-agg-micro" + pid
     # configure conclave
@@ -56,9 +57,9 @@ if __name__ == "__main__":
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     # point conclave to directory where data is to be read from...
-    conclave_config.input_path = "/mnt/shared/agg_data"
+    conclave_config.input_path = data_root
     # and written to
-    conclave_config.output_path = "/mnt/shared/agg_data"
+    conclave_config.output_path = data_root
     job = SharemindCodeGen(conclave_config, ccdag.OpDag(protocol()), conclave_config.pid).generate("sharemind-0", "")
     job_queue = [job]
     dispatch_jobs(job_queue, conclave_config)
