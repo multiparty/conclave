@@ -225,6 +225,7 @@ if __name__ == "__main__":
     dag = join()
     generate(dag, 'join')
 
+    """
     dag = concat()
     generate(dag, 'concat')
 
@@ -239,3 +240,4 @@ if __name__ == "__main__":
 
     dag = project()
     generate(dag, 'project')
+    """
