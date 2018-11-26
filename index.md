@@ -2,10 +2,10 @@
 
 [Conclave](https://github.com/multiparty/conclave) is a query compiler and execution environment for relational queries across data sets owned by multiple, mutually distrusting parties. Executing such queries without revealing any cleartext data requires *Secure Multi-Party Computation* (MPC), and Conclave is the first system to support interactive queries that return in minutes over large input data sets.
 
-Conclave automatically transforms SQL-like queries into a series of local and secure computation steps such that the costly secure computation under MPC's cryptographic guarantees is minimized. In doing so, Conclave scales to large datasets, but yet still meets the security guarantees of MPC.
+Conclave automatically transforms SQL-like queries into a series of local and secure computation steps such that the costly secure computation under MPC's cryptographic guarantees is minimized. In doing so, Conclave scales to large datasets, but yet still meets the security guarantees of MPC. Conclave often returns results in minutes for queries that take other MPC systems hours or day to evaluate.
 
-<p style="border: 1px solid darkred; color: darkred;">
-Conclave is currently a research prototype -- we do not recommend using it in production.
+<p style="border: 1px solid darkred; color: darkred; font-size: 0.9em;">
+Conclave is currently a research prototype -- we do not recommend using it in production.<br />
 
 We expect to release a preprint of our research paper in early December 2018.
 If you would like to find out more or get an advance copy, please contact us by email.
