@@ -6,7 +6,7 @@ Conclave automatically transforms SQL-like queries into a series of local and se
 
 <p style="border: 1px solid darkred; color: darkred; font-size: 0.9em; font-weight: bold;">
 We expect to release a preprint of the research paper on Conclave in early December 2018.
-If you would like to find out more or get an advance copy, please contact us by email.
+If you would like to find out more or get an advance copy, please [contact us by email](mailto:conclave@multiparty.org).
 </p>
 
 ### Code
