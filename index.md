@@ -15,7 +15,7 @@ Our prototype is open-source [on Github](https://github.com/multiparty/conclave)
 
 ### Authors
 
-Conclave is a joint research project between Boston University and MIT CSAIL.
+Conclave is a joint research project between the Alexandra Institute, Boston University, and MIT CSAIL.
 The contributing researchers are:
 
 * [Nikolaj Volgushev](https://n1v0lg.github.io/)
