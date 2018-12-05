@@ -97,7 +97,7 @@ class CodeGenConfig:
             self.code_path = tempfile.mkdtemp(suffix="-code", prefix="salmon-")
             self.name = os.path.basename(self.code_path)
         self.use_leaky_ops = True
-        self.use_swift = False
+        self.data_backend = "local"
         self.input_path = '/tmp'
         self.output_path = '/tmp'
         self.system_configs = {}
