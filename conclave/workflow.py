@@ -145,7 +145,7 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
     elif conclave_config.data_backend == "dataverse":
         # dv download // post protocols
         pass
-    
+
     else:
 
         generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
