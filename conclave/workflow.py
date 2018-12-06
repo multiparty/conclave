@@ -10,8 +10,10 @@ from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
 from conclave.config import SwiftConfig
+from conclave.config import DataverseConfig
 from conclave.config import JiffConfig
 from conclave.swift import SwiftData
+from conclave.dataverse import DataverseData
 
 
 def setup(conf: Dict):
@@ -55,8 +57,9 @@ def setup(conf: Dict):
         conclave_config.with_swift_config(swift_config)
 
     elif data_backend == "dataverse":
-        # dv conf
-        pass
+        cfg = conf["dataverse"]
+        dv_conf = DataverseConfig(cfg)
+        conclave_config.with_dataverse_config(dv_conf)
 
     else:
         print("No remote data backend source listed. Using local storage.\n")
@@ -120,6 +123,42 @@ def post_swift_data(conclave_config):
     swift_data.close_connection()
 
 
+def download_dataverse_data(conclave_config):
+    """
+    Download files from Dataverse.
+
+    TODO: close connection?
+    """
+
+    dv_conf = conclave_config.system_configs['dataverse']
+    data_dir = conclave_config.input_path
+
+    dv_data = DataverseData(dv_conf)
+    dv_data.get_data(data_dir)
+
+
+def post_dataverse_data(conclave_config):
+    """
+    Post output files to Dataverse
+
+    TODO: close connection?
+    """
+
+    input_dv_files = conclave_config.system_configs['dataverse']['source']['files']
+
+    dv_conf = conclave_config.system_configs['dataverse']
+    data_dir = conclave_config.input_path
+
+    dv_data = DataverseData(dv_conf)
+
+    for subdir, dirs, files in os.walk(data_dir):
+        for file in files:
+            print(file)
+            if file[0] != '.':
+                if file not in input_dv_files:
+                    dv_data.put_data(data_dir, file)
+
+
 def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="python"):
     """
     Load parameters from config, download data from Swift,
@@ -143,8 +182,9 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
         post_swift_data(conclave_config)
 
     elif conclave_config.data_backend == "dataverse":
-        # dv download // post protocols
-        pass
+        download_dataverse_data(conclave_config)
+        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
+        post_dataverse_data(conclave_config)
 
     else:
 
