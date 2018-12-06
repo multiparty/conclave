@@ -40,6 +40,16 @@ class SwiftConfig:
         self.dest = cfg['dest']
 
 
+class DataverseConfig:
+    """
+    Configuration for accessing data from Dataverse
+    """
+
+    def __init__(self, cfg):
+
+        self.cfg = cfg
+
+
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
@@ -148,6 +158,15 @@ class CodeGenConfig:
             self.__init__()
 
         self.system_configs["swift"] = cfg
+
+        return self
+
+    def with_dataverse_config(self, cfg: DataverseConfig):
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["dataverse"] = cfg
 
         return self
 
