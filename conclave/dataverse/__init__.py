@@ -62,6 +62,9 @@ class DataverseData:
                       .format(f))
 
     def put_data(self, file_path, file):
+        """
+        Push output file back to Dataverse.
+        """
 
         if self.dataverse_connection is None:
             print("Previous connection was closed. Reinitialize this object.")
@@ -71,8 +74,8 @@ class DataverseData:
 
         aliased_dv = self.dataverse_connection.get_dataverse(self.cfg['dest']['alias'])
         dataset = aliased_dv.create_dataset(
-            self.cfg['dest']['title'],
-            'Output data for {}.'.format(self.cfg['dest']['title']),
+            file,
+            'Output data for {}.'.format(file),
             self.cfg['dest']['author']
         )
         dataset.upload_file(file, content)
