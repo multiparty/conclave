@@ -139,7 +139,7 @@ def download_dataverse_data(conclave_config):
 
 def post_dataverse_data(conclave_config):
     """
-    Post output files to Dataverse
+    Post output files to Dataverse.
 
     TODO: close connection?
     """
@@ -161,12 +161,12 @@ def post_dataverse_data(conclave_config):
 
 def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="python"):
     """
-    Load parameters from config, download data from Swift,
-    dispatch computation, and push results back to Swift.
+    Load parameters from config & dispatch computation.
+    Downloads files if necessary from either Dataverse or Swift
     """
 
     parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
-    parser.add_argument("--conf", metavar="/config/file.yml", type=str,
+    parser.add_argument("--conf", metavar="/config/file.json", type=str,
                         help="path of the config file", default="conf-ca.json", required=False)
 
     args = parser.parse_args()
@@ -178,16 +178,19 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
 
     if conclave_config.data_backend == "swift":
         download_swift_data(conclave_config)
-        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
+        generate_and_dispatch(
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+        )
         post_swift_data(conclave_config)
 
     elif conclave_config.data_backend == "dataverse":
         download_dataverse_data(conclave_config)
-        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
+        generate_and_dispatch(
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+        )
         post_dataverse_data(conclave_config)
 
     else:
-
-        generate_and_dispatch(protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False)
-
-
+        generate_and_dispatch(
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+        )
