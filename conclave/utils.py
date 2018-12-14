@@ -5,6 +5,10 @@ TODO: Turn this into a dedicated module for working with collusion sets.
 """
 import functools
 import copy
+import os
+
+from conclave.swift import SwiftData
+from conclave.dataverse import DataverseData
 
 
 def merge_coll_sets(left: set, right: set):
@@ -13,7 +17,7 @@ def merge_coll_sets(left: set, right: set):
     :param left: collusion record
     :param right: collusion record
     :returns: all combinations of collusion sets from records
-    
+
     >>> left = {frozenset([1, 2]), frozenset([3, 4])}
     >>> right = {frozenset([5, 6]), frozenset([7])}
     >>> actual = merge_coll_sets(left, right)
@@ -63,3 +67,86 @@ def defCol(name: str, typ: str, *coll_sets):
     """
 
     return name, typ, set([frozenset(coll_set) for coll_set in coll_sets])
+
+
+def download_swift_data(conclave_config):
+    """
+    Download data from Swift to local filesystem.
+    """
+
+    swift_cfg = conclave_config.system_configs['swift'].source
+    data_dir = conclave_config.input_path
+    container = swift_cfg['data']['container_name']
+    files = swift_cfg['data']['files']
+
+    swift_data = SwiftData(swift_cfg)
+
+    if files is not None:
+        for file in files:
+            swift_data.get_data(container, file, data_dir)
+
+    swift_data.close_connection()
+
+
+def post_swift_data(conclave_config):
+    """
+    Store locally held data on Swift.
+
+    NOTE: if container_name doesn't exist, raises swiftclient.exceptions.ClientException
+
+    Should check to see if container exists in the future, and create it if it doesn't exist.
+    """
+    input_swift_data = conclave_config.system_configs['swift'].source['data']['files']
+
+    swift_cfg = conclave_config.system_configs['swift'].dest
+    data_dir = conclave_config.input_path
+    container = swift_cfg['data']['container_name']
+
+    swift_data = SwiftData(swift_cfg)
+
+    # this pushes all intermediate files to swift as well, will need some
+    # way to identify only final output files in the future
+    for subdir, dirs, files in os.walk(data_dir):
+        for file in files:
+            print(file)
+            if file[0] != '.':
+                if file not in input_swift_data:
+                    swift_data.put_data(container, file, data_dir)
+
+    swift_data.close_connection()
+
+
+def download_dataverse_data(conclave_config):
+    """
+    Download files from Dataverse.
+
+    TODO: close connection?
+    """
+
+    dv_conf = conclave_config.system_configs['dataverse']
+    data_dir = conclave_config.input_path
+
+    dv_data = DataverseData(dv_conf)
+    dv_data.get_data(data_dir)
+
+
+def post_dataverse_data(conclave_config):
+    """
+    Post output files to Dataverse.
+
+    TODO: close connection?
+    """
+
+    input_dv_files = conclave_config.system_configs['dataverse']['source']['files']
+
+    dv_conf = conclave_config.system_configs['dataverse']
+    data_dir = conclave_config.input_path
+
+    dv_data = DataverseData(dv_conf)
+
+    for subdir, dirs, files in os.walk(data_dir):
+        for file in files:
+            print(file)
+            if file[0] != '.':
+                if file not in input_dv_files:
+                    dv_data.put_data(data_dir, file)

@@ -1,7 +1,5 @@
-import yaml
 import json
 import argparse
-import os
 from typing import Callable, Dict
 
 from conclave import generate_and_dispatch
@@ -12,8 +10,7 @@ from conclave.config import NetworkConfig
 from conclave.config import SwiftConfig
 from conclave.config import DataverseConfig
 from conclave.config import JiffConfig
-from conclave.swift import SwiftData
-from conclave.dataverse import DataverseData
+from conclave.utils import *
 
 
 def setup(conf: Dict):
@@ -60,6 +57,8 @@ def setup(conf: Dict):
         cfg = conf["dataverse"]
         dv_conf = DataverseConfig(cfg)
         conclave_config.with_dataverse_config(dv_conf)
+        # dataverse converts all csv uploads to tsv
+        conclave_config.delimiter = '\t'
 
     else:
         print("No remote data backend source listed. Using local storage.\n")
@@ -74,89 +73,6 @@ def setup(conf: Dict):
     conclave_config.input_path = conf["input_path"]
 
     return conclave_config
-
-
-def download_swift_data(conclave_config):
-    """
-    Download data from Swift to local filesystem.
-    """
-
-    swift_cfg = conclave_config.system_configs['swift'].source
-    data_dir = conclave_config.input_path
-    container = swift_cfg['data']['container_name']
-    files = swift_cfg['data']['files']
-
-    swift_data = SwiftData(swift_cfg)
-
-    if files is not None:
-        for file in files:
-            swift_data.get_data(container, file, data_dir)
-
-    swift_data.close_connection()
-
-
-def post_swift_data(conclave_config):
-    """
-    Store locally held data on Swift.
-
-    NOTE: if container_name doesn't exist, raises swiftclient.exceptions.ClientException
-
-    Should check to see if container exists in the future, and create it if it doesn't exist.
-    """
-    input_swift_data = conclave_config.system_configs['swift'].source['data']['files']
-
-    swift_cfg = conclave_config.system_configs['swift'].dest
-    data_dir = conclave_config.input_path
-    container = swift_cfg['data']['container_name']
-
-    swift_data = SwiftData(swift_cfg)
-
-    # this pushes all intermediate files to swift as well, will need some
-    # way to identify only final output files in the future
-    for subdir, dirs, files in os.walk(data_dir):
-        for file in files:
-            print(file)
-            if file[0] != '.':
-                if file not in input_swift_data:
-                    swift_data.put_data(container, file, data_dir)
-
-    swift_data.close_connection()
-
-
-def download_dataverse_data(conclave_config):
-    """
-    Download files from Dataverse.
-
-    TODO: close connection?
-    """
-
-    dv_conf = conclave_config.system_configs['dataverse']
-    data_dir = conclave_config.input_path
-
-    dv_data = DataverseData(dv_conf)
-    dv_data.get_data(data_dir)
-
-
-def post_dataverse_data(conclave_config):
-    """
-    Post output files to Dataverse.
-
-    TODO: close connection?
-    """
-
-    input_dv_files = conclave_config.system_configs['dataverse']['source']['files']
-
-    dv_conf = conclave_config.system_configs['dataverse']
-    data_dir = conclave_config.input_path
-
-    dv_data = DataverseData(dv_conf)
-
-    for subdir, dirs, files in os.walk(data_dir):
-        for file in files:
-            print(file)
-            if file[0] != '.':
-                if file not in input_dv_files:
-                    dv_data.put_data(data_dir, file)
 
 
 def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="python"):
