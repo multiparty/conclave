@@ -85,6 +85,10 @@ class OpNode(Node):
         """ Overridden in subclasses. """
         return
 
+    def update_out_rel_cols(self):
+        """ Overridden in subclasses. """
+        return
+
     def update_stored_with(self):
         """ Overridden in subclasses. """
         return
@@ -361,6 +365,8 @@ class Concat(NaryOpNode):
         parent_set = set(parents)
         # sanity check for now
         assert (len(parents) == len(parent_set))
+        # only handle same class input operators (otherwise managing columns during rewrites becomes annoying)
+        assert (len(set([type(x).__name__ for x in parents])) == 1)
         super(Concat, self).__init__("concat", out_rel, parent_set)
         self.ordered = parents
 
@@ -374,6 +380,7 @@ class Concat(NaryOpNode):
 
     def replace_parent(self, old_parent: OpNode, new_parent: OpNode):
         """ Replace a particular parent node with another. """
+        # TODO figure out how to enforce that all parents remain same class
         super(Concat, self).replace_parent(old_parent, new_parent)
         # this will throw if old_parent not in list
         idx = self.ordered.index(old_parent)
@@ -382,6 +389,32 @@ class Concat(NaryOpNode):
     def remove_parent(self, parent: OpNode):
         # TODO
         raise NotImplementedError()
+
+    def update_out_rel_cols(self):
+        in_rel_cols = copy.deepcopy(self.get_in_rels()[0].columns)
+        self.out_rel.columns = in_rel_cols
+        # parent = self.ordered[0]
+        # updated_cols = []
+        # if isinstance(parent, Aggregate):
+        #     group_cols = parent.group_cols
+        #     assert len(group_cols) == 1
+        #     print("agg_parent", parent.group_cols, parent.agg_col)
+        #     agg_col = parent.agg_col
+        #     group_col = group_cols[0]
+        #     updated_cols = [
+        #         utils.find(self.out_rel.columns, group_col.name),
+        #         utils.find(self.out_rel.columns, agg_col.name)
+        #     ]
+        #     updated_cols[0].name = in_rel_cols[0].name
+        #     updated_cols[1].name = in_rel_cols[1].name
+        # else:
+        #     for in_rel_col in in_rel_cols:
+        #         print("in_rel_col", in_rel_col)
+        #         found_col = utils.find(self.out_rel.columns, in_rel_col.name)
+        #         # if not found_col:
+        #         #     found_col = self.out_rel.columns[in_rel_col.idx]
+        #         updated_cols.append(found_col)
+        #         # found_col.idx = found_col.idx
 
 
 class Aggregate(UnaryOpNode):
@@ -398,7 +431,7 @@ class Aggregate(UnaryOpNode):
     def update_op_specific_cols(self):
         """
         Update this node's group_cols and agg_col
-        based on the columns of it's input relation.
+        based on the columns of its input relation.
         """
         # TODO: do we need to copy here?
         self.group_cols = [self.get_in_rel().columns[group_col.idx]
@@ -895,6 +928,9 @@ class OpDag(Dag):
 
 
 def remove_between(parent: OpNode, child: OpNode, other: OpNode):
+    """
+    Removes other between parent and child.
+    """
     assert len(other.children) < 2
     assert len(other.parents) < 2
     # only dealing with unary nodes for now
@@ -902,7 +938,7 @@ def remove_between(parent: OpNode, child: OpNode, other: OpNode):
 
     if child:
         child.replace_parent(other, parent)
-        child.update_op_specific_cols()
+        # child.update_op_specific_cols()
         parent.replace_child(other, child)
     else:
         parent.children.remove(other)
@@ -932,11 +968,32 @@ def insert_between_children(parent: OpNode, other: OpNode):
 
 
 def insert_between(parent: OpNode, child: OpNode, other: OpNode):
+    """
+    Inserts other between parent and child.
+    """
+
     # called with grandParent, topNode, toInsert
     assert (not other.children)
     assert (not other.parents)
     # only dealing with unary nodes for now
     assert (isinstance(other, UnaryOpNode))
+
+    # # save bottom node output columns to update top_node columns after pushing it down
+    # bottom_node_out_cols = copy.copy(child.out_rel.columns)
+    # print("other", other.out_rel.dbg_str(), "child", child.out_rel.dbg_str())
+    #
+    # # update columns in case they were affected by operator we pushed through (e.g., project that drops cols)
+    # updated_cols = []
+    # for node_col in bottom_node_out_cols:
+    #     found_col = utils.find(other.out_rel.columns, node_col.name)
+    #     updated_cols.append(found_col)
+    #     found_col.idx = node_col.idx
+    # other.out_rel.columns = updated_cols
+    if child:
+        print("parent", parent,
+              "child", child,
+              # "child.children", next(iter(child.children)).agg_col,
+              "other", other)
 
     # Insert other below parent
     other.parents.add(parent)
@@ -950,4 +1007,7 @@ def insert_between(parent: OpNode, child: OpNode, other: OpNode):
         if child in parent.children:
             parent.children.remove(child)
         child.update_op_specific_cols()
+        child.update_out_rel_cols()
         other.children.add(child)
+
+    # other.update_out_rel_cols()

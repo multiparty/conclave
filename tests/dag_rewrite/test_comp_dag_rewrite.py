@@ -189,6 +189,7 @@ class TestConclave(TestCase):
             return {in_1, in_2}
 
         actual = protocol()
+        print(actual)
         self.check_workflow(actual, 'agg_proj')
 
     def test_join(self):

@@ -19,9 +19,16 @@ def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
     assert (len(bottom_node.children) <= 1)
     child = next(iter(bottom_node.children), None)
 
+    print("top_node", top_node, "bottom_node", bottom_node, "child", child)
+
+    # # save bottom node output columns to update top_node columns after pushing it down
+    # bottom_node_out_cols = copy.copy(bottom_node.out_rel.columns)
+
     # remove bottom node between the bottom node's child
     # and the top node
+    # print("child.agg_col before", child.agg_col)
     ccdag.remove_between(top_node, child, bottom_node)
+    # print("child.agg_col", child.agg_col)
 
     # we need all parents of the parent node
     grand_parents = copy.copy(top_node.get_sorted_parents())
@@ -33,12 +40,23 @@ def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
         to_insert.out_rel.rename(to_insert.out_rel.name + "_" + str(idx))
         to_insert.parents = set()
         to_insert.children = set()
+        print("calling insert between from push_op_node", grand_parent, top_node, to_insert)
         ccdag.insert_between(grand_parent, top_node, to_insert)
         to_insert.update_stored_with()
-        
 
-def split_node(node: ccdag.OpNode):
+    # # update columns in case they were affected by operator we pushed through (e.g., project that drops cols)
+    # updated_cols = []
+    # for node_col in bottom_node_out_cols:
+    #     found_col = utils.find(top_node.out_rel.columns, node_col.name)
+    #     updated_cols.append(found_col)
+    #     found_col.idx = node_col.idx
+    # top_node.out_rel.columns = updated_cols
+
+
+def split_agg(node: ccdag.Aggregate):
     """
+    Splits an aggregation into two aggregations, one local, the other MPC.
+
     For now, deals with case where there is a Concat into an
     Aggregate. Here, local aggregation can be computed before
     concatenation, and then another aggregation under MPC.
@@ -53,6 +71,8 @@ def split_node(node: ccdag.OpNode):
     clone.is_mpc = True
     child = next(iter(node.children), None)
     ccdag.insert_between(node, child, clone)
+    print("node", node, node.get_in_rel(), node.agg_col)
+    print("clone", clone, clone.get_in_rel(), clone.agg_col)
 
 
 # more than one child & is_boundary
@@ -207,6 +227,7 @@ class MPCPushDown(DagRewriter):
     def _do_commute(top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
         # TODO: over-simplified
         # TODO: add rules for other ops
+        # TODO: agg (as we define it) doesn't commute with proj if proj re-arranges or drops columns
 
         if isinstance(top_op, ccdag.Aggregate):
             if isinstance(bottom_op, ccdag.Divide):
@@ -242,21 +263,7 @@ class MPCPushDown(DagRewriter):
                 return
             # node is not leaf
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
-                old_parent_out_cols = copy.copy(parent.out_rel.columns)
-                old_node_out_cols = copy.copy(node.out_rel.columns)
                 push_op_node_down(parent, node)
-                # update columns in case they were affected by operator we pushed through (e.g., project that drops
-                # cols)
-                print("old_parent_out_cols", old_parent_out_cols)
-                print("old_node_out_cols", old_node_out_cols)
-                updated_cols = []
-                for node_col in old_node_out_cols:
-                    found_col = utils.find(parent.out_rel.columns, node_col.name)
-                    updated_cols.append(found_col)
-                    found_col.idx = node_col.idx
-                parent.out_rel.columns = updated_cols
-                print("parent", parent.out_rel.dbg_str())
-                print("node", node.out_rel.dbg_str())
             elif isinstance(parent, ccdag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
@@ -279,15 +286,11 @@ class MPCPushDown(DagRewriter):
         parent = next(iter(node.parents))
         if parent.is_mpc:
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
-                split_node(node)
-                # old_parent_out_cols = copy.copy(parent.out_rel.columns)
-                # old_node_out_cols = copy.copy(node.out_rel.columns)
+                split_agg(node)
                 push_op_node_down(parent, node)
-                # updated_cols = []
-                # print("here", parent.out_rel.dbg_str())
-                # for node_col in old_node_out_cols:
-                #     updated_cols.append(utils.find(parent.out_rel.columns, node_col.name))
-                # parent.out_rel.columns = updated_cols
+                print("node.agg_col after push down", node.agg_col)
+                child = next(iter(parent.children))
+                print(child, child.agg_col)
             else:
                 node.is_mpc = True
         else:
@@ -424,7 +427,7 @@ class CollSetPropDown(DagRewriter):
 
     def _rewrite_aggregate(self, node: [ccdag.Aggregate, ccdag.IndexAggregate]):
         """ Push down collusion sets for an Aggregate or IndexAggregate node. """
-
+        print("node.get_in_rel()", [node.get_in_rel().dbg_str()])
         in_group_cols = node.group_cols
         out_group_cols = node.out_rel.columns[:-1]
         for i in range(len(out_group_cols)):
@@ -432,6 +435,7 @@ class CollSetPropDown(DagRewriter):
         in_agg_col = node.agg_col
         out_agg_col = node.out_rel.columns[-1]
         out_agg_col.coll_sets |= copy.deepcopy(in_agg_col.coll_sets)
+        print("node.get_in_rel()", [node.get_in_rel().dbg_str()])
 
     def _rewrite_divide(self, node: ccdag.Divide):
         """ Push down collusion sets for a Divide node. """
@@ -528,15 +532,11 @@ class CollSetPropDown(DagRewriter):
         # Copy over columns from existing relation
         out_rel_cols = node.out_rel.columns
 
-        print("out_rel_cols", out_rel_cols)
-        for in_rel in node.get_in_rels():
-            print(len(in_rel.columns))
-            print(in_rel)
-        print(len(out_rel_cols))
         # Combine per-column collusion sets
         for idx, col in enumerate(out_rel_cols):
             columns_at_idx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]
             col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
+        print("foobar", list(map(lambda x: str(x.coll_sets), out_rel_cols)))
 
 
 class HybridOperatorOpt(DagRewriter):
@@ -1048,10 +1048,10 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     MPCPushDown().rewrite(dag)
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
-    HybridOperatorOpt().rewrite(dag)
-    InsertOpenAndCloseOps().rewrite(dag)
-    ExpandCompositeOps(use_leaky_ops).rewrite(dag)
-    StoredWithSimplifier(set(all_parties)).rewrite(dag)
+    # HybridOperatorOpt().rewrite(dag)
+    # InsertOpenAndCloseOps().rewrite(dag)
+    # ExpandCompositeOps(use_leaky_ops).rewrite(dag)
+    # StoredWithSimplifier(set(all_parties)).rewrite(dag)
     return dag
 
 

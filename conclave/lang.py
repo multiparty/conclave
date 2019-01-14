@@ -378,8 +378,7 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
     out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Replace all column names with corresponding columns.
-    operands = [utils.find(in_rel.columns, op) if isinstance(
-        op, str) else op for op in operands]
+    operands = [utils.find(in_rel.columns, op) if isinstance(op, str) else op for op in operands]
     for operand in operands:
         if hasattr(operand, "coll_sets"):
             operand.coll_sets = set()
@@ -390,8 +389,7 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
         target_column.coll_sets = set()
     else:
         # TODO: figure out new column's coll_sets
-        target_column = rel.Column(
-            output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
+        target_column = rel.Column(output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
         out_rel_cols.append(target_column)
 
     # Create output relation
@@ -449,7 +447,7 @@ def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
     else:
         for input_op_node in input_op_nodes:
             out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
-    
+
     for col in out_rel_cols:
         col.coll_sets = set()
 
