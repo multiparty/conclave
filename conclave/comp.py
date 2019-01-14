@@ -12,7 +12,7 @@ import conclave.utils as utils
 def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
     """
     Pushes a node that must be done under MPC further down in the DAG,
-    and inserts their child nodes that can be done locally above it.
+    and inserts its children (that can be carried out locally) above it.
     """
 
     # only dealing with one grandchild case for now
@@ -35,7 +35,7 @@ def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
         to_insert.children = set()
         ccdag.insert_between(grand_parent, top_node, to_insert)
         to_insert.update_stored_with()
-
+        
 
 def split_node(node: ccdag.OpNode):
     """
@@ -242,7 +242,21 @@ class MPCPushDown(DagRewriter):
                 return
             # node is not leaf
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
+                old_parent_out_cols = copy.copy(parent.out_rel.columns)
+                old_node_out_cols = copy.copy(node.out_rel.columns)
                 push_op_node_down(parent, node)
+                # update columns in case they were affected by operator we pushed through (e.g., project that drops
+                # cols)
+                print("old_parent_out_cols", old_parent_out_cols)
+                print("old_node_out_cols", old_node_out_cols)
+                updated_cols = []
+                for node_col in old_node_out_cols:
+                    found_col = utils.find(parent.out_rel.columns, node_col.name)
+                    updated_cols.append(found_col)
+                    found_col.idx = node_col.idx
+                parent.out_rel.columns = updated_cols
+                print("parent", parent.out_rel.dbg_str())
+                print("node", node.out_rel.dbg_str())
             elif isinstance(parent, ccdag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
@@ -266,7 +280,14 @@ class MPCPushDown(DagRewriter):
         if parent.is_mpc:
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
                 split_node(node)
+                # old_parent_out_cols = copy.copy(parent.out_rel.columns)
+                # old_node_out_cols = copy.copy(node.out_rel.columns)
                 push_op_node_down(parent, node)
+                # updated_cols = []
+                # print("here", parent.out_rel.dbg_str())
+                # for node_col in old_node_out_cols:
+                #     updated_cols.append(utils.find(parent.out_rel.columns, node_col.name))
+                # parent.out_rel.columns = updated_cols
             else:
                 node.is_mpc = True
         else:
@@ -507,6 +528,11 @@ class CollSetPropDown(DagRewriter):
         # Copy over columns from existing relation
         out_rel_cols = node.out_rel.columns
 
+        print("out_rel_cols", out_rel_cols)
+        for in_rel in node.get_in_rels():
+            print(len(in_rel.columns))
+            print(in_rel)
+        print(len(out_rel_cols))
         # Combine per-column collusion sets
         for idx, col in enumerate(out_rel_cols):
             columns_at_idx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]

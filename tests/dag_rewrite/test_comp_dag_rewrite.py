@@ -83,6 +83,81 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'concat_pushdown')
 
+    def test_concat_pushdown_proj_change_col_num(self):
+        @scotch
+        @mpc
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1]),
+                defCol("c", "INTEGER", [1])
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [2]),
+                defCol("b", "INTEGER", [2]),
+                defCol("c", "INTEGER", [2])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {2})
+            cols_in_3 = [
+                defCol("a", "INTEGER", [3]),
+                defCol("b", "INTEGER", [3]),
+                defCol("c", "INTEGER", [3])
+            ]
+            in_3 = cc.create("in_3", cols_in_3, {3})
+
+            # combine parties' inputs into one relation
+            rel = cc.concat([in_1, in_2, in_3], "rel")
+            proj = cc.project(rel, "proj", ["a", "b"])
+            agg = cc.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+
+            cc.collect(agg, 1)
+
+            # return root nodes
+            return {in_1, in_2, in_3}
+
+        actual = protocol()
+        self.check_workflow(actual, 'concat_pushdown_proj_change_col_num')
+
+    def test_concat_pushdown_rearrange_cols(self):
+        @scotch
+        @mpc
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1]),
+                defCol("c", "INTEGER", [1])
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [2]),
+                defCol("b", "INTEGER", [2]),
+                defCol("c", "INTEGER", [2])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {2})
+            cols_in_3 = [
+                defCol("a", "INTEGER", [3]),
+                defCol("b", "INTEGER", [3]),
+                defCol("c", "INTEGER", [3])
+            ]
+            in_3 = cc.create("in_3", cols_in_3, {3})
+
+            # combine parties' inputs into one relation
+            rel = cc.concat([in_1, in_2, in_3], "rel")
+            proj = cc.project(rel, "proj", ["c", "a"])
+            agg = cc.aggregate(proj, "agg", ["c"], "a", "+", "total_b")
+
+            cc.collect(agg, 1)
+
+            # return root nodes
+            return {in_1, in_2, in_3}
+
+        actual = protocol()
+        print(actual)
+        self.check_workflow(actual, 'concat_pushdown_rearrange_cols')
+
     def test_agg_proj(self):
         @scotch
         @mpc

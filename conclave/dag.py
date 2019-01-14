@@ -462,10 +462,9 @@ class Project(UnaryOpNode):
         """
         Update this node's selected_cols with the columns
         from it's input relation whose idx's match.
-
         """
         temp_cols = self.get_in_rel().columns
-        self.selected_cols = [temp_cols[col.idx] for col in temp_cols]
+        self.selected_cols = [temp_cols[col.idx] for col in self.selected_cols]
 
 
 class Index(UnaryOpNode):
