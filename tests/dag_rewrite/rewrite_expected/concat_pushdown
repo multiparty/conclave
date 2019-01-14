@@ -10,6 +10,6 @@ CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) 
 PROJECT [a, b] FROM (in_3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
 AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
 CLOSEMPC agg_2([a {3}, total_b {3}]) {3} INTO agg_2_close([a {3}, total_b {3}]) {1, 2, 3}
-CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2, 3}, agg_1_close([a {2}, total_b {2}]) {1, 2, 3}, agg_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}
-AGGMPC [b, +] FROM (rel([a {1,2,3}, b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
+CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2, 3}, agg_1_close([a {2}, total_b {2}]) {1, 2, 3}, agg_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
+AGGMPC [total_b, +] FROM (rel([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
 OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}

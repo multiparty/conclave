@@ -433,7 +433,6 @@ class Aggregate(UnaryOpNode):
         Update this node's group_cols and agg_col
         based on the columns of its input relation.
         """
-        # TODO: do we need to copy here?
         self.group_cols = [self.get_in_rel().columns[group_col.idx]
                            for group_col in self.group_cols]
         self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
@@ -1007,7 +1006,7 @@ def insert_between(parent: OpNode, child: OpNode, other: OpNode):
         if child in parent.children:
             parent.children.remove(child)
         child.update_op_specific_cols()
-        child.update_out_rel_cols()
+        # child.update_out_rel_cols()
         other.children.add(child)
 
     # other.update_out_rel_cols()

@@ -19,16 +19,8 @@ def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
     assert (len(bottom_node.children) <= 1)
     child = next(iter(bottom_node.children), None)
 
-    print("top_node", top_node, "bottom_node", bottom_node, "child", child)
-
-    # # save bottom node output columns to update top_node columns after pushing it down
-    # bottom_node_out_cols = copy.copy(bottom_node.out_rel.columns)
-
-    # remove bottom node between the bottom node's child
-    # and the top node
-    # print("child.agg_col before", child.agg_col)
+    # remove bottom node between the bottom node's child and the top node
     ccdag.remove_between(top_node, child, bottom_node)
-    # print("child.agg_col", child.agg_col)
 
     # we need all parents of the parent node
     grand_parents = copy.copy(top_node.get_sorted_parents())
@@ -43,14 +35,6 @@ def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
         print("calling insert between from push_op_node", grand_parent, top_node, to_insert)
         ccdag.insert_between(grand_parent, top_node, to_insert)
         to_insert.update_stored_with()
-
-    # # update columns in case they were affected by operator we pushed through (e.g., project that drops cols)
-    # updated_cols = []
-    # for node_col in bottom_node_out_cols:
-    #     found_col = utils.find(top_node.out_rel.columns, node_col.name)
-    #     updated_cols.append(found_col)
-    #     found_col.idx = node_col.idx
-    # top_node.out_rel.columns = updated_cols
 
 
 def split_agg(node: ccdag.Aggregate):
@@ -264,6 +248,7 @@ class MPCPushDown(DagRewriter):
             # node is not leaf
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
                 push_op_node_down(parent, node)
+                parent.update_out_rel_cols()
             elif isinstance(parent, ccdag.Aggregate) and self._do_commute(parent, node):
                 agg_op = parent
                 agg_parent = agg_op.parent
@@ -273,6 +258,7 @@ class MPCPushDown(DagRewriter):
                     push_op_node_down(agg_op, node)
                     updated_node = agg_op.parent
                     push_op_node_down(concat_op, updated_node)
+                    concat_op.update_out_rel_cols()
                 else:
                     node.is_mpc = True
             else:
@@ -288,6 +274,7 @@ class MPCPushDown(DagRewriter):
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
                 split_agg(node)
                 push_op_node_down(parent, node)
+                parent.update_out_rel_cols()
                 print("node.agg_col after push down", node.agg_col)
                 child = next(iter(parent.children))
                 print(child, child.agg_col)
@@ -427,8 +414,10 @@ class CollSetPropDown(DagRewriter):
 
     def _rewrite_aggregate(self, node: [ccdag.Aggregate, ccdag.IndexAggregate]):
         """ Push down collusion sets for an Aggregate or IndexAggregate node. """
+        node.update_op_specific_cols()
         print("node.get_in_rel()", [node.get_in_rel().dbg_str()])
         in_group_cols = node.group_cols
+        print("in_group_cols[0].dbg_str()", in_group_cols[0].dbg_str())
         out_group_cols = node.out_rel.columns[:-1]
         for i in range(len(out_group_cols)):
             out_group_cols[i].coll_sets |= copy.deepcopy(in_group_cols[i].coll_sets)
@@ -613,7 +602,6 @@ class InsertOpenAndCloseOps(DagRewriter):
         Insert Store node beneath a UnaryOpNode that
         is at a lower boundary of an MPC op.
         """
-
         # TODO: can there be a case when children have different stored_with sets?
         warnings.warn("hacky insert store ops")
         in_stored_with = node.get_in_rel().stored_with
@@ -700,8 +688,7 @@ class InsertOpenAndCloseOps(DagRewriter):
 
     def _rewrite_concat(self, node: ccdag.Concat):
         """
-        Insert a Close op above a Concat node if it's
-        parent's stored_with sets do not match it's own.
+        Insert a Close op above a Concat node if its parents' stored_with sets do not match its own.
         """
         assert (not node.is_lower_boundary())
         out_stored_with = node.out_rel.stored_with
@@ -1048,10 +1035,10 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     MPCPushDown().rewrite(dag)
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
-    # HybridOperatorOpt().rewrite(dag)
-    # InsertOpenAndCloseOps().rewrite(dag)
-    # ExpandCompositeOps(use_leaky_ops).rewrite(dag)
-    # StoredWithSimplifier(set(all_parties)).rewrite(dag)
+    HybridOperatorOpt().rewrite(dag)
+    InsertOpenAndCloseOps().rewrite(dag)
+    ExpandCompositeOps(use_leaky_ops).rewrite(dag)
+    StoredWithSimplifier(set(all_parties)).rewrite(dag)
     return dag
 
 
