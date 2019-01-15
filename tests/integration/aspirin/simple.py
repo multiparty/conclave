@@ -36,13 +36,13 @@ def protocol():
     medication_proj = cc.project(medication, "medication_proj", [pid_col_meds, med_col_meds, date_col_meds])
     diagnosis_proj = cc.project(diagnosis, "diagnosis_proj", [pid_col_diags, diag_col_diags, date_col_diags])
 
-    joined = cc.join(medication_proj, diagnosis_proj, "expected", [pid_col_meds], [pid_col_diags])
+    joined = cc.join(medication_proj, diagnosis_proj, "joined", [pid_col_meds], [pid_col_diags])
 
-    # cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
-    # aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
-    # heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
-    #
-    # cc.distinct_count(heart_patients, "expected", pid_col_meds)
+    cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
+    aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
+    heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
+
+    cc.distinct_count(heart_patients, "expected", pid_col_meds)
 
     return {left_medication, left_diagnosis, right_medication, right_diagnosis}
 
