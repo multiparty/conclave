@@ -618,6 +618,9 @@ class Divide(UnaryOpNode):
 
 
 class Filter(UnaryOpNode):
+    """
+    Operator for filtering relations for rows with specified attribute values.
+    """
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, filter_col: rel.Column, operator: str,
                  other_col: rel.Column, scalar: int):
@@ -635,6 +638,12 @@ class Filter(UnaryOpNode):
 
     def is_reversible(self):
         return False
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_in_rel().columns
+        self.filter_col = temp_cols[self.filter_col.idx]
+        if not self.is_scalar:
+            self.other_col = temp_cols[self.other_col.idx]
 
 
 class PubJoin(BinaryOpNode):

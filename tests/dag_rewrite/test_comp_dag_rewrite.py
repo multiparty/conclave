@@ -83,6 +83,40 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'concat_pushdown')
 
+    def test_pushdown_into_filter(self):
+        @scotch
+        @mpc
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1]),
+                defCol("c", "INTEGER", [1])
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [2]),
+                defCol("b", "INTEGER", [2]),
+                defCol("c", "INTEGER", [2])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {2})
+
+            # combine parties' inputs into one relation
+            rel = cc.concat([in_1, in_2], "rel")
+
+            projected = cc.project(rel, "projected", ["c", "b"])
+
+            # specify the workflow
+            filtered = cc.cc_filter(projected, "filtered", "c", "==", other_col_name="b")
+
+            cc.collect(filtered, 1)
+
+            # return root nodes
+            return {in_1, in_2}
+
+        actual = protocol()
+        self.check_workflow(actual, "pushdown_into_filter")
+
     def test_concat_pushdown_proj_change_col_num(self):
         @scotch
         @mpc

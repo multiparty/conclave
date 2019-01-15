@@ -283,7 +283,7 @@ class ScotchCodeGen(CodeGen):
 
         filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
                                        filter_op.operator,
-                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col)
+                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col.dbg_str())
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
             filter_str,
