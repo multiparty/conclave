@@ -380,7 +380,6 @@ class MPCPushUp(DagRewriter):
         """
 
         if node.is_lower_boundary():
-
             out_stored_with = node.out_rel.stored_with
             for par in node.parents:
                 if not par.is_root():
@@ -398,7 +397,20 @@ class MPCPushUp(DagRewriter):
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
 
         pass
-        # self._rewrite_unary_default(node)
+        
+
+class UpdateColumns(DagRewriter):
+    """
+    Updates all operator specific columns after the pushdown pass.
+    """
+
+    def __init__(self):
+        super(UpdateColumns, self).__init__()
+
+    def rewrite(self, dag: ccdag.OpDag):
+        ordered = dag.top_sort()
+        for node in ordered:
+            node.update_op_specific_cols()
 
 
 class CollSetPropDown(DagRewriter):
@@ -414,17 +426,14 @@ class CollSetPropDown(DagRewriter):
 
     def _rewrite_aggregate(self, node: [ccdag.Aggregate, ccdag.IndexAggregate]):
         """ Push down collusion sets for an Aggregate or IndexAggregate node. """
-        node.update_op_specific_cols()
-        print("node.get_in_rel()", [node.get_in_rel().dbg_str()])
+
         in_group_cols = node.group_cols
-        print("in_group_cols[0].dbg_str()", in_group_cols[0].dbg_str())
         out_group_cols = node.out_rel.columns[:-1]
         for i in range(len(out_group_cols)):
             out_group_cols[i].coll_sets |= copy.deepcopy(in_group_cols[i].coll_sets)
         in_agg_col = node.agg_col
         out_agg_col = node.out_rel.columns[-1]
         out_agg_col.coll_sets |= copy.deepcopy(in_agg_col.coll_sets)
-        print("node.get_in_rel()", [node.get_in_rel().dbg_str()])
 
     def _rewrite_divide(self, node: ccdag.Divide):
         """ Push down collusion sets for a Divide node. """
@@ -1033,6 +1042,7 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     if all_parties is None:
         all_parties = [1, 2, 3]
     MPCPushDown().rewrite(dag)
+    UpdateColumns().rewrite(dag)
     MPCPushUp().rewrite(dag)
     CollSetPropDown().rewrite(dag)
     HybridOperatorOpt().rewrite(dag)

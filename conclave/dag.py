@@ -393,6 +393,7 @@ class Concat(NaryOpNode):
     def update_out_rel_cols(self):
         in_rel_cols = copy.deepcopy(self.get_in_rels()[0].columns)
         self.out_rel.columns = in_rel_cols
+        self.out_rel.update_columns()
         # parent = self.ordered[0]
         # updated_cols = []
         # if isinstance(parent, Aggregate):
