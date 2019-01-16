@@ -339,6 +339,86 @@ void project
 	ret->keepRows = keepRows;
 }
 
+void limitLeaky
+    (
+    intermediateMat *mat,
+    intermediateMat *ret,
+    int num
+    )
+{
+    int numInRows = mat->rows;
+    int numCols = mat->cols;
+    int numRows;
+
+    if (num < numInRows)
+    {
+        numRows = num;
+    }
+    else
+    {
+        numRows = numInRows;
+    }
+
+    obliv int **array = malloc(sizeof(*array) * numRows);
+    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        keepRows[i] = mat->keepRows[i];
+
+        array[i] = malloc(sizeof(**array) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            array[i][j] = mat[i][j];
+        }
+    }
+
+    ret->rows = numRows;
+    ret->mat = array;
+    ret->keepRows = keepRows;
+}
+
+void limit
+    (
+    intermediateMat *mat,
+    intermediateMat *ret,
+    int num
+    )
+{
+
+    // TODO: switch keepRows flags to 0 once limit num is reached
+    int numInRows = mat->rows;
+    int numCols = mat->cols;
+    int numRows;
+
+    if (num < numInRows)
+    {
+        numRows = num;
+    }
+    else
+    {
+        numRows = numInRows;
+    }
+
+    obliv int **array = malloc(sizeof(*array) * numRows);
+    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+    for (int i = 0; i < numInRows; i++)
+    {
+        keepRows[i] = mat->keepRows[i];
+
+        array[i] = malloc(sizeof(**array) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            array[i][j] = mat[i][j];
+        }
+    }
+
+    ret->rows = numRows;
+    ret->mat = array;
+    ret->keepRows = keepRows;
+}
+
 void multiply
 	(
 	intermediateMat *mat,
