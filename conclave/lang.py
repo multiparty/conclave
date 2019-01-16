@@ -159,6 +159,28 @@ def sort_by(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: st
     return op
 
 
+def limit(input_op_node: cc_dag.OpNode, output_name: str, num: int):
+    """
+    Define Limit operation.
+    """
+
+    in_rel = input_op_node.out_rel
+
+    out_rel_cols = copy.deepcopy(in_rel.columns)
+
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    op = cc_dag.Limit(out_rel, input_op_node, num)
+
+    input_op_node.children.add(op)
+
+    return op
+
+
 def project(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names: list):
     """
     Define Project operation.
@@ -450,7 +472,7 @@ def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
     else:
         for input_op_node in input_op_nodes:
             out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
-    
+
     for col in out_rel_cols:
         col.coll_sets = set()
 
