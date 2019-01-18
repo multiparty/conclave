@@ -80,6 +80,8 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_filter(node)
             elif isinstance(node, ConcatCols):
                 pass
+            elif isinstance(node, Limit):
+                op_code += self._generate_limit(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -159,6 +161,22 @@ class OblivcCodeGen(CodeGen):
             "LEFT_REL": concat_cols_op.get_in_rels()[0],
             'RIGHT_REL': concat_cols_op.get_in_rels()[1],
             "OUT_REL": concat_cols_op.out_rel.name
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_limit(self, limit_op: Limit):
+        """
+        Generate code for limit operation.
+        """
+
+        template = open(
+            "{0}/limit.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": limit_op.get_in_rel().name,
+            "OUT_REL": limit_op.out_rel.name,
+            "NUM": limit_op.num
         }
 
         return pystache.render(template, data)
