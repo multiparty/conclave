@@ -407,7 +407,7 @@ void limit
         numRows = numInRows;
     }
 
-    obliv int **array = malloc(sizeof(*array) * numRows);
+    obliv int **array = malloc(sizeof(*array) * numInRows);
     obliv int *keepRows = malloc(sizeof(obliv float) * numRows);
 
     for (int i = 0; i < numInRows; i++)
