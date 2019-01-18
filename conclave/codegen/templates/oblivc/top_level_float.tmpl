@@ -376,7 +376,7 @@ void limitLeaky
         array[i] = malloc(sizeof(**array) * numCols);
         for (int j = 0; j < numCols; j++)
         {
-            array[i][j] = mat[i][j];
+            array[i][j] = mat->mat[i][j];
         }
     }
 
@@ -417,7 +417,7 @@ void limit
         array[i] = malloc(sizeof(**array) * numCols);
         for (int j = 0; j < numCols; j++)
         {
-            array[i][j] = mat[i][j];
+            array[i][j] = mat->mat[i][j];
         }
     }
 
