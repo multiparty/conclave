@@ -270,6 +270,24 @@ def project():
     return set([in1, in2])
 
 
+@dag_only
+def limit():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    cl1 = sal._close(in1, "cl1", set([1, 2]))
+    cl2 = sal._close(in2, "cl2", set([1, 2]))
+
+    rel = sal.concat([cl1, cl2], "rel")
+
+    lim = sal.limit(rel, 'lim1', 3)
+
+    opened = sal._open(lim, "opened", 1)
+
+    return set([in1, in2])
+
 if __name__ == "__main__":
 
     # dag = agg()
@@ -301,6 +319,9 @@ if __name__ == "__main__":
     #
     # dag = distinct_count()
     # generate(dag, 'dis')
+    #
+    # dag = filter()
+    # generate(dag, 'filt')
 
-    dag = filter()
-    generate(dag, 'filt')
+    dag = limit()
+    generate(dag, 'lim')
