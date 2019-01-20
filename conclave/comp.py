@@ -538,7 +538,22 @@ class TrustSetPropDown(DagRewriter):
         raise Exception("HybridJoin encountered during CollSetPropDown")
 
     def _rewrite_join(self, node: ccdag.Join):
-        """ Push down collusion sets for a Join node. """
+        """
+        Push down trust sets for a Join node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1), defCol("b", "INTEGER", 1)]
+        >>> cols_in_right = [defCol("c", "INTEGER", 1, 2), defCol("d", "INTEGER", 2)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> right = cc.create("right", cols_in_right, {2})
+        >>> joined = cc.join(left, right, "joined", ["a"], ["c"])
+        >>> TrustSetPropDown()._rewrite_join(joined)
+        >>> joined.out_rel.columns[0].dbg_str()
+        'a {1}'
+        >>> joined.out_rel.columns[1].dbg_str()
+        'b {1}'
+        >>> joined.out_rel.columns[2].dbg_str()
+        'd {}'
+        """
 
         left_in_rel = node.get_left_in_rel()
         right_in_rel = node.get_right_in_rel()
@@ -571,7 +586,20 @@ class TrustSetPropDown(DagRewriter):
                 abs_idx += 1
 
     def _rewrite_concat(self, node: ccdag.Concat):
-        """ Push down collusion sets for a Concat node. """
+        """
+        Push down trust sets for a Concat node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 2)]
+        >>> cols_in_right = [defCol("c", "INTEGER", 1, 3), defCol("b", "INTEGER", 3)]
+        >>> left = cc.create("left", cols_in_left, {2})
+        >>> right = cc.create("right", cols_in_right, {3})
+        >>> rel = cc.concat([left, right], "rel")
+        >>> TrustSetPropDown()._rewrite_concat(rel)
+        >>> rel.out_rel.columns[0].dbg_str()
+        'a {1}'
+        >>> rel.out_rel.columns[1].dbg_str()
+        'b {}'
+        """
 
         # Copy over columns from existing relation
         out_rel_cols = node.out_rel.columns
