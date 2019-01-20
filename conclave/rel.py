@@ -31,14 +31,13 @@ class Column:
         return self.name
 
     def get_idx(self):
-        """Return column identifier."""
+        """Return column index."""
         return self.idx
 
     def dbg_str(self):
-        """Return column identifier."""
-        coll_set_str = \
-            " ".join(sorted(["{" + ",".join([str(p) for p in coll_set]) + "}" for coll_set in self.trust_set]))
-        return self.get_name() + " " + coll_set_str
+        """Return column name and trust set as string."""
+        coll_set_str = " ".join(sorted([str(party) for party in self.trust_set]))
+        return self.get_name() + " " + "{" + coll_set_str + "}"
 
     def merge_coll_sets_in(self, other_coll_sets: set):
         """Merge collusion sets into column."""

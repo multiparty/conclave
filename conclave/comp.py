@@ -7,6 +7,7 @@ import warnings
 import conclave.dag as ccdag
 import conclave.lang as cc
 import conclave.utils as utils
+from conclave.utils import defCol
 
 
 def push_op_node_down(top_node: ccdag.OpNode, bottom_node: ccdag.OpNode):
@@ -272,7 +273,6 @@ class MPCPushDown(DagRewriter):
                 split_agg(node)
                 push_op_node_down(parent, node)
                 parent.update_out_rel_cols()
-                child = next(iter(parent.children))
             else:
                 node.is_mpc = True
         else:
@@ -409,30 +409,19 @@ class UpdateColumns(DagRewriter):
             node.update_op_specific_cols()
 
 
-class CollSetPropDown(DagRewriter):
+class TrustSetPropDown(DagRewriter):
     """
-    Pushes collusion sets down through the DAG. Collusion sets are
-    column-specific and thus more granular than stored_with sets,
-    which are defined over whole relations.
+    Propagates trust sets down through the DAG.
+
+    Trust sets are column-specific and thus more granular than stored_with sets, which are defined over whole relations.
     """
 
     def __init__(self):
 
-        super(CollSetPropDown, self).__init__()
+        super(TrustSetPropDown, self).__init__()
 
-    def _rewrite_aggregate(self, node: [ccdag.Aggregate, ccdag.IndexAggregate]):
-        """ Push down collusion sets for an Aggregate or IndexAggregate node. """
-
-        in_group_cols = node.group_cols
-        out_group_cols = node.out_rel.columns[:-1]
-        for i in range(len(out_group_cols)):
-            out_group_cols[i].trust_set |= copy.deepcopy(in_group_cols[i].trust_set)
-        in_agg_col = node.agg_col
-        out_agg_col = node.out_rel.columns[-1]
-        out_agg_col.trust_set |= copy.deepcopy(in_agg_col.trust_set)
-
-    def _rewrite_divide(self, node: ccdag.Divide):
-        """ Push down collusion sets for a Divide node. """
+    @staticmethod
+    def _rewrite_linear_op(node: [ccdag.Divide, ccdag.Multiply]):
 
         out_rel_cols = node.out_rel.columns
         operands = node.operands
@@ -441,47 +430,108 @@ class CollSetPropDown(DagRewriter):
         # Update target column collusion set
         target_col_out = out_rel_cols[target_col.idx]
 
-        target_col_out.trust_set |= utils.trust_set_from_columns(operands)
+        # Need all operands to derive target column
+        target_col_out.trust_set = copy.copy(utils.trust_set_from_columns(operands))
 
-        # The other columns weren't modified so the collusion sets
-        # simply carry over
-        for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
-            if in_col != target_col:
-                out_col.trust_set |= copy.deepcopy(in_col.trust_set)
+        # The other columns weren't modified so their trust sets simply carry over
+        # Skip target column (which comes first)
+        zipped = zip(node.get_in_rel().columns[1:], out_rel_cols[1:])
+        for in_col, out_col in zipped:
+            out_col.trust_set = copy.copy(in_col.trust_set)
+
+    def _rewrite_aggregate(self, node: [ccdag.Aggregate, ccdag.IndexAggregate]):
+        """
+        Push down trust sets for an Aggregate or IndexAggregate node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 1)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> agged = cc.aggregate(in_op, "agged", ["a"], "b", "+", "total_b")
+        >>> TrustSetPropDown()._rewrite_aggregate(agged)
+        >>> agged.out_rel.columns[0].dbg_str()
+        'a {1 2}'
+        >>> agged.out_rel.columns[1].dbg_str()
+        'total_b {1}'
+        """
+        in_group_cols = node.group_cols
+        out_group_cols = node.out_rel.columns[:-1]
+        in_group_cols_ts = utils.trust_set_from_columns(in_group_cols)
+        for i in range(len(out_group_cols)):
+            out_group_cols[i].trust_set = copy.copy(in_group_cols_ts)
+        in_agg_col = node.agg_col
+        out_agg_col = node.out_rel.columns[-1]
+        out_agg_col.trust_set = copy.copy(utils.merge_coll_sets(in_agg_col.trust_set, in_group_cols_ts))
+
+    def _rewrite_divide(self, node: ccdag.Divide):
+        """
+        Push down trust sets for a Divide node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 1, 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> div = cc.divide(in_op, "div", "a", ["a", "b"])
+        >>> TrustSetPropDown()._rewrite_divide(div)
+        >>> div.out_rel.columns[0].dbg_str()
+        'a {1}'
+        >>> div.out_rel.columns[1].dbg_str()
+        'b {1 3}'
+        """
+        TrustSetPropDown._rewrite_linear_op(node)
 
     def _rewrite_project(self, node: ccdag.Project):
-        """ Push down collusion sets for a Project node. """
+        """
+        Push down trust sets for a Project node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> proj = cc.project(in_op, "proj", ["b", "a"])
+        >>> TrustSetPropDown()._rewrite_project(proj)
+        >>> proj.out_rel.columns[0].dbg_str()
+        'b {3}'
+        >>> proj.out_rel.columns[1].dbg_str()
+        'a {1 2}'
+        """
 
         selected_cols = node.selected_cols
 
         for in_col, out_col in zip(selected_cols, node.out_rel.columns):
-            out_col.trust_set |= copy.deepcopy(in_col.trust_set)
+            out_col.trust_set = copy.copy(in_col.trust_set)
 
     def _rewrite_filter(self, node: ccdag.Filter):
-        """ Push down collusion sets for a Filter node. """
+        """
+        Push down trust sets for a Filter node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 1), defCol("c", "INTEGER", 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> filt = cc.cc_filter(in_op, "filt", "a", "==", "b")
+        >>> TrustSetPropDown()._rewrite_filter(filt)
+        >>> filt.out_rel.columns[0].dbg_str()
+        'a {1}'
+        >>> filt.out_rel.columns[1].dbg_str()
+        'b {1}'
+        >>> filt.out_rel.columns[2].dbg_str()
+        'c {}'
+        """
+
+        # To determine the result of a filter, we need to know all columns used in the filter condition
+        condition_trust_set = utils.trust_set_from_columns([node.filter_col, node.other_col])
 
         out_rel_cols = node.out_rel.columns
-
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
-            out_col.trust_set |= copy.deepcopy(in_col.trust_set)
+            out_col.trust_set = utils.merge_coll_sets(condition_trust_set, in_col.trust_set)
 
     def _rewrite_multiply(self, node: ccdag.Multiply):
-        """ Push down collusion sets for a Multiply node. """
+        """
+        Push down trust sets for a Multiply node.
 
-        out_rel_cols = node.out_rel.columns
-        operands = node.operands
-        target_col = node.target_col
-
-        # Update target column collusion set
-        target_col_out = out_rel_cols[target_col.idx]
-
-        target_col_out.trust_set |= utils.trust_set_from_columns(operands)
-
-        # The other columns weren't modified so the collusion sets
-        # simply carry over
-        for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
-            if in_col != target_col:
-                out_col.trust_set |= copy.deepcopy(in_col.trust_set)
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 1, 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> div = cc.multiply(in_op, "div", "a", ["a", "b"])
+        >>> TrustSetPropDown()._rewrite_multiply(div)
+        >>> div.out_rel.columns[0].dbg_str()
+        'a {1}'
+        >>> div.out_rel.columns[1].dbg_str()
+        'b {1 3}'
+        """
+        TrustSetPropDown._rewrite_linear_op(node)
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
@@ -916,7 +966,7 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     MPCPushDown().rewrite(dag)
     UpdateColumns().rewrite(dag)
     MPCPushUp().rewrite(dag)
-    CollSetPropDown().rewrite(dag)
+    TrustSetPropDown().rewrite(dag)
     HybridOperatorOpt().rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps(use_leaky_ops).rewrite(dag)

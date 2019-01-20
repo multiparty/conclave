@@ -46,10 +46,7 @@ def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: l
     # Get relevant columns and reset their collusion sets
     in_cols = in_rel.columns
     group_cols = [utils.find(in_cols, group_col_name) for group_col_name in group_col_names]
-    for group_col in group_cols:
-        group_col.trust_set = set()
     over_col = utils.find(in_cols, over_col_name)
-    over_col.trust_set = set()
 
     # Create output relation. Default column order is
     # key column first followed by column that will be
@@ -280,16 +277,11 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     out_rel_cols = copy.deepcopy(in_rel.columns)
 
     # Replace all column names with corresponding columns.
-    operands = [utils.find(in_rel.columns, op) if isinstance(
-        op, str) else op for op in operands]
-    for operand in operands:
-        if hasattr(operand, "trust_set"):
-            operand.trust_set = set()
+    operands = [utils.find(in_rel.columns, op) if isinstance(op, str) else op for op in operands]
 
     # if target_col already exists, it will be at the 0th index of operands
     if target_col_name == operands[0].name:
         target_column = utils.find(in_rel.columns, target_col_name)
-        target_column.trust_set = set()
     else:
         # TODO: figure out new column's trust_set
         target_column = rel.Column(
@@ -335,12 +327,9 @@ def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
 
     # Get index of filter column
     filter_col = utils.find(in_rel.columns, filter_col_name)
-    filter_col.trust_set = set()
 
     # Get index of other column (if there is one)
     other_col = utils.find(in_rel.columns, other_col_name) if other_col_name else None
-    if other_col:
-        other_col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -379,14 +368,10 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
 
     # Replace all column names with corresponding columns.
     operands = [utils.find(in_rel.columns, op) if isinstance(op, str) else op for op in operands]
-    for operand in operands:
-        if hasattr(operand, "trust_set"):
-            operand.trust_set = set()
 
     # if target_col already exists, it will be at the 0th index of operands
     if target_col_name == operands[0].name:
         target_column = utils.find(in_rel.columns, target_col_name)
-        target_column.trust_set = set()
     else:
         # TODO: figure out new column's trust_set
         target_column = rel.Column(output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
@@ -517,10 +502,6 @@ def join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output
     # Get columns we will join on
     left_join_cols = [utils.find(left_cols, left_col_name) for left_col_name in left_col_names]
     right_join_cols = [utils.find(right_cols, right_col_name) for right_col_name in right_col_names]
-
-    # # Get the key columns' merged collusion set
-    # keyCollusionSet = utils.mergeCollusionSets(
-    #     left_join_col.collusionSet, right_join_col.collusionSet)
 
     # Create new key columns
     out_key_cols = []
