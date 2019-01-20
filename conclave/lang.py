@@ -47,9 +47,9 @@ def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: l
     in_cols = in_rel.columns
     group_cols = [utils.find(in_cols, group_col_name) for group_col_name in group_col_names]
     for group_col in group_cols:
-        group_col.coll_sets = set()
+        group_col.trust_set = set()
     over_col = utils.find(in_cols, over_col_name)
-    over_col.coll_sets = set()
+    over_col.trust_set = set()
 
     # Create output relation. Default column order is
     # key column first followed by column that will be
@@ -143,7 +143,7 @@ def sort_by(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: st
     sort_by_col = utils.find(in_rel.columns, sort_by_col_name)
 
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -176,7 +176,7 @@ def project(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names: 
 
     out_rel_cols = copy.deepcopy(selected_cols)
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -209,7 +209,7 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
 
     out_rel_cols = copy.deepcopy(selected_cols)
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -242,7 +242,7 @@ def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_
 
     out_rel_cols = copy.deepcopy([selected_col])
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -283,15 +283,15 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     operands = [utils.find(in_rel.columns, op) if isinstance(
         op, str) else op for op in operands]
     for operand in operands:
-        if hasattr(operand, "coll_sets"):
-            operand.coll_sets = set()
+        if hasattr(operand, "trust_set"):
+            operand.trust_set = set()
 
     # if target_col already exists, it will be at the 0th index of operands
     if target_col_name == operands[0].name:
         target_column = utils.find(in_rel.columns, target_col_name)
-        target_column.coll_sets = set()
+        target_column.trust_set = set()
     else:
-        # TODO: figure out new column's coll_sets
+        # TODO: figure out new column's trust_set
         target_column = rel.Column(
             output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
         out_rel_cols.append(target_column)
@@ -335,12 +335,12 @@ def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
 
     # Get index of filter column
     filter_col = utils.find(in_rel.columns, filter_col_name)
-    filter_col.coll_sets = set()
+    filter_col.trust_set = set()
 
     # Get index of other column (if there is one)
     other_col = utils.find(in_rel.columns, other_col_name) if other_col_name else None
     if other_col:
-        other_col.coll_sets = set()
+        other_col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -380,15 +380,15 @@ def multiply(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: st
     # Replace all column names with corresponding columns.
     operands = [utils.find(in_rel.columns, op) if isinstance(op, str) else op for op in operands]
     for operand in operands:
-        if hasattr(operand, "coll_sets"):
-            operand.coll_sets = set()
+        if hasattr(operand, "trust_set"):
+            operand.trust_set = set()
 
     # if target_col already exists, it will be at the 0th index of operands
     if target_col_name == operands[0].name:
         target_column = utils.find(in_rel.columns, target_col_name)
-        target_column.coll_sets = set()
+        target_column.trust_set = set()
     else:
-        # TODO: figure out new column's coll_sets
+        # TODO: figure out new column's trust_set
         target_column = rel.Column(output_name, target_col_name, len(in_rel.columns), "INTEGER", set())
         out_rel_cols.append(target_column)
 
@@ -421,7 +421,7 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     # Get index of filter column
     key_col = utils.find(in_rel.columns, key_col_name)
     assert key_col.idx == 0
-    key_col.coll_sets = set()
+    key_col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -449,7 +449,7 @@ def concat_cols(input_op_nodes: list, output_name: str, use_mult=False):
             out_rel_cols += copy.deepcopy(input_op_node.out_rel.columns)
 
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Get input relations from input nodes
     in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
@@ -600,7 +600,7 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
         else:
             # we use the column names from the first input
             pass
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # The result of the concat will be stored with the union
     # of the parties storing the input relations
@@ -712,7 +712,7 @@ def _comp_neighs(input_op_node: cc_dag.OpNode, output_name: str, comp_col_name: 
     comp_col.stored_with = set()
 
     for col in out_rel_cols:
-        col.coll_sets = set()
+        col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, [copy.deepcopy(comp_col)], copy.copy(in_rel.stored_with))
@@ -815,7 +815,7 @@ def _join_flags(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode,
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
     join_flags_op = cc_dag.JoinFlags.from_join(join_op)
-    out_col = rel.Column(output_name, out_col_name, 0, "INTEGER", join_flags_op.out_rel.columns[0].coll_sets)
+    out_col = rel.Column(output_name, out_col_name, 0, "INTEGER", join_flags_op.out_rel.columns[0].trust_set)
     out_rel = rel.Relation(output_name, [out_col], join_flags_op.out_rel.stored_with)
     join_flags_op.out_rel = out_rel
     join_flags_op.is_mpc = True

@@ -29,11 +29,11 @@ def merge_coll_sets(left: set, right: set):
     return {l | r for l in left for r in right}
 
 
-def coll_sets_from_columns(columns: list):
+def trust_set_from_columns(columns: list):
     """
     Returned
     """
-    coll_sets = [col.coll_sets if hasattr(col, "coll_sets") else set() for col in columns]
+    coll_sets = [col.trust_set if hasattr(col, "trust_set") else set() for col in columns]
     return functools.reduce(lambda set_a, set_b: merge_coll_sets(set_a, set_b), coll_sets)
 
 

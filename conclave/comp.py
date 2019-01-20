@@ -426,10 +426,10 @@ class CollSetPropDown(DagRewriter):
         in_group_cols = node.group_cols
         out_group_cols = node.out_rel.columns[:-1]
         for i in range(len(out_group_cols)):
-            out_group_cols[i].coll_sets |= copy.deepcopy(in_group_cols[i].coll_sets)
+            out_group_cols[i].trust_set |= copy.deepcopy(in_group_cols[i].trust_set)
         in_agg_col = node.agg_col
         out_agg_col = node.out_rel.columns[-1]
-        out_agg_col.coll_sets |= copy.deepcopy(in_agg_col.coll_sets)
+        out_agg_col.trust_set |= copy.deepcopy(in_agg_col.trust_set)
 
     def _rewrite_divide(self, node: ccdag.Divide):
         """ Push down collusion sets for a Divide node. """
@@ -441,13 +441,13 @@ class CollSetPropDown(DagRewriter):
         # Update target column collusion set
         target_col_out = out_rel_cols[target_col.idx]
 
-        target_col_out.coll_sets |= utils.coll_sets_from_columns(operands)
+        target_col_out.trust_set |= utils.trust_set_from_columns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
             if in_col != target_col:
-                out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
+                out_col.trust_set |= copy.deepcopy(in_col.trust_set)
 
     def _rewrite_project(self, node: ccdag.Project):
         """ Push down collusion sets for a Project node. """
@@ -455,7 +455,7 @@ class CollSetPropDown(DagRewriter):
         selected_cols = node.selected_cols
 
         for in_col, out_col in zip(selected_cols, node.out_rel.columns):
-            out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
+            out_col.trust_set |= copy.deepcopy(in_col.trust_set)
 
     def _rewrite_filter(self, node: ccdag.Filter):
         """ Push down collusion sets for a Filter node. """
@@ -463,7 +463,7 @@ class CollSetPropDown(DagRewriter):
         out_rel_cols = node.out_rel.columns
 
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
-            out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
+            out_col.trust_set |= copy.deepcopy(in_col.trust_set)
 
     def _rewrite_multiply(self, node: ccdag.Multiply):
         """ Push down collusion sets for a Multiply node. """
@@ -475,13 +475,13 @@ class CollSetPropDown(DagRewriter):
         # Update target column collusion set
         target_col_out = out_rel_cols[target_col.idx]
 
-        target_col_out.coll_sets |= utils.coll_sets_from_columns(operands)
+        target_col_out.trust_set |= utils.trust_set_from_columns(operands)
 
         # The other columns weren't modified so the collusion sets
         # simply carry over
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
             if in_col != target_col:
-                out_col.coll_sets |= copy.deepcopy(in_col.coll_sets)
+                out_col.trust_set |= copy.deepcopy(in_col.trust_set)
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
@@ -502,22 +502,22 @@ class CollSetPropDown(DagRewriter):
         key_cols_coll_sets = []
         for i in range(len(left_join_cols)):
             key_cols_coll_sets.append(utils.merge_coll_sets(
-                left_join_cols[i].coll_sets, right_join_cols[i].coll_sets))
-            out_join_cols[i].coll_sets = key_cols_coll_sets[i]
+                left_join_cols[i].trust_set, right_join_cols[i].trust_set))
+            out_join_cols[i].trust_set = key_cols_coll_sets[i]
 
         abs_idx = len(left_join_cols)
         for in_col in left_in_rel.columns:
             if in_col not in set(left_join_cols):
                 for key_col_coll_sets in key_cols_coll_sets:
-                    node.out_rel.columns[abs_idx].coll_sets = \
-                        utils.merge_coll_sets(key_col_coll_sets, in_col.coll_sets)
+                    node.out_rel.columns[abs_idx].trust_set = \
+                        utils.merge_coll_sets(key_col_coll_sets, in_col.trust_set)
                 abs_idx += 1
 
         for in_col in right_in_rel.columns:
             if in_col not in set(right_join_cols):
                 for key_col_coll_sets in key_cols_coll_sets:
-                    node.out_rel.columns[abs_idx].coll_sets = \
-                        utils.merge_coll_sets(key_col_coll_sets, in_col.coll_sets)
+                    node.out_rel.columns[abs_idx].trust_set = \
+                        utils.merge_coll_sets(key_col_coll_sets, in_col.trust_set)
                 abs_idx += 1
 
     def _rewrite_concat(self, node: ccdag.Concat):
@@ -529,7 +529,7 @@ class CollSetPropDown(DagRewriter):
         # Combine per-column collusion sets
         for idx, col in enumerate(out_rel_cols):
             columns_at_idx = [in_rel.columns[idx] for in_rel in node.get_in_rels()]
-            col.coll_sets = utils.coll_sets_from_columns(columns_at_idx)
+            col.trust_set = utils.trust_set_from_columns(columns_at_idx)
 
 
 class HybridOperatorOpt(DagRewriter):
@@ -546,10 +546,10 @@ class HybridOperatorOpt(DagRewriter):
             # TODO extend to multi-column case
             # by convention the group-by column comes first in the result of an aggregation
             group_col_idx = 0
-            # oversimplifying here. what if there are multiple singleton coll_sets?
+            # oversimplifying here. what if there are multiple singleton trust_set?
             singleton_coll_sets = filter(
                 lambda s: len(s) == 1,
-                out_rel.columns[group_col_idx].coll_sets)
+                out_rel.columns[group_col_idx].trust_set)
             singleton_coll_sets = sorted(list(singleton_coll_sets))
             if singleton_coll_sets:
                 trusted_party = next(iter(singleton_coll_sets[0]))
@@ -576,10 +576,10 @@ class HybridOperatorOpt(DagRewriter):
             out_rel = node.out_rel
             # TODO this doesn't look right
             key_col_idx = 0
-            # oversimplifying here. what if there are multiple singleton coll_sets?
+            # oversimplifying here. what if there are multiple singleton trust_set?
             singleton_coll_sets = filter(
                 lambda s: len(s) == 1,
-                out_rel.columns[key_col_idx].coll_sets)
+                out_rel.columns[key_col_idx].trust_set)
             singleton_coll_sets = sorted(list(singleton_coll_sets))
             if singleton_coll_sets:
                 trusted_party = next(iter(singleton_coll_sets[0]))
