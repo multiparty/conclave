@@ -13,7 +13,7 @@ PROJECT [a, b] FROM (in_3([a {3}, b {3}]) {3}) AS proj_2([a {3}, b {3}]) {3}
 AGG [b, +] FROM (proj_2([a {3}, b {3}]) {3}) GROUP BY [a] AS agg_2([a {3}, total_b {3}]) {3}
 DIVIDE [a -> a / 1] FROM (agg_2([a {3}, total_b {3}]) {3}) AS div_0_2([a {3}, total_b {3}]) {3}
 CLOSEMPC div_0_2([a {3}, total_b {3}]) {3} INTO div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}
-CONCATMPC [div_0_1_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_0_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
-AGGMPC [total_b, +] FROM (rel([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3}
-OPENMPC agg_obl([a {1,2,3}, total_b {1,2,3}]) {1, 2, 3} INTO agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}
-MULTIPLY [a -> a * 1] FROM (agg_obl_open([a {1,2,3}, total_b {1,2,3}]) {1}) AS mult([a {1,2,3}, total_b {1,2,3}]) {1}
+CONCATMPC [div_0_1_close([a {1}, total_b {1}]) {1, 2, 3}, div_0_0_close([a {2}, total_b {2}]) {1, 2, 3}, div_0_2_close([a {3}, total_b {3}]) {1, 2, 3}] AS rel([a {}, total_b {}]) {1, 2, 3}
+AGGMPC [total_b, +] FROM (rel([a {}, total_b {}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {}, total_b {}]) {1, 2, 3}
+OPENMPC agg_obl([a {}, total_b {}]) {1, 2, 3} INTO agg_obl_open([a {}, total_b {}]) {1}
+MULTIPLY [a -> a * 1] FROM (agg_obl_open([a {}, total_b {}]) {1}) AS mult([a {}, total_b {}]) {1}

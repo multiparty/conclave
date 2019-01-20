@@ -484,5 +484,4 @@ class TestConclave(TestCase):
             return {left_medication, left_diagnosis, right_medication, right_diagnosis}
 
         actual = protocol()
-        print(actual)
         self.check_workflow(actual, "aspirin")

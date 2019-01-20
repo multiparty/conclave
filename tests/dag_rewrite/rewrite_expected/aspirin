@@ -7,14 +7,14 @@ CLOSEMPC medication_proj_0([0 {1}, 4 {1}, 7 {1}]) {1} INTO medication_proj_0_clo
 CREATE RELATION right_diagnosis([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
 PROJECT [8, 16, 18] FROM (right_diagnosis([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2}) AS diagnosis_proj_1([8 {2}, 16 {2}, 18 {2}]) {2}
 CLOSEMPC diagnosis_proj_1([8 {2}, 16 {2}, 18 {2}]) {2} INTO diagnosis_proj_1_close([8 {2}, 16 {2}, 18 {2}]) {1, 2, 3}
-CONCATMPC [diagnosis_proj_0_close([8 {1}, 16 {1}, 18 {1}]) {1, 2, 3}, diagnosis_proj_1_close([8 {2}, 16 {2}, 18 {2}]) {1, 2, 3}] AS diagnosis([8 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}
+CONCATMPC [diagnosis_proj_0_close([8 {1}, 16 {1}, 18 {1}]) {1, 2, 3}, diagnosis_proj_1_close([8 {2}, 16 {2}, 18 {2}]) {1, 2, 3}] AS diagnosis([8 {}, 16 {}, 18 {}]) {1, 2, 3}
 CREATE RELATION right_medication([0 {2}, 1 {2}, 2 {2}, 3 {2}, 4 {2}, 5 {2}, 6 {2}, 7 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
 PROJECT [0, 4, 7] FROM (right_medication([0 {2}, 1 {2}, 2 {2}, 3 {2}, 4 {2}, 5 {2}, 6 {2}, 7 {2}]) {2}) AS medication_proj_1([0 {2}, 4 {2}, 7 {2}]) {2}
 CLOSEMPC medication_proj_1([0 {2}, 4 {2}, 7 {2}]) {2} INTO medication_proj_1_close([0 {2}, 4 {2}, 7 {2}]) {1, 2, 3}
-CONCATMPC [medication_proj_0_close([0 {1}, 4 {1}, 7 {1}]) {1, 2, 3}, medication_proj_1_close([0 {2}, 4 {2}, 7 {2}]) {1, 2, 3}] AS medication([0 {1,2}, 4 {1,2}, 7 {1,2}]) {1, 2, 3}
-(medication([0 {1,2}, 4 {1,2}, 7 {1,2}]) {1, 2, 3}) JOINMPC (diagnosis([8 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}) ON [0] AND [8] AS joined([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}
-FILTERMPC [18 {1,2} < 7 {1,2}] FROM (joined([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}) AS cases([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}
-FILTERMPC [4 {1,2} == 1] FROM (cases([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}) AS aspirin([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}
-FILTERMPC [16 {1,2} == 1] FROM (aspirin([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}) AS heart_patients([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}
-DISTINCT_COUNTMPC [0] FROM (heart_patients([0 {1,2}, 4 {1,2}, 7 {1,2}, 16 {1,2}, 18 {1,2}]) {1, 2, 3}) AS actual([0 ]) {1, 2, 3}
-OPENMPC actual([0 ]) {1, 2, 3} INTO actual_open([0 ]) {1}
+CONCATMPC [medication_proj_0_close([0 {1}, 4 {1}, 7 {1}]) {1, 2, 3}, medication_proj_1_close([0 {2}, 4 {2}, 7 {2}]) {1, 2, 3}] AS medication([0 {}, 4 {}, 7 {}]) {1, 2, 3}
+(medication([0 {}, 4 {}, 7 {}]) {1, 2, 3}) JOINMPC (diagnosis([8 {}, 16 {}, 18 {}]) {1, 2, 3}) ON [0] AND [8] AS joined([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [18 {} < 7 {}] FROM (joined([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [4 {} == 1] FROM (cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [16 {} == 1] FROM (aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+DISTINCT_COUNTMPC [0] FROM (heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS actual([0 {}]) {1, 2, 3}
+OPENMPC actual([0 {}]) {1, 2, 3} INTO actual_open([0 {}]) {1}

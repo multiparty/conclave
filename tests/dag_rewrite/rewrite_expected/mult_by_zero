@@ -2,6 +2,6 @@ CREATE RELATION in1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CLOSEMPC in1([a {1}, b {1}]) {1} INTO in1_close([a {1}, b {1}]) {1, 2, 3}
 CREATE RELATION in_2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSEMPC in_2([a {2}, b {2}]) {2} INTO in_2_close([a {2}, b {2}]) {1, 2, 3}
-CONCATMPC [in1_close([a {1}, b {1}]) {1, 2, 3}, in_2_close([a {2}, b {2}]) {1, 2, 3}] AS rel([a {1,2}, b {1,2}]) {1, 2, 3}
-MULTIPLYMPC [a -> a * 0] FROM (rel([a {1,2}, b {1,2}]) {1, 2, 3}) AS mult([a {1,2}, b {1,2}]) {1, 2, 3}
-OPENMPC mult([a {1,2}, b {1,2}]) {1, 2, 3} INTO mult_open([a {1,2}, b {1,2}]) {1}
+CONCATMPC [in1_close([a {1}, b {1}]) {1, 2, 3}, in_2_close([a {2}, b {2}]) {1, 2, 3}] AS rel([a {}, b {}]) {1, 2, 3}
+MULTIPLYMPC [a -> a * 0] FROM (rel([a {}, b {}]) {1, 2, 3}) AS mult([a {}, b {}]) {1, 2, 3}
+OPENMPC mult([a {}, b {}]) {1, 2, 3} INTO mult_open([a {}, b {}]) {1}

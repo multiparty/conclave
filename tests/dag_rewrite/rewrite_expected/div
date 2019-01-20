@@ -1,5 +1,5 @@
 CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in_2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSEMPC in_2([a {2}, b {2}]) {2} INTO in_2_close([a {2}, b {2}]) {1}
-CONCAT [in_1([a {1}, b {1}]) {1}, in_2_close([a {2}, b {2}]) {1}] AS rel([a {1,2}, b {1,2}]) {1}
-DIVIDE [a -> a / b] FROM (rel([a {1,2}, b {1,2}]) {1}) AS mult([a {1,2}, b {1,2}]) {1}
+CONCAT [in_1([a {1}, b {1}]) {1}, in_2_close([a {2}, b {2}]) {1}] AS rel([a {}, b {}]) {1}
+DIVIDE [a -> a / b] FROM (rel([a {}, b {}]) {1}) AS mult([a {}, b {}]) {1}

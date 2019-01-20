@@ -3,23 +3,23 @@ CREATE RELATION in_2([companyID {2}, price {2}]) {2} WITH COLUMNS (INTEGER, INTE
 CREATE RELATION in_3([companyID {3}, price {3}]) {3} WITH COLUMNS (INTEGER, INTEGER)
 PROJECT [companyID, price] FROM (in_1([companyID {1}, price {1}]) {1}) AS selected_input_0([companyID {1}, price {1}]) {1}
 AGG [price, +] FROM (selected_input_0([companyID {1}, price {1}]) {1}) GROUP BY [companyID] AS local_rev_0([companyID {1}, local_rev {1}]) {1}
-DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_0([companyID {1}, local_rev {1}]) {1}) AS scaled_down_0_0([companyID {1}, local_rev {1}]) {1}
-CLOSEMPC scaled_down_0_0([companyID {1}, local_rev {1}]) {1} INTO scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_0([companyID {1}, local_rev {1}]) {1}) AS scaled_down_0_0([companyID {}, local_rev {1}]) {1}
+CLOSEMPC scaled_down_0_0([companyID {}, local_rev {1}]) {1} INTO scaled_down_0_0_close([companyID {}, local_rev {1}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in_2([companyID {2}, price {2}]) {2}) AS selected_input_1([companyID {2}, price {2}]) {2}
 AGG [price, +] FROM (selected_input_1([companyID {2}, price {2}]) {2}) GROUP BY [companyID] AS local_rev_1([companyID {2}, local_rev {2}]) {2}
-DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_1([companyID {2}, local_rev {2}]) {2}) AS scaled_down_0_1([companyID {2}, local_rev {2}]) {2}
-CLOSEMPC scaled_down_0_1([companyID {2}, local_rev {2}]) {2} INTO scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_1([companyID {2}, local_rev {2}]) {2}) AS scaled_down_0_1([companyID {}, local_rev {2}]) {2}
+CLOSEMPC scaled_down_0_1([companyID {}, local_rev {2}]) {2} INTO scaled_down_0_1_close([companyID {}, local_rev {2}]) {1, 2, 3}
 PROJECT [companyID, price] FROM (in_3([companyID {3}, price {3}]) {3}) AS selected_input_2([companyID {3}, price {3}]) {3}
 AGG [price, +] FROM (selected_input_2([companyID {3}, price {3}]) {3}) GROUP BY [companyID] AS local_rev_2([companyID {3}, local_rev {3}]) {3}
-DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_2([companyID {3}, local_rev {3}]) {3}) AS scaled_down_0_2([companyID {3}, local_rev {3}]) {3}
-CLOSEMPC scaled_down_0_2([companyID {3}, local_rev {3}]) {3} INTO scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}
-CONCATMPC [scaled_down_0_0_close([companyID {1}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {2}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {3}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-AGGMPC [local_rev, +] FROM (cab_data([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-MULTIPLYMPC [companyID -> companyID * 0] FROM (local_rev_obl([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) AS local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}
-AGGMPC [local_rev, +] FROM (first_val_blank([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
-(local_rev_scaled([companyID {1,2,3}, local_rev {1,2,3}]) {1, 2, 3}) JOINMPC (total_rev([companyID {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) ON [companyID] AND [companyID] AS local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
-DIVIDEMPC [local_rev -> local_rev / global_rev] FROM (local_total_rev([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
-MULTIPLYMPC [local_rev -> local_rev * local_rev * 1] FROM (market_share([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) AS market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}
-AGGMPC [local_rev, +] FROM (market_share_squared([companyID {1,2,3}, local_rev {1,2,3}, global_rev {1,2,3}]) {1, 2, 3}) GROUP BY [companyID] AS hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3}
-OPENMPC hhi([companyID {1,2,3}, hhi {1,2,3}]) {1, 2, 3} INTO hhi_open([companyID {1,2,3}, hhi {1,2,3}]) {1}
+DIVIDE [local_rev -> local_rev / 1000] FROM (local_rev_2([companyID {3}, local_rev {3}]) {3}) AS scaled_down_0_2([companyID {}, local_rev {3}]) {3}
+CLOSEMPC scaled_down_0_2([companyID {}, local_rev {3}]) {3} INTO scaled_down_0_2_close([companyID {}, local_rev {3}]) {1, 2, 3}
+CONCATMPC [scaled_down_0_0_close([companyID {}, local_rev {1}]) {1, 2, 3}, scaled_down_0_1_close([companyID {}, local_rev {2}]) {1, 2, 3}, scaled_down_0_2_close([companyID {}, local_rev {3}]) {1, 2, 3}] AS cab_data([companyID {}, local_rev {}]) {1, 2, 3}
+AGGMPC [local_rev, +] FROM (cab_data([companyID {}, local_rev {}]) {1, 2, 3}) GROUP BY [companyID] AS local_rev_obl([companyID {}, local_rev {}]) {1, 2, 3}
+MULTIPLYMPC [companyID -> companyID * 0] FROM (local_rev_obl([companyID {}, local_rev {}]) {1, 2, 3}) AS first_val_blank([companyID {}, local_rev {}]) {1, 2, 3}
+MULTIPLYMPC [local_rev -> local_rev * 100] FROM (first_val_blank([companyID {}, local_rev {}]) {1, 2, 3}) AS local_rev_scaled([companyID {}, local_rev {}]) {1, 2, 3}
+AGGMPC [local_rev, +] FROM (first_val_blank([companyID {}, local_rev {}]) {1, 2, 3}) GROUP BY [companyID] AS total_rev([companyID {}, global_rev {}]) {1, 2, 3}
+(local_rev_scaled([companyID {}, local_rev {}]) {1, 2, 3}) JOINMPC (total_rev([companyID {}, global_rev {}]) {1, 2, 3}) ON [companyID] AND [companyID] AS local_total_rev([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}
+DIVIDEMPC [local_rev -> local_rev / global_rev] FROM (local_total_rev([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}) AS market_share([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}
+MULTIPLYMPC [local_rev -> local_rev * local_rev * 1] FROM (market_share([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}) AS market_share_squared([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}
+AGGMPC [local_rev, +] FROM (market_share_squared([companyID {}, local_rev {}, global_rev {}]) {1, 2, 3}) GROUP BY [companyID] AS hhi([companyID {}, hhi {}]) {1, 2, 3}
+OPENMPC hhi([companyID {}, hhi {}]) {1, 2, 3} INTO hhi_open([companyID {}, hhi {}]) {1}

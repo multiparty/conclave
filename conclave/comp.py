@@ -624,14 +624,11 @@ class HybridOperatorOpt(DagRewriter):
             # TODO extend to multi-column case
             # by convention the group-by column comes first in the result of an aggregation
             group_col_idx = 0
-            # oversimplifying here. what if there are multiple singleton trust_set?
-            singleton_coll_sets = filter(
-                lambda s: len(s) == 1,
-                out_rel.columns[group_col_idx].trust_set)
-            singleton_coll_sets = sorted(list(singleton_coll_sets))
-            if singleton_coll_sets:
-                trusted_party = next(iter(singleton_coll_sets[0]))
-                hybrid_agg_op = ccdag.HybridAggregate.from_aggregate(node, trusted_party)
+            trust_set = out_rel.columns[group_col_idx].trust_set
+            if trust_set:
+                # oversimplifying here. what if there are multiple STPs?
+                STP = sorted(trust_set)[0]
+                hybrid_agg_op = ccdag.HybridAggregate.from_aggregate(node, STP)
                 parents = hybrid_agg_op.parents
                 for par in parents:
                     par.replace_child(node, hybrid_agg_op)
@@ -652,16 +649,14 @@ class HybridOperatorOpt(DagRewriter):
         """ Convert Join node to HybridJoin node. """
         if node.is_mpc:
             out_rel = node.out_rel
-            # TODO this doesn't look right
+            # TODO extend to multi-column case
+            # by convention the join key columns come first in the result of a join
             key_col_idx = 0
-            # oversimplifying here. what if there are multiple singleton trust_set?
-            singleton_coll_sets = filter(
-                lambda s: len(s) == 1,
-                out_rel.columns[key_col_idx].trust_set)
-            singleton_coll_sets = sorted(list(singleton_coll_sets))
-            if singleton_coll_sets:
-                trusted_party = next(iter(singleton_coll_sets[0]))
-                hybrid_join_op = ccdag.HybridJoin.from_join(node, trusted_party)
+            trust_set = out_rel.columns[key_col_idx].trust_set
+            if trust_set:
+                # oversimplifying here. what if there are multiple STPs?
+                STP = sorted(trust_set)[0]
+                hybrid_join_op = ccdag.HybridJoin.from_join(node, STP)
                 parents = hybrid_join_op.parents
                 for par in parents:
                     par.replace_child(node, hybrid_join_op)
