@@ -123,6 +123,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_distinct_count(node)
             elif isinstance(node, ConcatCols):
                 miner_code += self._generate_concat_cols(node)
+            elif isinstance(node, SortBy):
+                miner_code += self._generate_sort_by(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -286,12 +288,26 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    def _generate_sort_by(self, sort_by_op: SortBy):
+        """ Generate code for SortBy operations. """
+
+        template = open(
+            "{0}/sort_by.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "TYPE": "uint32",
+            "OUT_REL_NAME": sort_by_op.out_rel.name,
+            "IN_REL_NAME": sort_by_op.get_in_rel().name,
+            "SORT_BY_COL_IDX": sort_by_op.sort_by_col.idx
+        }
+        return pystache.render(template, data)
+
     def _generate_leaky_index_aggregate(self, lky_idx_agg_op: LeakyIndexAggregate):
         """ Generate code for LeakyIndexAggregate operations. """
 
         template = open(
             "{0}/leaky_index_aggregate_sum.tmpl".format(self.template_directory), 'r').read()
-            
+
         data = {
             "TYPE": "uint32",
             "OUT_REL_NAME": lky_idx_agg_op.out_rel.name,
@@ -485,9 +501,9 @@ class SharemindCodeGen(CodeGen):
         # so we need to explicitely exclude these
         cols_to_keep = list(
             range(
-                len(left_rel.columns) 
-              + len(right_rel.columns)
-              + (1 if not self.config.use_leaky_ops else 0))) # account for flag column
+                len(left_rel.columns)
+                + len(right_rel.columns)
+                + (1 if not self.config.use_leaky_ops else 0)))  # account for flag column
         print(cols_to_keep)
         cols_to_exclude = [col.idx + len(left_rel.columns)
                            for col in join_op.right_join_cols]
