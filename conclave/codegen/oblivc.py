@@ -170,8 +170,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for limit operation.
         """
 
-        template = open(
-            "{0}/limit.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_leaky_ops:
+            template = open(
+                "{0}/limit_leaky.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/limit.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "IN_REL": limit_op.get_in_rel().name,
@@ -244,7 +248,7 @@ class OblivcCodeGen(CodeGen):
                 "{0}/join.tmpl".format(self.template_directory), 'r').read()
         else:
             template = open(
-                "{0}/joinLeaky.tmpl".format(self.template_directory), 'r').read()
+                "{0}/join_leaky.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "JOINCOL_ONE": join_op.left_join_cols[0].idx,
