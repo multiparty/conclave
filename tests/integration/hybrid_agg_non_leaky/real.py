@@ -18,7 +18,7 @@ def protocol():
         defCol("column_c", "INTEGER", [1])
     ]
     right = cc.create("right", input_columns_right, {2})
-    aggregated = cc.aggregate(cc.concat([left, right], "rel"), "actual", ["column_a"], "column_b", "+", "total_b")
+    aggregated = cc.aggregate(cc.concat([left, right], "rel"), "actual", ["column_a"], "column_b", "sum", "total_b")
     actual_open = cc.project(aggregated, "actual_open", ["column_a", "total_b"])
     cc.collect(actual_open, 1)
     return {left, right}

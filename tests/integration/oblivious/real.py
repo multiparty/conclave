@@ -24,7 +24,7 @@ def protocol():
 
     joined = cc.join(left_dummy, right_dummy, "joined", ["a"], ["c"])
     cc.collect(
-        cc.aggregate(joined, "actual", ["b"], "d", "+", "total"),
+        cc.aggregate(joined, "actual", ["b"], "d", "sum", "total"),
         1
     )
 
