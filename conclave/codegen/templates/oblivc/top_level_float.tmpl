@@ -888,6 +888,79 @@ void agg
 	}
 }
 
+void aggCount
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		bool leaky
+	)
+{
+	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv float **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = 1;
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
+
+		obliv float *keepRows = malloc(sizeof(obliv float) * paddedVal);
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		ret->keepRows = keepRows;
+
+		if (leaky)
+		{
+			_aggLeaky(ret, padded, numCols, paddedVal);
+		}
+		else
+		{
+			_agg(ret, padded, numCols, paddedVal);
+		}
+
+	}
+	else
+	{
+		obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		ret->keepRows = keepRows;
+
+        if (leaky)
+		{
+			_aggLeaky(ret, padded, numCols, numRows);
+		}
+		else
+		{
+			_agg(ret, padded, numCols, numRows);
+		}
+	}
+}
+
 void revealResult
 	(
 	intermediateMat *mat,

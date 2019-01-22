@@ -718,8 +718,6 @@ void _agg
 	(
 		intermediateMat *ret,
 		obliv int **array,
-		int keyCol,
-		int aggCol,
 		int numCols,
 		int numRows
 	)
@@ -749,8 +747,6 @@ void _aggLeaky
 	(
 		intermediateMat *ret,
 		obliv int **array,
-		int keyCol,
-		int aggCol,
 		int numCols,
 		int numRows
 	)
@@ -830,11 +826,11 @@ void agg
 
         if (leaky)
         {
-            _aggLeaky(ret, padded, keyCol, aggCol, numCols, paddedVal);
+            _aggLeaky(ret, padded, numCols, paddedVal);
         }
         else
         {
-		    _agg(ret, padded, keyCol, aggCol, numCols, paddedVal);
+		    _agg(ret, padded, numCols, paddedVal);
 		}
 	}
 	else
@@ -850,11 +846,84 @@ void agg
 
         if (leaky)
         {
-            _aggLeaky(ret, array, keyCol, aggCol, numCols, numRows);
+            _aggLeaky(ret, array, numCols, numRows);
         }
         else
         {
-		    _agg(ret, array, keyCol, aggCol, numCols, numRows);
+		    _agg(ret, array, numCols, numRows);
+		}
+	}
+}
+
+void aggCount
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		bool leaky
+	)
+{
+	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = 1;
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
+
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		ret->keepRows = keepRows;
+
+		if (leaky)
+		{
+			_aggLeaky(ret, padded, numCols, paddedVal);
+		}
+		else
+		{
+			_agg(ret, padded, numCols, paddedVal);
+		}
+
+	}
+	else
+	{
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		ret->keepRows = keepRows;
+
+        if (leaky)
+		{
+			_aggLeaky(ret, padded, numCols, numRows);
+		}
+		else
+		{
+			_agg(ret, padded, numCols, numRows);
 		}
 	}
 }
