@@ -167,6 +167,8 @@ class DagRewriter:
                 self._rewrite_pub_join(node)
             elif isinstance(node, ccdag.ConcatCols):
                 self._rewrite_concat_cols(node)
+            elif isinstance(node, ccdag.SortBy):
+                self._rewrite_sort_by(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -223,6 +225,9 @@ class DagRewriter:
         pass
 
     def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        pass
+
+    def _rewrite_sort_by(self, node: ccdag.SortBy):
         pass
 
 
@@ -348,9 +353,15 @@ class MPCPushDown(DagRewriter):
                 fork_node(node)
 
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+
         self._rewrite_unary_default(node)
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
+
+        self._rewrite_default(node)
+
+    def _rewrite_sort_by(self, node: ccdag.SortBy):
+
         self._rewrite_default(node)
 
 
@@ -712,6 +723,8 @@ class InsertOpenAndCloseOps(DagRewriter):
         warnings.warn("hacky insert store ops")
         in_stored_with = node.get_in_rel().stored_with
         out_stored_with = node.out_rel.stored_with
+        print(node.is_mpc)
+        print(node.children)
         if in_stored_with != out_stored_with:
             if node.is_lower_boundary():
                 # input is stored with one set of parties
@@ -833,6 +846,9 @@ class InsertOpenAndCloseOps(DagRewriter):
                 target_party = next(iter(out_stored_with))
                 node.out_rel.stored_with = copy.copy(in_stored_with)
                 cc._open(node, node.out_rel.name + "_open", target_party)
+
+    def _rewrite_sort_by(self, node: ccdag.SortBy):
+        self._rewrite_default_unary(node)
 
 
 class ExpandCompositeOps(DagRewriter):

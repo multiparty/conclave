@@ -485,3 +485,31 @@ class TestConclave(TestCase):
 
         actual = protocol()
         self.check_workflow(actual, "aspirin")
+
+    def test_comorb(self):
+        @scotch
+        @mpc
+        def protocol():
+            pid_col = "8"
+            diagnosis_col = "16"
+
+            cols_to_skip = 8
+            num_diagnosis_cols = 13
+
+            left_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 1) for i in range(num_diagnosis_cols)]
+            left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
+
+            right_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 2) for i in range(num_diagnosis_cols)]
+            right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
+
+            diagnosis = cc.concat([left_diagnosis, right_diagnosis], "diagnosis")
+
+            cohort = cc.cc_filter(diagnosis, "cohort", pid_col, "==", scalar=93)
+            counts = cc.aggregate(cohort, "counts", [diagnosis_col], "18", "SUM", "total")
+            cc.collect(cc.sort_by(counts, "actual", "total"), 1)
+
+            return {left_diagnosis, right_diagnosis}
+
+        actual = protocol()
+        print(actual)
+        self.check_workflow(actual, "comorb")

@@ -535,7 +535,7 @@ class SortBy(UnaryOpNode):
         """ Initialize SortBy object. """
         super(SortBy, self).__init__("sortBy", out_rel, parent)
         self.sort_by_col = sort_by_col
-
+    
     def update_op_specific_cols(self):
         """
         Updates this node's sort_by_col with the column of it's input relation with matching idx.
