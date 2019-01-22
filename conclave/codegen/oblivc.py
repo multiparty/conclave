@@ -1,6 +1,5 @@
 import os
 import sys
-import csv
 
 import pystache
 
@@ -386,17 +385,23 @@ class OblivcCodeGen(CodeGen):
         Generate code for Aggregate operations.
         """
 
-        # TODO: codegen assumes '+' aggregator, generalize
-
-        template = open(
-            "{}/agg.tmpl".format(self.template_directory), 'r').read()
+        if agg_op.aggregator == '+':
+            template = open(
+                "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == "count":
+            template = open(
+                "{}/agg_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            print("Unknown aggregator encountered: {}".format(agg_op.aggregator))
+            return ''
 
         # TODO: generalize codegen to handle multiple group_cols
         assert(len(agg_op.group_cols) == 1)
 
-        leaky = 0
         if self.config.use_leaky_ops:
             leaky = 1
+        else:
+            leaky = 0
 
         data = {
             "IN_REL": agg_op.get_in_rel().name,
