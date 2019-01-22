@@ -44,12 +44,41 @@ def split_agg(node: ccdag.Aggregate):
     For now, deals with case where there is a Concat into an
     Aggregate. Here, local aggregation can be computed before
     concatenation, and then another aggregation under MPC.
+
+    >>> cols_in = [
+    ... defCol("a", "INTEGER", 1),
+    ... defCol("b", "INTEGER", 1),
+    ... defCol("c", "INTEGER", 1),
+    ... defCol("d", "INTEGER", 1)]
+    >>> in_op = cc.create("rel", cols_in, {1})
+    >>> agged = cc.aggregate(in_op, "agged", ["d"], "c", "+", "total")
+    >>> split_agg(agged)
+    >>> agged.out_rel.dbg_str()
+    'agged([d {1}, total {1}]) {1}'
+    >>> len(agged.children)
+    1
+    >>> child = next(iter(agged.children))
+    >>> child.get_in_rel().dbg_str()
+    'agged([d {1}, total {1}]) {1}'
+    >>> child.group_cols[0].dbg_str()
+    'd {1}'
+    >>> child.group_cols[0].idx
+    0
+    >>> child.agg_col.idx
+    1
     """
 
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
     clone.out_rel.rename(node.out_rel.name + "_obl")
+    assert (len(clone.group_cols) == 1)
+    updated_group_col = copy.deepcopy(node.out_rel.columns[0])
+    updated_group_col.idx = 0
+    updated_over_col = copy.deepcopy(node.out_rel.columns[1])
+    updated_over_col.idx = 1
+    clone.group_cols = [updated_group_col]
+    clone.agg_col = updated_over_col
     clone.parents = set()
     clone.children = set()
     clone.is_mpc = True

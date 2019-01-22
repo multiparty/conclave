@@ -408,10 +408,7 @@ class Aggregate(UnaryOpNode):
         self.aggregator = aggregator
 
     def update_op_specific_cols(self):
-        """
-        Update this node's group_cols and agg_col
-        based on the columns of its input relation.
-        """
+        """ Update this node's group_cols and agg_col based on the columns of its input relation. """
         self.group_cols = [self.get_in_rel().columns[group_col.idx]
                            for group_col in self.group_cols]
         self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
