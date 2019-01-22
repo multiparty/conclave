@@ -56,6 +56,7 @@ def setup():
 
     return [in1, in2]
 
+
 @dag_only
 def project():
 

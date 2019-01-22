@@ -97,6 +97,7 @@ def setup_three():
 
     return [in1, in2, in3]
 
+
 @dag_only
 def agg():
 
@@ -116,8 +117,24 @@ def agg():
     return set([in1, in2])
 
 
-# cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
-    # other_col_name: str = None, scalar: int = None)
+@dag_only
+def agg_count():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    cl1 = sal._close(in1, "cl1", set([1, 2]))
+    cl2 = sal._close(in2, "cl2", set([1, 2]))
+
+    rel = sal.concat([cl1, cl2], "rel")
+
+    agg = sal.aggregate(rel, 'agg1', ['c'], '', 'count', 'c_agg')
+
+    opened = sal._open(agg, "opened", 1)
+
+    return set([in1, in2])
+
 
 @dag_only
 def filter():
@@ -312,12 +329,17 @@ if __name__ == "__main__":
 
     # dag = agg()
     # generate(dag, 'agg')
-
-    # dag = join()
-    # generate(dag, 'join')
-    # #
+    #
     # dag = agg()
     # generate_leaky(dag, 'aggLeaky')
+    #
+    # dag = join()
+    # generate(dag, 'join')
+    #
+    dag = agg_count()
+    generate(dag, 'aggCount')
+    dag = agg_count()
+    generate_leaky(dag, 'aggCountLeaky')
     # #
     # dag = join()
     # generate_leaky(dag, 'joinLeaky')
@@ -346,5 +368,5 @@ if __name__ == "__main__":
     # dag = limit()
     # generate(dag, 'lim')
     #
-    dag = limit_agg_composition()
-    generate(dag, 'lim_agg')
+    # dag = limit_agg_composition()
+    # generate(dag, 'lim_agg')
