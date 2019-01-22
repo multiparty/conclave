@@ -6,6 +6,7 @@ import copy
 import conclave.dag as cc_dag
 import conclave.utils as utils
 from conclave import rel
+from conclave.rel import Column
 
 
 def create(rel_name: str, columns: list, stored_with: set):
@@ -40,6 +41,7 @@ def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: l
     """
 
     assert isinstance(group_col_names, list)
+
     # Get input relation from input node
     in_rel = input_op_node.out_rel
 
@@ -62,6 +64,48 @@ def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: l
 
     # Create our operator node
     op = cc_dag.Aggregate(out_rel, input_op_node, group_cols, over_col, aggregator)
+
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
+
+def aggregate_count(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: list,
+                    agg_out_col_name: str):
+    """
+    Define Aggregate operation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Aggregate node.
+    :param group_col_names: List of column names to be used as key columns in the aggregation.
+    :param over_col_name: Name of column that gets aggregated.
+    :param aggregator: Aggregate function ('+', 'max', 'min', etc.)
+    :param agg_out_col_name: Name of (optionally renamed) aggregate column for returned node.
+    :return: Aggregate OpNode.
+    """
+
+    assert isinstance(group_col_names, list)
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Get relevant columns and reset their collusion sets
+    in_cols = in_rel.columns
+    group_cols = [utils.find(in_cols, group_col_name) for group_col_name in group_col_names]
+
+    # Create output relation. Default column order is
+    # key column first followed by column that will be
+    # aggregated. Note that we want copies as these are
+    # copies on the output relation and changes to them
+    # shouldn't affect the original columns
+    agg_out_col = Column(output_name, agg_out_col_name, len(group_cols), "INTEGER", {})
+    out_rel_cols = [copy.deepcopy(group_col) for group_col in group_cols]
+    out_rel_cols.append(copy.deepcopy(agg_out_col))
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.Aggregate(out_rel, input_op_node, group_cols, None, "count")
 
     # Add it as a child to input node
     input_op_node.children.add(op)

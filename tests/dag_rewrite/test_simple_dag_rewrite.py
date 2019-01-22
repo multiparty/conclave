@@ -68,7 +68,7 @@ class TestConclave(TestCase):
             rel = cc.concat([in_1, in_2], "rel")
 
             # specify the workflow
-            agg = cc.aggregate(rel, "agg", ["a"], "b", "+", "total_b")
+            agg = cc.aggregate(rel, "agg", ["a"], "b", "sum", "total_b")
 
             cc.collect(agg, 1)
 

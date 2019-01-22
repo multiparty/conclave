@@ -47,7 +47,7 @@ class TestConclave(TestCase):
             selected_input = sal.project(
                 cab_data, "selected_input", ["companyID", "price"])
             local_rev = sal.aggregate(selected_input, "local_rev", [
-                "companyID"], "price", "+", "local_rev")
+                "companyID"], "price", "sum", "local_rev")
             scaled_down = sal.divide(
                 local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
             first_val_blank = sal.multiply(
@@ -55,7 +55,7 @@ class TestConclave(TestCase):
             local_rev_scaled = sal.multiply(
                 first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
             total_rev = sal.aggregate(first_val_blank, "total_rev", [
-                "companyID"], "local_rev", "+", "global_rev")
+                "companyID"], "local_rev", "sum", "global_rev")
             local_total_rev = sal.join(local_rev_scaled, total_rev, "local_total_rev", [
                 "companyID"], ["companyID"])
             market_share = sal.divide(local_total_rev, "market_share", "local_rev", [
@@ -63,7 +63,7 @@ class TestConclave(TestCase):
             market_share_squared = sal.multiply(market_share, "market_share_squared", "local_rev",
                                                 ["local_rev", "local_rev", 1])
             hhi = sal.aggregate(market_share_squared, "hhi", [
-                "companyID"], "local_rev", "+", "hhi")
+                "companyID"], "local_rev", "sum", "hhi")
             # dummy projection to force non-mpc subdag
             hhi_only = sal.project(
                 hhi, "hhi_only", ["companyID", "hhi"])
@@ -215,7 +215,7 @@ class TestConclave(TestCase):
             closed_sorted_by_key.is_mpc = True
 
             agg = sal.index_aggregate(
-                persisted, "agg", ["b"], "d", "+", "d", closed_eq_flags, closed_sorted_by_key)
+                persisted, "agg", ["b"], "d", "sum", "d", closed_eq_flags, closed_sorted_by_key)
             agg.is_mpc = True
             sal._open(agg, "ssnopened", 1)
 

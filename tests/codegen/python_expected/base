@@ -45,6 +45,16 @@ def aggregate(rel, group_by_idx, over_idx, aggregator):
         acc[key] += row[over_idx]
     return [[key, value] for key, value in acc.items()]
 
+def aggregate_count(rel, group_by_idx):
+
+    acc = {}
+    for row in rel:
+        key = row[group_by_idx]
+        if key not in acc:
+            acc[key] = 0
+        acc[key] += 1
+    return [[key, value] for key, value in acc.items()]
+
 def arithmetic_project(rel, target_col_idx, f):
 
     return [[value if idx != target_col_idx else f(row) for idx, value in enumerate(row)] for row in rel]

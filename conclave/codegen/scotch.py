@@ -102,7 +102,7 @@ class ScotchCodeGen(CodeGen):
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if agg_op.is_mpc else "",
-            agg_op.agg_col.get_name(),
+            agg_op.agg_col.get_name() if agg_op.agg_col else "",
             agg_op.aggregator,
             agg_op.get_in_rel().dbg_str(),
             ",".join([group_col.get_name() for group_col in agg_op.group_cols]),

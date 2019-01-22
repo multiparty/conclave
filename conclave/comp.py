@@ -71,8 +71,13 @@ def split_agg(node: ccdag.Aggregate):
     # Only dealing with single child case for now
     assert (len(node.children) <= 1)
     clone = copy.deepcopy(node)
+
+    assert clone.aggregator in {"sum", "count"}
+    clone.aggregator = "sum"
     clone.out_rel.rename(node.out_rel.name + "_obl")
+
     assert (len(clone.group_cols) == 1)
+
     updated_group_col = copy.deepcopy(node.out_rel.columns[0])
     updated_group_col.idx = 0
     updated_over_col = copy.deepcopy(node.out_rel.columns[1])
@@ -485,7 +490,7 @@ class TrustSetPropDown(DagRewriter):
 
         >>> cols_in = [defCol("a", "INTEGER", 1, 2), defCol("b", "INTEGER", 1)]
         >>> in_op = cc.create("rel", cols_in, {1})
-        >>> agged = cc.aggregate(in_op, "agged", ["a"], "b", "+", "total_b")
+        >>> agged = cc.aggregate(in_op, "agged", ["a"], "b", "sum", "total_b")
         >>> TrustSetPropDown()._rewrite_aggregate(agged)
         >>> agged.out_rel.columns[0].dbg_str()
         'a {1 2}'
@@ -497,9 +502,15 @@ class TrustSetPropDown(DagRewriter):
         in_group_cols_ts = utils.trust_set_from_columns(in_group_cols)
         for i in range(len(out_group_cols)):
             out_group_cols[i].trust_set = copy.copy(in_group_cols_ts)
-        in_agg_col = node.agg_col
+        if node.aggregator == "sum":
+            in_agg_col_ts = copy.copy(node.agg_col.trust_set)
+        elif node.aggregator == "count":
+            # in case of a count, result over col has same trust set as group by cols
+            in_agg_col_ts = in_group_cols_ts
+        else:
+            raise Exception("Unknown aggregator {}".format(node.aggregator))
         out_agg_col = node.out_rel.columns[-1]
-        out_agg_col.trust_set = copy.copy(utils.merge_coll_sets(in_agg_col.trust_set, in_group_cols_ts))
+        out_agg_col.trust_set = copy.copy(utils.merge_coll_sets(in_agg_col_ts, in_group_cols_ts))
 
     def _rewrite_divide(self, node: ccdag.Divide):
         """

@@ -31,5 +31,5 @@ PROJECT [row_index, b] FROM (sorted_by_key_hybrid_agg_1([row_index {}, b {}]) {1
 CLOSEMPC sorted_by_key_dummy_hybrid_agg_1([row_index {}, b {}]) {1} INTO closed_sorted_by_key_hybrid_agg_1([row_index {}, b {}]) {1, 2, 3}
 COMPNEIGHS b FROM (sorted_by_key_hybrid_agg_1([row_index {}, b {}]) {1}) AS eq_flags_hybrid_agg_1([b {}]) {1}
 CLOSEMPC eq_flags_hybrid_agg_1([b {}]) {1} INTO closed_eq_flags_hybrid_agg_1([b {}]) {1, 2, 3}
-IDXAGGMPC [d, +] FROM (persisted_hybrid_agg_1([a {}, b {}, d {}]) {1, 2, 3}) GROUP BY [b] AS actual([b {}, total {}]) {1, 2, 3}
+IDXAGGMPC [d, sum] FROM (persisted_hybrid_agg_1([a {}, b {}, d {}]) {1, 2, 3}) GROUP BY [b] AS actual([b {}, total {}]) {1, 2, 3}
 OPENMPC actual([b {}, total {}]) {1, 2, 3} INTO actual_open([b {1}, total {}]) {1}

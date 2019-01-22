@@ -22,7 +22,7 @@ def protocol():
 
     diagnosis = cc.concat([left_diagnosis, right_diagnosis], "diagnosis")
 
-    cohort = cc.cc_filter(diagnosis, "cohort", pid_col, "==", scalar=93)
+    cohort = cc.cc_filter(diagnosis, "cohort", pid_col, "<", scalar=200)
     counts = cc.aggregate(cohort, "counts", [diagnosis_col], "18", "SUM", "total")
     cc.sort_by(counts, "expected", "total")
 

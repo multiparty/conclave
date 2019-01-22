@@ -400,10 +400,14 @@ class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode,
-                 group_cols: list, agg_col: rel.Column, aggregator: str):
+                 group_cols: list, agg_col: [rel.Column, None], aggregator: str):
         """ Initialize Aggregate object. """
+        if aggregator not in {"sum", "count"}:
+            raise Exception("Unsupported aggregator {}".format(aggregator))
         super(Aggregate, self).__init__("aggregation", out_rel, parent)
         self.group_cols = group_cols
+        if aggregator == "count" and agg_col:
+            raise Exception("Don't supply agg_col for count")
         self.agg_col = agg_col
         self.aggregator = aggregator
 
@@ -411,7 +415,8 @@ class Aggregate(UnaryOpNode):
         """ Update this node's group_cols and agg_col based on the columns of its input relation. """
         self.group_cols = [self.get_in_rel().columns[group_col.idx]
                            for group_col in self.group_cols]
-        self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
+        if self.aggregator != "count":
+            self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
 
 
 class IndexAggregate(Aggregate):
@@ -535,7 +540,7 @@ class SortBy(UnaryOpNode):
         """ Initialize SortBy object. """
         super(SortBy, self).__init__("sortBy", out_rel, parent)
         self.sort_by_col = sort_by_col
-    
+
     def update_op_specific_cols(self):
         """
         Updates this node's sort_by_col with the column of it's input relation with matching idx.

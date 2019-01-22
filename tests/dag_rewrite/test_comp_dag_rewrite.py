@@ -73,7 +73,7 @@ class TestConclave(TestCase):
             # combine parties' inputs into one relation
             rel = cc.concat([in_1, in_2, in_3], "rel")
             proj = cc.project(rel, "proj", ["a", "b"])
-            agg = cc.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+            agg = cc.aggregate(proj, "agg", ["a"], "b", "sum", "total_b")
 
             cc.collect(agg, 1)
 
@@ -144,7 +144,7 @@ class TestConclave(TestCase):
             # combine parties' inputs into one relation
             rel = cc.concat([in_1, in_2, in_3], "rel")
             proj = cc.project(rel, "proj", ["a", "b"])
-            agg = cc.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+            agg = cc.aggregate(proj, "agg", ["a"], "b", "sum", "total_b")
 
             cc.collect(agg, 1)
 
@@ -181,7 +181,7 @@ class TestConclave(TestCase):
             # combine parties' inputs into one relation
             rel = cc.concat([in_1, in_2, in_3], "rel")
             proj = cc.project(rel, "proj", ["c", "a"])
-            agg = cc.aggregate(proj, "agg", ["c"], "a", "+", "total_b")
+            agg = cc.aggregate(proj, "agg", ["c"], "a", "sum", "total_b")
 
             cc.collect(agg, 1)
 
@@ -214,7 +214,7 @@ class TestConclave(TestCase):
             # specify the workflow
             proj_a = cc.project(rel, "proj_a", ["a", "b"])
             proj_b = cc.project(proj_a, "proj_b", ["a", "b"])
-            agg = cc.aggregate(proj_b, "agg", ["a"], "b", "+", "total_b")
+            agg = cc.aggregate(proj_b, "agg", ["a"], "b", "sum", "total_b")
             proj_c = cc.project(agg, "proj_c", ["a", "total_b"])
 
             cc.collect(proj_c, 1)
@@ -262,7 +262,7 @@ class TestConclave(TestCase):
                 defCol("b", "INTEGER", [2])
             ]
             in_2 = cc.create("in_2", cols_in_2, {2})
-            cc.collect(cc.aggregate(cc.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "+", "total_b"), 1)
+            cc.collect(cc.aggregate(cc.concat([in_1, in_2], "rel"), "agg", ["a"], "b", "sum", "total_b"), 1)
             return {in_1, in_2}
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=False)
@@ -345,7 +345,7 @@ class TestConclave(TestCase):
             companies = cc.concat([company0_dummy, company1_dummy], "companies")
 
             joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
-            res = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
+            res = cc.aggregate(joined, "actual", ["b"], "d", "sum", "total")
             cc.collect(res, 1)
 
             return {govreg, company0, company1}
@@ -379,7 +379,7 @@ class TestConclave(TestCase):
             selected_input = cc.project(
                 cab_data, "selected_input", ["companyID", "price"])
             local_rev = cc.aggregate(selected_input, "local_rev", [
-                "companyID"], "price", "+", "local_rev")
+                "companyID"], "price", "sum", "local_rev")
             scaled_down = cc.divide(
                 local_rev, "scaled_down", "local_rev", ["local_rev", 1000])
             first_val_blank = cc.multiply(
@@ -387,7 +387,7 @@ class TestConclave(TestCase):
             local_rev_scaled = cc.multiply(
                 first_val_blank, "local_rev_scaled", "local_rev", ["local_rev", 100])
             total_rev = cc.aggregate(first_val_blank, "total_rev", [
-                "companyID"], "local_rev", "+", "global_rev")
+                "companyID"], "local_rev", "sum", "global_rev")
             local_total_rev = cc.join(local_rev_scaled, total_rev, "local_total_rev", [
                 "companyID"], ["companyID"])
             market_share = cc.divide(local_total_rev, "market_share", "local_rev", [
@@ -395,7 +395,7 @@ class TestConclave(TestCase):
             market_share_squared = cc.multiply(market_share, "market_share_squared", "local_rev",
                                                ["local_rev", "local_rev", 1])
             hhi = cc.aggregate(market_share_squared, "hhi", [
-                "companyID"], "local_rev", "+", "hhi")
+                "companyID"], "local_rev", "sum", "hhi")
 
             cc.collect(hhi, 1)
 
@@ -429,7 +429,7 @@ class TestConclave(TestCase):
             # combine parties' inputs into one relation
             rel = cc.concat([in_1, in_2, in_3], "rel")
             proj = cc.project(rel, "proj", ["a", "b"])
-            agg = cc.aggregate(proj, "agg", ["a"], "b", "+", "total_b")
+            agg = cc.aggregate(proj, "agg", ["a"], "b", "sum", "total_b")
             div = cc.divide(agg, "div", "a", ["a", 1])
             mult = cc.multiply(div, "mult", "a", ["a", 1])
 
@@ -505,7 +505,7 @@ class TestConclave(TestCase):
             diagnosis = cc.concat([left_diagnosis, right_diagnosis], "diagnosis")
 
             cohort = cc.cc_filter(diagnosis, "cohort", pid_col, "==", scalar=93)
-            counts = cc.aggregate(cohort, "counts", [diagnosis_col], "18", "SUM", "total")
+            counts = cc.aggregate_count(cohort, "counts", [diagnosis_col], "total")
             cc.collect(cc.sort_by(counts, "actual", "total"), 1)
 
             return {left_diagnosis, right_diagnosis}
