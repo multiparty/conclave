@@ -1,7 +1,8 @@
 #!/bin/bash
 
 PARTY_ID=$1
-DATA_ROOT_DIR=aspirin_data/part_join
+SIZE=$2
+DATA_ROOT_DIR=aspirin_data/conclave/${SIZE}/
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # clean up data first

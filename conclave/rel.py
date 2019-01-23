@@ -9,31 +9,39 @@ class Column:
     Column data structure.
     """
 
-    def __init__(self, rel_name: str, name: str, idx: int, type_str: str, coll_sets: set):
-        """Initialize object."""
+    def __init__(self, rel_name: str, name: str, idx: int, type_str: str, trust_set: set):
+        """
+        Initialize object.
+
+        :param rel_name: name of corresponding relation
+        :param name: name of column
+        :param idx: index among other columns of relation
+        :param type_str: describes type of values in column
+        :param trust_set: parties trusted to learn this column in the clear
+        """
         self.rel_name = rel_name
         self.name = name
         self.idx = idx  # Integer index of the column in the relation.
         self.type_str = type_str  # Currently can only be "INTEGER".
-        self.coll_sets = coll_sets  # Record of all sets of parties that can collude together to recover values in this column.
+        self.trust_set = trust_set  # Record of all sets of parties that can collude together to recover values in
+        # this column.
 
     def get_name(self):
         """Return column name."""
         return self.name
 
     def get_idx(self):
-        """Return column identifier."""
+        """Return column index."""
         return self.idx
 
     def dbg_str(self):
-        """Return column identifier."""
-        coll_set_str = \
-            " ".join(sorted(["{" + ",".join([str(p) for p in coll_set]) + "}" for coll_set in self.coll_sets]))
-        return self.get_name() + " " + coll_set_str
+        """Return column name and trust set as string."""
+        coll_set_str = " ".join(sorted([str(party) for party in self.trust_set]))
+        return self.get_name() + " " + "{" + coll_set_str + "}"
 
     def merge_coll_sets_in(self, other_coll_sets: set):
         """Merge collusion sets into column."""
-        self.coll_sets = utils.merge_coll_sets(self.coll_sets, other_coll_sets)
+        self.trust_set = utils.merge_coll_sets(self.trust_set, other_coll_sets)
 
     def __str__(self):
         """Return string representation of column object."""

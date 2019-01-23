@@ -50,14 +50,24 @@ class PythonCodeGen(CodeGen):
     def _generate_aggregate(self, agg_op: ccdag.Aggregate):
         """ Generate code for Aggregate operations. """
         # TODO handle multi-column case
-        return "{}{} = aggregate({}, {}, {}, '{}')\n".format(
-            self.space,
-            agg_op.out_rel.name,
-            agg_op.get_in_rel().name,
-            agg_op.group_cols[0].idx,
-            agg_op.agg_col.idx,
-            agg_op.aggregator
-        )
+        if agg_op.aggregator == "sum":
+            return "{}{} = aggregate({}, {}, {}, '{}')\n".format(
+                self.space,
+                agg_op.out_rel.name,
+                agg_op.get_in_rel().name,
+                agg_op.group_cols[0].idx,
+                agg_op.agg_col.idx,
+                agg_op.aggregator
+            )
+        elif agg_op.aggregator == "count":
+            return "{}{} = aggregate_count({}, {})\n".format(
+                self.space,
+                agg_op.out_rel.name,
+                agg_op.get_in_rel().name,
+                agg_op.group_cols[0].idx
+            )
+        else:
+            raise Exception("Unknown aggregator {}".format(agg_op.aggregator))
 
     def _generate_multiply(self, mult_op: ccdag.Multiply):
         """ Generate code for Multiply operations. """
@@ -186,6 +196,16 @@ class PythonCodeGen(CodeGen):
             sort_by_op.out_rel.name,
             sort_by_op.get_in_rel().name,
             sort_by_op.sort_by_col.idx
+        )
+
+    def _generate_filter_by(self, filter_by_op: ccdag.FilterBy):
+        """ Generate code for FilterBy operations. """
+        return "{}{} = filter_by({}, {}, {})\n".format(
+            self.space,
+            filter_by_op.out_rel.name,
+            filter_by_op.get_left_in_rel().name,
+            filter_by_op.get_right_in_rel().name,
+            filter_by_op.filter_col.idx
         )
 
     def _generate_comp_neighs(self, comp_neighs_op: ccdag.CompNeighs):

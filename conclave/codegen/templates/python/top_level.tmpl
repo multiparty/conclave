@@ -45,6 +45,16 @@ def aggregate(rel, group_by_idx, over_idx, aggregator):
         acc[key] += row[over_idx]
     return [[key, value] for key, value in acc.items()]
 
+def aggregate_count(rel, group_by_idx):
+
+    acc = {}
+    for row in rel:
+        key = row[group_by_idx]
+        if key not in acc:
+            acc[key] = 0
+        acc[key] += 1
+    return [[key, value] for key, value in acc.items()]
+
 def arithmetic_project(rel, target_col_idx, f):
 
     return [[value if idx != target_col_idx else f(row) for idx, value in enumerate(row)] for row in rel]
@@ -218,6 +228,13 @@ def key_union(left: list, right: list, l: int, r: int):
 
 def filter_by_keys(rel: list, keys: set, key_col: int):
     return [row for row in rel if row[key_col] in keys]
+
+
+def filter_by(rel: list, key_rel: list, key_col: int):
+    keys = set()
+    for key_row in key_rel:
+        keys.add(key_row[0])
+    return filter_by_keys(rel, keys, key_col)
 
 
 def construct_index_rel(keys: list, other_keys: list, dist_keys: set):

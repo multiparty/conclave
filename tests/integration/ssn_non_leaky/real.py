@@ -32,7 +32,7 @@ def protocol():
     companies = cc.concat([company0_dummy, company1_dummy], "companies")
 
     joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
-    actual = cc.aggregate(joined, "actual", ["b"], "d", "+", "total")
+    actual = cc.aggregate(joined, "actual", ["b"], "d", "sum", "total")
     cc.collect(actual, 1)
 
     return {govreg, company0, company1}

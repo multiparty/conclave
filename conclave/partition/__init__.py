@@ -133,6 +133,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
         for fmwk, subdag, stored_with in mapping:
             # we can merge neighboring subdags if they're mapped to the same
             # framework and are stored by same parties
+            # TODO this looks like a bug -- stored_with == prev_fmwk should never be true
             if fmwk == prev_fmwk and stored_with == prev_fmwk:
                 # merge dags together
                 merged_dag = _merge_dags(prev_subdag, subdag)

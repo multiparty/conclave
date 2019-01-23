@@ -85,6 +85,10 @@ class OpNode(Node):
         """ Overridden in subclasses. """
         return
 
+    def update_out_rel_cols(self):
+        """ Overridden in subclasses. """
+        return
+
     def update_stored_with(self):
         """ Overridden in subclasses. """
         return
@@ -361,6 +365,8 @@ class Concat(NaryOpNode):
         parent_set = set(parents)
         # sanity check for now
         assert (len(parents) == len(parent_set))
+        # only handle same class input operators (otherwise managing columns during rewrites becomes annoying)
+        assert (len(set([type(x).__name__ for x in parents])) == 1)
         super(Concat, self).__init__("concat", out_rel, parent_set)
         self.ordered = parents
 
@@ -374,6 +380,7 @@ class Concat(NaryOpNode):
 
     def replace_parent(self, old_parent: OpNode, new_parent: OpNode):
         """ Replace a particular parent node with another. """
+        # TODO figure out how to enforce that all parents remain same class
         super(Concat, self).replace_parent(old_parent, new_parent)
         # this will throw if old_parent not in list
         idx = self.ordered.index(old_parent)
@@ -383,27 +390,33 @@ class Concat(NaryOpNode):
         # TODO
         raise NotImplementedError()
 
+    def update_out_rel_cols(self):
+        in_rel_cols = copy.deepcopy(self.get_in_rels()[0].columns)
+        self.out_rel.columns = in_rel_cols
+        self.out_rel.update_columns()
+
 
 class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode,
-                 group_cols: list, agg_col: rel.Column, aggregator: str):
+                 group_cols: list, agg_col: [rel.Column, None], aggregator: str):
         """ Initialize Aggregate object. """
+        if aggregator not in {"sum", "count"}:
+            raise Exception("Unsupported aggregator {}".format(aggregator))
         super(Aggregate, self).__init__("aggregation", out_rel, parent)
         self.group_cols = group_cols
+        if aggregator == "count" and agg_col:
+            raise Exception("Don't supply agg_col for count")
         self.agg_col = agg_col
         self.aggregator = aggregator
 
     def update_op_specific_cols(self):
-        """
-        Update this node's group_cols and agg_col
-        based on the columns of it's input relation.
-        """
-        # TODO: do we need to copy here?
+        """ Update this node's group_cols and agg_col based on the columns of its input relation. """
         self.group_cols = [self.get_in_rel().columns[group_col.idx]
                            for group_col in self.group_cols]
-        self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
+        if self.aggregator != "count":
+            self.agg_col = self.get_in_rel().columns[self.agg_col.idx]
 
 
 class IndexAggregate(Aggregate):
@@ -462,10 +475,9 @@ class Project(UnaryOpNode):
         """
         Update this node's selected_cols with the columns
         from it's input relation whose idx's match.
-
         """
         temp_cols = self.get_in_rel().columns
-        self.selected_cols = [temp_cols[col.idx] for col in temp_cols]
+        self.selected_cols = [temp_cols[col.idx] for col in self.selected_cols]
 
 
 class Index(UnaryOpNode):
@@ -619,6 +631,9 @@ class Divide(UnaryOpNode):
 
 
 class Filter(UnaryOpNode):
+    """
+    Operator for filtering relations for rows with specified attribute values.
+    """
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, filter_col: rel.Column, operator: str,
                  other_col: rel.Column, scalar: int):
@@ -636,6 +651,12 @@ class Filter(UnaryOpNode):
 
     def is_reversible(self):
         return False
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_in_rel().columns
+        self.filter_col = temp_cols[self.filter_col.idx]
+        if not self.is_scalar:
+            self.other_col = temp_cols[self.other_col.idx]
 
 
 class PubJoin(BinaryOpNode):
@@ -666,6 +687,23 @@ class Join(BinaryOpNode):
                                for left_join_col in copy.copy(self.left_join_cols)]
         self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
                                 for right_join_col in copy.copy(self.right_join_cols)]
+
+
+class FilterBy(BinaryOpNode):
+    """
+    Operator for filtering relations for rows which are in a set of values (specified in another relation).
+    """
+
+    def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
+                 by_op: OpNode, filter_col: rel.Column):
+        if len(by_op.out_rel.columns) != 1:
+            raise Exception("ByOp must have single column output relation")
+        super(FilterBy, self).__init__("filter_by", out_rel, input_op_node, by_op)
+        self.filter_col = filter_col
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_left_in_rel().columns
+        self.filter_col = temp_cols[self.filter_col.idx]
 
 
 class JoinFlags(Join):
@@ -907,6 +945,9 @@ class OpDag(Dag):
 
 
 def remove_between(parent: OpNode, child: OpNode, other: OpNode):
+    """
+    Removes other between parent and child.
+    """
     assert len(other.children) < 2
     assert len(other.parents) < 2
     # only dealing with unary nodes for now
@@ -914,7 +955,7 @@ def remove_between(parent: OpNode, child: OpNode, other: OpNode):
 
     if child:
         child.replace_parent(other, parent)
-        child.update_op_specific_cols()
+        # child.update_op_specific_cols()
         parent.replace_child(other, child)
     else:
         parent.children.remove(other)
@@ -944,6 +985,10 @@ def insert_between_children(parent: OpNode, other: OpNode):
 
 
 def insert_between(parent: OpNode, child: OpNode, other: OpNode):
+    """
+    Inserts other between parent and child.
+    """
+
     # called with grandParent, topNode, toInsert
     assert (not other.children)
     assert (not other.parents)

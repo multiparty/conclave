@@ -1,18 +1,18 @@
-CREATE RELATION in_1([a {1} {2}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CLOSEMPC in_1([a {1} {2}, b {1}]) {1} INTO in_1_close([a {1} {2}, b {1}]) {1, 2, 3}
+CREATE RELATION in_1([a {1 2}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSEMPC in_1([a {1 2}, b {1}]) {1} INTO in_1_close([a {1 2}, b {1}]) {1, 2, 3}
 CREATE RELATION in_2([c {2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CLOSEMPC in_2([c {2}, d {2}]) {2} INTO in_2_close([c {2}, d {2}]) {1, 2, 3}
-SHUFFLEMPC (in_1_close([a {1} {2}, b {1}]) {1, 2, 3}) AS left_shuffled_hybrid_join_1([a {1} {2}, b {1}]) {1, 2, 3}
-PERSISTMPC left_shuffled_hybrid_join_1([a {1} {2}, b {1}]) {1, 2, 3} INTO left_persisted_hybrid_join_1([a {1} {2}, b {1}]) {1, 2, 3}
-PROJECTMPC [a] FROM (left_shuffled_hybrid_join_1([a {1} {2}, b {1}]) {1, 2, 3}) AS left_keys_closed_hybrid_join_1([a ]) {1, 2, 3}
-OPENMPC left_keys_closed_hybrid_join_1([a ]) {1, 2, 3} INTO left_keys_open_hybrid_join_1([a ]) {2}
-PROJECT [a] FROM (left_keys_open_hybrid_join_1([a ]) {2}) AS left_dummy_hybrid_join_1([a ]) {2}
+SHUFFLEMPC (in_1_close([a {1 2}, b {1}]) {1, 2, 3}) AS left_shuffled_hybrid_join_1([a {1 2}, b {1}]) {1, 2, 3}
+PERSISTMPC left_shuffled_hybrid_join_1([a {1 2}, b {1}]) {1, 2, 3} INTO left_persisted_hybrid_join_1([a {1 2}, b {1}]) {1, 2, 3}
+PROJECTMPC [a] FROM (left_shuffled_hybrid_join_1([a {1 2}, b {1}]) {1, 2, 3}) AS left_keys_closed_hybrid_join_1([a {}]) {1, 2, 3}
+OPENMPC left_keys_closed_hybrid_join_1([a {}]) {1, 2, 3} INTO left_keys_open_hybrid_join_1([a {}]) {2}
+PROJECT [a] FROM (left_keys_open_hybrid_join_1([a {}]) {2}) AS left_dummy_hybrid_join_1([a {}]) {2}
 SHUFFLEMPC (in_2_close([c {2}, d {2}]) {1, 2, 3}) AS right_shuffled_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}
 PERSISTMPC right_shuffled_hybrid_join_1([c {2}, d {2}]) {1, 2, 3} INTO right_persisted_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}
-PROJECTMPC [c] FROM (right_shuffled_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}) AS right_keys_closed_hybrid_join_1([c ]) {1, 2, 3}
-OPENMPC right_keys_closed_hybrid_join_1([c ]) {1, 2, 3} INTO right_keys_open_hybrid_join_1([c ]) {2}
-PROJECT [c] FROM (right_keys_open_hybrid_join_1([c ]) {2}) AS right_dummy_hybrid_join_1([c ]) {2}
-(left_dummy_hybrid_join_1([a ]) {2}) JOINFLAGS (right_dummy_hybrid_join_1([c ]) {2}) ON [a] AND [c] AS flags_hybrid_join_1([flags ]) {2}
-CLOSEMPC flags_hybrid_join_1([flags ]) {2} INTO flags_closed_hybrid_join_1([flags ]) {1, 2, 3}
-(left_persisted_hybrid_join_1([a {1} {2}, b {1}]) {1, 2, 3}) FLAGJOINMPC (right_persisted_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}) WITH FLAGS (flags_closed_hybrid_join_1([flags ]) {1, 2, 3}) ON [a] AND [c] AS result([a , b , d ]) {1, 2, 3}
-OPENMPC result([a , b , d ]) {1, 2, 3} INTO result_open([a {1,2} {2}, b {1,2}, d {1,2} {2}]) {1}
+PROJECTMPC [c] FROM (right_shuffled_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}) AS right_keys_closed_hybrid_join_1([c {}]) {1, 2, 3}
+OPENMPC right_keys_closed_hybrid_join_1([c {}]) {1, 2, 3} INTO right_keys_open_hybrid_join_1([c {}]) {2}
+PROJECT [c] FROM (right_keys_open_hybrid_join_1([c {}]) {2}) AS right_dummy_hybrid_join_1([c {}]) {2}
+(left_dummy_hybrid_join_1([a {}]) {2}) JOINFLAGS (right_dummy_hybrid_join_1([c {}]) {2}) ON [a] AND [c] AS flags_hybrid_join_1([flags {}]) {2}
+CLOSEMPC flags_hybrid_join_1([flags {}]) {2} INTO flags_closed_hybrid_join_1([flags {}]) {1, 2, 3}
+(left_persisted_hybrid_join_1([a {1 2}, b {1}]) {1, 2, 3}) FLAGJOINMPC (right_persisted_hybrid_join_1([c {2}, d {2}]) {1, 2, 3}) WITH FLAGS (flags_closed_hybrid_join_1([flags {}]) {1, 2, 3}) ON [a] AND [c] AS result([a {}, b {}, d {}]) {1, 2, 3}
+OPENMPC result([a {}, b {}, d {}]) {1, 2, 3} INTO result_open([a {2}, b {}, d {2}]) {1}

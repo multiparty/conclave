@@ -1,0 +1,15 @@
+CREATE RELATION in_1([a {1}, b {1}, c {1}]) {1} WITH COLUMNS (INTEGER, INTEGER, INTEGER)
+CREATE RELATION in_2([a {2}, b {2}, c {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER)
+CREATE RELATION in_3([a {3}, b {3}, c {3}]) {3} WITH COLUMNS (INTEGER, INTEGER, INTEGER)
+PROJECT [c, a] FROM (in_1([a {1}, b {1}, c {1}]) {1}) AS proj_0([c {1}, a {1}]) {1}
+AGG [a, sum] FROM (proj_0([c {1}, a {1}]) {1}) GROUP BY [c] AS agg_0([c {1}, total_b {1}]) {1}
+CLOSEMPC agg_0([c {1}, total_b {1}]) {1} INTO agg_0_close([c {1}, total_b {1}]) {1, 2, 3}
+PROJECT [c, a] FROM (in_2([a {2}, b {2}, c {2}]) {2}) AS proj_1([c {2}, a {2}]) {2}
+AGG [a, sum] FROM (proj_1([c {2}, a {2}]) {2}) GROUP BY [c] AS agg_1([c {2}, total_b {2}]) {2}
+CLOSEMPC agg_1([c {2}, total_b {2}]) {2} INTO agg_1_close([c {2}, total_b {2}]) {1, 2, 3}
+PROJECT [c, a] FROM (in_3([a {3}, b {3}, c {3}]) {3}) AS proj_2([c {3}, a {3}]) {3}
+AGG [a, sum] FROM (proj_2([c {3}, a {3}]) {3}) GROUP BY [c] AS agg_2([c {3}, total_b {3}]) {3}
+CLOSEMPC agg_2([c {3}, total_b {3}]) {3} INTO agg_2_close([c {3}, total_b {3}]) {1, 2, 3}
+CONCATMPC [agg_0_close([c {1}, total_b {1}]) {1, 2, 3}, agg_1_close([c {2}, total_b {2}]) {1, 2, 3}, agg_2_close([c {3}, total_b {3}]) {1, 2, 3}] AS rel([c {}, total_b {}]) {1, 2, 3}
+AGGMPC [total_b, sum] FROM (rel([c {}, total_b {}]) {1, 2, 3}) GROUP BY [c] AS agg_obl([c {}, total_b {}]) {1, 2, 3}
+OPENMPC agg_obl([c {}, total_b {}]) {1, 2, 3} INTO agg_obl_open([c {}, total_b {}]) {1}

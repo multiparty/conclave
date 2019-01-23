@@ -95,7 +95,7 @@ def generate_code(protocol: callable, cfg: CodeGenConfig, mpc_frameworks: list,
     return job_queue
 
 
-def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch: bool = True):
+def dispatch_jobs(job_queue: list, conclave_config: CodeGenConfig, time_dispatch: bool = False):
     """
     Dispatches jobs to respective backends.
     :param time_dispatch: will record the execution time of dispatch if true

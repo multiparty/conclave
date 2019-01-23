@@ -102,7 +102,7 @@ class ScotchCodeGen(CodeGen):
 
         return "AGG{} [{}, {}] FROM ({}) GROUP BY [{}] AS {}\n".format(
             "MPC" if agg_op.is_mpc else "",
-            agg_op.agg_col.get_name(),
+            agg_op.agg_col.get_name() if agg_op.agg_col else "",
             agg_op.aggregator,
             agg_op.get_in_rel().dbg_str(),
             ",".join([group_col.get_name() for group_col in agg_op.group_cols]),
@@ -283,12 +283,24 @@ class ScotchCodeGen(CodeGen):
 
         filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
                                        filter_op.operator,
-                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col)
+                                       filter_op.scalar if filter_op.is_scalar else filter_op.other_col.dbg_str())
         return "FILTER{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if filter_op.is_mpc else "",
             filter_str,
             filter_op.get_in_rel().dbg_str(),
             filter_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_filter_by(filter_by_op: ccdag.FilterBy):
+        """ Generate code for Filer operations. """
+
+        return "FILTER_BY{} [{}] FROM ({}) IN {} AS {}\n".format(
+            "MPC" if filter_by_op.is_mpc else "",
+            filter_by_op.filter_col.name,
+            filter_by_op.get_left_in_rel().dbg_str(),
+            filter_by_op.get_right_in_rel().dbg_str(),
+            filter_by_op.out_rel.dbg_str()
         )
 
     @staticmethod

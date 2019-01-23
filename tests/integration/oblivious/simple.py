@@ -21,7 +21,7 @@ def protocol():
     right = cc.create("right", right_cols, {1})
     
     joined = cc.join(left, right, "joined", ["a"], ["c"])
-    cc.aggregate(joined, "expected", ["b"], "d", "+", "total")
+    cc.aggregate(joined, "expected", ["b"], "d", "sum", "total")
 
     return {left, right}
 
