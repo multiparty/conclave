@@ -385,7 +385,7 @@ class OblivcCodeGen(CodeGen):
         Generate code for Aggregate operations.
         """
 
-        if agg_op.aggregator == '+':
+        if agg_op.aggregator == 'sum':
             template = open(
                 "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
         elif agg_op.aggregator == "count":
