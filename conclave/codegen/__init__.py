@@ -84,6 +84,8 @@ class CodeGen:
                 op_code += self._generate_pub_join(node)
             elif isinstance(node, ConcatCols):
                 op_code += self._generate_concat_cols(node)
+            elif isinstance(node, FilterBy):
+                op_code += self._generate_filter_by(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

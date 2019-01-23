@@ -678,6 +678,23 @@ class Join(BinaryOpNode):
                                 for right_join_col in copy.copy(self.right_join_cols)]
 
 
+class FilterBy(BinaryOpNode):
+    """
+    Operator for filtering relations for rows which are in a set of values (specified in another relation).
+    """
+
+    def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
+                 by_op: OpNode, filter_col: rel.Column):
+        if len(by_op.out_rel.columns) != 1:
+            raise Exception("ByOp must have single column output relation")
+        super(FilterBy, self).__init__("filter_by", out_rel, input_op_node, by_op)
+        self.filter_col = filter_col
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_left_in_rel().columns
+        self.filter_col = temp_cols[self.filter_col.idx]
+
+
 class JoinFlags(Join):
     """
     Operator node which computes a join and expresses the result as a list of binary flags. For each row in the

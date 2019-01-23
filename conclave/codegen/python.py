@@ -198,6 +198,16 @@ class PythonCodeGen(CodeGen):
             sort_by_op.sort_by_col.idx
         )
 
+    def _generate_filter_by(self, filter_by_op: ccdag.FilterBy):
+        """ Generate code for FilterBy operations. """
+        return "{}{} = filter_by({}, {}, {})\n".format(
+            self.space,
+            filter_by_op.out_rel.name,
+            filter_by_op.get_left_in_rel().name,
+            filter_by_op.get_right_in_rel().name,
+            filter_by_op.filter_col.idx
+        )
+
     def _generate_comp_neighs(self, comp_neighs_op: ccdag.CompNeighs):
         """ Generate code for CompNeighs operations. """
         return "{}{} = comp_neighs({}, {})\n".format(

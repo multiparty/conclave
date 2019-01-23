@@ -174,6 +174,8 @@ class DagRewriter:
                 self._rewrite_concat_cols(node)
             elif isinstance(node, ccdag.SortBy):
                 self._rewrite_sort_by(node)
+            elif isinstance(node, ccdag.FilterBy):
+                self._rewrite_filter_by(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -233,6 +235,9 @@ class DagRewriter:
         pass
 
     def _rewrite_sort_by(self, node: ccdag.SortBy):
+        pass
+
+    def _rewrite_filter_by(self, node: ccdag.FilterBy):
         pass
 
 
@@ -366,6 +371,10 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_sort_by(self, node: ccdag.SortBy):
+
+        self._rewrite_default(node)
+
+    def _rewrite_filter_by(self, node: ccdag.FilterBy):
 
         self._rewrite_default(node)
 

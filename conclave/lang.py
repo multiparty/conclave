@@ -345,6 +345,41 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
+def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, by_op: cc_dag.OpNode):
+    """
+    Define FilterBy operation.
+
+    :param input_op_node: Parent node for the node returned by this method.
+    :param output_name: Name of returned Filter node.
+    :param filter_col_name: Name of column that relation gets filtered over.
+    :param by_op: Parent node to filter by.
+
+    :return: FilterBy OpNode
+    """
+
+    # Get input relation from input node
+    in_rel = input_op_node.out_rel
+
+    # Get relevant columns and create copies
+    out_rel_cols = copy.deepcopy(in_rel.columns)
+
+    # Get index of filter column
+    filter_col = utils.find(in_rel.columns, filter_col_name)
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.FilterBy(out_rel, input_op_node, by_op, filter_col)
+
+    # Add it as a child to input nodes
+    input_op_node.children.add(op)
+    by_op.children.add(op)
+
+    return op
+
+
 def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
               other_col_name: str = None, scalar: int = None):
     """

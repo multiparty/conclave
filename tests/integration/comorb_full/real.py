@@ -17,16 +17,22 @@ def protocol():
     left_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 1) for i in range(num_diagnosis_cols)]
     left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
 
+    left_cohort = cc.create("left_cohort", [defCol("pid", "Integer", 1)], {1})
+
+    left_selected = cc.filter_by(left_diagnosis, "left_selected", pid_col, left_cohort)
+
     right_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 2) for i in range(num_diagnosis_cols)]
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
 
-    diagnosis = cc.concat([left_diagnosis, right_diagnosis], "diagnosis")
+    right_cohort = cc.create("right_cohort", [defCol("pid", "Integer", 2)], {2})
 
-    cohort = cc.cc_filter(diagnosis, "cohort", pid_col, "<", scalar=200)
+    right_selected = cc.filter_by(right_diagnosis, "right_selected", pid_col, right_cohort)
+
+    cohort = cc.concat([left_selected, right_selected], "cohort")
     counts = cc.aggregate_count(cohort, "counts", [diagnosis_col], "total")
     cc.collect(cc.sort_by(counts, "actual", "total"), 1)
 
-    return {left_diagnosis, right_diagnosis}
+    return {left_diagnosis, left_cohort, right_diagnosis, right_cohort}
 
 
 if __name__ == "__main__":
