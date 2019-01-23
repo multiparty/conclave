@@ -75,7 +75,7 @@ def setup(conf: Dict):
     return conclave_config
 
 
-def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="python"):
+def run(protocol: Callable, mpc_framework: str = "jiff", local_framework: str = "python", apply_optimisations=False):
     """
     Load parameters from config & dispatch computation.
     Downloads files if necessary from either Dataverse or Swift
@@ -83,7 +83,7 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
 
     parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
     parser.add_argument("--conf", metavar="/config/file.json", type=str,
-                        help="path of the config file", default="conf-ca.json", required=False)
+                        help="path of the config file", default="conf.json", required=False)
 
     args = parser.parse_args()
 
@@ -95,18 +95,18 @@ def run(protocol: Callable, mpc_framework: str="jiff", local_framework: str="pyt
     if conclave_config.data_backend == "swift":
         download_swift_data(conclave_config)
         generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
         post_swift_data(conclave_config)
 
     elif conclave_config.data_backend == "dataverse":
         download_dataverse_data(conclave_config)
         generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
         post_dataverse_data(conclave_config)
 
     else:
         generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=False
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
