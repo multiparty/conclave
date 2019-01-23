@@ -12,7 +12,7 @@ def generate(dag_one, name):
     sys.argv[1] - file path to directory containing input file
     (full path is <path> + <input_rel_name> + '.csv')
 
-    sys.argv[2] - path to obliv-c compiler (at /obliv-c/bin/oblivcc)
+    sys.argv[2] - path to obliv-c compiler (at /../../obliv-c/bin/oblivcc)
     """
 
     oc_conf = config.OblivcConfig(sys.argv[2], "localhost:9000")
