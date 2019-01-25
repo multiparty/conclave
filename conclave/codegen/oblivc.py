@@ -152,8 +152,8 @@ class OblivcCodeGen(CodeGen):
                 "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
 
             data = {
-                "LEFT_REL": concat_cols_op.get_in_rels()[0],
-                'RIGHT_REL': concat_cols_op.get_in_rels()[1],
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
                 "OUT_REL": concat_cols_op.out_rel.name
             }
 
@@ -165,8 +165,8 @@ class OblivcCodeGen(CodeGen):
                 "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
 
             data = {
-                "LEFT_REL": concat_cols_op.get_in_rels()[0],
-                'RIGHT_REL': concat_cols_op.get_in_rels()[1],
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
                 "OUT_REL": concat_cols_op.out_rel.name
             }
 
