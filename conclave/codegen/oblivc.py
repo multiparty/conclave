@@ -18,9 +18,8 @@ class OblivcCodeGen(CodeGen):
                  "{}/templates/oblivc"
                  .format(os.path.dirname(os.path.realpath(__file__)))):
 
-        if not "oblivc" in config.system_configs:
-            print("Missing OblivC configuration in CodeGenConfig.\n")
-            sys.exit(1)
+        if "oblivc" not in config.system_configs:
+            raise Exception("Missing OblivC configuration in CodeGenConfig.\n")
 
         self.oc_config = config.system_configs['oblivc']
         self.create_params = {}
@@ -392,8 +391,7 @@ class OblivcCodeGen(CodeGen):
             template = open(
                 "{}/agg_count.tmpl".format(self.template_directory), 'r').read()
         else:
-            print("Unknown aggregator encountered: {}".format(agg_op.aggregator))
-            return ''
+            raise Exception("Unknown aggregator encountered: {}".format(agg_op.aggregator))
 
         # TODO: generalize codegen to handle multiple group_cols
         assert(len(agg_op.group_cols) == 1)
