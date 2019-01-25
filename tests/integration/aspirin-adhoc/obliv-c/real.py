@@ -39,7 +39,7 @@ def protocol():
     left_join = cc._pub_join(left_medication_proj, "left_join", pid_col_meds,
                              other_op_node=left_diagnosis_proj, host='localhost', port=9001)
     right_join = cc._pub_join(right_medication_proj, "right_join", pid_col_meds, is_server=False,
-                              other_op_node=right_diagnosis_proj, host='localhost', port=9001)
+                              other_op_node=right_diagnosis_proj, host='localhost', port=9002)
     joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
 
     # do filters after the join
