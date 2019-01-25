@@ -448,6 +448,14 @@ class OblivcCodeGen(CodeGen):
         Generate header file that stores struct data.
         """
 
+        nodes = self.dag.top_sort()
+
+        io_str = ""
+
+        for node in nodes:
+            if isinstance(node, Create):
+                io_str += "\tIo {};\n".format(node.out_rel.name)
+
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
@@ -458,6 +466,7 @@ class OblivcCodeGen(CodeGen):
 
         data = {
             "STRUCTS": structs_code,
+            "IO_STR": io_str,
             "TYPE": 'float' if self.config.use_floats else 'int'
         }
 
