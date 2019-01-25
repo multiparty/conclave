@@ -77,7 +77,7 @@ class OblivcCodeGen(CodeGen):
             elif isinstance(node, Filter):
                 op_code += self._generate_filter(node)
             elif isinstance(node, ConcatCols):
-                pass
+                op_code += self._generate_concat_cols(node)
             elif isinstance(node, Limit):
                 op_code += self._generate_limit(node)
             else:
@@ -141,27 +141,36 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
-    def _generate_matrix_multiply(self, concat_cols_op: ConcatCols):
-        """
-        Generate code for element-wise matrix multiplication.
-        """
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
 
         if len(concat_cols_op.get_in_rels()) != 2:
             raise NotImplementedError("Only support concat cols of two relations")
 
-        if not concat_cols_op.use_mult:
-            raise NotImplementedError("Only support concat cols for with use_mult set to True")
+        if concat_cols_op.use_mult:
 
-        template = open(
-            "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+            template = open(
+                "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
 
-        data = {
-            "LEFT_REL": concat_cols_op.get_in_rels()[0],
-            'RIGHT_REL': concat_cols_op.get_in_rels()[1],
-            "OUT_REL": concat_cols_op.out_rel.name
-        }
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0],
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1],
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
 
-        return pystache.render(template, data)
+            return pystache.render(template, data)
+
+        else:
+
+            template = open(
+                "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0],
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1],
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
 
     def _generate_limit(self, limit_op: Limit):
         """
