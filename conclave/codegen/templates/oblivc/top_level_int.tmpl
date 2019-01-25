@@ -919,11 +919,11 @@ void aggCount
 
         if (leaky)
 		{
-			_aggLeaky(ret, padded, numCols, numRows);
+			_aggLeaky(ret, array, numCols, numRows);
 		}
 		else
 		{
-			_agg(ret, padded, numCols, numRows);
+			_agg(ret, array, numCols, numRows);
 		}
 	}
 }
