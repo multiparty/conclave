@@ -1191,7 +1191,7 @@ void concatCols
 	int totalCols = numColsOne + numColsTwo;
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
-	obliv float *keepRows = malloc(sizeof(obliv float) * totalRows);
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
@@ -1202,11 +1202,11 @@ void concatCols
 		{
 			if (j < numColsOne)
 			{
-				array[i][j] = matOne[i][j];
+				array[i][j] = matOne->mat[i][j];
 			}
 			else
 			{
-				array[i][j] = matTwo[i][j - numRowsOne];
+				array[i][j] = matTwo->mat[i][j - numColsOne];
 			}
 		}
 	}
