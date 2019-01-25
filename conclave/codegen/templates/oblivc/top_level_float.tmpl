@@ -1171,6 +1171,52 @@ void multiplyMatrices
 	ret->keepRows = keepRows;
 }
 
+void concatCols
+	(
+		intermediateMat *matOne,
+		intermediateMat *matTwo,
+		intermediateMat *ret
+	)
+{
+	if (matOne->rows != matTwo->rows)
+	{
+		printf("Unequal number of rows for concatCols operator.");
+		exit(1);
+	}
+
+	int numRows = matOne->rows;
+
+	int numColsOne = matOne->cols;
+	int numColsTwo = matTwo->cols;
+	int totalCols = numColsOne + numColsTwo;
+
+	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float *keepRows = malloc(sizeof(obliv float) * totalRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * totalCols);
+		for (int j = 0; j < totalCols; j++)
+		{
+			if (j < numColsOne)
+			{
+				array[i][j] = matOne[i][j];
+			}
+			else
+			{
+				array[i][j] = matTwo[i][j - numRowsOne];
+			}
+		}
+	}
+
+	ret->rows = numRows;
+	ret->cols = totalCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
 void protocol(void *args)
 {
 
