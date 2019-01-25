@@ -20,6 +20,7 @@ def setup(conf: Dict):
     workflow_name = conf["user_config"]["workflow_name"]
     data_backend = conf["data"]["data_backend"]
     all_pids = conf["user_config"]['all_pids']
+    use_leaky = conf["user_config"]["leaky_ops"]
 
     # SPARK
     spark_master_url = conf["backends"]["spark"]["master_url"]
@@ -67,10 +68,11 @@ def setup(conf: Dict):
     conclave_config.all_pids = all_pids
     conclave_config.name = workflow_name
     conclave_config.data_backend = data_backend
+    conclave_config.use_leaky_ops = use_leaky
 
-    conclave_config.code_path = conf["code_path"]
-    conclave_config.output_path = conf["output_path"]
-    conclave_config.input_path = conf["input_path"]
+    conclave_config.code_path = conf["user_config"]["paths"]["code_path"]
+    conclave_config.output_path = conf["user_config"]["paths"]["output_path"]
+    conclave_config.input_path = conf["user_config"]["paths"]["input_path"]
 
     return conclave_config
 
