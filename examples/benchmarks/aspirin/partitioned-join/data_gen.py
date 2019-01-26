@@ -76,8 +76,8 @@ def generate_diags_row(pids_low: int, pids_high: int, ratio: int, convert: bool 
     row[8] = diagnosis
     row[9] = "1"
     row[10] = time_stamp
-    row[11] = "008.45"
-    row[12] = "008"
+    row[11] = diagnosis
+    row[12] = diagnosis
     # pre-convert
     if convert:
         return convert_diags_row(row)
