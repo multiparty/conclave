@@ -1,0 +1,14 @@
+CREATE RELATION left_cohort([pid {1}]) {1} WITH COLUMNS (Integer)
+CREATE RELATION left_diagnosis([8 {1}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+FILTER_BY [8] FROM (left_diagnosis([8 {1}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1}) IN left_cohort([pid {1}]) {1} AS left_selected([8 {1}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1}
+AGG [, count] FROM (left_selected([8 {1}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1}) GROUP BY [16] AS counts_0([16 {1}, total {1}]) {1}
+CLOSEMPC counts_0([16 {1}, total {1}]) {1} INTO counts_0_close([16 {1}, total {1}]) {1, 2, 3}
+CREATE RELATION right_cohort([pid {2}]) {2} WITH COLUMNS (Integer)
+CREATE RELATION right_diagnosis([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+FILTER_BY [8] FROM (right_diagnosis([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2}) IN right_cohort([pid {2}]) {2} AS right_selected([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2}
+AGG [, count] FROM (right_selected([8 {2}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2}) GROUP BY [16] AS counts_1([16 {2}, total {2}]) {2}
+CLOSEMPC counts_1([16 {2}, total {2}]) {2} INTO counts_1_close([16 {2}, total {2}]) {1, 2, 3}
+CONCATMPC [counts_0_close([16 {1}, total {1}]) {1, 2, 3}, counts_1_close([16 {2}, total {2}]) {1, 2, 3}] AS cohort([16 {}, total {}]) {1, 2, 3}
+AGGMPC [total, sum] FROM (cohort([16 {}, total {}]) {1, 2, 3}) GROUP BY [16] AS counts_obl([16 {}, total {}]) {1, 2, 3}
+SORTBYMPC total FROM (counts_obl([16 {}, total {}]) {1, 2, 3}) AS actual([16 {}, total {}]) {1, 2, 3}
+OPENMPC actual([16 {}, total {}]) {1, 2, 3} INTO actual_open([16 {}, total {}]) {1}
