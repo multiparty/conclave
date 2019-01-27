@@ -2,7 +2,7 @@
 
 PARTY_ID=$1
 SIZE=$2
-DATA_ROOT_DIR=comorb_data/conclave/${SIZE}/
+DATA_ROOT_DIR=comorb_data/conclave/${SIZE}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # clean up data first
