@@ -197,3 +197,30 @@ class TestConclave(TestCase):
 
         actual = protocol()
         self.check_workflow(actual, 'filter')
+
+    def test_union_same_party(self):
+        @scotch
+        @mpc
+        def protocol():
+            # define inputs
+            cols_in_1 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            in_1 = cc.create("in_1", cols_in_1, {1})
+            cols_in_2 = [
+                defCol("a", "INTEGER", [1]),
+                defCol("b", "INTEGER", [1])
+            ]
+            in_2 = cc.create("in_2", cols_in_2, {1})
+
+            # combine parties' inputs into one relation
+            rel = cc.union(in_1, in_2, "rel", "a", "a")
+
+            cc.collect(rel, 1)
+
+            # return root nodes
+            return {in_1, in_2}
+
+        actual = protocol()
+        self.check_workflow(actual, 'union')

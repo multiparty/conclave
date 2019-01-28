@@ -380,6 +380,42 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     return op
 
 
+def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str, left_col_name: str,
+          right_col_name: str):
+    """
+    Computes a single column relation containing the union of values of the two selected columns.
+    """
+
+    # Create output column and relation
+    out_col = Column(output_name, left_col_name, 0, "INTEGER", {})
+    left_stored_with = left_input_node.out_rel.stored_with
+    right_stored_with = right_input_node.out_rel.stored_with
+    out_rel = rel.Relation(output_name, [out_col], left_stored_with.union(right_stored_with))
+    out_rel.update_columns()
+
+    left_col = utils.find(left_input_node.out_rel.columns, left_col_name)
+    right_col = utils.find(right_input_node.out_rel.columns, right_col_name)
+    op = cc_dag.Union(out_rel, left_input_node, right_input_node, left_col, right_col)
+
+    # Add it as a child to input nodes
+    left_input_node.children.add(op)
+    right_input_node.children.add(op)
+
+    return op
+
+
+def _intersect_pub(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
+                   left_col_name: str,
+                   right_col_name: str,
+                   host: str = "ca-spark-node-0",
+                   port: int = 8042,
+                   is_server: bool = True):
+    """
+    Computes a single column relation containing the intersection of values of the two selected columns.
+    """
+    pass
+
+
 def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,
               other_col_name: str = None, scalar: int = None):
     """

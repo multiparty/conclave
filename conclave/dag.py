@@ -695,6 +695,40 @@ class FilterBy(BinaryOpNode):
         self.filter_col = temp_cols[self.filter_col.idx]
 
 
+class Union(BinaryOpNode):
+    """
+    Operator for union of given columns.
+    """
+
+    def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
+                 right_parent: OpNode, left_col: rel.Column, right_col: rel.Column):
+        super(Union, self).__init__("union", out_rel, left_parent, right_parent)
+        self.left_col = left_col
+        self.right_col = right_col
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_left_in_rel().columns
+        self.left_col = copy.copy(temp_cols[self.left_col.idx])
+        self.right_col = copy.copy(temp_cols[self.right_col.idx])
+
+
+class IntersectPub(BinaryOpNode):
+    """
+    Operator for intersection of given (public) columns.
+    """
+
+    def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
+                 right_parent: OpNode, left_col: rel.Column, right_col: rel.Column):
+        super(IntersectPub, self).__init__("intersect_pub", out_rel, left_parent, right_parent)
+        self.left_col = left_col
+        self.right_col = right_col
+
+    def update_op_specific_cols(self):
+        temp_cols = self.get_left_in_rel().columns
+        self.left_col = copy.copy(temp_cols[self.left_col.idx])
+        self.right_col = copy.copy(temp_cols[self.right_col.idx])
+
+
 class JoinFlags(Join):
     """
     Operator node which computes a join and expresses the result as a list of binary flags. For each row in the

@@ -226,6 +226,10 @@ def key_union(left: list, right: list, l: int, r: int):
     return keys
 
 
+def key_union_as_rel(left: list, right: list, l: int, r: int):
+    return [[v] for v in key_union(left, right, l, r)]
+
+
 def filter_by_keys(rel: list, keys: set, key_col: int):
     return [row for row in rel if row[key_col] in keys]
 

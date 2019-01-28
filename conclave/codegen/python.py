@@ -208,6 +208,17 @@ class PythonCodeGen(CodeGen):
             filter_by_op.filter_col.idx
         )
 
+    def _generate_union(self, union_op: ccdag.Union):
+        """ Generate code for FilterBy operations. """
+        return "{}{} = key_union_as_rel({}, {}, {}, {})\n".format(
+            self.space,
+            union_op.out_rel.name,
+            union_op.get_left_in_rel().name,
+            union_op.get_right_in_rel().name,
+            union_op.left_col.idx,
+            union_op.right_col.idx
+        )
+
     def _generate_comp_neighs(self, comp_neighs_op: ccdag.CompNeighs):
         """ Generate code for CompNeighs operations. """
         return "{}{} = comp_neighs({}, {})\n".format(
