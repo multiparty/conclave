@@ -47,11 +47,11 @@ def protocol():
     joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
 
     # do filters after the join
-    # cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
-    # aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
-    # heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
+    cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
+    aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
+    heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
 
-    cc.collect(joined, 1)
+    cc.collect(heart_patients, 1)
 
     return {
         left_medication,
@@ -136,5 +136,5 @@ if __name__ == "__main__":
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)
 
-    # if int(pid) == 1:
-    #     run_local()
+    if int(pid) == 1:
+        run_local()

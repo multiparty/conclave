@@ -26,27 +26,26 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
-    try:
-        use_leaky = sys.argv[2] == "-l"
-    except Exception:
-        use_leaky = False
+    data_root = sys.argv[2]
+    print(data_root)
     # define name for the workflow
-    workflow_name = "real-comorb-test-" + pid
+    workflow_name = "aspirin-large-join-" + pid + "-" + data_root
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.all_pids = [1, 2, 3]
-    conclave_config.use_leaky_ops = use_leaky
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
-                                            use_hdfs=False)
+    conclave_config.network_config = {
+        "pid": int(pid),
+        "parties": {
+            1: {"host": "ca-spark-node-0", "port": 9001},
+            2: {"host": "cb-spark-node-0", "port": 9002},
+            3: {"host": "cc-spark-node-0", "port": 9003}
+        }
+    }
+    conclave_config.use_leaky_ops = False
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
-    # point conclave to directory where data is to be read from...
-    conclave_config.input_path = os.path.join(current_dir, "data")
-    # and written to
-    conclave_config.output_path = os.path.join(current_dir, "data")
-    # define this party's unique ID (in this demo there is only one party)
+    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
+    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
+
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)

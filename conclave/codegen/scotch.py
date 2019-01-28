@@ -293,7 +293,7 @@ class ScotchCodeGen(CodeGen):
 
     @staticmethod
     def _generate_filter_by(filter_by_op: ccdag.FilterBy):
-        """ Generate code for Filer operations. """
+        """ Generate code for FilterBy operations. """
 
         return "FILTER_BY{} [{}] FROM ({}) IN {} AS {}\n".format(
             "MPC" if filter_by_op.is_mpc else "",
@@ -301,6 +301,19 @@ class ScotchCodeGen(CodeGen):
             filter_by_op.get_left_in_rel().dbg_str(),
             filter_by_op.get_right_in_rel().dbg_str(),
             filter_by_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_union(union_op: ccdag.Union):
+        """ Generate code for Union operations. """
+
+        return "{} UNION{} {} ON {} {} AS {}\n".format(
+            union_op.get_left_in_rel().dbg_str(),
+            "MPC" if union_op.is_mpc else "",
+            union_op.get_right_in_rel().dbg_str(),
+            union_op.left_col.name,
+            union_op.right_col.name,
+            union_op.out_rel.dbg_str()
         )
 
     @staticmethod

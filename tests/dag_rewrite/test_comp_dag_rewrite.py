@@ -189,7 +189,6 @@ class TestConclave(TestCase):
             return {in_1, in_2, in_3}
 
         actual = protocol()
-        print(actual)
         self.check_workflow(actual, 'concat_pushdown_rearrange_cols')
 
     def test_agg_proj(self):
@@ -223,7 +222,6 @@ class TestConclave(TestCase):
             return {in_1, in_2}
 
         actual = protocol()
-        print(actual)
         self.check_workflow(actual, 'agg_proj')
 
     def test_join(self):
@@ -486,7 +484,7 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, "aspirin")
 
-    def test_comorb(self):
+    def test_comorb_full(self):
         @scotch
         @mpc
         def protocol():
@@ -517,5 +515,26 @@ class TestConclave(TestCase):
             return {left_diagnosis, left_cohort, right_diagnosis, right_cohort}
 
         actual = protocol()
-        print(actual)
+        self.check_workflow(actual, "comorb_full")
+
+    def test_comorb(self):
+        @scotch
+        @mpc
+        def protocol():
+            diagnosis_col = "12"
+            num_diagnosis_cols = 13
+
+            left_diagnosis_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_diagnosis_cols)]
+            left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
+
+            right_diagnosis_cols = [defCol(str(i), "INTEGER", 2) for i in range(num_diagnosis_cols)]
+            right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
+
+            cohort = cc.concat([left_diagnosis, right_diagnosis], "cohort")
+            counts = cc.aggregate_count(cohort, "counts", [diagnosis_col], "total")
+            cc.collect(cc.sort_by(counts, "actual", "total"), 1)
+
+            return {left_diagnosis, right_diagnosis}
+
+        actual = protocol()
         self.check_workflow(actual, "comorb")

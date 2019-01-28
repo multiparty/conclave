@@ -8,15 +8,13 @@ from conclave.utils import defCol
 
 
 def protocol():
-    diagnosis_col = "16"
-
-    cols_to_skip = 8
+    diagnosis_col = "12"
     num_diagnosis_cols = 13
 
-    left_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 1) for i in range(num_diagnosis_cols)]
+    left_diagnosis_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_diagnosis_cols)]
     left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
 
-    right_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 1) for i in range(num_diagnosis_cols)]
+    right_diagnosis_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_diagnosis_cols)]
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {1})
 
     cohort = cc.concat([left_diagnosis, right_diagnosis], "cohort")

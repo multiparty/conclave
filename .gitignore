@@ -1,6 +1,7 @@
 # Added manually.
 .idea/
 .DS_Store
+tests/local/tmp
 examples/oblivc/local-cfg-one.yml
 examples/oblivc/local-cfg-two.yml
 

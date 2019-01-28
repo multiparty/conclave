@@ -176,6 +176,8 @@ class DagRewriter:
                 self._rewrite_sort_by(node)
             elif isinstance(node, ccdag.FilterBy):
                 self._rewrite_filter_by(node)
+            elif isinstance(node, ccdag.Union):
+                self._rewrite_union(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -238,6 +240,9 @@ class DagRewriter:
         pass
 
     def _rewrite_filter_by(self, node: ccdag.FilterBy):
+        pass
+
+    def _rewrite_union(self, node: ccdag.Union):
         pass
 
 
@@ -375,6 +380,10 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_filter_by(self, node: ccdag.FilterBy):
+
+        self._rewrite_default(node)
+
+    def _rewrite_union(self, node: ccdag.Union):
 
         self._rewrite_default(node)
 
