@@ -31,24 +31,34 @@ def protocol_mpc():
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
     right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
 
-    shared_pids = cc._pub_intersect(left_keys, "shared_pids", pid_col_meds)
-    shared_pids_2 = cc._pub_intersect(right_keys, "shared_pids_2", pid_col_meds, is_server=False)
+    left_shared_pids = cc._pub_intersect(left_keys, "left_shared_pids", pid_col_meds)
+    cc._persist(left_shared_pids, "left_shared_pids")
+    right_shared_pids = cc._pub_intersect(right_keys, "right_shared_pids", pid_col_meds, is_server=False)
+    cc._persist(right_shared_pids, "right_shared_pids")
 
-    # only keep relevant columns
     left_medication_proj = cc.project(left_medication, "left_medication_proj",
                                       [pid_col_meds, med_col_meds, date_col_meds])
+    left_medication_shared = cc.filter_by(left_medication_proj, "left_medication_shared", pid_col_meds,
+                                          left_shared_pids)
+
     left_diagnosis_proj = cc.project(left_diagnosis, "left_diagnosis_proj",
                                      [pid_col_diags, diag_col_diags, date_col_diags])
+    left_diagnosis_shared = cc.filter_by(left_diagnosis_proj, "left_diagnosis_shared", pid_col_diags, left_shared_pids)
 
     right_medication_proj = cc.project(right_medication, "right_medication_proj",
                                        [pid_col_meds, med_col_meds, date_col_meds])
+    right_medication_shared = cc.filter_by(right_medication_proj, "right_medication_shared", pid_col_meds,
+                                           right_shared_pids)
+
     right_diagnosis_proj = cc.project(right_diagnosis, "right_diagnosis_proj",
                                       [pid_col_diags, diag_col_diags, date_col_diags])
+    right_diagnosis_shared = cc.filter_by(right_diagnosis_proj, "right_diagnosis_shared", pid_col_diags,
+                                          right_shared_pids)
 
-    left_join = cc._pub_join(left_medication_proj, "left_join", pid_col_meds,
-                             other_op_node=left_diagnosis_proj)
-    right_join = cc._pub_join(right_medication_proj, "right_join", pid_col_meds, is_server=False,
-                              other_op_node=right_diagnosis_proj)
+    left_join = cc._pub_join(left_medication_shared, "left_join", pid_col_meds,
+                             other_op_node=left_diagnosis_shared)
+    right_join = cc._pub_join(right_medication_shared, "right_join", pid_col_meds, is_server=False,
+                              other_op_node=right_diagnosis_shared)
     joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
 
     # do filters after the join
@@ -102,7 +112,7 @@ def local(input_path: str, output_path: str, suffix: str):
     my_medications = read_rel(input_path + "/" + "{}_medication.csv".format(suffix))
     my_diagnosis = read_rel(input_path + "/" + "{}_diagnosis.csv".format(suffix))
 
-    keys = read_rel(input_path + "/" + "shared_pids.csv".format(suffix))
+    keys = read_rel(input_path + "/" + "left_shared_pids.csv".format(suffix))
 
     my_medications = filter_by_not_keys(my_medications, keys, 0)
     my_diagnosis = filter_by_not_keys(my_diagnosis, keys, 0)

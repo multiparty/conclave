@@ -92,6 +92,17 @@ class PythonCodeGen(CodeGen):
             schema_header
         )
 
+    def _generate_persist(self, leaf: ccdag.Persist):
+        """ Generate code for storing a single output via a Persist op. """
+        schema_header = ",".join(['"' + col.name + '"' for col in leaf.out_rel.columns])
+        return "{}write_rel('{}', '{}.csv', {}, '{}')\n".format(
+            self.space,
+            self.config.output_path,
+            leaf.out_rel.name,
+            leaf.out_rel.name,
+            schema_header
+        )
+
     def _generate_create(self, create_op: ccdag.Create):
         """ Generate code for loading input data. """
         return "{}{} = read_rel('{}')\n".format(
