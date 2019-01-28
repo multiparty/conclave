@@ -31,10 +31,10 @@ def protocol_mpc():
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
     right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
 
-    left_shared_pids = cc._pub_intersect(left_keys, "left_shared_pids", pid_col_meds)
-    cc._persist(left_shared_pids, "left_shared_pids")
-    right_shared_pids = cc._pub_intersect(right_keys, "right_shared_pids", pid_col_meds, is_server=False)
-    cc._persist(right_shared_pids, "right_shared_pids")
+    left_shared_pids = cc._pub_intersect(left_keys, "a_left_shared_pids", pid_col_meds)
+    cc._persist(left_shared_pids, "a_left_shared_pids")
+    right_shared_pids = cc._pub_intersect(right_keys, "a_right_shared_pids", pid_col_meds, is_server=False)
+    cc._persist(right_shared_pids, "a_right_shared_pids")
 
     left_medication_proj = cc.project(left_medication, "left_medication_proj",
                                       [pid_col_meds, med_col_meds, date_col_meds])
@@ -93,7 +93,7 @@ def protocol_local(suffix: str, pid: int):
     left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", pid) for i in range(num_diag_cols)]
     diagnosis = cc.create(suffix + "_diagnosis", left_diagnosis_cols, {pid})
 
-    shared_pids = cc.create(suffix + "_shared_pids", [defCol(pid_col_meds, "INTEGER", pid)], {pid})
+    shared_pids = cc.create("a_{}_shared_pids".format(suffix), [defCol(pid_col_meds, "INTEGER", pid)], {pid})
 
     # only keep relevant columns
     medication_proj = cc.project(medication, "medication_proj", [pid_col_meds, med_col_meds, date_col_meds])
