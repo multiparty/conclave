@@ -23,11 +23,16 @@ def protocol_mpc():
     left_medication = cc.create("left_medication", left_medication_cols, {1})
     left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [1]) for i in range(num_diag_cols)]
     left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
+    left_keys = cc.union(left_medication, left_diagnosis, "left_pids", pid_col_meds, pid_col_diags)
 
     right_medication_cols = [defCol(str(i), "INTEGER", [2]) for i in range(num_med_cols)]
     right_medication = cc.create("right_medication", right_medication_cols, {2})
     right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [2]) for i in range(num_diag_cols)]
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
+    right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
+
+    shared_pids = cc._pub_intersect(left_keys, "shared_pids", pid_col_meds)
+    shared_pids_2 = cc._pub_intersect(right_keys, "shared_pids_2", pid_col_meds, is_server=False)
 
     # only keep relevant columns
     left_medication_proj = cc.project(left_medication, "left_medication_proj",
@@ -97,13 +102,7 @@ def local(input_path: str, output_path: str, suffix: str):
     my_medications = read_rel(input_path + "/" + "{}_medication.csv".format(suffix))
     my_diagnosis = read_rel(input_path + "/" + "{}_diagnosis.csv".format(suffix))
 
-    left_join_keys = project(read_rel(input_path + "/" + "left_join.csv"), [0])
-    right_join_keys = project(read_rel(input_path + "/" + "right_join.csv"), [0])
-
-    keys = set()
-    for l, r in zip(left_join_keys, right_join_keys):
-        prod = l[0] * r[0]
-        keys.add(prod)
+    keys = read_rel(input_path + "/" + "shared_pids.csv".format(suffix))
 
     my_medications = filter_by_not_keys(my_medications, keys, 0)
     my_diagnosis = filter_by_not_keys(my_diagnosis, keys, 0)
