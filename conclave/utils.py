@@ -82,6 +82,11 @@ def defCol(name: str, typ: str, *coll_sets):
     >>> expected = ("a", "INTEGER", {1, 2, 3})
     >>> actual == expected
     True
+
+    >>> actual = defCol("a", "INTEGER", 1)
+    >>> expected = ("a", "INTEGER", {1})
+    >>> actual == expected
+    True
     """
     if not coll_sets:
         trust_set = set()

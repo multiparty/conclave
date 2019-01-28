@@ -684,11 +684,12 @@ class FilterBy(BinaryOpNode):
     """
 
     def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
-                 by_op: OpNode, filter_col: rel.Column):
+                 by_op: OpNode, filter_col: rel.Column, use_not_in: bool):
         if len(by_op.out_rel.columns) != 1:
             raise Exception("ByOp must have single column output relation")
         super(FilterBy, self).__init__("filter_by", out_rel, input_op_node, by_op)
         self.filter_col = filter_col
+        self.use_not_in = use_not_in
 
     def update_op_specific_cols(self):
         temp_cols = self.get_left_in_rel().columns

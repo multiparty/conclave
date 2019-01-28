@@ -345,7 +345,8 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, by_op: cc_dag.OpNode):
+def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, by_op: cc_dag.OpNode,
+              use_not_in: bool = False):
     """
     Define FilterBy operation.
 
@@ -353,7 +354,7 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     :param output_name: Name of returned Filter node.
     :param filter_col_name: Name of column that relation gets filtered over.
     :param by_op: Parent node to filter by.
-
+    :param use_not_in: flag indicating whether to use not in instead of in
     :return: FilterBy OpNode
     """
 
@@ -371,7 +372,7 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.FilterBy(out_rel, input_op_node, by_op, filter_col)
+    op = cc_dag.FilterBy(out_rel, input_op_node, by_op, filter_col, use_not_in)
 
     # Add it as a child to input nodes
     input_op_node.children.add(op)

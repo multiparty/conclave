@@ -223,12 +223,13 @@ class PythonCodeGen(CodeGen):
 
     def _generate_filter_by(self, filter_by_op: ccdag.FilterBy):
         """ Generate code for FilterBy operations. """
-        return "{}{} = filter_by({}, {}, {})\n".format(
+        return "{}{} = filter_by({}, {}, {}, {})\n".format(
             self.space,
             filter_by_op.out_rel.name,
             filter_by_op.get_left_in_rel().name,
             filter_by_op.get_right_in_rel().name,
-            filter_by_op.filter_col.idx
+            filter_by_op.filter_col.idx,
+            "True" if filter_by_op.use_not_in else "False",
         )
 
     def _generate_union(self, union_op: ccdag.Union):

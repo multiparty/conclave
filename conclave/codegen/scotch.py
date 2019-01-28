@@ -307,10 +307,11 @@ class ScotchCodeGen(CodeGen):
     def _generate_filter_by(filter_by_op: ccdag.FilterBy):
         """ Generate code for FilterBy operations. """
 
-        return "FILTER_BY{} [{}] FROM ({}) IN {} AS {}\n".format(
+        return "FILTER_BY{} [{}] FROM ({}){}IN {} AS {}\n".format(
             "MPC" if filter_by_op.is_mpc else "",
             filter_by_op.filter_col.name,
             filter_by_op.get_left_in_rel().dbg_str(),
+            " NOT " if filter_by_op.use_not_in else " ",
             filter_by_op.get_right_in_rel().dbg_str(),
             filter_by_op.out_rel.dbg_str()
         )
