@@ -315,7 +315,11 @@ def reconstruct(
         me: int):
     res_rel = []
     left_dummy = [1 for _ in range(len(left_rel[0]))]
-    right_dummy = [1 for _ in range(len(right_rel[0]))]
+    if right_rel:
+        right_dummy = [1 for _ in range(len(right_rel[0]))]
+    else:
+        # TODO fix
+        right_dummy = [1 for _ in range(len(left_rel[0]))]
     for left_idx, left_own, right_idx, right_own in idx_rel:
         left_side = left_rel[left_idx] if left_own == me else left_dummy
         right_side = right_rel[right_idx] if right_own == me else right_dummy

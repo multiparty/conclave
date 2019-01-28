@@ -146,5 +146,5 @@ def run_local(pid: str, data_root: str):
 if __name__ == "__main__":
     top_pid = sys.argv[1]
     run_mpc(top_pid, sys.argv[2])
-    if top_pid == "1":
+    if top_pid in {"1", "2"}:
         run_local(top_pid, sys.argv[2])
