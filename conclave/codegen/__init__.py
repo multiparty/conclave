@@ -88,6 +88,8 @@ class CodeGen:
                 op_code += self._generate_filter_by(node)
             elif isinstance(node, Union):
                 op_code += self._generate_union(node)
+            elif isinstance(node, PubIntersect):
+                op_code += self._generate_pub_intersect(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

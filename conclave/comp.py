@@ -178,6 +178,8 @@ class DagRewriter:
                 self._rewrite_filter_by(node)
             elif isinstance(node, ccdag.Union):
                 self._rewrite_union(node)
+            elif isinstance(node, ccdag.PubIntersect):
+                self._rewrite_pub_intersect(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -243,6 +245,9 @@ class DagRewriter:
         pass
 
     def _rewrite_union(self, node: ccdag.Union):
+        pass
+
+    def _rewrite_pub_intersect(self, node: ccdag.PubIntersect):
         pass
 
 
@@ -384,6 +389,10 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_union(self, node: ccdag.Union):
+
+        self._rewrite_default(node)
+
+    def _rewrite_pub_intersect(self, node: ccdag.PubIntersect):
 
         self._rewrite_default(node)
 

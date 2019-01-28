@@ -148,6 +148,24 @@ def receive_rel(sock: socket, num_cols: int):
     byte_buf = None
     return rel
 
+def receive_set(sock: socket):
+    num_elements_bytes = sock.recv(INT_SIZE)
+    num_elements = struct.unpack('i', num_elements_bytes)[0]
+    total_size = num_elements * INT_SIZE
+    byte_buf = bytearray(total_size)
+    view = memoryview(byte_buf)
+    while total_size:
+        received = sock.recv_into(view, total_size)
+        view = view[received:]
+        total_size -= received
+    element_it = struct.iter_unpack("i", byte_buf)
+
+    rel = set()
+    for el in element_it:
+        rel.add(el[0])
+    byte_buf = None
+    return rel
+
 
 def send_rel(sock: socket, rel: list):
     num_elements = len(rel) * (len(rel[0]) if rel else 0)
@@ -229,6 +247,14 @@ def key_union(left: list, right: list, l: int, r: int):
 def key_union_as_rel(left: list, right: list, l: int, r: int):
     return [[v] for v in key_union(left, right, l, r)]
 
+def to_set(rel: list, key: int):
+    keys = set()
+    for row in rel:
+        keys.add(row[key])
+    return keys
+
+def to_rel(rel_set: set):
+    return [[k] for k in rel_set]
 
 def filter_by_keys(rel: list, keys: set, key_col: int):
     return [row for row in rel if row[key_col] in keys]
@@ -269,6 +295,45 @@ def reconstruct(
         res_rel.append(joined_row)
     return res_rel
 
+def pub_intersect_as_server(host: str,
+        port: int,
+        my_rel: list,
+        my_key_col: int):
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((host, port))
+
+    server_socket.listen(1)
+    print("server started and listening")
+    client_socket, address = server_socket.accept()
+
+    other_keys = receive_set(client_socket)
+    my_keys = to_set(my_rel, my_key_col)
+    print("done receive")
+    res = to_rel(my_keys & other_keys)
+    send_rel(client_socket, res)
+    server_socket.close()
+    return res
+
+def pub_intersect_as_client(host: str,
+        port: int,
+        my_rel: list,
+        my_key_col: int):
+    sock = None
+    connected = False
+    while not connected:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((host, port))
+            connected = True
+        except Exception as e:
+            print(e)
+            connected = False
+            time.sleep(.042)
+    send_rel(sock, project(my_rel, [my_key_col]))
+    res = receive_rel(sock, 1)
+    sock.close()
+    return res
 
 def public_join_as_server_part(
         host: str,

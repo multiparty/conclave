@@ -712,21 +712,26 @@ class Union(BinaryOpNode):
         self.right_col = copy.copy(temp_cols[self.right_col.idx])
 
 
-class IntersectPub(BinaryOpNode):
+class PubIntersect(UnaryOpNode):
     """
     Operator for intersection of given (public) columns.
     """
 
-    def __init__(self, out_rel: rel.Relation, left_parent: OpNode,
-                 right_parent: OpNode, left_col: rel.Column, right_col: rel.Column):
-        super(IntersectPub, self).__init__("intersect_pub", out_rel, left_parent, right_parent)
-        self.left_col = left_col
-        self.right_col = right_col
+    def __init__(self, out_rel: rel.Relation,
+                 parent: OpNode,
+                 col: rel.Column,
+                 host: str,
+                 port: int,
+                 is_server: bool):
+        super(PubIntersect, self).__init__("intersect_pub", out_rel, parent)
+        self.col = col
+        self.host = host
+        self.port = port
+        self.is_server = is_server
 
     def update_op_specific_cols(self):
-        temp_cols = self.get_left_in_rel().columns
-        self.left_col = copy.copy(temp_cols[self.left_col.idx])
-        self.right_col = copy.copy(temp_cols[self.right_col.idx])
+        temp_cols = self.get_in_rel().columns
+        self.col = copy.copy(temp_cols[self.col.idx])
 
 
 class JoinFlags(Join):

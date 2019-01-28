@@ -189,6 +189,18 @@ class PythonCodeGen(CodeGen):
                 pub_join_op.key_col.idx
             )
 
+    def _generate_pub_intersect(self, pub_intersect_op: ccdag.PubIntersect):
+        """ Generate code for PubIntersect operations. """
+        return "{}{} = pub_intersect_{}(\"{}\", {}, {}, {})\n".format(
+            self.space,
+            pub_intersect_op.out_rel.name,
+            "as_server" if pub_intersect_op.is_server else "as_client",
+            pub_intersect_op.host,
+            pub_intersect_op.port,
+            pub_intersect_op.get_in_rel().name,
+            pub_intersect_op.col.idx
+        )
+
     def _generate_sort_by(self, sort_by_op: ccdag.SortBy):
         """ Generate code for SortBy operations. """
         return "{}{} = sort_by({}, {})\n".format(
