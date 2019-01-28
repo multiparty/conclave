@@ -63,7 +63,7 @@ def setup(conf: Dict):
     conclave_config.with_network_config(net_config)
 
     data_backend = conf["data"]["data_backend"]
-    
+
     if data_backend == "local":
         pass
 
@@ -112,6 +112,10 @@ def run(protocol: Callable, mpc_framework: str = "jiff", local_framework: str = 
 
     conclave_config = setup(conf)
 
+    if conclave_config.data_backend == "local":
+        generate_and_dispatch(
+            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
+        )
     if conclave_config.data_backend == "swift":
         download_swift_data(conclave_config)
         generate_and_dispatch(
@@ -127,6 +131,4 @@ def run(protocol: Callable, mpc_framework: str = "jiff", local_framework: str = 
         post_dataverse_data(conclave_config)
 
     else:
-        generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
-        )
+        raise Exception("Backend {} not recognized. Exiting computation.".format(conclave_config.data_backend))
