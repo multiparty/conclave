@@ -18,38 +18,56 @@ def setup(conf: Dict):
     # GENERAL
     pid = conf["user_config"]["pid"]
     workflow_name = conf["user_config"]["workflow_name"]
-    data_backend = conf["data"]["data_backend"]
     all_pids = conf["user_config"]['all_pids']
     use_leaky = conf["user_config"]["leaky_ops"]
 
+    conclave_config = CodeGenConfig(workflow_name)
+
     # SPARK
-    spark_master_url = conf["backends"]["spark"]["master_url"]
-    spark_config = SparkConfig(spark_master_url)
+    try:
+        spark_avail = conf["backends"]["spark"]["available"]
+        if spark_avail:
+            spark_master_url = conf["backends"]["spark"]["master_url"]
+            spark_config = SparkConfig(spark_master_url)
+            conclave_config.with_spark_config(spark_config)
+    except KeyError:
+        pass
 
     # OBLIV-C
-    oc_path = conf["backends"]["oblivc"]["oc_path"]
-    ip_port = conf["backends"]["oblivc"]["ip_port"]
-    oc_config = OblivcConfig(oc_path, ip_port)
+    try:
+        oc_avail = conf["backends"]["oblivc"]["available"]
+        if oc_avail:
+            oc_path = conf["backends"]["oblivc"]["oc_path"]
+            ip_port = conf["backends"]["oblivc"]["ip_port"]
+            oc_config = OblivcConfig(oc_path, ip_port)
+            conclave_config.with_oc_config(oc_config)
+    except KeyError:
+        pass
 
     # JIFF
-    jiff_path = conf["backends"]["jiff"]["jiff_path"]
-    party_count = conf["backends"]["jiff"]["party_count"]
-    server_ip = conf["backends"]["jiff"]["server_ip"]
-    server_port = conf["backends"]["jiff"]["server_port"]
-    jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port)
+    try:
+        jiff_avail = conf["backends"]["jiff"]["available"]
+        if jiff_avail:
+            jiff_path = conf["backends"]["jiff"]["jiff_path"]
+            party_count = conf["backends"]["jiff"]["party_count"]
+            server_ip = conf["backends"]["jiff"]["server_ip"]
+            server_port = conf["backends"]["jiff"]["server_port"]
+            jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port)
+            conclave_config.with_jiff_config(jiff_config)
+    except KeyError:
+        pass
 
     # NET
     hosts = conf["net"]["parties"]
     net_config = NetworkConfig(hosts, pid)
+    conclave_config.with_network_config(net_config)
 
-    # CONCLAVE SYSTEM CONFIG
-    conclave_config = CodeGenConfig(workflow_name) \
-        .with_spark_config(spark_config) \
-        .with_oc_config(oc_config) \
-        .with_jiff_config(jiff_config) \
-        .with_network_config(net_config)
+    data_backend = conf["data"]["data_backend"]
+    
+    if data_backend == "local":
+        pass
 
-    if data_backend == "swift":
+    elif data_backend == "swift":
         cfg = conf["swift"]
         swift_config = SwiftConfig(cfg)
         conclave_config.with_swift_config(swift_config)
