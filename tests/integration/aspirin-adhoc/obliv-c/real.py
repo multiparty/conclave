@@ -37,9 +37,9 @@ def protocol():
                                       [pid_col_diags, diag_col_diags, date_col_diags])
 
     left_join = cc._pub_join(left_medication_proj, "left_join", pid_col_meds,
-                             other_op_node=left_diagnosis_proj, host='oc-a')
+                             other_op_node=left_diagnosis_proj, host='10.10.10.17')
     right_join = cc._pub_join(right_medication_proj, "right_join", pid_col_meds, is_server=False,
-                              other_op_node=right_diagnosis_proj, host='oc-a')
+                              other_op_node=right_diagnosis_proj, host='10.10.10.17')
 
     joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
 
