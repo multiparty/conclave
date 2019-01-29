@@ -43,7 +43,7 @@ def convert_diags_row(row: list):
 def generate_meds_row(pids_low: int, pids_high: int, ratio: int, convert: bool = True):
     row = ["0" for _ in range(8)]
     patient_id = random.randint(pids_low, pids_high)
-    med = "aspirin" if random.random() < ratio else "other"
+    med = "aspirin"
     time_stamp = "01/01/02"  # fixed date for now since it has no influence on performance
     row[0] = str(patient_id)
     row[1] = "7"
@@ -63,7 +63,7 @@ def generate_meds_row(pids_low: int, pids_high: int, ratio: int, convert: bool =
 def generate_diags_row(pids_low: int, pids_high: int, ratio: int, convert: bool = True):
     row = ["0" for _ in range(13)]
     patient_id = random.randint(pids_low, pids_high)
-    diagnosis = "414.05" if random.random() < ratio else "other"
+    diagnosis = "414.05"
     time_stamp = "01/01/01"  # fixed date for now since it has no influence on performance
     row[0] = str(patient_id)
     row[1] = "7"

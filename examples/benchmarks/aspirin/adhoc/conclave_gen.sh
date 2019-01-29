@@ -14,10 +14,10 @@ OVER=$((2 * DIST / 100))
 
 if (( ${PARTY} == 1 ))
 then
-    OFF=0
+    OFF=1
     PREFIX=left
 else
-    OFF=$((DIST - OVER))
+    OFF=$((DIST - OVER + 1))
     PREFIX=right
 fi
 
