@@ -116,7 +116,8 @@ def run(protocol: Callable, mpc_framework: str = "jiff", local_framework: str = 
         generate_and_dispatch(
             protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
-    if conclave_config.data_backend == "swift":
+        
+    elif conclave_config.data_backend == "swift":
         download_swift_data(conclave_config)
         generate_and_dispatch(
             protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
