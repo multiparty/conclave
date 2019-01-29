@@ -113,91 +113,38 @@ def protocol_local(suffix: str, pid: int):
     return {medication, diagnosis}
 
 
-def write_rel(job_dir, rel_name, rel, schema_header):
-    print("Will write to {}/{}".format(job_dir, rel_name))
-    path = "{}/{}".format(job_dir, rel_name)
-    with open(path, "w") as f:
-        # hack header
-        f.write(schema_header + "\n")
-        for row in rel:
-            f.write(",".join([str(val) for val in row]) + "\n")
-
-
-def read_rel(path_to_rel):
-    rows = []
-    with open(path_to_rel, "r") as f:
-        it = iter(f.readlines())
-        for raw_row in it:
-            # TODO: only need to do this for first row
-            try:
-                split_row = [int(val) for val in raw_row.split(",")]
-                rows.append([int(val) for val in split_row])
-            except ValueError:
-                print("skipped header")
-    return rows
-
-
-def local_main():
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_path = os.path.join(current_dir, "data")
-    for pid in {"1", "2"}:
-        # define name for the workflow
-        workflow_name = "aspirin-local-test-" + pid
-        # configure conclave
-        conclave_config = CodeGenConfig(workflow_name, int(pid))
-        conclave_config.all_pids = [int(pid)]
-        sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
-        conclave_config.with_sharemind_config(sharemind_conf)
-        # point conclave to the directory where the generated code should be stored/ read from
-        conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
-        # point conclave to directory where data is to be read from...
-        conclave_config.input_path = data_path
-        # and written to
-        conclave_config.output_path = data_path
-        suffix = "left" if pid == "1" else "right"
-        # define this party's unique ID (in this demo there is only one party)
-        job_queue = generate_code(lambda: protocol_local(suffix, int(pid)), conclave_config, ["sharemind"], ["python"],
-                                  apply_optimizations=False)
-        dispatch_jobs(job_queue, conclave_config)
-
-    res_mpc = read_rel(data_path + "/" + "actual_mpc_open.csv")
-    res_left = read_rel(data_path + "/" + "actual_left.csv")
-    res_right = read_rel(data_path + "/" + "actual_right.csv")
-    assert len(res_mpc) == 1
-    assert len(res_left) == 1
-    assert len(res_right) == 1
-    res = [[res_mpc[0][0] + res_left[0][0] + res_right[0][0]]]
-    write_rel(data_path, "actual_open.csv", res, "1")
-
-
-def main_mpc(pid: str):
-    try:
-        use_leaky = sys.argv[2] == "-l"
-    except Exception:
-        use_leaky = False
-    # define name for the workflow
-    workflow_name = "real-aspirin-partitioned-" + pid
-    # configure conclave
+def run_mpc(pid: str, data_root: str):
+    workflow_name = "aspirin-mpc-join-" + pid + "-" + data_root
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.all_pids = [1, 2, 3]
-    conclave_config.use_leaky_ops = use_leaky
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
-                                            use_hdfs=False)
+    conclave_config.use_leaky_ops = False
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
-    # point conclave to directory where data is to be read from...
-    conclave_config.input_path = os.path.join(current_dir, "data")
-    # and written to
-    conclave_config.output_path = os.path.join(current_dir, "data")
+    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
+    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
+
     job_queue = generate_code(protocol_mpc, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
+    dispatch_jobs(job_queue, conclave_config)
+
+
+def run_local(pid: str, data_root: str):
+    workflow_name = "aspirin-local-join-" + pid + "-" + data_root
+    conclave_config = CodeGenConfig(workflow_name, int(pid))
+    conclave_config.all_pids = [int(pid)]
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
+    conclave_config.with_sharemind_config(sharemind_conf)
+    conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
+    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
+    suffix = "left" if pid == "1" else "right"
+
+    job_queue = generate_code(lambda: protocol_local(suffix, int(pid)), conclave_config, ["sharemind"], ["python"],
+                              apply_optimizations=False)
     dispatch_jobs(job_queue, conclave_config)
 
 
 if __name__ == "__main__":
     top_pid = sys.argv[1]
-    main_mpc(top_pid)
-    if top_pid == "1":
-        local_main()
+    run_mpc(top_pid, sys.argv[2])
+    if top_pid in {"1", "2"}:
+        run_local(top_pid, sys.argv[2])

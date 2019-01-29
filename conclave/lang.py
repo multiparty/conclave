@@ -368,7 +368,8 @@ def divide(input_op_node: cc_dag.OpNode, output_name: str, target_col_name: str,
     return op
 
 
-def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, by_op: cc_dag.OpNode):
+def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, by_op: cc_dag.OpNode,
+              use_not_in: bool = False):
     """
     Define FilterBy operation.
 
@@ -376,7 +377,7 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     :param output_name: Name of returned Filter node.
     :param filter_col_name: Name of column that relation gets filtered over.
     :param by_op: Parent node to filter by.
-
+    :param use_not_in: flag indicating whether to use not in instead of in
     :return: FilterBy OpNode
     """
 
@@ -394,7 +395,7 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.FilterBy(out_rel, input_op_node, by_op, filter_col)
+    op = cc_dag.FilterBy(out_rel, input_op_node, by_op, filter_col, use_not_in)
 
     # Add it as a child to input nodes
     input_op_node.children.add(op)
@@ -427,16 +428,29 @@ def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, outpu
     return op
 
 
-def _intersect_pub(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str,
-                   left_col_name: str,
-                   right_col_name: str,
+def _pub_intersect(input_node: cc_dag.OpNode,
+                   output_name: str,
+                   col_name: str,
                    host: str = "ca-spark-node-0",
                    port: int = 8042,
                    is_server: bool = True):
     """
     Computes a single column relation containing the intersection of values of the two selected columns.
     """
-    pass
+
+    # Create output column and relation
+    out_col = Column(output_name, col_name, 0, "INTEGER", {})
+    left_stored_with = input_node.out_rel.stored_with
+    out_rel = rel.Relation(output_name, [out_col], copy.copy(left_stored_with))
+    out_rel.update_columns()
+
+    left_col = utils.find(input_node.out_rel.columns, col_name)
+    op = cc_dag.PubIntersect(out_rel, input_node, left_col, host, port, is_server)
+
+    # Add it as a child to input node
+    input_node.children.add(op)
+
+    return op
 
 
 def cc_filter(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: str, operator: str,

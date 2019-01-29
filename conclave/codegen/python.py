@@ -92,6 +92,17 @@ class PythonCodeGen(CodeGen):
             schema_header
         )
 
+    def _generate_persist(self, leaf: ccdag.Persist):
+        """ Generate code for storing a single output via a Persist op. """
+        schema_header = ",".join(['"' + col.name + '"' for col in leaf.out_rel.columns])
+        return "{}write_rel('{}', '{}.csv', {}, '{}')\n".format(
+            self.space,
+            self.config.output_path,
+            leaf.out_rel.name,
+            leaf.out_rel.name,
+            schema_header
+        )
+
     def _generate_create(self, create_op: ccdag.Create):
         """ Generate code for loading input data. """
         return "{}{} = read_rel('{}')\n".format(
@@ -189,6 +200,18 @@ class PythonCodeGen(CodeGen):
                 pub_join_op.key_col.idx
             )
 
+    def _generate_pub_intersect(self, pub_intersect_op: ccdag.PubIntersect):
+        """ Generate code for PubIntersect operations. """
+        return "{}{} = pub_intersect_{}(\"{}\", {}, {}, {})\n".format(
+            self.space,
+            pub_intersect_op.out_rel.name,
+            "as_server" if pub_intersect_op.is_server else "as_client",
+            pub_intersect_op.host,
+            pub_intersect_op.port,
+            pub_intersect_op.get_in_rel().name,
+            pub_intersect_op.col.idx
+        )
+
     def _generate_sort_by(self, sort_by_op: ccdag.SortBy):
         """ Generate code for SortBy operations. """
         return "{}{} = sort_by({}, {})\n".format(
@@ -200,12 +223,13 @@ class PythonCodeGen(CodeGen):
 
     def _generate_filter_by(self, filter_by_op: ccdag.FilterBy):
         """ Generate code for FilterBy operations. """
-        return "{}{} = filter_by({}, {}, {})\n".format(
+        return "{}{} = filter_by({}, {}, {}, {})\n".format(
             self.space,
             filter_by_op.out_rel.name,
             filter_by_op.get_left_in_rel().name,
             filter_by_op.get_right_in_rel().name,
-            filter_by_op.filter_col.idx
+            filter_by_op.filter_col.idx,
+            "True" if filter_by_op.use_not_in else "False",
         )
 
     def _generate_union(self, union_op: ccdag.Union):

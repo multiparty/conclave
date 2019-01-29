@@ -41,6 +41,18 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
+    def _generate_pub_intersect(pub_intersect_op: ccdag.PubIntersect):
+        """ Generate code for PubIntersect operations. """
+
+        return "PUBINTERSECT{}{} {} ON [{}] AS {}\n".format(
+            "MPC" if pub_intersect_op.is_mpc else "",
+            "Server" if pub_intersect_op.is_server else "Client",
+            pub_intersect_op.get_in_rel().dbg_str(),
+            pub_intersect_op.col.name,
+            pub_intersect_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
     def _generate_flag_join(flag_join_op: ccdag.FlagJoin):
         """ Generate code for FlagJoin operations. """
 
@@ -295,10 +307,11 @@ class ScotchCodeGen(CodeGen):
     def _generate_filter_by(filter_by_op: ccdag.FilterBy):
         """ Generate code for FilterBy operations. """
 
-        return "FILTER_BY{} [{}] FROM ({}) IN {} AS {}\n".format(
+        return "FILTER_BY{} [{}] FROM ({}){}IN {} AS {}\n".format(
             "MPC" if filter_by_op.is_mpc else "",
             filter_by_op.filter_col.name,
             filter_by_op.get_left_in_rel().dbg_str(),
+            " NOT " if filter_by_op.use_not_in else " ",
             filter_by_op.get_right_in_rel().dbg_str(),
             filter_by_op.out_rel.dbg_str()
         )
