@@ -114,7 +114,7 @@ D uint32[[2]] aggregateSum(D uint32[[2]] rows, uint keyCol, uint valCol) {
     input[:,0] = rows[:,keyCol];
     input[:,1] = rows[:,valCol];
 
-    D uint32 [[2]] sorted = sort(input, (uint)0);
+    D uint32 [[2]] sorted = sortingNetworkSort(input, (uint)0);
     D uint32 [[2]] result(nrows,ncols + 1);
     result[:,0] = sorted[:,0];
     result[:,1] = sorted[:,1];
