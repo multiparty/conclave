@@ -1,0 +1,50 @@
+{
+  "user_config":
+  {
+    "pid": 1,
+    "all_pids": [1,2],
+    "workflow_name": "comorbidity",
+    "leaky_ops": 1,
+    "paths":
+    {
+      "input_path": "/home/ubuntu/cici/conclave/tests/integration/comorb/input_data/",
+      "output_path": "/home/ubuntu/cici/conclave/tests/integration/comorb/input_data/",
+      "code_path": "/tmp/code_one/"
+    }
+  },
+  "net":
+  {
+    "parties":
+    [
+      {
+        "host": "10.10.10.17",
+        "port": 8000
+      },
+      {
+        "host": "10.10.10.11",
+        "port": 8000
+      }
+    ]
+  },
+  "backends":
+  {
+    "spark":
+    {
+      "available": 0
+    },
+    "oblivc":
+    {
+      "available": 1,
+      "oc_path": "/home/ubuntu/obliv-c/bin/oblivcc",
+      "ip_port": "10.10.10.17:9000"
+    },
+    "jiff":
+    {
+      "available": 0
+    }
+  },
+  "data":
+  {
+    "data_backend": "local"
+  }
+}

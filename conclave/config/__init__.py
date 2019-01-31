@@ -40,6 +40,16 @@ class SwiftConfig:
         self.dest = cfg['dest']
 
 
+class DataverseConfig:
+    """
+    Configuration for accessing data from Dataverse
+    """
+
+    def __init__(self, cfg):
+
+        self.cfg = cfg
+
+
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
@@ -69,6 +79,18 @@ class OblivcConfig:
         self.ip_and_port = ip_and_port
 
 
+class JiffConfig:
+    """ Jiff configuration. """
+
+    def __init__(self, jiff_path: str, party_count: int, server_ip: str, server_port: int):
+        self.jiff_path = jiff_path
+        self.party_count = party_count
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.server_pid = 1
+        self.use_openshift = False
+
+
 class CodeGenConfig:
     """ Config object for code generation module. """
 
@@ -76,6 +98,7 @@ class CodeGenConfig:
         """ Initialize CodeGenConfig object. """
 
         self.inited = True
+        self.use_floats = False
         self.delimiter = ','
         if job_name is not None:
             self.name = job_name
@@ -84,7 +107,7 @@ class CodeGenConfig:
             self.code_path = tempfile.mkdtemp(suffix="-code", prefix="salmon-")
             self.name = os.path.basename(self.code_path)
         self.use_leaky_ops = True
-        self.use_swift = False
+        self.data_backend = "local"
         self.input_path = '/tmp'
         self.output_path = '/tmp'
         self.system_configs = {}
@@ -138,6 +161,15 @@ class CodeGenConfig:
 
         return self
 
+    def with_dataverse_config(self, cfg: DataverseConfig):
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["dataverse"] = cfg
+
+        return self
+
     def with_spark_config(self, cfg: SparkConfig):
         """ Add SparkConfig object to this object. """
 
@@ -145,6 +177,16 @@ class CodeGenConfig:
             self.__init__()
 
         self.system_configs["spark"] = cfg
+
+        return self
+
+    def with_jiff_config(self, cfg: JiffConfig):
+        """ Add jiffConfig object to this object. """
+
+        if not self.inited:
+            self.__init__()
+
+        self.system_configs["jiff"] = cfg
 
         return self
 

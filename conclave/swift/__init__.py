@@ -2,6 +2,7 @@
 Helper class for get_data and put_data
 Establishes swift connection and returns a connection object
 """
+import os
 
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
@@ -81,8 +82,13 @@ class SwiftData:
 
         response, contents = self.swift_connection.get_object(container_name, key)
 
+        full_path = "{0}/{1}".format(file_path, key)
+
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
         with open("{0}/{1}".format(file_path, key), 'wb') as out_file:
             out_file.write(contents)
+
         print("Wrote object {0} to {1}.".format(key, file_path))
 
     def put_data(self, container_name, key, file_path):
@@ -94,7 +100,7 @@ class SwiftData:
             print("Previous connection was closed. Reinitialize this object.")
             return self
 
-        c = open(file_path).read()
+        c = open("{0}/{1}".format(file_path, key), encoding='UTF-8').read()
 
         self.swift_connection.put_object(container_name, key, c, content_type='text/plain')
         print('Placed object {0} in container {1}'.format(key, container_name))

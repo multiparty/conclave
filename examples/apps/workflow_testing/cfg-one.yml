@@ -1,0 +1,60 @@
+# GENERAL
+pid: 1
+all_pids: [1,2]
+workflow_name: jiff_test
+use_swift: True
+
+# TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
+# /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
+# for use on OS containers.
+input_path: /tmp/input1/
+output_path: /tmp/
+code_path: /tmp/code1
+
+# SPARK
+spark:
+  master_url: local
+
+# OBLIV-C
+oblivc:
+  oc_path: /<path_to_oc_install>/
+  ip_port: localhost:9000
+
+# JIFF
+jiff:
+  jiff_path: /Users/ben/Desktop/dev/jiff/
+  party_count: 2
+  server_ip: localhost
+  server_port: 9000
+
+# NET
+net:
+  parties:
+    - host: localhost
+      port: 9001
+    - host: localhost
+      port: 9002
+
+# SWIFT
+swift:
+  source:
+    AUTHORIZATION:
+      osAuthUrl: https://kaizen.massopen.cloud:5000/v3
+      username: bengetch@gmail.com
+      password: OreoCooks12
+    PROJECT:
+      osProjectDomain: default
+      osProjectName: ccs-musketeer-demo
+    DATA:
+      container_name: openshift-demo
+      files: [in1.csv]
+  dest:
+    AUTHORIZATION:
+      osAuthUrl: https://kaizen.massopen.cloud:5000/v3
+      username: bengetch@gmail.com
+      password: OreoCooks12
+    PROJECT:
+      osProjectDomain: default
+      osProjectName: ccs-musketeer-demo
+    DATA:
+      container_name: openshift-demo

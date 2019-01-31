@@ -6,8 +6,8 @@
 
 #include "workflow.h"
 
-void loadData(float mat[ROWS][COLS], char *src);
-void loadMockData(float mat[ROWS][COLS]);
+void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src);
+void loadMockData({{{NUM_TYPE}}} mat[ROWS][COLS]);
 void displayData(protocolIo *io);
 void writeData(protocolIo *io);
 int countRows(char *src, int cols);
@@ -59,9 +59,9 @@ void writeData(protocolIo *io)
 	{
 		for (int j = 0; j < io->out_cols - 1; j++)
 		{
-			fprintf(fp, "%g,", io->ret[i][j]);
+			fprintf(fp, "%{{{TYPE}}},", io->ret[i][j]);
 		}
-		fprintf(fp, "%g\n", io->ret[i][io->out_cols - 1]);
+		fprintf(fp, "%{{{TYPE}}}\n", io->ret[i][io->out_cols - 1]);
 	}
 	fclose(fp);
 }
@@ -72,7 +72,7 @@ void displayData(protocolIo *io)
     {
         for (int j = 0; j < io->out_cols; j++)
         {
-            printf("|  %i|%i : %g  |", i, j, io->ret[i][j]);
+            printf("|  %i|%i : %{{{TYPE}}}  |", i, j, io->ret[i][j]);
         }
         printf("\n");
     }
@@ -109,18 +109,18 @@ int countRows(char *src, int cols)
 	return numRows;
 }
 
-void loadMockData(float mat[ROWS][COLS])
+void loadMockData({{{NUM_TYPE}}} mat[ROWS][COLS])
 {
     for (int i = 0; i < 1000; i++)
     {
         for (int j = 0; j < 50; j++)
         {
-            mat[i][j] = 0.0;
+            mat[i][j] = 0;
         }
     }
 }
 
-void loadData(float mat[ROWS][COLS], char *src)
+void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src)
 {
   	char buffer[1024];
   	char *record, *line;
@@ -144,15 +144,12 @@ void loadData(float mat[ROWS][COLS], char *src)
 			{
 				if (record != NULL)
 				{
-
-					mat[i][j] = atof(record);
+					mat[i][j] = {{{TYPE_CONV_STR}}}(record);
 					record = strtok(NULL,",");
-
 				}
 				else
 				{
 					mat[i][j] = 1;
-
 				}
 			}
 		}
@@ -164,6 +161,5 @@ void loadData(float mat[ROWS][COLS], char *src)
 			}
 		}
 	}
-
 	fclose(fstream);
 }

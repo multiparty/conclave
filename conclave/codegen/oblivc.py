@@ -1,6 +1,5 @@
 import os
 import sys
-import csv
 
 import pystache
 
@@ -19,9 +18,8 @@ class OblivcCodeGen(CodeGen):
                  "{}/templates/oblivc"
                  .format(os.path.dirname(os.path.realpath(__file__)))):
 
-        if not "oblivc" in config.system_configs:
-            print("Missing OblivC configuration in CodeGenConfig.\n")
-            sys.exit(1)
+        if "oblivc" not in config.system_configs:
+            raise Exception("Missing OblivC configuration in CodeGenConfig.\n")
 
         self.oc_config = config.system_configs['oblivc']
         self.create_params = {}
@@ -74,6 +72,14 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_sort_by(node)
             elif isinstance(node, Open):
                 op_code += self._generate_open(node)
+            elif isinstance(node, DistinctCount):
+                op_code += self._generate_distinct_count(node)
+            elif isinstance(node, Filter):
+                op_code += self._generate_filter(node)
+            elif isinstance(node, ConcatCols):
+                op_code += self._generate_concat_cols(node)
+            elif isinstance(node, Limit):
+                op_code += self._generate_limit(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -85,8 +91,12 @@ class OblivcCodeGen(CodeGen):
         Returns generated Spark code and Job object.
         """
 
-        template = open(
-            "{}/top_level.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_floats:
+            template = open(
+                "{}/top_level_float.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/top_level_int.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             'OP_CODE': op_code
@@ -131,6 +141,90 @@ class OblivcCodeGen(CodeGen):
 
         return pystache.render(template, data)
 
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
+
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+
+        if concat_cols_op.use_mult:
+
+            template = open(
+                "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+        else:
+
+            template = open(
+                "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+    def _generate_limit(self, limit_op: Limit):
+        """
+        Generate code for limit operation.
+        """
+
+        if self.config.use_leaky_ops:
+            template = open(
+                "{0}/limit_leaky.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/limit.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": limit_op.get_in_rel().name,
+            "OUT_REL": limit_op.out_rel.name,
+            "NUM": limit_op.num
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_filter(self, filter_op: Filter):
+        """
+        Generate code for different filter operations.
+        """
+
+        if filter_op.is_scalar:
+
+            template = open(
+                "{0}/filter_eq_by_constant.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "CONSTANT": filter_op.scalar
+            }
+
+            return pystache.render(template, data)
+
+        else:
+
+            template = open(
+                "{0}/filter_lt_by_column.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "COMP_COL": filter_op.other_col.idx
+            }
+
+            return pystache.render(template, data)
+
     # TODO: generalize, oc code is limited to 2 input relations
     def _generate_concat(self, concat_op: Concat):
         """
@@ -156,8 +250,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for Join operations.
         """
 
-        template = open(
-            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        if not self.config.use_leaky_ops:
+            template = open(
+                "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/join_leaky.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "JOINCOL_ONE": join_op.left_join_cols[0].idx,
@@ -295,19 +393,45 @@ class OblivcCodeGen(CodeGen):
         Generate code for Aggregate operations.
         """
 
-        # TODO: codegen assumes '+' aggregator, generalize
-
-        template = open(
-            "{}/agg.tmpl".format(self.template_directory), 'r').read()
+        if agg_op.aggregator == 'sum':
+            template = open(
+                "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == "count":
+            template = open(
+                "{}/agg_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            raise Exception("Unknown aggregator encountered: {}".format(agg_op.aggregator))
 
         # TODO: generalize codegen to handle multiple group_cols
         assert(len(agg_op.group_cols) == 1)
+
+        if self.config.use_leaky_ops:
+            leaky = 1
+        else:
+            leaky = 0
 
         data = {
             "IN_REL": agg_op.get_in_rel().name,
             "OUT_REL": agg_op.out_rel.name,
             "KEY_COL": agg_op.group_cols[0].idx,
-            "AGG_COL": agg_op.agg_col.idx
+            "AGG_COL": agg_op.agg_col.idx,
+            "USE_LEAKY": leaky
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_distinct_count(self, distinct_count_op: DistinctCount):
+        """
+        Generate code for DistinctCount operations.
+        """
+
+        template = open(
+            "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": distinct_count_op.get_in_rel().name,
+            "OUT_REL": distinct_count_op.out_rel.name,
+            "KEY_COL": distinct_count_op.selected_col.idx
         }
 
         return pystache.render(template, data)
@@ -333,6 +457,14 @@ class OblivcCodeGen(CodeGen):
         Generate header file that stores struct data.
         """
 
+        nodes = self.dag.top_sort()
+
+        io_str = ""
+
+        for node in nodes:
+            if isinstance(node, Create):
+                io_str += "\tIo {};\n".format(node.out_rel.name)
+
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
@@ -342,7 +474,9 @@ class OblivcCodeGen(CodeGen):
             structs_code += "\tIo {};\n".format(in_rel)
 
         data = {
-            "STRUCTS": structs_code
+            "STRUCTS": structs_code,
+            "IO_STR": io_str,
+            "TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
@@ -397,7 +531,10 @@ class OblivcCodeGen(CodeGen):
             "PID": self.pid,
             "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid)),
             "WRITE_CODE": write_str,
-            "STRUCT_CODE": struct_code
+            "STRUCT_CODE": struct_code,
+            "TYPE": 'g' if self.config.use_floats else 'i',
+            "TYPE_CONV_STR": 'atof' if self.config.use_floats else 'atoi',
+            "NUM_TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
