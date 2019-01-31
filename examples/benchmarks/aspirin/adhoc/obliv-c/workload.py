@@ -3,7 +3,7 @@ import sys
 
 import conclave.lang as cc
 from conclave import generate_code, dispatch_jobs
-from conclave.config import CodeGenConfig, SharemindCodeGenConfig, OblivcConfig, NetworkConfig
+from conclave.config import CodeGenConfig, OblivcConfig, NetworkConfig
 from conclave.utils import defCol
 
 
