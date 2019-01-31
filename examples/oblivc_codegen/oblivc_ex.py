@@ -336,10 +336,10 @@ if __name__ == "__main__":
     # dag = join()
     # generate(dag, 'join')
     #
-    dag = agg_count()
-    generate(dag, 'aggCount')
-    dag = agg_count()
-    generate_leaky(dag, 'aggCountLeaky')
+    # dag = agg_count()
+    # generate(dag, 'aggCount')
+    # dag = agg_count()
+    # generate_leaky(dag, 'aggCountLeaky')
     # #
     # dag = join()
     # generate_leaky(dag, 'joinLeaky')
@@ -355,10 +355,10 @@ if __name__ == "__main__":
     #
     # dag = sort_by()
     # generate_leaky(dag, 'sort_by')
-    #
-    # dag = project()
-    # generate(dag, 'project')
-    #
+
+    dag = project()
+    generate(dag, 'project')
+
     # dag = distinct_count()
     # generate(dag, 'dis')
     #
