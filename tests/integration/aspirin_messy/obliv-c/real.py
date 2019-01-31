@@ -141,7 +141,7 @@ def read_rel(path_to_rel):
 
 def local_main():
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_path = os.path.join(current_dir, "obliv-c/data")
+    data_path = os.path.join(current_dir, "data")
     for pid in {"1", "2"}:
         # define name for the workflow
         workflow_name = "aspirin-local-test-" + pid
