@@ -32,7 +32,7 @@ if __name__ == "__main__":
     workflow_name = "aspirin-large-join-" + pid + "-" + data_root
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    
+
     net_conf = [
         {"host": "10.10.10.17", "port": 8000},
         {"host": "10.10.10.11", "port": 8000}
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     oc_conf = OblivcConfig("/home/ubuntu/obliv-c/bin/oblivcc", "10.10.10.17:9000")
     conclave_config.with_oc_config(oc_conf)
 
-    conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+    conclave_config.code_path = "/mnt/shared/{}/".format(workflow_name)
     conclave_config.input_path = os.path.join("/mnt/shared", data_root)
     conclave_config.output_path = os.path.join("/mnt/shared", data_root)
 
