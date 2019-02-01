@@ -425,8 +425,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for DistinctCount operations.
         """
 
-        template = open(
-            "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        if distinct_count_op.use_sort:
+            template = open(
+                "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/distinct_count_presorted.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "IN_REL": distinct_count_op.get_in_rel().name,

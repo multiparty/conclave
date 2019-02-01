@@ -1035,6 +1035,28 @@ void _distinctCount
 	ret->cols = 1;
 }
 
+void distinctCountPreSorted
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol
+	)
+{
+	int numRows = mat->rows;
+	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * 1);
+		array[i][0] = mat->mat[i][keyCol];
+
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	_distinctCount(ret, array, keepRows, numRows);
+}
+
 void distinctCount
 	(
 		intermediateMat *mat,
