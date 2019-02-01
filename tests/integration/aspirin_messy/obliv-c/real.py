@@ -73,10 +73,10 @@ if __name__ == "__main__":
     workflow_name = "real-aspirin-partitioned-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.all_pids = [1, 2, 3]
+    conclave_config.all_pids = [1, 2]
     conclave_config.use_leaky_ops = use_leaky
 
-    oc_conf = OblivcConfig("/home/ubuntu/obliv-c/bin/oblivcc", "10.10.10.17:9000")
+    oc_conf = OblivcConfig("/home/ubuntu/obliv-c/bin/oblivcc", "localhost:9000")
     conclave_config.with_oc_config(oc_conf)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
