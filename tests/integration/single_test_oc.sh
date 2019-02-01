@@ -34,7 +34,7 @@ fi
 python3.5 ${DIR}/simple.py 1
 
 # run real workflow
-for i in 1 2;
+for i in 1 2 3;
 do
     python3 ${DIR}/real.py ${i} &
 done
