@@ -189,7 +189,7 @@ class PythonCodeGen(CodeGen):
                 pub_join_op.key_col.idx
             )
         else:
-            return "{}{} = pub_join_part(\"{}\", {}, {}, {}, {}, {})\n".format(
+            return "{}{} = pub_join_part(\"{}\", {}, {}, {}, {}, {}, {}, {})\n".format(
                 self.space,
                 pub_join_op.out_rel.name,
                 pub_join_op.host,
@@ -197,7 +197,9 @@ class PythonCodeGen(CodeGen):
                 "True" if pub_join_op.is_server else "False",
                 pub_join_op.get_left_in_rel().name,
                 pub_join_op.get_right_in_rel().name,
-                pub_join_op.key_col.idx
+                pub_join_op.key_col.idx,
+                len(pub_join_op.get_left_in_rel().columns),
+                len(pub_join_op.get_right_in_rel().columns)
             )
 
     def _generate_pub_intersect(self, pub_intersect_op: ccdag.PubIntersect):
