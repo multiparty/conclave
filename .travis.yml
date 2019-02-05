@@ -11,6 +11,9 @@ notifications:
     on_success: change
     on_failure: always
 
+before_script:
+  - export PYTHONPATH=$PYTHONPATH:$(pwd)
+
 script:
   - nosetests
 
