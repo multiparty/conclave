@@ -447,10 +447,11 @@ template <domain D : shared3p>
 uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
     if (filter) {
         uint ncols = shape(rows)[1];
+        D uint32[[2]] shuffled = shuffleRows(rows);
         return declassify(
             filterByKeepFlags(
-                rows[:,:ncols - 1],
-                declassify(rows[:,ncols - 1])
+                shuffled[:,:ncols - 1],
+                declassify(shuffled[:,ncols - 1])
             )
         );
     } else {

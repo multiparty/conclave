@@ -271,7 +271,8 @@ def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Distinct node.
-    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :param selected_col_name: Column name the Distinct operation will key over.
+    :param use_sort: flag indicating if sort is necessary or not
     :return: Distinct OpNode.
     """
 
