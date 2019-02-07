@@ -382,6 +382,27 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     return op
 
 
+def _indexes_to_flags(input_op_node: cc_dag.OpNode, lookup_op_node: cc_dag.OpNode, output_name: str):
+    # Get input relation from input node
+    in_rel = lookup_op_node.out_rel
+
+    # Get relevant columns and create copies
+    out_rel_cols = copy.deepcopy(in_rel.columns)
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.IndexesToFlags(out_rel, input_op_node, lookup_op_node)
+
+    # Add it as a child to input nodes
+    input_op_node.children.add(op)
+    lookup_op_node.children.add(op)
+
+    return op
+
+
 def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str, left_col_name: str,
           right_col_name: str):
     """
@@ -747,6 +768,7 @@ def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "i
     # Copy over columns from existing relation
     out_rel_cols = copy.deepcopy(in_rel.columns)
 
+    # TODO should be 0?
     index_col = rel.Column(
         output_name, idx_col_name, len(in_rel.columns), "INTEGER", set())
     out_rel_cols = [index_col] + out_rel_cols
@@ -760,6 +782,37 @@ def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "i
     input_op_node.children.add(op)
 
     return op
+
+
+def num_rows(input_op_node: cc_dag.OpNode, output_name: str, col_name: str = "len"):
+    # TODO docs
+    in_rel = input_op_node.out_rel
+    # Copy over columns from existing relation
+    len_col = rel.Column(
+        output_name, col_name, len(in_rel.columns), "INTEGER", set())
+    out_rel_cols = [len_col]
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    op = cc_dag.NumRows(out_rel, input_op_node, len_col)
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
+
+def _unpermute(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: str, re_indexed_col_name: str):
+    """
+    Given indexes, re-indexes, and sorts by original indexes.
+    """
+    # TODO move this and other internal functions somewhere more appropriate
+    re_indexed = index(input_op_node, input_op_node.out_rel.name + "_reidx", re_indexed_col_name)
+    re_indexed.is_mpc = False
+    unpermuted = sort_by(re_indexed, output_name, sort_by_col_name)
+    re_indexed.is_mpc = False
+    return unpermuted
 
 
 def shuffle(input_op_node: cc_dag.OpNode, output_name: str):

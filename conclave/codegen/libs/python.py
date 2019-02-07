@@ -114,6 +114,13 @@ def distinct(rel, selected_cols):
     return [[key] for key in set(unwrapped)]
 
 
+def indexes_to_flags(lookup, rel_size):
+    res = [[0] for _ in range(rel_size)]
+    for idx in lookup:
+        res[idx[0]] = [1]
+    return res
+
+
 def cc_filter(cond_lambda, rel):
     return list(filter(cond_lambda, rel))
 

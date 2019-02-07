@@ -182,6 +182,10 @@ class DagRewriter:
                 self._rewrite_pub_intersect(node)
             elif isinstance(node, ccdag.Persist):
                 self._rewrite_persist(node)
+            elif isinstance(node, ccdag.IndexesToFlags):
+                self._rewrite_indexes_to_flags(node)
+            elif isinstance(node, ccdag.NumRows):
+                self._rewrite_num_rows(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -253,6 +257,12 @@ class DagRewriter:
         pass
 
     def _rewrite_persist(self, node: ccdag.Persist):
+        pass
+
+    def _rewrite_indexes_to_flags(self, node: ccdag.IndexesToFlags):
+        pass
+
+    def _rewrite_num_rows(self, node: ccdag.NumRows):
         pass
 
 
@@ -402,6 +412,10 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_persist(self, node: ccdag.Persist):
+
+        self._rewrite_default(node)
+
+    def _rewrite_indexes_to_flags(self, node: ccdag.IndexesToFlags):
 
         self._rewrite_default(node)
 
@@ -994,8 +1008,8 @@ class ExpandCompositeOps(DagRewriter):
         suffix = self._create_unique_join_suffix()
         # TODO column names should not be hard-coded
 
-        # in left parents' children, replace self with first primitive operator
-        # in expanded subdag
+        # Under MPC
+        # in left parents' children, replace self with first primitive operator in expanded sub-dag
         left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
@@ -1023,20 +1037,59 @@ class ExpandCompositeOps(DagRewriter):
         right_keys_open = cc._open(right_keys_closed, "right_keys_open" + suffix, node.trusted_party)
         right_keys_open.is_mpc = True
 
-        # TODO remove dummy ops
-        left_dummy = cc.project(left_keys_open, "left_dummy" + suffix, ["a"])
-        left_dummy.is_mpc = False
+        # At STP
+        left_indexed = cc.index(left_keys_open, "left_indexed" + suffix, "lidx")
+        left_indexed.is_mpc = False
 
-        right_dummy = cc.project(right_keys_open, "right_dummy" + suffix, ["c"])
-        right_dummy.is_mpc = False
+        right_indexed = cc.index(right_keys_open, "right_indexed" + suffix, "ridx")
+        right_indexed.is_mpc = False
 
-        flags = cc._join_flags(left_dummy, right_dummy, "flags" + suffix, ["a"], ["c"])
-        flags.is_mpc = False
+        joined_indexes = cc.join(left_indexed, right_indexed, "joined_indexes" + suffix, ["a"], ["c"])
+        joined_indexes.is_mpc = False
 
-        flags_closed = cc._close(flags, "flags_closed" + suffix, {1, 2, 3})
-        flags_closed.is_mpc = True
+        indexes_left = cc.project(joined_indexes, "indexes_left" + suffix, ["lidx"])
+        num_lookups = cc.num_rows(indexes_left, "num_lookups" + suffix)
 
-        joined = cc._flag_join(left_persisted, right_persisted, node.out_rel.name, ["a"], ["c"], flags_closed)
+        cc._persist(indexes_left, "indexes_left" + suffix)
+        left_unpermuted = cc._unpermute(indexes_left, "left_unpermuted" + suffix, "lidx", "ll")
+        left_unpermuted_idx = cc.project(left_unpermuted, "left_unpermuted_idx" + suffix, ["ll"])
+
+        indexes_right = cc.project(joined_indexes, "indexes_right" + suffix, ["ridx"])
+        cc._persist(indexes_right, "indexes_right" + suffix)
+        right_unpermuted = cc._unpermute(indexes_right, "right_unpermuted" + suffix, "ridx", "rr")
+        right_unpermuted_idx = cc.project(right_unpermuted, "right_unpermuted_idx" + suffix, ["rr"])
+
+        left_unpermuted_proj = cc.project(left_unpermuted, "left_unpermuted_proj" + suffix, ["lidx"])
+        left_encoded = cc._indexes_to_flags(left_indexed, left_unpermuted_proj,
+                                            "left_encoded" + suffix)
+        left_encoded.is_mpc = False
+
+        right_unpermuted_proj = cc.project(right_unpermuted, "right_unpermuted_proj" + suffix, ["ridx"])
+        right_encoded = cc._indexes_to_flags(right_indexed, right_unpermuted_proj,
+                                             "right_encoded" + suffix)
+        right_encoded.is_mpc = False
+
+        num_lookups_closed = cc._close(num_lookups, "num_lookups_closed" + suffix, {1, 2, 3})
+        num_lookups_closed.is_mpc = True
+
+        left_unpermuted_closed = cc._close(left_unpermuted_idx, "left_unpermuted_closed" + suffix, {1, 2, 3})
+        left_unpermuted_closed.is_mpc = True
+        right_unpermuted_closed = cc._close(right_unpermuted_idx, "right_unpermuted_closed" + suffix, {1, 2, 3})
+        right_unpermuted_closed.is_mpc = True
+
+        left_encoded_closed = cc._close(left_encoded, "left_encoded_closed" + suffix, {1, 2, 3})
+        left_encoded_closed.is_mpc = True
+        right_encoded_closed = cc._close(right_encoded, "right_encoded_closed" + suffix, {1, 2, 3})
+        right_encoded_closed.is_mpc = True
+
+        # flags = cc._join_flags(left_unpermuted, right_unpermuted, "flags" + suffix, ["a"], ["c"])
+        # flags.is_mpc = False
+        #
+        # flags_closed = cc._close(flags, "flags_closed" + suffix, {1, 2, 3})
+        # flags_closed.is_mpc = True
+        joined = cc.join(left_encoded_closed, right_encoded_closed, node.out_rel.name, ["lidx"], ["ridx"])
+        joined.is_mpc = True
+        # joined = cc._flag_join(left_persisted, right_persisted, node.out_rel.name, ["a"], ["c"], flags_closed)
         # replace self with leaf of expanded subdag in each child node
         for child in node.get_sorted_children():
             child.replace_parent(node, joined)

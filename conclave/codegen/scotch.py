@@ -317,6 +317,27 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
+    def _generate_indexes_to_flags(indexes_to_flags_op: ccdag.IndexesToFlags):
+        """ Generate code for IndexesToFlags operations. """
+
+        return "IDX_TO_FLAGS{} {} {} AS {}\n".format(
+            "MPC" if indexes_to_flags_op.is_mpc else "",
+            indexes_to_flags_op.get_left_in_rel().dbg_str(),
+            indexes_to_flags_op.get_right_in_rel().dbg_str(),
+            indexes_to_flags_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_num_rows(num_rows_op: ccdag.NumRows):
+        """ Generate code for NumRows operations. """
+
+        return "NUM_ROWS{} {} AS {}\n".format(
+            "MPC" if num_rows_op.is_mpc else "",
+            num_rows_op.get_in_rel().dbg_str(),
+            num_rows_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
     def _generate_union(union_op: ccdag.Union):
         """ Generate code for Union operations. """
 

@@ -495,6 +495,20 @@ class Index(UnaryOpNode):
         return True
 
 
+class NumRows(UnaryOpNode):
+    """ Output num rows of input to a relation. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, col_name: str):
+        """ Initialize NumRows object"""
+        super(NumRows, self).__init__("num_rows", out_rel, parent)
+        # Need to communicate size so can't be local
+        self.is_local = False
+        self.col_name = col_name
+
+    def is_reversible(self):
+        return True
+
+
 class Shuffle(UnaryOpNode):
     """ Randomly permute rows of relation. """
 
@@ -694,6 +708,18 @@ class FilterBy(BinaryOpNode):
     def update_op_specific_cols(self):
         temp_cols = self.get_left_in_rel().columns
         self.filter_col = temp_cols[self.filter_col.idx]
+
+
+class IndexesToFlags(BinaryOpNode):
+    """
+    Operator for filtering relations for rows which are in a set of values (specified in another relation).
+    """
+
+    def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
+                 lookup_op_node: OpNode):
+        if len(lookup_op_node.out_rel.columns) != 1:
+            raise Exception("lookup_op_node must have single column output relation")
+        super(IndexesToFlags, self).__init__("indexes_to_flags", out_rel, input_op_node, lookup_op_node)
 
 
 class Union(BinaryOpNode):

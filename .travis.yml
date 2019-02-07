@@ -3,6 +3,11 @@ language: python
 python:
   - "3.5"
 
+# blacklist
+branches:
+  except:
+  - auto-hybrid-join
+
 notifications:
   email: true
   slack:
