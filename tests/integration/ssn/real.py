@@ -44,8 +44,9 @@ if __name__ == "__main__":
     workflow_name = "real-ssn-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
+    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
+    conclave_config.use_leaky_ops = True
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
