@@ -926,7 +926,7 @@ class ExpandCompositeOps(DagRewriter):
         self.agg_counter += 1
         return "_hybrid_agg_" + str(self.agg_counter)
 
-    def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
+    def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
         """
         Expand hybrid aggregation into a sub-dag of primitive operators. This uses the size-leaking version.
         """
@@ -983,11 +983,11 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            raise Exception("not implemented")
+            self._rewrite_agg_leaky(node)
         else:
-            self._rewrite_agg_non_leaky(node)
+            raise Exception("not implemented")
 
-    def _rewrite_hybrid_join_non_leaky(self, node: ccdag.HybridJoin):
+    def _rewrite_hybrid_join_leaky(self, node: ccdag.HybridJoin):
         """
         Expand hybrid join into a sub-dag of primitive operators. This uses the size-leaking version.
         """
@@ -1045,9 +1045,9 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:
-            raise Exception("not implemented")
+            self._rewrite_hybrid_join_leaky(node)
         else:
-            self._rewrite_hybrid_join_non_leaky(node)
+            raise Exception("not implemented")
 
 
 class StoredWithSimplifier(DagRewriter):
