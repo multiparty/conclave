@@ -105,6 +105,20 @@ def divide():
     return set([in1, in2])
 
 
+@dag_only
+def join():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    rel = sal.join(in1, in2, 'joined', ['a'], ['a'])
+
+    opened = sal._open(rel, "opened", 1)
+
+    return set([in1, in2])
+
+
 if __name__ == "__main__":
 
     # dag = project()
@@ -113,5 +127,8 @@ if __name__ == "__main__":
     # dag = multiply()
     # generate(dag, 'mult')
 
-    dag = divide()
-    generate(dag, 'div')
+    # dag = divide()
+    # generate(dag, 'div')
+
+    dag = join()
+    generate(dag, 'join')
