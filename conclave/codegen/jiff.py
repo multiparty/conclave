@@ -7,6 +7,18 @@ from conclave.dag import *
 from conclave.job import JiffJob
 
 
+'''
+TODO: 
+
+    - append output column row to output csv
+    - multiply
+    - divide
+    - agg
+    - join
+
+'''
+
+
 class JiffCodeGen(CodeGen):
 
     def __init__(self, config, dag: Dag, pid: int,
@@ -51,7 +63,12 @@ class JiffCodeGen(CodeGen):
                     out_node = node.out_rel.name
                     break
 
+        write = "false"
+        if out_node != '':
+            write = "true"
+
         data = {
+            "WRITE": write,
             "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port),
             "OUTPUT_FILE": "{0}/{1}.csv".format(self.config.input_path, out_node)
         }
@@ -161,14 +178,15 @@ class JiffCodeGen(CodeGen):
 
     def _generate_concat(self, concat_op: Concat):
 
-        # in_rel_str = " + ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
+        in_rels = [in_rel.name for in_rel in concat_op.get_in_rels()]
 
         template = open(
             "{0}/concat.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "OUTREL": concat_op.out_rel.name,
-            "INRELS": ", ".join(in_rel.name for in_rel in concat_op.get_in_rels())
+            "INRELS": ','.join(in_rels),
+            "INRELS_KEEPROWS_STR": ','.join(i + 'KeepRows' for i in in_rels)
         }
 
         return pystache.render(template, data)
@@ -189,7 +207,6 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_open(self, open_op: Open):
-        # TODO: implement in codegen
 
         template = open(
             "{0}/open.tmpl".format(self.template_directory), 'r').read()

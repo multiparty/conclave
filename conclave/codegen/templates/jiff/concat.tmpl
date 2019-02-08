@@ -1,2 +1,4 @@
 
-    var {{{OUTREL}}} = concatenate([{{{INRELS}}}]);
+        var {{{OUTREL}}}RESULT = concatenate([{{{INRELS}}}], [{{{INRELS_KEEPROWS_STR}}}]);
+        var {{{OUTREL}}} = {{{OUTREL}}}RESULT[0];
+        var {{{OUTREL}}}KeepRows = {{{OUTREL}}}RESULT[1];

@@ -33,23 +33,19 @@ var format_2d = function (array_2d){
 // JIFF options
 var options = {party_count: party_count, party_id: party_id};
 options.onConnect = function(jiff_instance) {
-    mpc.compute(input).then(function(p){
-      p.then(function(v){
+    mpc.compute(input).then(function(r){
 
-          var output = "{{{OUTPUT_FILE}}}";
-          if(output.length > 0){
+          if ({{{WRITE}}}) {
+            var output = "{{{OUTPUT_FILE}}}";
             var fs = require('fs');
-            fs.writeFile(output, format_2d(v) , function(err) {
+            fs.writeFile(output, format_2d(r) , function(err) {
                 if(err) {
                     jiff_instance.disconnect();
                     return console.log(err);
                 }
-            });
+             });
           }
           jiff_instance.disconnect();
-
-      });
-
     });
 };
 

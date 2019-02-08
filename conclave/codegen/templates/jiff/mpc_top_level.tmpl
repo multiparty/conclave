@@ -15,40 +15,22 @@
   };
 
 
-  const project = function(inputRel, projCols)
+ const project = function(inRel, keepRows, projCols)
   {
 
-    var result = [];
+    var ret = [];
+    var keepRowsResult = [];
 
-    for (var i = 0; i < inputRel.length; i++)
+    for (var i = 0; i < inRel.length; i++)
     {
-      result.push([]);
-    }
-
-    for (var j = 0; j < inputRel.length; j++)
-    {
-      for (var k = 0; k < projCols.length; k++)
+      ret.push([]);
+      keepRowsResult.push(keepRows[i]);
+      for (var j = 0; j < projCols.length; j++)
       {
-        result[j].push(inputRel[j][projCols[k]]);
+        ret[i].push(inRel[i][projCols[j]]);
       }
     }
-    return result;
-
-  };
-
-  const concatenate = function(inRels)
-  {
-    var result = [];
-
-    for (var i = 0; i < inRels.length; i++)
-    {
-      for (var j = 0; j < inRels[i].length; j++)
-      {
-        result.push(inRels[i][j]);
-      }
-    }
-
-    return result;
+    return [ret, keepRowsResult];
   };
 
   const join = function(leftRel, rightRel, leftJoinColIdx, rightJoinColIdx)
@@ -130,10 +112,43 @@
     return result;
   }
 
-  const open = function(inRel)
+  const concatenate = function(inRels, keepRows)
+  {
+    var ret = [];
+    var keepRowsResult = [];
+
+    for (var i = 0; i < inRels.length; i++)
+    {
+      for (var j = 0; j < inRels[i].length; j++)
+      {
+        ret.push(inRels[i][j]);
+        keepRowsResult.push(keepRows[i][j]);
+      }
+    }
+
+    return [ret, keepRowsResult];
+  };
+
+  const open = function(inRel, keepRows)
   {
     var results = saved_instance.open_2D_array(inRel);
-    return results;
+    var keepRowsResults = saved_instance.open_array(keepRows);
+
+    return Promise.all([results, keepRowsResults]).then(function(arr){
+      var openedRes = arr[0];
+      var openedKeep = arr[1];
+      var ret = [];
+
+      for (var i = 0; i < openedRes.length; i++)
+      {
+        if (openedKeep[i] === 1)
+        {
+          ret.push(openedRes[i])
+        }
+      }
+
+      return ret;
+    });
   };
 
   /**
@@ -147,6 +162,7 @@
     // NOTE: assuming 1 file per party here
 
     var inputData = [];
+    var keepRows = [];
     var unparsedData = (fs.readFileSync(input, 'UTF-8')).trim();
     var rows = unparsedData.split('\n');
 
@@ -155,12 +171,18 @@
     {
       let arr = rows[i].split(',').map(Number);
       inputData.push(arr);
+      keepRows.push(1);
     }
 
-    var promise = jiff_instance.share_2D_array(inputData);
+    var dataShares = jiff_instance.share_2D_array(inputData);
+    var keepRowShares = jiff_instance.share_array(keepRows);
 
-    return promise.then(function(shares) {
+    var computation = Promise.all([dataShares, keepRowShares]).then(function(arr) {
         {{{OP_CODE}}}
+    });
+
+    return computation.then(function(opened) {
+        return opened;
     });
   };
 }((typeof exports == 'undefined' ? this.mpc = {} : exports), typeof exports != 'undefined'));
