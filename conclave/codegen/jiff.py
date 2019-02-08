@@ -233,7 +233,6 @@ class JiffCodeGen(CodeGen):
 
     def _generate_multiply(self, mult_op: Multiply):
         """
-        NOTE: bug in "OPERANDS" -- can't c.idx for scalars
         """
 
         template = open(
@@ -259,7 +258,7 @@ class JiffCodeGen(CodeGen):
             "INREL": mult_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(c for c in operands) + ']',
+            "OPERANDS": '[' + ','.join(c for c in operands[1:]) + ']',
             "SCALAR": scalar
         }
 
@@ -290,7 +289,7 @@ class JiffCodeGen(CodeGen):
             "INREL": div_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(str(c.idx) for c in operands) + ']',
+            "OPERANDS": '[' + ','.join(c for c in operands[1:]) + ']',
             "SCALAR": scalar
         }
 

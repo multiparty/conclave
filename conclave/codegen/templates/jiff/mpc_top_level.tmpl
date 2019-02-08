@@ -59,12 +59,14 @@
     return result;
   }
 
-  const multiply = function(inRel, newCol, targetCol, operands, scalar)
+  const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
-    var result = [];
+    var ret = [];
+    var keepRowsResult = [];
 
     for (var i = 0; i < inRel.length; i++)
     {
+      keepRowsResult.push(keepRows[i]);
       var targetVal = inRel[i][targetCol].cmult(scalar);
       for (var j = 0; j < operands.length; j++)
       {
@@ -73,25 +75,26 @@
       if (newCol)
       {
         var newRow = inRel[i].concat([targetVal]);
-        result.push(newRow);
+        ret.push(newRow);
       }
       else
       {
         inRel[i][targetCol] = targetVal;
-        result.push(inRel[i]);
+        ret.push(inRel[i]);
       }
     }
 
-    return result;
-
+    return [ret, keepRowsResult];
   }
 
-  const divide = function(inRel, newCol, targetCol, operands, scalar)
+  const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
-    var result = [];
+    var ret = [];
+    var keepRowsResult = [];
 
     for (var i = 0; i < inRel.length; i++)
     {
+      keepRowsResult.push(keepRows[i]);
       var targetVal = inRel[i][targetCol].cdiv(scalar);
       for (var j = 0; j < operands.length; j++)
       {
@@ -100,16 +103,16 @@
       if (newCol)
       {
         var newRow = inRel[i].concat([targetVal]);
-        result.push(newRow);
+        ret.push(newRow);
       }
       else
       {
         inRel[i][targetCol] = targetVal;
-        result.push(inRel[i]);
+        ret.push(inRel[i]);
       }
     }
 
-    return result;
+    return [ret, keepRowsResult];
   }
 
   const concatenate = function(inRels, keepRows)
