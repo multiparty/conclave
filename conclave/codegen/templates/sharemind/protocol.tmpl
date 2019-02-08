@@ -557,6 +557,49 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
     return res;
 }
 
+template <domain D : shared3p>
+D uint32[[2]] _index(D uint32[[2]] values, D uint32[[1]] flags) {
+    uint nrows = shape(values)[0];
+    uint ncols = shape(values)[1];
+    D uint32[[2]] res(nrows, ncols + 2);
+    res[ : , 2 : ncols + 2] = values;
+    uint32[[1]] indexes(nrows);
+    for (uint idx = 0; idx < nrows; ++idx) {
+        indexes[idx] = (uint32) idx;
+    }
+    res[ : , 0] = (uint32) indexes;
+    res[ : , 1] = flags;
+    return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] _pad(D uint32[[2]] values, uint numPads) {
+    uint nrows = shape(values)[0];
+    uint ncols = shape(values)[1];
+    D uint32[[2]] res(nrows + numPads, ncols);
+    uint32[[2]] pads(numPads, ncols);
+    res[: nrows, :] = values;
+    res[nrows : , :] = (uint32) pads;
+    return res;
+}
+
+template <domain D : shared3p>
+void oblIdxStepOne(D uint32[[2]] input, D uint32[[2]] encodedWrapped, D uint32[[2]] numLookupsWrapped) {
+    uint numLookups = (uint) declassify(numLookupsWrapped[0 , 0]);
+    pd_shared3p uint32[[1]] encoded = encodedWrapped[ : , 0];
+    pd_shared3p uint32[[2]] indexed = _index(input, encoded);
+
+    pd_shared3p uint32[[2]] padded = _pad(indexed, numLookups);
+    pd_shared3p uint32[[2]] shuffled = shuffleRows(padded);
+
+    uint numShuffledCols = shape(shuffled)[1];
+    pd_shared3p uint32[[2]] indexesAndFlags = shuffled[ : , 0 : 2];
+
+    persist("DS1", prefix + "_shuffled_shark", shuffled[ : , 1 : ]);
+    //publish(prefix + "_indexes_and_flags", declassify(indexesAndFlags));
+    return indexesAndFlags;
+}
+
 void main() {
     string ds = "DS1";
     tdbOpenConnection(ds);

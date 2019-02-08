@@ -292,7 +292,6 @@ class ScotchCodeGen(CodeGen):
     @staticmethod
     def _generate_filter(filter_op: ccdag.Filter):
         """ Generate code for Filer operations. """
-
         filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
                                        filter_op.operator,
                                        filter_op.scalar if filter_op.is_scalar else filter_op.other_col.dbg_str())

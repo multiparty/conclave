@@ -1010,12 +1010,15 @@ class ExpandCompositeOps(DagRewriter):
 
         # Under MPC
         # in left parents' children, replace self with first primitive operator in expanded sub-dag
-        left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
+        # left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
+        left_shuffled = cc.project(node.left_parent, "left_shuffled" + suffix, ["a", "b"])
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
-        right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
+        # TODO testing only!!!
+        # right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
+        right_shuffled = cc.project(node.right_parent, "right_shuffled" + suffix, ["c", "d"])
         right_shuffled.is_mpc = True
         node.right_parent.children.remove(node)
 
@@ -1082,14 +1085,21 @@ class ExpandCompositeOps(DagRewriter):
         right_encoded_closed = cc._close(right_encoded, "right_encoded_closed" + suffix, {1, 2, 3})
         right_encoded_closed.is_mpc = True
 
-        # flags = cc._join_flags(left_unpermuted, right_unpermuted, "flags" + suffix, ["a"], ["c"])
-        # flags.is_mpc = False
-        #
-        # flags_closed = cc._close(flags, "flags_closed" + suffix, {1, 2, 3})
-        # flags_closed.is_mpc = True
         joined = cc.join(left_encoded_closed, right_encoded_closed, node.out_rel.name, ["lidx"], ["ridx"])
         joined.is_mpc = True
-        # joined = cc._flag_join(left_persisted, right_persisted, node.out_rel.name, ["a"], ["c"], flags_closed)
+        # TODO update operator name
+        left_flags_and_indexes_closed = cc._flag_join(left_persisted, left_encoded_closed,
+                                                      "left_flags_and_indexes_closed" + suffix,
+                                                      ["a"], ["c"],
+                                                      num_lookups_closed)
+        left_flags_and_indexes_closed.is_mpc = True
+
+        left_flags_and_indexes = cc._open(left_flags_and_indexes_closed, "left_flags_and_indexes" + suffix,
+                                          node.trusted_party)
+        left_flags_and_indexes.is_mpc = True
+
+        # Back at STP
+
         # replace self with leaf of expanded subdag in each child node
         for child in node.get_sorted_children():
             child.replace_parent(node, joined)
