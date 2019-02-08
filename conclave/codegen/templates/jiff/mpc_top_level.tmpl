@@ -33,10 +33,11 @@
     return [ret, keepRowsResult];
   };
 
-  const join = function(leftRel, rightRel, leftJoinColIdx, rightJoinColIdx)
+  const joinLeaky = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
   {
 
-    var result = []
+    var ret = [];
+    var keepRowsResult = [];
 
     for (var i = 0; i < leftRel.length; i++)
     {
@@ -51,13 +52,45 @@
           var jOne = newLeft.splice(leftJoinColIdx, 1);
           var jTwo = newRight.splice(rightJoinColIdx, 1);
           var newRow = [leftJoinCol].concat(newLeft).concat(newRight);
-          result.push(newRow);
+          ret.push(newRow);
+
+          var keepRowsFlag = leftKeepRows[i] * rightKeepRows[j];
+          keepRowsResult.push(keepRowsFlag);
         }
       }
     }
 
-    return result;
-  }
+    return [ret, keepRowsResult];
+  };
+
+  const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
+  {
+
+    var ret = [];
+    var keepRowsResult = [];
+
+    for (var i = 0; i < leftRel.length; i++)
+    {
+      for (var j = 0; j < rightRel.length; j++)
+      {
+        var leftJoinCol = leftRel[i][leftJoinColIdx];
+        var rightJoinCol = rightRel[j][rightJoinColIdx];
+
+        var newLeft = leftRel[i].slice();
+        var newRight = rightRel[j].slice();
+        newLeft.splice(leftJoinColIdx, 1);
+        newRight.splice(rightJoinColIdx, 1);
+        var newRow = [leftJoinCol].concat(newLeft).concat(newRight);
+        ret.push(newRow);
+
+        var eqFlag = leftJoinCol.seq(rightJoinCol);
+        var keepRowsFlag = leftKeepRows[i].smult(rightKeepRows[j]).smult(eqFlag);
+        keepRowsResult.push(keepRowsFlag);
+      }
+    }
+
+    return [ret, keepRowsResult];
+  };
 
   const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {

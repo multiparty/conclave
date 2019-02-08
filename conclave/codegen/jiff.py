@@ -193,8 +193,12 @@ class JiffCodeGen(CodeGen):
 
     def _generate_join(self, join_op: Join):
 
-        template = open(
-            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_leaky_ops:
+            template = open(
+                "{0}/joinLeaky.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/join.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "OUTREL": join_op.out_rel.name,
