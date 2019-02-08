@@ -73,7 +73,45 @@ def project():
     return set([in1, in2])
 
 
+@dag_only
+def multiply():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    rel = sal.concat([in1, in2], "rel")
+
+    mult = sal.multiply(rel, 'mult', 'a', ['a', 3])
+
+    opened = sal._open(mult, "opened", 1)
+
+    return set([in1, in2])
+
+
+@dag_only
+def divide():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    rel = sal.concat([in1, in2], "rel")
+
+    div = sal.divide(rel, 'mult', 'a', ['a', 2])
+
+    opened = sal._open(div, "opened", 1)
+
+    return set([in1, in2])
+
+
 if __name__ == "__main__":
 
-    dag = project()
-    generate(dag, 'project')
+    # dag = project()
+    # generate(dag, 'project')
+
+    # dag = multiply()
+    # generate(dag, 'mult')
+
+    dag = divide()
+    generate(dag, 'div')
