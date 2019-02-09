@@ -471,12 +471,12 @@ class SharemindCodeGen(CodeGen):
         """ Generate code for FlagJoin operations. """
 
         template = open(
-            "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
+            "{0}/obl_idx_step_one.tmpl".format(self.template_directory), 'r').read()
         flags_rel = flag_join_op.join_flag_op.out_rel
-        # pd_shared3p {{TYPE}} [[2]] {{OUT_REL}} = oblIdxStepOne({{IN_REL}}, {{FLAGS_REL}}, {{LEN_REL}});
         data = {
             "TYPE": "uint32",
             "OUT_REL": flag_join_op.out_rel.name,
+            "PREFIX": flag_join_op.out_rel.name,
             "IN_REL": flag_join_op.get_left_in_rel().name,
             "FLAGS_REL": flag_join_op.get_right_in_rel().name,
             "LEN_REL": flags_rel.name

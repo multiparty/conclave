@@ -584,7 +584,7 @@ D uint32[[2]] _pad(D uint32[[2]] values, uint numPads) {
 }
 
 template <domain D : shared3p>
-void oblIdxStepOne(D uint32[[2]] input, D uint32[[2]] encodedWrapped, D uint32[[2]] numLookupsWrapped) {
+D uint32[[2]] oblIdxStepOne(string prefix, D uint32[[2]] input, D uint32[[2]] encodedWrapped, D uint32[[2]] numLookupsWrapped) {
     uint numLookups = (uint) declassify(numLookupsWrapped[0 , 0]);
     pd_shared3p uint32[[1]] encoded = encodedWrapped[ : , 0];
     pd_shared3p uint32[[2]] indexed = _index(input, encoded);

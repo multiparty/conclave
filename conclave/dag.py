@@ -828,6 +828,9 @@ class FlagJoin(Join):
                   join_op.left_join_cols, join_op.right_join_cols, join_flags_op)
         return obj
 
+    def update_op_specific_cols(self):
+        pass
+
 
 class RevealJoin(Join):
     """Join Optimization

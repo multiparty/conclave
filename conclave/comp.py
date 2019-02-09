@@ -1098,6 +1098,16 @@ class ExpandCompositeOps(DagRewriter):
                                           node.trusted_party)
         left_flags_and_indexes.is_mpc = True
 
+        right_flags_and_indexes_closed = cc._flag_join(right_persisted, right_encoded_closed,
+                                                       "right_flags_and_indexes_closed" + suffix,
+                                                       ["a"], ["c"],
+                                                       num_lookups_closed)
+        right_flags_and_indexes_closed.is_mpc = True
+
+        right_flags_and_indexes = cc._open(right_flags_and_indexes_closed, "right_flags_and_indexes" + suffix,
+                                           node.trusted_party)
+        right_flags_and_indexes.is_mpc = True
+
         # Back at STP
 
         # replace self with leaf of expanded subdag in each child node

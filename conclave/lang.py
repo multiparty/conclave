@@ -997,12 +997,11 @@ def _flag_join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, 
                left_col_names: list, right_col_names: list, join_flags_op_node: cc_dag.OpNode):
     """
     Define FlagJoin operation.
+    TODO rename
     """
-    join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
-    flag_join_op = cc_dag.FlagJoin.from_join(join_op, join_flags_op_node)
-
-    left_input_node.children.remove(join_op)
-    right_input_node.children.remove(join_op)
+    node_out_rel = left_input_node.out_rel
+    out_rel = rel.Relation(output_name, copy.deepcopy(node_out_rel.columns), copy.copy(node_out_rel.stored_with))
+    flag_join_op = cc_dag.FlagJoin(out_rel, left_input_node, right_input_node, [], [], join_flags_op_node)
 
     left_input_node.children.add(flag_join_op)
     right_input_node.children.add(flag_join_op)
