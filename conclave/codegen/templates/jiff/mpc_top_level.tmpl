@@ -33,36 +33,6 @@
     return [ret, keepRowsResult];
   };
 
-  const joinLeaky = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
-  {
-
-    var ret = [];
-    var keepRowsResult = [];
-
-    for (var i = 0; i < leftRel.length; i++)
-    {
-      var leftJoinCol = leftRel[i][leftJoinColIdx];
-      for (var j = 0; j < rightRel.length; j++)
-      {
-        var rightJoinCol = rightRel[j][rightJoinColIdx];
-        if (leftJoinCol.eq(rightJoinCol))
-        {
-          var newLeft = leftRel[i].slice();
-          var newRight = rightRel[j].slice();
-          var jOne = newLeft.splice(leftJoinColIdx, 1);
-          var jTwo = newRight.splice(rightJoinColIdx, 1);
-          var newRow = [leftJoinCol].concat(newLeft).concat(newRight);
-          ret.push(newRow);
-
-          var keepRowsFlag = leftKeepRows[i] * rightKeepRows[j];
-          keepRowsResult.push(keepRowsFlag);
-        }
-      }
-    }
-
-    return [ret, keepRowsResult];
-  };
-
   const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
   {
 
@@ -164,6 +134,38 @@
 
     return [ret, keepRowsResult];
   };
+
+  const bubbleSort = function(inRel, keepRows, keyCol)
+  {
+
+    var numCols = inRel[0].length;
+
+    for (var i = 0; i < inRel.length; i++) {
+      for (var j = 0; j < (inRel.length - i - 1); j++) {
+        var a = inRel[j][keyCol];
+        var b = inRel[j+1][keyCol];
+        var cmp = a.slt(b);
+
+        for (var k = 0; k < numCols; k++)
+        {
+
+          var tempOne = cmp.if_else(inRel[j][k], inRel[j+1][k]);
+          var tempTwo = cmp.if_else(inRel[j+1][k], inRel[j][k]);
+
+          inRel[j][k] = tempOne;
+          inRel[j+1][k] = tempTwo;
+        }
+
+        var keepOne = cmp.if_else(keepRows[j], keepRows[j+1]);
+        var keepTwo = cmp.if_else(keepRows[j+1], keepRows[j]);
+
+        keepRows[j] = keepOne;
+        keepRows[j+1] = keepTwo;
+      }
+    }
+
+    return [inRel, keepRows];
+  }
 
   const open = function(inRel, keepRows)
   {
