@@ -104,6 +104,21 @@ def divide():
 
     return set([in1, in2])
 
+@dag_only
+def sort_by():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    rel = sal.concat([in1, in2], "rel")
+
+    sorted = sal.sort_by(rel, 'sorted', 'a')
+
+    opened = sal._open(sorted, "opened", 1)
+
+    return set([in1, in2])
+
 
 @dag_only
 def join():
@@ -130,5 +145,8 @@ if __name__ == "__main__":
     # dag = divide()
     # generate(dag, 'div')
 
-    dag = join()
-    generate(dag, 'join')
+    # dag = join()
+    # generate(dag, 'join')
+
+    dag = sort_by()
+    generate(dag, sort_by)
