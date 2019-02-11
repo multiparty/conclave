@@ -134,6 +134,22 @@ def join():
     return set([in1, in2])
 
 
+@dag_only
+def agg():
+
+    in_rels = setup()
+    in1 = in_rels[0]
+    in2 = in_rels[1]
+
+    rel = sal.concat([in1, in2], "rel")
+
+    agg = sal.aggregate(rel, 'agg1', ['a'], 'b', 'sum', 'c_agg')
+
+    opened = sal._open(agg, "opened", 1)
+
+    return set([in1, in2])
+
+
 if __name__ == "__main__":
 
     # dag = project()
@@ -148,5 +164,8 @@ if __name__ == "__main__":
     # dag = join()
     # generate(dag, 'join')
 
-    dag = sort_by()
-    generate(dag, sort_by)
+    # dag = sort_by()
+    # generate(dag, 'sort_by')
+
+    dag = agg()
+    generate(dag, 'agg')
