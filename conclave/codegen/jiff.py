@@ -11,10 +11,7 @@ from conclave.job import JiffJob
 TODO: 
 
     - append output column row to output csv
-    - multiply
-    - divide
     - agg
-    - join
 
 '''
 
@@ -193,12 +190,8 @@ class JiffCodeGen(CodeGen):
 
     def _generate_join(self, join_op: Join):
 
-        if self.config.use_leaky_ops:
-            template = open(
-                "{0}/joinLeaky.tmpl".format(self.template_directory), 'r').read()
-        else:
-            template = open(
-                "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        template = open(
+            "{0}/join.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "OUTREL": join_op.out_rel.name,
@@ -300,12 +293,15 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_sort_by(self, sort_op: SortBy):
-        # TODO: implement in codegen
 
         template = open(
-            "{0}/sort.tmpl".format(self.template_directory), 'r').read()
+            "{0}/bubbleSort.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        data = {
+            "INREL": sort_op.get_in_rel().name,
+            "OUTREL": sort_op.out_rel.name,
+            "KEY_COL": sort_op.sort_by_col.idx
+        }
 
         return pystache.render(template, data)
 
