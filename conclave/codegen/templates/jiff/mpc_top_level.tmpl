@@ -167,6 +167,47 @@
     return [inRel, keepRows];
   }
 
+const aggregate = function(inRel, keepRows, keyCol, aggCol)
+  {
+    var newRel = []
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      newRel.push([]);
+      newRel[i].push(inRel[i][keyCol]);
+      newRel[i].push(inRel[i][aggCol]);
+    }
+
+    var sorted = bubbleSort(newRel, keepRows, 0);
+    var sortedData = sorted[0];
+    var sortedKeepRows = sorted[1];
+
+    for (var i = 0; i < sortedData.length - 1; i++)
+    {
+      var a = sortedData[i][0];
+      var b = sortedData[i+1][0];
+      var dataCmp = a.eq(b);
+
+      // if both keyCols are equal, add the aggCols together
+      // Else, don't touch aggCol at i+1
+      var temp = dataCmp.if_else(sortedData[i][1].sadd(sortedData[i+1][1]), sortedData[i+1][1]);
+      // indicates whether both keepRows equal 1
+      var bothKeep = sortedKeepRows[i].smult(sortedKeepRows[i+1]);
+      // indicates whether both keyCols are equal AND both keepRows == 1
+      var dataKeepFlag = dataCmp.smult(bothKeep);
+      // if both keepRows are 1, then store the added values in sortedData[i+1][1]
+      var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+      // if both rows have matching keyCols AND both keepRows == 1, make keepRows[i] == 0
+      // Else, don't touch it
+      var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
+
+      sortedData[i+1][1] = tempResult;
+      sortedKeepRows[i] = tempKeep;
+    }
+
+    return [sortedData, sortedKeepRows];
+  }
+
   const open = function(inRel, keepRows)
   {
     var results = saved_instance.open_2D_array(inRel);

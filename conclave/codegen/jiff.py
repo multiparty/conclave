@@ -161,17 +161,24 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_aggregate(self, agg_op: Aggregate):
-        # TODO: implement in codegen
 
-        template = open(
-            "{0}/aggregate.tmpl".format(self.template_directory), 'r').read()
+        if agg_op.aggregator == 'sum':
+            template = open(
+                "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        else:
+            raise Exception("Unknown aggregator encountered: {}\n".format(agg_op.aggregator))
+
+        if len(agg_op.group_cols) != 1:
+            raise Exception("JIFF aggregation only supports a single Key Column.")
 
         data = {
-            # input values here
+            "INREL": agg_op.get_in_rel().name,
+            "OUTREL": agg_op.out_rel.name,
+            "KEY_COL": agg_op.group_cols[0].idx,
+            "AGG_COL": agg_op.agg_col.idx
         }
 
-        #return pystache.render(template, data)
-        return ''
+        return pystache.render(template, data)
 
     def _generate_concat(self, concat_op: Concat):
 
