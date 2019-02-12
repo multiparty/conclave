@@ -1015,12 +1015,16 @@ class ExpandCompositeOps(DagRewriter):
 
         # Under MPC
         # in left parents' children, replace self with first primitive operator in expanded sub-dag
-        left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
+        # left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
+        # TODO debugging only!!!
+        left_shuffled = cc.project(node.left_parent, "left_shuffled" + suffix, ["a", "b"])
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
-        right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
+        # right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
+        # TODO debugging only!!!
+        right_shuffled = cc.project(node.right_parent, "right_shuffled" + suffix, ["c", "d"])
         right_shuffled.is_mpc = True
         node.right_parent.children.remove(node)
 
@@ -1045,24 +1049,24 @@ class ExpandCompositeOps(DagRewriter):
         # At STP
         left_indexed = cc.index(left_keys_open, "left_indexed" + suffix, "lidx")
         left_indexed.is_mpc = False
-        left_indexed_pers = cc._persist(left_indexed, "left_indexed" + suffix)
+        # left_indexed_pers = cc._persist(left_indexed, "left_indexed" + suffix)
 
         right_indexed = cc.index(right_keys_open, "right_indexed" + suffix, "ridx")
         right_indexed.is_mpc = False
-        right_indexed_pers = cc._persist(right_indexed, "right_indexed" + suffix)
+        # right_indexed_pers = cc._persist(right_indexed, "right_indexed" + suffix)
 
         joined_indexes = cc.join(left_indexed, right_indexed, "joined_indexes" + suffix, ["a"], ["c"])
         joined_indexes.is_mpc = False
 
         indexes_left = cc.project(joined_indexes, "indexes_left" + suffix, ["lidx"])
-        cc._persist(indexes_left, "indexes_left" + suffix)
+        indexes_left_pers = cc._persist(indexes_left, "indexes_left" + suffix)
         num_lookups = cc.num_rows(indexes_left, "num_lookups" + suffix)
 
         left_unpermuted = cc._unpermute(indexes_left, "left_unpermuted" + suffix, "lidx", "ll")
         left_unpermuted_idx = cc.project(left_unpermuted, "left_unpermuted_idx" + suffix, ["ll"])
 
         indexes_right = cc.project(joined_indexes, "indexes_right" + suffix, ["ridx"])
-        cc._persist(indexes_right, "indexes_right" + suffix)
+        indexes_right_pers = cc._persist(indexes_right, "indexes_right" + suffix)
         right_unpermuted = cc._unpermute(indexes_right, "right_unpermuted" + suffix, "ridx", "rr")
         right_unpermuted_idx = cc.project(right_unpermuted, "right_unpermuted_idx" + suffix, ["rr"])
 
@@ -1113,12 +1117,11 @@ class ExpandCompositeOps(DagRewriter):
         right_flags_and_indexes.is_mpc = True
 
         # Back at STP
-
-        left_arranged = cc._indexes_to_flags(left_indexed_pers, left_flags_and_indexes, "left_arranged" + suffix,
+        left_arranged = cc._indexes_to_flags(indexes_left_pers, left_flags_and_indexes, "left_arranged" + suffix,
                                              stage=1)
         left_arranged.is_mpc = False
 
-        right_arranged = cc._indexes_to_flags(right_indexed_pers, right_flags_and_indexes, "right_arranged" + suffix,
+        right_arranged = cc._indexes_to_flags(indexes_right_pers, right_flags_and_indexes, "right_arranged" + suffix,
                                               stage=1)
         right_arranged.is_mpc = False
 
@@ -1129,7 +1132,6 @@ class ExpandCompositeOps(DagRewriter):
         right_arranged_closed.is_mpc = True
 
         # Final MPC step
-
         left_inst = "    pd_shared3p uint32 [[2]] {} = oblIdxStepTwo(\"{}\", {}, {});\n".format(
             "left_res" + suffix,
             left_flags_and_indexes_closed.out_rel.name,
