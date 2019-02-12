@@ -13,17 +13,6 @@ domain pd_shared3p shared3p;
 
 
 template <domain D : shared3p>
-D uint32[[2]] shuffleRows(D uint32[[2]] rel, bool skip) {
-    // for debugging only
-    if (!skip) {
-        return shuffleRows(rel);
-    } else {
-        shuffleRows(rel);
-        return rel;
-    }
-}
-
-template <domain D : shared3p>
 D uint32[[2]] stretch(D uint32[[2]] rel, uint stretchBy) {
     uint numRows = shape(rel)[0];
     uint numCols = shape(rel)[1];
@@ -603,7 +592,7 @@ D uint32[[2]] oblIdxStepOne(string prefix, D uint32[[2]] input, D uint32[[2]] en
     pd_shared3p uint32[[2]] indexed = _index(input, encoded);
 
     pd_shared3p uint32[[2]] padded = _pad(indexed, numLookups);
-    //pd_shared3p uint32[[2]] shuffled = shuffleRows(padded, true);
+    //pd_shared3p uint32[[2]] shuffled = shuffleRows(padded);
     pd_shared3p uint32[[2]] shuffled = padded;
 
     uint numShuffledCols = shape(shuffled)[1];
@@ -677,7 +666,7 @@ D uint32 [[2]] combineJoinSides(D uint32 [[2]] left_side, D uint32 [[2]] right_s
     D uint32 [[2]] shark_joined(nrows, 2 * ncols - 1);
     shark_joined[ : , : ncols] = left_side[ : , : ];
     shark_joined[ : , ncols: ] = right_side[ : , 1 : ]; // skip redundant key-column
-    D uint32 [[2]] joined_and_shuffled = shuffleRows(shark_joined, true);
+    D uint32 [[2]] joined_and_shuffled = shuffleRows(shark_joined);
     return joined_and_shuffled;
 }
 

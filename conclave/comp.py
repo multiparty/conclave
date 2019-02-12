@@ -1015,16 +1015,12 @@ class ExpandCompositeOps(DagRewriter):
 
         # Under MPC
         # in left parents' children, replace self with first primitive operator in expanded sub-dag
-        # left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
-        # TODO debugging only!!!
-        left_shuffled = cc.project(node.left_parent, "left_shuffled" + suffix, ["a", "b"])
+        left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
-        # right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
-        # TODO debugging only!!!
-        right_shuffled = cc.project(node.right_parent, "right_shuffled" + suffix, ["c", "d"])
+        right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
         right_shuffled.is_mpc = True
         node.right_parent.children.remove(node)
 
@@ -1138,7 +1134,7 @@ class ExpandCompositeOps(DagRewriter):
             left_arranged_closed.out_rel.name,
             left_unpermuted_pers.out_rel.name
         )
-        left_res = cc.blackbox([left_arranged_closed, left_unpermuted_pers], "left_res" + suffix, ["a", "c"],
+        left_res = cc.blackbox([left_arranged_closed, left_unpermuted_pers], "left_res" + suffix, ["a", "b"],
                                "sharemind",
                                left_inst)
         left_res.is_mpc = True
@@ -1149,7 +1145,7 @@ class ExpandCompositeOps(DagRewriter):
             right_arranged_closed.out_rel.name,
             right_unpermuted_pers.out_rel.name
         )
-        right_res = cc.blackbox([right_arranged_closed, right_unpermuted_pers], "right_res" + suffix, ["a", "c"],
+        right_res = cc.blackbox([right_arranged_closed, right_unpermuted_pers], "right_res" + suffix, ["c", "d"],
                                 "sharemind",
                                 right_inst)
         right_res.is_mpc = True
