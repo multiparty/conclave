@@ -186,6 +186,8 @@ class DagRewriter:
                 self._rewrite_indexes_to_flags(node)
             elif isinstance(node, ccdag.NumRows):
                 self._rewrite_num_rows(node)
+            elif isinstance(node, ccdag.Blackbox):
+                self._rewrite_blackbox(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -263,6 +265,9 @@ class DagRewriter:
         pass
 
     def _rewrite_num_rows(self, node: ccdag.NumRows):
+        pass
+
+    def _rewrite_blackbox(self, node: ccdag.Blackbox):
         pass
 
 
@@ -1010,15 +1015,12 @@ class ExpandCompositeOps(DagRewriter):
 
         # Under MPC
         # in left parents' children, replace self with first primitive operator in expanded sub-dag
-        # left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
-        left_shuffled = cc.project(node.left_parent, "left_shuffled" + suffix, ["a", "b"])
+        left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
 
         # same for right parent
-        # TODO testing only!!!
-        # right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
-        right_shuffled = cc.project(node.right_parent, "right_shuffled" + suffix, ["c", "d"])
+        right_shuffled = cc.shuffle(node.right_parent, "right_shuffled" + suffix)
         right_shuffled.is_mpc = True
         node.right_parent.children.remove(node)
 
@@ -1043,17 +1045,19 @@ class ExpandCompositeOps(DagRewriter):
         # At STP
         left_indexed = cc.index(left_keys_open, "left_indexed" + suffix, "lidx")
         left_indexed.is_mpc = False
+        left_indexed_pers = cc._persist(left_indexed, "left_indexed" + suffix)
 
         right_indexed = cc.index(right_keys_open, "right_indexed" + suffix, "ridx")
         right_indexed.is_mpc = False
+        right_indexed_pers = cc._persist(right_indexed, "right_indexed" + suffix)
 
         joined_indexes = cc.join(left_indexed, right_indexed, "joined_indexes" + suffix, ["a"], ["c"])
         joined_indexes.is_mpc = False
 
         indexes_left = cc.project(joined_indexes, "indexes_left" + suffix, ["lidx"])
+        cc._persist(indexes_left, "indexes_left" + suffix)
         num_lookups = cc.num_rows(indexes_left, "num_lookups" + suffix)
 
-        cc._persist(indexes_left, "indexes_left" + suffix)
         left_unpermuted = cc._unpermute(indexes_left, "left_unpermuted" + suffix, "lidx", "ll")
         left_unpermuted_idx = cc.project(left_unpermuted, "left_unpermuted_idx" + suffix, ["ll"])
 
@@ -1077,17 +1081,17 @@ class ExpandCompositeOps(DagRewriter):
 
         left_unpermuted_closed = cc._close(left_unpermuted_idx, "left_unpermuted_closed" + suffix, {1, 2, 3})
         left_unpermuted_closed.is_mpc = True
+        left_unpermuted_pers = cc._persist(left_unpermuted_closed, "left_unpermuted_closed" + suffix)
         right_unpermuted_closed = cc._close(right_unpermuted_idx, "right_unpermuted_closed" + suffix, {1, 2, 3})
         right_unpermuted_closed.is_mpc = True
+        right_unpermuted_pers = cc._persist(right_unpermuted_closed, "right_unpermuted_closed" + suffix)
 
         left_encoded_closed = cc._close(left_encoded, "left_encoded_closed" + suffix, {1, 2, 3})
         left_encoded_closed.is_mpc = True
         right_encoded_closed = cc._close(right_encoded, "right_encoded_closed" + suffix, {1, 2, 3})
         right_encoded_closed.is_mpc = True
 
-        joined = cc.join(left_encoded_closed, right_encoded_closed, node.out_rel.name, ["lidx"], ["ridx"])
-        joined.is_mpc = True
-        # TODO update operator name
+        # TODO update operator name and arguments
         left_flags_and_indexes_closed = cc._flag_join(left_persisted, left_encoded_closed,
                                                       "left_flags_and_indexes_closed" + suffix,
                                                       ["a"], ["c"],
@@ -1109,6 +1113,53 @@ class ExpandCompositeOps(DagRewriter):
         right_flags_and_indexes.is_mpc = True
 
         # Back at STP
+
+        left_arranged = cc._indexes_to_flags(left_indexed_pers, left_flags_and_indexes, "left_arranged" + suffix,
+                                             stage=1)
+        left_arranged.is_mpc = False
+
+        right_arranged = cc._indexes_to_flags(right_indexed_pers, right_flags_and_indexes, "right_arranged" + suffix,
+                                              stage=1)
+        right_arranged.is_mpc = False
+
+        left_arranged_closed = cc._close(left_arranged, "left_arranged_closed" + suffix, {1, 2, 3})
+        left_arranged_closed.is_mpc = True
+
+        right_arranged_closed = cc._close(right_arranged, "right_arranged_closed" + suffix, {1, 2, 3})
+        right_arranged_closed.is_mpc = True
+
+        # Final MPC step
+
+        left_inst = "    pd_shared3p uint32 [[2]] {} = oblIdxStepTwo(\"{}\", {}, {});\n".format(
+            "left_res" + suffix,
+            left_flags_and_indexes_closed.out_rel.name,
+            left_arranged_closed.out_rel.name,
+            left_unpermuted_pers.out_rel.name
+        )
+        left_res = cc.blackbox([left_arranged_closed, left_unpermuted_pers], "left_res" + suffix, ["a", "c"],
+                               "sharemind",
+                               left_inst)
+        left_res.is_mpc = True
+
+        right_inst = "    pd_shared3p uint32 [[2]] {} = oblIdxStepTwo(\"{}\", {}, {});\n".format(
+            "right_res" + suffix,
+            right_flags_and_indexes_closed.out_rel.name,
+            right_arranged_closed.out_rel.name,
+            right_unpermuted_pers.out_rel.name
+        )
+        right_res = cc.blackbox([right_arranged_closed, right_unpermuted_pers], "right_res" + suffix, ["a", "c"],
+                                "sharemind",
+                                right_inst)
+        right_res.is_mpc = True
+
+        comb_inst = "   pd_shared3p uint32 [[2]] {} = combineJoinSides({}, {});\n".format(
+            node.out_rel.name,
+            left_res.out_rel.name,
+            right_res.out_rel.name
+        )
+        joined = cc.blackbox([left_res, right_res], node.out_rel.name,
+                             [col.name for col in node.out_rel.columns], "sharemind", comb_inst)
+        joined.is_mpc = True
 
         # replace self with leaf of expanded subdag in each child node
         for child in node.get_sorted_children():

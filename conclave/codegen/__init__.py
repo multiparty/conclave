@@ -94,6 +94,8 @@ class CodeGen:
                 op_code += self._generate_indexes_to_flags(node)
             elif isinstance(node, NumRows):
                 op_code += self._generate_num_rows(node)
+            elif isinstance(node, Blackbox):
+                op_code += self._generate_blackbox(node)
             else:
                 print("encountered unknown operator type", repr(node))
 

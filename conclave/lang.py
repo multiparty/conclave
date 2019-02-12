@@ -382,19 +382,19 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     return op
 
 
-def _indexes_to_flags(input_op_node: cc_dag.OpNode, lookup_op_node: cc_dag.OpNode, output_name: str):
+def _indexes_to_flags(input_op_node: cc_dag.OpNode, lookup_op_node: cc_dag.OpNode, output_name: str, stage: int = 0):
     # Get input relation from input node
     in_rel = lookup_op_node.out_rel
 
     # Get relevant columns and create copies
-    out_rel_cols = copy.deepcopy(in_rel.columns)
+    out_rel_cols = [copy.deepcopy(in_rel.columns[0])]
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.IndexesToFlags(out_rel, input_op_node, lookup_op_node)
+    op = cc_dag.IndexesToFlags(out_rel, input_op_node, lookup_op_node, stage)
 
     # Add it as a child to input nodes
     input_op_node.children.add(op)
@@ -745,6 +745,28 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
 
     # Create our operator node
     op = cc_dag.Concat(out_rel, input_op_nodes)
+
+    # Add it as a child to each input node
+    for input_op_node in input_op_nodes:
+        input_op_node.children.add(op)
+
+    return op
+
+
+def blackbox(input_op_nodes: list, output_name: str, column_names: list, backend: str, code: str):
+    # Get input relations from input nodes
+    in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
+
+    # Create output columns
+    out_columns = [Column(output_name, col_name, idx, "INTEGER", set()) for idx, col_name in enumerate(column_names)]
+
+    # Create out rel
+    in_stored_with = [in_rel.stored_with for in_rel in in_rels]
+    out_stored_with = set().union(*in_stored_with)
+    out_rel = rel.Relation(output_name, out_columns, out_stored_with)
+
+    # Create our operator node
+    op = cc_dag.Blackbox(out_rel, input_op_nodes, backend, code)
 
     # Add it as a child to each input node
     for input_op_node in input_op_nodes:

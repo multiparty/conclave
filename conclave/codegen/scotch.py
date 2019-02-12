@@ -398,3 +398,13 @@ class ScotchCodeGen(CodeGen):
             persist_op.get_in_rel().dbg_str(),
             persist_op.out_rel.dbg_str()
         )
+
+    @staticmethod
+    def _generate_blackbox(blackbox_op: ccdag.Blackbox):
+        """ Generate code for Blackbox operations. """
+
+        return "BLACKBOX{}[{}] {}\n".format(
+            "MPC" if blackbox_op.is_mpc else "",
+            blackbox_op.backend,
+            blackbox_op.out_rel.dbg_str()
+        )

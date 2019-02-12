@@ -396,6 +396,18 @@ class Concat(NaryOpNode):
         self.out_rel.update_columns()
 
 
+class Blackbox(NaryOpNode):
+    """ Blackbox operator for backend-specific functionality """
+
+    def __init__(self, out_rel: rel.Relation, parents: list, backend: str, code: str):
+        """ Initialize a Blackbox object. """
+        parent_set = set(parents)
+        super(Blackbox, self).__init__("blackbox", out_rel, parent_set)
+        self.ordered = parents
+        self.backend = backend
+        self.code = code
+
+
 class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
 
@@ -712,14 +724,15 @@ class FilterBy(BinaryOpNode):
 
 class IndexesToFlags(BinaryOpNode):
     """
-    Operator for filtering relations for rows which are in a set of values (specified in another relation).
+    TODO
     """
 
     def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
-                 lookup_op_node: OpNode):
-        if len(lookup_op_node.out_rel.columns) != 1:
-            raise Exception("lookup_op_node must have single column output relation")
+                 lookup_op_node: OpNode, stage=0):
+        # if len(lookup_op_node.out_rel.columns) != 1:
+        #     raise Exception("lookup_op_node must have single column output relation")
         super(IndexesToFlags, self).__init__("indexes_to_flags", out_rel, input_op_node, lookup_op_node)
+        self.stage = stage
 
 
 class Union(BinaryOpNode):

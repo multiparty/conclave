@@ -125,6 +125,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_concat_cols(node)
             elif isinstance(node, SortBy):
                 miner_code += self._generate_sort_by(node)
+            elif isinstance(node, Blackbox):
+                miner_code += self._generate_blackbox(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -658,6 +660,12 @@ class SharemindCodeGen(CodeGen):
             "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
+
+    @staticmethod
+    def _generate_blackbox(blackbox_op: Blackbox):
+        if blackbox_op.backend != "sharemind":
+            raise Exception("Wrong backend blackbox op {} {}".format(blackbox_op.backend, blackbox_op))
+        return blackbox_op.code
 
     def _generate_schema(self, close_op: Close):
         """ Generate schema for Sharemind job. """

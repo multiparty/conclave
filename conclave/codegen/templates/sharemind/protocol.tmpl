@@ -7,6 +7,7 @@ import matrix;
 import shared3p_join;
 import shared3p_random;
 import shared3p_sort;
+import oblivious;
 
 domain pd_shared3p shared3p;
 
@@ -598,6 +599,71 @@ D uint32[[2]] oblIdxStepOne(string prefix, D uint32[[2]] input, D uint32[[2]] en
     persist("DS1", prefix + "_shuffled_shark", shuffled[ : , 1 : ]);
     //publish(prefix + "_indexes_and_flags", declassify(indexesAndFlags));
     return indexesAndFlags;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] rearrangeByIndexes(D uint32[[2]] rel, uint32[[1]] indexes) {
+    uint nrows = shape(rel)[0];
+    uint ncols = shape(rel)[1];
+    uint nindexes = size(indexes);
+    pd_shared3p uint32 [[2]] res(nrows, ncols);
+    for (uint r = 0; r < nindexes; ++r) {
+        uint idx = (uint) indexes[r];
+        res[r , : ] = rel[idx , : ];
+    }
+    // remove excess dummy elements and lookup column
+    return res[ : nindexes, : ];
+}
+
+template <domain D : shared3p>
+D uint32[[2]] rearrangeByIndexesOther(D uint32[[2]] rel, uint32[[1]] indexes) {
+    uint nrows = shape(rel)[0];
+    uint ncols = shape(rel)[1];
+    uint nindexes = size(indexes);
+    pd_shared3p uint32 [[2]] res(nrows, ncols);
+    for (uint r = 0; r < nindexes; ++r) {
+        uint idx = (uint) indexes[r];
+        res[idx , : ] = rel[r , : ];
+    }
+    return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] obliviousCopy(D uint32[[2]] rel, uint flagColumn) {
+    uint nrows = shape(rel)[0];
+    D bool[[1]] eqFlags = (bool) rel[ : , flagColumn]; // should be bool to begin with?
+    for (uint r = 0; r < nrows - 1; r+=1) {
+        D uint32[[1]] left = rel[r , : ];
+        D uint32[[1]] right = rel[r + 1 , :];
+        D bool eqFlag = eqFlags[r + 1];
+        rel[r + 1, : ] = choose(eqFlag, right, left);
+    }
+    return rel[ : , 1 : ];
+}
+
+template <domain D : shared3p>
+D uint32 [[2]] oblIdxStepTwo(string prefix, D uint32 [[2]] indexes_closed, D uint32 [[2]] original_ordering_closed) {
+    D uint32 [[2]] shuffled_shark = readFromDb("DS1", prefix + "_shuffled_shark");
+    //uint32 [[1]] shark_indexes = declassify(readFromDb("DS1", prefix + "_shark_indexes"))[ : , 0];
+    uint32 [[1]] shark_indexes = declassify(indexes_closed)[ : , 0];
+    //uint32 [[1]] original_ordering = declassify(readFromDb("DS1", prefix + "_original_ordering"))[ : , 0];
+    uint32 [[1]] original_ordering = declassify(original_ordering_closed)[ : , 0];
+    D uint32 [[2]] rearranged = rearrangeByIndexes(shuffled_shark, shark_indexes);
+    D uint32 [[2]] copied = obliviousCopy(rearranged, (uint) 0);
+    return rearrangeByIndexesOther(copied, original_ordering);
+}
+
+template <domain D : shared3p>
+D uint32 [[2]] combineJoinSides(D uint32 [[2]] left_side, D uint32 [[2]] right_side) {
+    assert(shape(left_side)[0] == shape(right_side)[0]);
+    assert(shape(left_side)[1] == shape(right_side)[1]);
+    uint nrows = shape(left_side)[0];
+    uint ncols = shape(left_side)[1];
+    D uint32 [[2]] shark_joined(nrows, ncols + ncols - 2);
+    shark_joined[ : , : ncols] = left_side[ : , : ];
+    shark_joined[ : , ncols - 1: ] = right_side[ : , 1 : ]; // skip redundant key-column
+    D uint32 [[2]] joined_and_shuffled = shuffleRows(shark_joined);
+    return joined_and_shuffled;
 }
 
 void main() {
