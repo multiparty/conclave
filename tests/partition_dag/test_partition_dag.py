@@ -11,7 +11,7 @@ from conclave.utils import *
 class TestConclave(TestCase):
 
     def check_workflow(self, dag, name):
-        mapping = part.heupart(dag, ["sharemind"], ["spark"])
+        mapping = part.heupart(dag, ["sharemind"], ["python"])
         actual = "###".join([fmwk + str(subdag) + str(parties)
                              for (fmwk, subdag, parties) in mapping])
         print(actual)

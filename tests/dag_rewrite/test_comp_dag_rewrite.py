@@ -12,6 +12,7 @@ from conclave.utils import *
 class TestConclave(TestCase):
 
     def check_workflow(self, code, name):
+        self.maxDiff = None
         expected_rootdir = "{}/rewrite_expected".format(os.path.dirname(os.path.realpath(__file__)))
 
         with open(expected_rootdir + '/{}'.format(name), 'r') as f:
@@ -265,7 +266,7 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=True)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-        self.check_workflow(actual, "hybrid_agg_non_leaky")
+        self.check_workflow(actual, "hybrid_agg_leaky")
 
     def test_hybrid_join_opt(self):
         def protocol():
@@ -290,7 +291,7 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=True)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-        self.check_workflow(actual, 'hybrid_join_non_leaky')
+        self.check_workflow(actual, 'hybrid_join_leaky')
 
     def test_hybrid_join_party_two_opt(self):
         def protocol():
@@ -315,7 +316,7 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=True)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-        self.check_workflow(actual, 'hybrid_join_non_leaky_party_two')
+        self.check_workflow(actual, 'hybrid_join_leaky_party_two')
 
     def test_ssn(self):
         def protocol():
@@ -350,7 +351,8 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=True)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-        self.check_workflow(actual, "ssn_non_leaky")
+        print(actual)
+        self.check_workflow(actual, "ssn_leaky")
 
     def test_taxi(self):
         @scotch

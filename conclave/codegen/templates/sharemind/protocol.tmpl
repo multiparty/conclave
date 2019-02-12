@@ -436,12 +436,7 @@ D uint32[[2]] flagJoin(D uint32[[2]] eqFlags, D uint32[[2]] left, uint leftJoinC
     uint nrowsRight = shape(right)[0];
     D uint32[[2]] leftStretched = stretch(left, nrowsRight);
     D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
-    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], 
-        leftStretched, 
-        leftJoinCol, 
-        rightDupped, 
-        rightJoinCol, 
-        true);
+    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], leftStretched, leftJoinCol, rightDupped, rightJoinCol, true);
     return project(res, colsToKeep);
 }
 

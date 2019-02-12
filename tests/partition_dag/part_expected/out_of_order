@@ -1,5 +1,5 @@
-sparkcreate->in_1,
-project->proj_a{1}###sparkcreate->in_2,
+pythoncreate->in_1,
+project->proj_a{1}###pythoncreate->in_2,
 project->proj_b{2}###sharemindcreatempc->beforeOthers,
 closempc->cl_c,
 creatempc->proj_a,
