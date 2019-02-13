@@ -9,22 +9,23 @@ from conclave.utils import defCol
 
 def protocol():
     govreg_cols = [
-        defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+        defCol("a", "INTEGER", 1),
+        defCol("b", "INTEGER", 1)
     ]
+    # Needs to be a_govreg instead of govreg until partition bug is fixed
     govreg = cc.create("a_govreg", govreg_cols, {1})
     govreg_dummy = cc.project(govreg, "govreg_dummy", ["a", "b"])
 
     company0_cols = [
-        defCol("c", "INTEGER", [1], [2]),
-        defCol("d", "INTEGER", [2])
+        defCol("c", "INTEGER", 1, 2),
+        defCol("d", "INTEGER", 2)
     ]
     company0 = cc.create("company0", company0_cols, {2})
     company0_dummy = cc.project(company0, "company0_dummy", ["c", "d"])
 
     company1_cols = [
-        defCol("c", "INTEGER", [1], [3]),
-        defCol("d", "INTEGER", [3])
+        defCol("c", "INTEGER", 1, 3),
+        defCol("d", "INTEGER", 3)
     ]
     company1 = cc.create("company1", company1_cols, {3})
     company1_dummy = cc.project(company1, "company1_dummy", ["c", "d"])
