@@ -1,21 +1,89 @@
 import asyncio
-from subprocess import call
 import time
+import json
+import pystache
+
+from subprocess import call
 
 
 class OblivCDispatcher:
 
-    def __init__(self, peer):
+    def __init__(self, peer, config):
 
         self.peer = peer
+        self.config = config
         self.loop = peer.loop
         self.to_wait_on = {}
         self.early = set()
+        self.header_template = \
+            """
+            #include <obliv.h>
+            #include <obliv.oh>
+            
+            #define ROWS {{{ROWS}}}
+            #define COLS {{{COLS}}}
+            
+            typedef struct
+            {
+                {{{TYPE}}} mat[ROWS][COLS];
+                int rows;
+                int cols;
+            } Io;
+            
+            typedef struct
+            {
+                char *src;
+                char *out;
+                Io in;
+                int out_rows;
+                int out_cols;
+                {{{TYPE}}} **ret;
+            
+            } protocolIo;
+            
+            typedef struct
+            {
+                int rows;
+                int cols;
+                obliv {{{TYPE}}} *keepRows;
+                obliv {{{TYPE}}} **mat;
+            
+            } intermediateMat;
+            
+            void protocol(void *args);
+            """
+
+    @staticmethod
+    def count_lines(f):
+
+        return {"rows": 0, "cols": 0}
+
+    def generate_header(self, job):
+
+        with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
+            params = json.load(conf)
+
+        with open(params["IN_PATH"], 'r') as input_data:
+            sizes = self.count_lines(input_data)
+
+        data = {
+            "TYPE": params["TYPE"],
+            "ROWS": sizes["rows"],
+            "COLS": sizes["cols"]
+        }
+
+        header_file = pystache.render(self.header_template, data)
+
+        print("writing header here {}".format(job.code_dir))
+        header = open("{}/workflow.h".format(job.code_dir), 'w')
+        header.write(header_file)
 
     def _dispatch(self, job):
         """
         Dispatch Obliv-C job.
         """
+
+        self.generate_header(job)
 
         cmd = "{}/bash.sh".format(job.code_dir)
 
