@@ -40,8 +40,9 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    data_root = sys.argv[2]
     # define name for the workflow
-    workflow_name = "ssn-benchmark" + pid
+    workflow_name = "ssn-benchmark" + pid + "-" + data_root
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
@@ -51,9 +52,9 @@ if __name__ == "__main__":
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     # point conclave to directory where data is to be read from...
-    conclave_config.input_path = os.path.join(current_dir, "data")
+    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
     # and written to
-    conclave_config.output_path = os.path.join(current_dir, "data")
+    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
     # define this party's unique ID (in this demo there is only one party)
     job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)
