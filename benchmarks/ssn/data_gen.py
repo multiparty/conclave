@@ -1,6 +1,9 @@
 #!/usr/bin/python
-import gflags, sys
 import random
+import sys
+
+import gflags
+
 random.seed(42)
 from faker import Faker
 
@@ -11,8 +14,10 @@ gflags.DEFINE_integer('companies', 2, 'Number of credit card companies.')
 gflags.DEFINE_integer('scale', 1000, 'Scale factor.')
 gflags.DEFINE_string('output', 'ssn_data', 'Output file prefix.')
 
+
 def usage():
     print('Usage: %s ARGS\\n%s' % (sys.argv[0], FLAGS))
+
 
 def main(argv):
     try:
@@ -25,7 +30,7 @@ def main(argv):
     f = Faker()
     f.seed(42)
     # regulator data: (name, address, zip, ssn)
-    rf = open("{}/govreg.csv".format(FLAGS.output), "w")
+    rf = open("{}/govreg.csv".format(FLAGS.output), "w+")
     if FLAGS.headers:
         rf.write("a,b\n")
     ssns = set()
@@ -60,6 +65,7 @@ def main(argv):
             else:
                 ccf.write("{},{}\n".format(ssn, rating))
         ccf.close()
+
 
 if __name__ == '__main__':
     main(sys.argv)
