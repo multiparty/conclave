@@ -65,6 +65,12 @@ class OblivCDispatcher:
         with open(params["IN_PATH"], 'r') as input_data:
             file_data = input_data.read()
             rows = file_data.split("\n")
+            row_count = 0
+            for r in rows:
+                if r != '':
+                    row_count += 1
+            print(rows)
+            print(row_count)
             cols = len(rows[0].split(","))
 
         data = {
