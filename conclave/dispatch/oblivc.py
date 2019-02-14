@@ -53,23 +53,24 @@ class OblivCDispatcher:
             void protocol(void *args);
             """
 
-    @staticmethod
-    def count_lines(f):
-
-        return {"rows": 0, "cols": 0}
-
     def generate_header(self, job):
+
+        print(job.code_dir)
 
         with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
             params = json.load(conf)
 
+        print(params["IN_PATH"])
+
         with open(params["IN_PATH"], 'r') as input_data:
-            sizes = self.count_lines(input_data)
+            file_data = input_data.read()
+            rows = file_data.split("\n")
+            cols = len(rows[0].split(","))
 
         data = {
             "TYPE": params["TYPE"],
-            "ROWS": sizes["rows"],
-            "COLS": sizes["cols"]
+            "ROWS": len(rows) - 1,
+            "COLS": cols
         }
 
         header_file = pystache.render(self.header_template, data)
