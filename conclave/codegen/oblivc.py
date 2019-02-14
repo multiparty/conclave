@@ -445,7 +445,7 @@ class OblivcCodeGen(CodeGen):
         data = {
             "OC_COMP_PATH": self.oc_config.oc_path,
             "IP_AND_PORT": self.oc_config.ip_and_port,
-            "PATH": self.config.code_path + job_name
+            "PATH": "{0}/{1}".format(self.config.code_path, job_name)
         }
 
         return pystache.render(template, data)
@@ -466,7 +466,6 @@ class OblivcCodeGen(CodeGen):
 
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
-
 
         data = {
             "IN_PATH": in_path,
