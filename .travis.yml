@@ -3,6 +3,11 @@ language: python
 python:
   - "3.5"
 
+# blacklist
+branches:
+  except:
+  - auto-hybrid-join
+
 notifications:
   email: true
   slack:
@@ -10,6 +15,9 @@ notifications:
       - "appliedmpc:Q3gSuYu4bSpenmQ5KZHRPvHc"
     on_success: change
     on_failure: always
+
+before_script:
+  - export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 script:
   - nosetests

@@ -45,6 +45,7 @@ def setup():
 class TestSharemind(TestCase):
 
     def check_workflow(self, dag, name, use_leaky_ops=True):
+        self.maxDiff = None
         expected_rootdir = \
             "{}/sharemind_expected".format(os.path.dirname(os.path.realpath(__file__)))
 

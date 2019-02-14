@@ -396,6 +396,18 @@ class Concat(NaryOpNode):
         self.out_rel.update_columns()
 
 
+class Blackbox(NaryOpNode):
+    """ Blackbox operator for backend-specific functionality """
+
+    def __init__(self, out_rel: rel.Relation, parents: list, backend: str, code: str):
+        """ Initialize a Blackbox object. """
+        parent_set = set(parents)
+        super(Blackbox, self).__init__("blackbox", out_rel, parent_set)
+        self.ordered = parents
+        self.backend = backend
+        self.code = code
+
+
 class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
 
@@ -492,6 +504,20 @@ class Index(UnaryOpNode):
 
     def is_reversible(self):
         """ Output is just the input with an index column appended to it. """
+        return True
+
+
+class NumRows(UnaryOpNode):
+    """ Output num rows of input to a relation. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, col_name: str):
+        """ Initialize NumRows object"""
+        super(NumRows, self).__init__("num_rows", out_rel, parent)
+        # Need to communicate size so can't be local
+        self.is_local = False
+        self.col_name = col_name
+
+    def is_reversible(self):
         return True
 
 
@@ -707,6 +733,19 @@ class FilterBy(BinaryOpNode):
         self.filter_col = temp_cols[self.filter_col.idx]
 
 
+class IndexesToFlags(BinaryOpNode):
+    """
+    TODO
+    """
+
+    def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
+                 lookup_op_node: OpNode, stage=0):
+        # if len(lookup_op_node.out_rel.columns) != 1:
+        #     raise Exception("lookup_op_node must have single column output relation")
+        super(IndexesToFlags, self).__init__("indexes_to_flags", out_rel, input_op_node, lookup_op_node)
+        self.stage = stage
+
+
 class Union(BinaryOpNode):
     """
     Operator for union of given columns.
@@ -812,6 +851,9 @@ class FlagJoin(Join):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
                   join_op.left_join_cols, join_op.right_join_cols, join_flags_op)
         return obj
+
+    def update_op_specific_cols(self):
+        pass
 
 
 class RevealJoin(Join):

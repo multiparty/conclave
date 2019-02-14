@@ -90,6 +90,12 @@ class CodeGen:
                 op_code += self._generate_union(node)
             elif isinstance(node, PubIntersect):
                 op_code += self._generate_pub_intersect(node)
+            elif isinstance(node, IndexesToFlags):
+                op_code += self._generate_indexes_to_flags(node)
+            elif isinstance(node, NumRows):
+                op_code += self._generate_num_rows(node)
+            elif isinstance(node, Blackbox):
+                op_code += self._generate_blackbox(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -98,5 +104,4 @@ class CodeGen:
 
     def _write_code(self, code, job_name):
         """ Overridden in subclasses. """
-
         pass

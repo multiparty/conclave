@@ -182,6 +182,12 @@ class DagRewriter:
                 self._rewrite_pub_intersect(node)
             elif isinstance(node, ccdag.Persist):
                 self._rewrite_persist(node)
+            elif isinstance(node, ccdag.IndexesToFlags):
+                self._rewrite_indexes_to_flags(node)
+            elif isinstance(node, ccdag.NumRows):
+                self._rewrite_num_rows(node)
+            elif isinstance(node, ccdag.Blackbox):
+                self._rewrite_blackbox(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -253,6 +259,15 @@ class DagRewriter:
         pass
 
     def _rewrite_persist(self, node: ccdag.Persist):
+        pass
+
+    def _rewrite_indexes_to_flags(self, node: ccdag.IndexesToFlags):
+        pass
+
+    def _rewrite_num_rows(self, node: ccdag.NumRows):
+        pass
+
+    def _rewrite_blackbox(self, node: ccdag.Blackbox):
         pass
 
 
@@ -402,6 +417,10 @@ class MPCPushDown(DagRewriter):
         self._rewrite_default(node)
 
     def _rewrite_persist(self, node: ccdag.Persist):
+
+        self._rewrite_default(node)
+
+    def _rewrite_indexes_to_flags(self, node: ccdag.IndexesToFlags):
 
         self._rewrite_default(node)
 
@@ -926,7 +945,7 @@ class ExpandCompositeOps(DagRewriter):
         self.agg_counter += 1
         return "_hybrid_agg_" + str(self.agg_counter)
 
-    def _rewrite_agg_non_leaky(self, node: ccdag.HybridAggregate):
+    def _rewrite_agg_leaky(self, node: ccdag.HybridAggregate):
         """
         Expand hybrid aggregation into a sub-dag of primitive operators. This uses the size-leaking version.
         """
@@ -983,19 +1002,19 @@ class ExpandCompositeOps(DagRewriter):
     def _rewrite_hybrid_aggregate(self, node: ccdag.HybridAggregate):
         # TODO cleaner way would be to have a LeakyHybridAggregate class
         if self.use_leaky_ops:
-            raise Exception("not implemented")
+            self._rewrite_agg_leaky(node)
         else:
-            self._rewrite_agg_non_leaky(node)
+            raise Exception("not implemented")
 
-    def _rewrite_hybrid_join_non_leaky(self, node: ccdag.HybridJoin):
+    def _rewrite_hybrid_join_leaky(self, node: ccdag.HybridJoin):
         """
         Expand hybrid join into a sub-dag of primitive operators. This uses the size-leaking version.
         """
         suffix = self._create_unique_join_suffix()
         # TODO column names should not be hard-coded
 
-        # in left parents' children, replace self with first primitive operator
-        # in expanded subdag
+        # Under MPC
+        # in left parents' children, replace self with first primitive operator in expanded sub-dag
         left_shuffled = cc.shuffle(node.left_parent, "left_shuffled" + suffix)
         left_shuffled.is_mpc = True
         node.left_parent.children.remove(node)
@@ -1023,20 +1042,123 @@ class ExpandCompositeOps(DagRewriter):
         right_keys_open = cc._open(right_keys_closed, "right_keys_open" + suffix, node.trusted_party)
         right_keys_open.is_mpc = True
 
-        # TODO remove dummy ops
-        left_dummy = cc.project(left_keys_open, "left_dummy" + suffix, ["a"])
-        left_dummy.is_mpc = False
+        # At STP
+        left_indexed = cc.index(left_keys_open, "left_indexed" + suffix, "lidx")
+        left_indexed.is_mpc = False
+        # left_indexed_pers = cc._persist(left_indexed, "left_indexed" + suffix)
 
-        right_dummy = cc.project(right_keys_open, "right_dummy" + suffix, ["c"])
-        right_dummy.is_mpc = False
+        right_indexed = cc.index(right_keys_open, "right_indexed" + suffix, "ridx")
+        right_indexed.is_mpc = False
+        # right_indexed_pers = cc._persist(right_indexed, "right_indexed" + suffix)
 
-        flags = cc._join_flags(left_dummy, right_dummy, "flags" + suffix, ["a"], ["c"])
-        flags.is_mpc = False
+        joined_indexes = cc.join(left_indexed, right_indexed, "joined_indexes" + suffix, ["a"], ["c"])
+        joined_indexes.is_mpc = False
 
-        flags_closed = cc._close(flags, "flags_closed" + suffix, {1, 2, 3})
-        flags_closed.is_mpc = True
+        indexes_left = cc.project(joined_indexes, "indexes_left" + suffix, ["lidx"])
+        indexes_left_pers = cc._persist(indexes_left, "indexes_left" + suffix)
+        num_lookups = cc.num_rows(indexes_left, "num_lookups" + suffix)
 
-        joined = cc._flag_join(left_persisted, right_persisted, node.out_rel.name, ["a"], ["c"], flags_closed)
+        left_unpermuted = cc._unpermute(indexes_left, "left_unpermuted" + suffix, "lidx", "ll")
+        left_unpermuted_idx = cc.project(left_unpermuted, "left_unpermuted_idx" + suffix, ["ll"])
+
+        indexes_right = cc.project(joined_indexes, "indexes_right" + suffix, ["ridx"])
+        indexes_right_pers = cc._persist(indexes_right, "indexes_right" + suffix)
+        right_unpermuted = cc._unpermute(indexes_right, "right_unpermuted" + suffix, "ridx", "rr")
+        right_unpermuted_idx = cc.project(right_unpermuted, "right_unpermuted_idx" + suffix, ["rr"])
+
+        left_unpermuted_proj = cc.project(left_unpermuted, "left_unpermuted_proj" + suffix, ["lidx"])
+        left_encoded = cc._indexes_to_flags(left_indexed, left_unpermuted_proj,
+                                            "left_encoded" + suffix)
+        left_encoded.is_mpc = False
+
+        right_unpermuted_proj = cc.project(right_unpermuted, "right_unpermuted_proj" + suffix, ["ridx"])
+        right_encoded = cc._indexes_to_flags(right_indexed, right_unpermuted_proj,
+                                             "right_encoded" + suffix)
+        right_encoded.is_mpc = False
+
+        num_lookups_closed = cc._close(num_lookups, "num_lookups_closed" + suffix, {1, 2, 3})
+        num_lookups_closed.is_mpc = True
+
+        left_unpermuted_closed = cc._close(left_unpermuted_idx, "left_unpermuted_closed" + suffix, {1, 2, 3})
+        left_unpermuted_closed.is_mpc = True
+        left_unpermuted_pers = cc._persist(left_unpermuted_closed, "left_unpermuted_closed" + suffix)
+        right_unpermuted_closed = cc._close(right_unpermuted_idx, "right_unpermuted_closed" + suffix, {1, 2, 3})
+        right_unpermuted_closed.is_mpc = True
+        right_unpermuted_pers = cc._persist(right_unpermuted_closed, "right_unpermuted_closed" + suffix)
+
+        left_encoded_closed = cc._close(left_encoded, "left_encoded_closed" + suffix, {1, 2, 3})
+        left_encoded_closed.is_mpc = True
+        right_encoded_closed = cc._close(right_encoded, "right_encoded_closed" + suffix, {1, 2, 3})
+        right_encoded_closed.is_mpc = True
+
+        # TODO update operator name and arguments
+        left_flags_and_indexes_closed = cc._flag_join(left_persisted, left_encoded_closed,
+                                                      "left_flags_and_indexes_closed" + suffix,
+                                                      ["a"], ["c"],
+                                                      num_lookups_closed)
+        left_flags_and_indexes_closed.is_mpc = True
+
+        left_flags_and_indexes = cc._open(left_flags_and_indexes_closed, "left_flags_and_indexes" + suffix,
+                                          node.trusted_party)
+        left_flags_and_indexes.is_mpc = True
+
+        right_flags_and_indexes_closed = cc._flag_join(right_persisted, right_encoded_closed,
+                                                       "right_flags_and_indexes_closed" + suffix,
+                                                       ["a"], ["c"],
+                                                       num_lookups_closed)
+        right_flags_and_indexes_closed.is_mpc = True
+
+        right_flags_and_indexes = cc._open(right_flags_and_indexes_closed, "right_flags_and_indexes" + suffix,
+                                           node.trusted_party)
+        right_flags_and_indexes.is_mpc = True
+
+        # Back at STP
+        left_arranged = cc._indexes_to_flags(indexes_left_pers, left_flags_and_indexes, "left_arranged" + suffix,
+                                             stage=1)
+        left_arranged.is_mpc = False
+
+        right_arranged = cc._indexes_to_flags(indexes_right_pers, right_flags_and_indexes, "right_arranged" + suffix,
+                                              stage=1)
+        right_arranged.is_mpc = False
+
+        left_arranged_closed = cc._close(left_arranged, "left_arranged_closed" + suffix, {1, 2, 3})
+        left_arranged_closed.is_mpc = True
+
+        right_arranged_closed = cc._close(right_arranged, "right_arranged_closed" + suffix, {1, 2, 3})
+        right_arranged_closed.is_mpc = True
+
+        # Final MPC step
+        left_inst = "    pd_shared3p uint32 [[2]] {} = oblIdxStepTwo(\"{}\", {}, {});\n".format(
+            "left_res" + suffix,
+            left_flags_and_indexes_closed.out_rel.name,
+            left_arranged_closed.out_rel.name,
+            left_unpermuted_pers.out_rel.name
+        )
+        left_res = cc.blackbox([left_arranged_closed, left_unpermuted_pers], "left_res" + suffix, ["a", "b"],
+                               "sharemind",
+                               left_inst)
+        left_res.is_mpc = True
+
+        right_inst = "    pd_shared3p uint32 [[2]] {} = oblIdxStepTwo(\"{}\", {}, {});\n".format(
+            "right_res" + suffix,
+            right_flags_and_indexes_closed.out_rel.name,
+            right_arranged_closed.out_rel.name,
+            right_unpermuted_pers.out_rel.name
+        )
+        right_res = cc.blackbox([right_arranged_closed, right_unpermuted_pers], "right_res" + suffix, ["c", "d"],
+                                "sharemind",
+                                right_inst)
+        right_res.is_mpc = True
+
+        comb_inst = "   pd_shared3p uint32 [[2]] {} = combineJoinSides({}, {});\n".format(
+            node.out_rel.name,
+            left_res.out_rel.name,
+            right_res.out_rel.name
+        )
+        joined = cc.blackbox([left_res, right_res], node.out_rel.name,
+                             [col.name for col in node.out_rel.columns], "sharemind", comb_inst)
+        joined.is_mpc = True
+
         # replace self with leaf of expanded subdag in each child node
         for child in node.get_sorted_children():
             child.replace_parent(node, joined)
@@ -1045,9 +1167,9 @@ class ExpandCompositeOps(DagRewriter):
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
         if self.use_leaky_ops:
-            raise Exception("not implemented")
+            self._rewrite_hybrid_join_leaky(node)
         else:
-            self._rewrite_hybrid_join_non_leaky(node)
+            raise Exception("not implemented")
 
 
 class StoredWithSimplifier(DagRewriter):

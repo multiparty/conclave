@@ -1,6 +1,7 @@
 import socket
 import struct
 import time
+from collections import deque
 
 INT_SIZE = 4
 
@@ -112,6 +113,39 @@ def distinct(rel, selected_cols):
     only_selected = project(rel, selected_cols)
     unwrapped = [row[0] for row in only_selected]
     return [[key] for key in set(unwrapped)]
+
+
+def indexes_to_flags(lookup, rel_size):
+    res = [[0] for _ in range(rel_size)]
+    for idx in lookup:
+        res[idx[0]] = [1]
+    return res
+
+
+def _aggregate_count_dict(rel, group_by_idx):
+    acc = {}
+    for row in rel:
+        key = row[group_by_idx]
+        if key not in acc:
+            acc[key] = 0
+        acc[key] += 1
+    return acc
+
+
+def arrange_by_flags(lookups, indexes_and_flags):
+    lookups_counts = _aggregate_count_dict(lookups, 0)
+    projected = project_indeces(indexes_and_flags)
+    # TODO this might not be safe
+    in_order = sorted(projected, key=lambda row: (-row[2], row[1]))
+    real_entries = deque(in_order[:len(lookups_counts)])
+    dummy_entries = deque(in_order[len(lookups_counts):])
+    res = []
+    for real_entry in real_entries:
+        res.append(real_entry)
+        num_dummies = lookups_counts[real_entry[1]] - 1
+        for _ in range(num_dummies):
+            res.append(dummy_entries.pop())
+    return project(res, [0])
 
 
 def cc_filter(cond_lambda, rel):

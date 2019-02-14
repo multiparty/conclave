@@ -234,6 +234,34 @@ class PythonCodeGen(CodeGen):
             "True" if filter_by_op.use_not_in else "False",
         )
 
+    def _generate_indexes_to_flags(self, indexes_to_flags_op: ccdag.IndexesToFlags):
+        """ Generate code for IndexesToFlags operations. """
+        stage = indexes_to_flags_op.stage
+        if stage == 0:
+            return "{}{} = indexes_to_flags({}, len({}))\n".format(
+                self.space,
+                indexes_to_flags_op.out_rel.name,
+                indexes_to_flags_op.get_right_in_rel().name,
+                indexes_to_flags_op.get_left_in_rel().name
+            )
+        elif stage == 1:
+            return "{}{} = arrange_by_flags({}, {})\n".format(
+                self.space,
+                indexes_to_flags_op.out_rel.name,
+                indexes_to_flags_op.get_left_in_rel().name,
+                indexes_to_flags_op.get_right_in_rel().name
+            )
+        else:
+            raise Exception("Unknown stage " + stage)
+
+    def _generate_num_rows(self, num_rows_op: ccdag.NumRows):
+        """ Generate code for NumRows operations. """
+        return "{}{} = [[len({})]]\n".format(
+            self.space,
+            num_rows_op.out_rel.name,
+            num_rows_op.get_in_rel().name
+        )
+
     def _generate_union(self, union_op: ccdag.Union):
         """ Generate code for FilterBy operations. """
         return "{}{} = key_union_as_rel({}, {}, {}, {})\n".format(
@@ -273,6 +301,9 @@ class PythonCodeGen(CodeGen):
             index_agg_op.eq_flag_op.out_rel.name,
             index_agg_op.aggregator
         )
+
+    def _generate_blackbox(self, blackbox_op: ccdag.Blackbox):
+        raise Exception("Blackbox ops not supported")
 
     def _write_code(self, code: str, job_name: str):
         os.makedirs("{}/{}".format(self.config.code_path,

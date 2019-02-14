@@ -292,7 +292,6 @@ class ScotchCodeGen(CodeGen):
     @staticmethod
     def _generate_filter(filter_op: ccdag.Filter):
         """ Generate code for Filer operations. """
-
         filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
                                        filter_op.operator,
                                        filter_op.scalar if filter_op.is_scalar else filter_op.other_col.dbg_str())
@@ -314,6 +313,27 @@ class ScotchCodeGen(CodeGen):
             " NOT " if filter_by_op.use_not_in else " ",
             filter_by_op.get_right_in_rel().dbg_str(),
             filter_by_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_indexes_to_flags(indexes_to_flags_op: ccdag.IndexesToFlags):
+        """ Generate code for IndexesToFlags operations. """
+
+        return "IDX_TO_FLAGS{} {} {} AS {}\n".format(
+            "MPC" if indexes_to_flags_op.is_mpc else "",
+            indexes_to_flags_op.get_left_in_rel().dbg_str(),
+            indexes_to_flags_op.get_right_in_rel().dbg_str(),
+            indexes_to_flags_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_num_rows(num_rows_op: ccdag.NumRows):
+        """ Generate code for NumRows operations. """
+
+        return "NUM_ROWS{} {} AS {}\n".format(
+            "MPC" if num_rows_op.is_mpc else "",
+            num_rows_op.get_in_rel().dbg_str(),
+            num_rows_op.out_rel.dbg_str()
         )
 
     @staticmethod
@@ -377,4 +397,14 @@ class ScotchCodeGen(CodeGen):
             "MPC" if persist_op.is_mpc else "",
             persist_op.get_in_rel().dbg_str(),
             persist_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_blackbox(blackbox_op: ccdag.Blackbox):
+        """ Generate code for Blackbox operations. """
+
+        return "BLACKBOX{}[{}] {}\n".format(
+            "MPC" if blackbox_op.is_mpc else "",
+            blackbox_op.backend,
+            blackbox_op.out_rel.dbg_str()
         )

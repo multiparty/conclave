@@ -125,6 +125,8 @@ class SharemindCodeGen(CodeGen):
                 miner_code += self._generate_concat_cols(node)
             elif isinstance(node, SortBy):
                 miner_code += self._generate_sort_by(node)
+            elif isinstance(node, Blackbox):
+                miner_code += self._generate_blackbox(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -439,31 +441,47 @@ class SharemindCodeGen(CodeGen):
         }
         return pystache.render(template, data)
 
+    # def _generate_flag_join(self, flag_join_op: FlagJoin):
+    #     """ Generate code for FlagJoin operations. """
+    #
+    #     template = open(
+    #         "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
+    #     flags_rel = flag_join_op.join_flag_op.out_rel
+    #     left_rel = flag_join_op.left_parent.out_rel
+    #     right_rel = flag_join_op.right_parent.out_rel
+    #     # sharemind adds all columns from right-rel to the result
+    #     # so we need to explicitely exclude these
+    #     cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
+    #     cols_to_exclude = [col.idx + len(left_rel.columns)
+    #                        for col in flag_join_op.right_join_cols]
+    #     cols_to_keep_str = ",".join(
+    #         [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
+    #
+    #     data = {
+    #         "TYPE": "uint32",
+    #         "OUT_REL": flag_join_op.out_rel.name,
+    #         "FLAGS_REL": flags_rel.name,
+    #         "LEFT_IN_REL": flag_join_op.get_left_in_rel().name,
+    #         "LEFT_KEY_COLS": str(flag_join_op.left_join_cols[0].idx),
+    #         "RIGHT_IN_REL": flag_join_op.get_right_in_rel().name,
+    #         "RIGHT_KEY_COLS": str(flag_join_op.right_join_cols[0].idx),
+    #         "COLS_TO_KEEP": "{" + cols_to_keep_str + "}"
+    #     }
+    #     return pystache.render(template, data)
+
     def _generate_flag_join(self, flag_join_op: FlagJoin):
         """ Generate code for FlagJoin operations. """
 
         template = open(
-            "{0}/flag_join.tmpl".format(self.template_directory), 'r').read()
+            "{0}/obl_idx_step_one.tmpl".format(self.template_directory), 'r').read()
         flags_rel = flag_join_op.join_flag_op.out_rel
-        left_rel = flag_join_op.left_parent.out_rel
-        right_rel = flag_join_op.right_parent.out_rel
-        # sharemind adds all columns from right-rel to the result
-        # so we need to explicitely exclude these
-        cols_to_keep = list(range(len(left_rel.columns) + len(right_rel.columns)))
-        cols_to_exclude = [col.idx + len(left_rel.columns)
-                           for col in flag_join_op.right_join_cols]
-        cols_to_keep_str = ",".join(
-            [str(idx) for idx in cols_to_keep if idx not in cols_to_exclude])
-
         data = {
             "TYPE": "uint32",
             "OUT_REL": flag_join_op.out_rel.name,
-            "FLAGS_REL": flags_rel.name,
-            "LEFT_IN_REL": flag_join_op.get_left_in_rel().name,
-            "LEFT_KEY_COLS": str(flag_join_op.left_join_cols[0].idx),
-            "RIGHT_IN_REL": flag_join_op.get_right_in_rel().name,
-            "RIGHT_KEY_COLS": str(flag_join_op.right_join_cols[0].idx),
-            "COLS_TO_KEEP": "{" + cols_to_keep_str + "}"
+            "PREFIX": flag_join_op.out_rel.name,
+            "IN_REL": flag_join_op.get_left_in_rel().name,
+            "FLAGS_REL": flag_join_op.get_right_in_rel().name,
+            "LEN_REL": flags_rel.name
         }
         return pystache.render(template, data)
 
@@ -642,6 +660,12 @@ class SharemindCodeGen(CodeGen):
             "SCALAR_FLAGS": "{" + scalar_flags_str + "}"
         }
         return pystache.render(template, data)
+
+    @staticmethod
+    def _generate_blackbox(blackbox_op: Blackbox):
+        if blackbox_op.backend != "sharemind":
+            raise Exception("Wrong backend blackbox op {} {}".format(blackbox_op.backend, blackbox_op))
+        return blackbox_op.code
 
     def _generate_schema(self, close_op: Close):
         """ Generate schema for Sharemind job. """

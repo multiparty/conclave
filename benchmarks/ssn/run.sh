@@ -2,13 +2,12 @@
 
 PARTY_ID=$1
 SIZE=$2
-DATA_ROOT_DIR=aspirin_data/conclave/${SIZE}/
+DATA_ROOT_DIR=ssn_data/${SIZE}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # clean up data first
 find /mnt/shared/${DATA_ROOT_DIR} \
-    -type f -not -name left_medication.csv -not -name left_diagnosis.csv \
-    -type f -not -name right_medication.csv -not -name right_diagnosis.csv \
+    -type f -not -name a_govreg.csv -not -name company0.csv -not -name company1.csv \
     -print0 | xargs -0 rm --;
 
 # run query
