@@ -60,8 +60,6 @@ class OblivCDispatcher:
         with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
             params = json.load(conf)
 
-        print(params["IN_PATH"])
-
         with open(params["IN_PATH"], 'r') as input_data:
             file_data = input_data.read()
             rows = file_data.split("\n")
@@ -69,8 +67,6 @@ class OblivCDispatcher:
             for r in rows:
                 if r != '':
                     row_count += 1
-            print(rows)
-            print(row_count)
             cols = len(rows[0].split(","))
 
         data = {
@@ -81,7 +77,7 @@ class OblivCDispatcher:
 
         header_file = pystache.render(self.header_template, data)
 
-        print("writing header here {}".format(job.code_dir))
+        print("***\n\nWriting header file here {}\n\n***".format(job.code_dir))
         header = open("{}/workflow.h".format(job.code_dir), 'w')
         header.write(header_file)
 
