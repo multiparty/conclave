@@ -95,7 +95,7 @@ def setup(conf: Dict):
     return conclave_config
 
 
-def run(protocol: Callable, mpc_framework: str = "jiff", local_framework: str = "python", apply_optimisations=False):
+def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=False):
     """
     Load parameters from config & dispatch computation.
     Downloads files if necessary from either Dataverse or Swift
