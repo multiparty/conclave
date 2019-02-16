@@ -528,6 +528,20 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
         print("done sort");
     } else {
         sorted = input;
+        D uint32 lastSeen = -1;
+        D uint32 count = 0;
+        for (uint r = 0; r < nrows; r+=1) {
+            D uint32 thisElement = sorted[r, 0];
+            D uint32 isDummy = (uint32) (thisElement != -1);
+            D uint32 isNew = (uint32) (thisElement != lastSeen);
+            D uint32 isNewAndNotDummy = isDummy * isNew;
+            count += isNewAndNotDummy;
+            lastSeen = choose((bool) isNewAndNotDummy, thisElement, lastSeen);
+        }
+        D uint32 [[2]] res(1, 2);
+        res[0,0] = count;
+        res[0,1] = 1;
+        return res;
     }
 
     pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
