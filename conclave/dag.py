@@ -859,6 +859,9 @@ class PublicJoin(Join):
     def from_join(cls, join_op: Join):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
                   join_op.left_join_cols, join_op.right_join_cols)
+        obj.children = join_op.children
+        for child in obj.children:
+            child.replace_parent(join_op, obj)
         return obj
 
     def update_op_specific_cols(self):

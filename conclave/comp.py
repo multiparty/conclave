@@ -1234,11 +1234,12 @@ class ExpandCompositeOps(DagRewriter):
         node.right_parent.children.remove(node)
 
         left_join_closed = cc._close(left_join, "left_join_closed" + suffix, {1, 2, 3})
+        left_join_closed.is_mpc = True
         right_join_closed = cc._close(right_join, "right_join_closed" + suffix, {1, 2, 3})
+        right_join_closed.is_mpc = True
 
         joined = cc.concat_cols([left_join_closed, right_join_closed], node.out_rel.name, use_mult=True)
         joined.is_mpc = True
-
         # replace self with leaf of expanded subdag in each child node
         for child in node.get_sorted_children():
             child.replace_parent(node, joined)
