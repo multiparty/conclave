@@ -318,6 +318,44 @@ class TestConclave(TestCase):
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
         self.check_workflow(actual, 'hybrid_join_leaky_party_two')
 
+    def test_public_join(self):
+        def protocol():
+            left_one_cols = [
+                defCol("a", "INTEGER", 1, 2, 3),
+                defCol("b", "INTEGER", 1)
+            ]
+            left_one = cc.create("left_one", left_one_cols, {1})
+
+            right_one_cols = [
+                defCol("c", "INTEGER", 1, 2, 3),
+                defCol("d", "INTEGER", 1)
+            ]
+            right_one = cc.create("right_one", right_one_cols, {1})
+
+            left_two_cols = [
+                defCol("a", "INTEGER", 1, 2, 3),
+                defCol("b", "INTEGER", 2)
+            ]
+            left_two = cc.create("left_two", left_two_cols, {2})
+
+            right_two_cols = [
+                defCol("c", "INTEGER", 1, 2, 3),
+                defCol("d", "INTEGER", 2)
+            ]
+            right_two = cc.create("right_two", right_two_cols, {2})
+
+            left = cc.concat([left_one, left_two], "left")
+            right = cc.concat([right_one, right_two], "right")
+
+            joined = cc.join(left, right, "joined", ["a"], ["c"])
+            cc.collect(joined, 1)
+
+            return {left_one, left_two, right_one, right_two}
+
+        dag = rewrite_dag(ccdag.OpDag(protocol()))
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, 'public_join')
+
     def test_ssn(self):
         def protocol():
             govreg_cols = [

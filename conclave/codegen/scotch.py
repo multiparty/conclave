@@ -208,10 +208,10 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
-    def _generate_reveal_join(reveal_join_op: ccdag.RevealJoin):
-        """ Generate code for RevealJoin operations. """
+    def _generate_public_join(reveal_join_op: ccdag.PublicJoin):
+        """ Generate code for PublicJoin operations. """
 
-        return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
+        return "({}) PUBLICJOIN ({}) ON {} AND {} AS {}\n".format(
             reveal_join_op.get_left_in_rel().dbg_str(),
             reveal_join_op.get_right_in_rel().dbg_str(),
             ",".join([c.name for c in reveal_join_op.left_join_cols]),

@@ -50,6 +50,7 @@ class OpNode(Node):
         # where this is not the case
         self.is_local = False
         self.is_mpc = False
+        self.skip = False
 
     def is_boundary(self):
         """ Returns whether this node is at an MPC boundary. """
@@ -674,6 +675,7 @@ class Filter(UnaryOpNode):
             self.other_col = temp_cols[self.other_col.idx]
 
 
+# TODO rename
 class PubJoin(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
@@ -845,33 +847,20 @@ class FlagJoin(Join):
         pass
 
 
-class RevealJoin(Join):
-    """Join Optimization
+class PublicJoin(Join):
 
-    applies when the result of a join
-    and one of its inputs is known to the same party P. Instead
-    of performing a complete oblivious join, all the rows
-    of the other input relation can be revealed to party P,
-    provided that their key column a key in P's input.
-    """
-
-    # TODO: (ben) recipient == pid (int) ?
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
-                 left_join_cols: list, right_join_cols: list, revealed_in_rel: rel.Relation, recepient):
-        super(RevealJoin, self).__init__(out_rel, left_parent,
+                 left_join_cols: list, right_join_cols: list):
+        super(PublicJoin, self).__init__(out_rel, left_parent,
                                          right_parent, left_join_cols, right_join_cols)
-        self.name = "revealJoin"
-        self.revealed_in_rel = revealed_in_rel
-        self.recepient = recepient
-        self.is_mpc = True
+        self.name = "public_join"
 
     @classmethod
-    def from_join(cls, join_op: Join, revealed_in_rel: rel.Relation, recepient):
+    def from_join(cls, join_op: Join):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
-                  join_op.left_join_cols, join_op.right_join_cols, revealed_in_rel, recepient)
+                  join_op.left_join_cols, join_op.right_join_cols)
         return obj
 
-    # TODO: remove?
     def update_op_specific_cols(self):
         self.left_join_cols = [self.get_left_in_rel().columns[c.idx]
                                for c in self.left_join_cols]

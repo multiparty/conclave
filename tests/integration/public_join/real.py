@@ -8,44 +8,48 @@ from conclave.utils import defCol
 
 
 def protocol():
-    left_cols = [
-        defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+    left_one_cols = [
+        defCol("a", "INTEGER", 1, 2, 3),
+        defCol("b", "INTEGER", 1)
     ]
-    left = cc.create("left", left_cols, {1})
-    left_dummy = cc.project(left, "left_dummy", ["a", "b"])
+    left_one = cc.create("left_one", left_one_cols, {1})
 
-    right_cols = [
-        defCol("c", "INTEGER", [2]),
-        defCol("d", "INTEGER", [2])
+    right_one_cols = [
+        defCol("c", "INTEGER", 1, 2, 3),
+        defCol("d", "INTEGER", 1)
     ]
-    right = cc.create("right", right_cols, {2})
-    right_dummy = cc.project(right, "right_dummy", ["c", "d"])
+    right_one = cc.create("right_one", right_one_cols, {1})
 
-    left_join = cc._pub_join(left_dummy, "left_join", "a")
-    right_join_proj = cc.project(
-        cc._pub_join(right_dummy, "right_join", "c", is_server=False), "right_join_proj", ["d"]
-    )
-    actual = cc.concat_cols([left_join, right_join_proj], "actual")
-    cc.collect(actual, 1)
+    left_two_cols = [
+        defCol("a", "INTEGER", 1, 2, 3),
+        defCol("b", "INTEGER", 2)
+    ]
+    left_two = cc.create("left_two", left_two_cols, {2})
 
-    return {left, right}
+    right_two_cols = [
+        defCol("c", "INTEGER", 1, 2, 3),
+        defCol("d", "INTEGER", 2)
+    ]
+    right_two = cc.create("right_two", right_two_cols, {2})
+
+    left = cc.concat([left_one, left_two], "left")
+    right = cc.concat([right_one, right_two], "right")
+
+    joined = cc.join(left, right, "actual", ["a"], ["c"])
+    cc.collect(joined, 1)
+
+    return {left_one, left_two, right_one, right_two}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
-    try:
-        use_leaky = sys.argv[2] == "-l"
-    except Exception:
-        use_leaky = False
     # define name for the workflow
-    workflow_name = "real-oblivious-test-" + pid
+    workflow_name = "real-pub-join-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1, 2, 3]
-    conclave_config.use_leaky_ops = use_leaky
     sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=False,
+                                            use_docker=True,
                                             use_hdfs=False)
     conclave_config.with_sharemind_config(sharemind_conf)
     current_dir = os.path.dirname(os.path.realpath(__file__))

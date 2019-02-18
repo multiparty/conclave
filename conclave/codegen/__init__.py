@@ -30,6 +30,9 @@ class CodeGen:
         # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
+            if node.skip:
+                print("Skipping inactive node", node)
+                continue
             if isinstance(node, HybridAggregate):
                 op_code += self._generate_hybrid_aggregate(node)
             elif isinstance(node, LeakyIndexAggregate):
@@ -50,8 +53,8 @@ class CodeGen:
                 op_code += self._generate_flag_join(node)
             elif isinstance(node, IndexJoin):
                 op_code += self._generate_index_join(node)
-            elif isinstance(node, RevealJoin):
-                op_code += self._generate_reveal_join(node)
+            elif isinstance(node, PublicJoin):
+                op_code += self._generate_public_join(node)
             elif isinstance(node, HybridJoin):
                 op_code += self._generate_hybrid_join(node)
             elif isinstance(node, Join):
