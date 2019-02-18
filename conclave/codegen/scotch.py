@@ -260,8 +260,9 @@ class ScotchCodeGen(CodeGen):
         """ Generate code for Distinct Count operations. """
 
         selected_col_str = str(distinct_count_op.selected_col)
-        return "DISTINCT_COUNT{} [{}] FROM ({}) AS {}\n".format(
+        return "DISTINCT_COUNT{}{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if distinct_count_op.is_mpc else "",
+            "NO_SORT" if not distinct_count_op.use_sort else "",
             selected_col_str,
             distinct_count_op.get_in_rel().dbg_str(),
             distinct_count_op.out_rel.dbg_str()

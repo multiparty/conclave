@@ -265,7 +265,7 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
     return op
 
 
-def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool = False):
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str):
     """
     Define DistinctCount operation.
 
@@ -291,7 +291,7 @@ def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col, use_sort)
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col)
 
     # Add it as a child to input node
     input_op_node.children.add(op)

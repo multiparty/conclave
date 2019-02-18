@@ -76,7 +76,7 @@ def protocol_mpc():
     aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
     heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
 
-    cc.collect(cc.distinct_count(heart_patients, "actual_mpc", pid_col_meds, use_sort=False), 1)
+    cc.collect(cc.distinct_count(heart_patients, "actual_mpc", pid_col_meds), 1)
 
     return {
         left_medication,

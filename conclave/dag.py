@@ -616,14 +616,15 @@ class DistinctCount(UnaryOpNode):
     Distinct count operator.
     """
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str, use_sort: bool):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str):
         super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
         self.selected_col = selected_col
         self.is_reversible = False
-        self.use_sort = use_sort
+        self.use_sort = True
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
+        # TODO shouldn't be a copy
         old_col = copy.copy(self.selected_col)
         self.selected_col = temp_cols[old_col.idx] if isinstance(old_col, rel.Column) else old_col
 

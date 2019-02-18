@@ -188,6 +188,12 @@ class DagRewriter:
                 self._rewrite_num_rows(node)
             elif isinstance(node, ccdag.Blackbox):
                 self._rewrite_blackbox(node)
+            elif isinstance(node, ccdag.Shuffle):
+                self._rewrite_shuffle(node)
+            elif isinstance(node, ccdag.Index):
+                self._rewrite_index(node)
+            elif isinstance(node, ccdag.CompNeighs):
+                self._rewrite_comp_neighs(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -268,6 +274,15 @@ class DagRewriter:
         pass
 
     def _rewrite_blackbox(self, node: ccdag.Blackbox):
+        pass
+
+    def _rewrite_shuffle(self, node: ccdag.Shuffle):
+        pass
+
+    def _rewrite_index(self, node: ccdag.Index):
+        pass
+
+    def _rewrite_comp_neighs(self, node: ccdag.CompNeighs):
         pass
 
 
@@ -1327,6 +1342,55 @@ class StoredWithSimplifier(DagRewriter):
                 node.out_rel.stored_with = self.all_parties
 
 
+class EliminateSorts(DagRewriter):
+    """
+    Eliminates redundant sorts when possible by tracking sorted columns throughout dag.
+    """
+
+    def __init__(self):
+        super(EliminateSorts, self).__init__()
+        self.sorted_by = None
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        # first col is key col
+        self.sorted_by = node.out_rel.columns[0]
+
+    def _rewrite_project(self, node: ccdag.Project):
+        # TODO only here for now to prevent dropped and re-ordered columns from breaking the propagation
+        self.sorted_by = None
+
+    def _order_preserving(self, node: ccdag.OpNode):
+        if self.sorted_by:
+            self.sorted_by = utils.find(node.out_rel.columns, self.sorted_by.name)
+
+    def _non_order_preserving(self):
+        self.sorted_by = None
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        self._order_preserving(node)
+
+    def _rewrite_filter(self, node: ccdag.Filter):
+        self._order_preserving(node)
+
+    def _rewrite_blackbox(self, node: ccdag.Blackbox):
+        self._non_order_preserving()
+
+    def _rewrite_sort_by(self, node: ccdag.SortBy):
+        self.sorted_by = utils.find(node.out_rel.columns, node.sort_by_col)
+
+    def _rewrite_shuffle(self, node: ccdag.Shuffle):
+        self.sorted_by = None
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+        print("self.sorted_by", self.sorted_by)
+        if node.is_mpc:
+            if node.selected_col == self.sorted_by:
+                node.use_sort = False
+            self.sorted_by = node.out_rel.columns[0]
+        else:
+            self.sorted_by = None
+
+
 def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = False):
     """ Combines and calls all rewrite operations. """
     if all_parties is None:
@@ -1339,6 +1403,7 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps(use_leaky_ops).rewrite(dag)
     StoredWithSimplifier(set(all_parties)).rewrite(dag)
+    EliminateSorts().rewrite(dag)
     return dag
 
 

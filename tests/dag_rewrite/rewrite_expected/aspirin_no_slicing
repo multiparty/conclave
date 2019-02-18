@@ -14,5 +14,5 @@ CONCATCOLSMPC [left_join_closed_public_join_1([0 {1 2 3}, 4 {1}, 7 {1}, 16 {1}, 
 FILTERMPC [18 {} < 7 {}] FROM (joined([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
 FILTERMPC [4 {} == 1] FROM (cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
 FILTERMPC [16 {} == 1] FROM (aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
-DISTINCT_COUNTMPC [0] FROM (heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS actual([0 {}]) {1, 2, 3}
+DISTINCT_COUNTMPCNO_SORT [0] FROM (heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS actual([0 {}]) {1, 2, 3}
 OPENMPC actual([0 {}]) {1, 2, 3} INTO actual_open([0 {}]) {1}
