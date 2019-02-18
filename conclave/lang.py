@@ -557,7 +557,7 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     # Get index of filter column
     key_col = utils.find(in_rel.columns, key_col_name)
     assert key_col.idx == 0
-    key_col.trust_set = set()
+    # key_col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))

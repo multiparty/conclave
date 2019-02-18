@@ -701,9 +701,9 @@ class Join(BinaryOpNode):
 
     def update_op_specific_cols(self):
         self.left_join_cols = [self.get_left_in_rel().columns[left_join_col.idx]
-                               for left_join_col in copy.copy(self.left_join_cols)]
+                               for left_join_col in self.left_join_cols]
         self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
-                                for right_join_col in copy.copy(self.right_join_cols)]
+                                for right_join_col in self.right_join_cols]
 
 
 class FilterBy(BinaryOpNode):

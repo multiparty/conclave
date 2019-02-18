@@ -1,10 +1,10 @@
-CREATE RELATION left_one([a {}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-CREATE RELATION left_two([a {}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION left_one([a {1 2 3}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CREATE RELATION left_two([a {1 2 3}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION right_one([c {1 2 3}, d {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-PUBJOINServer (left_one([a {}, b {1}]) {1}) right_one([c {1 2 3}, d {1}]) {1} ON [a] AS left_join_public_join_1([a {1 2 3}, b {1}, d {1}]) {1}
+PUBJOINServer (left_one([a {1 2 3}, b {1}]) {1}) right_one([c {1 2 3}, d {1}]) {1} ON [a] AS left_join_public_join_1([a {1 2 3}, b {1}, d {1}]) {1}
 CLOSEMPC left_join_public_join_1([a {1 2 3}, b {1}, d {1}]) {1} INTO left_join_closed_public_join_1([a {1 2 3}, b {1}, d {1}]) {1, 2, 3}
 CREATE RELATION right_two([c {1 2 3}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-PUBJOINClient (left_two([a {}, b {2}]) {2}) right_two([c {1 2 3}, d {2}]) {2} ON [a] AS right_join_public_join_1([a {1 2 3}, b {2}, d {2}]) {2}
+PUBJOINClient (left_two([a {1 2 3}, b {2}]) {2}) right_two([c {1 2 3}, d {2}]) {2} ON [a] AS right_join_public_join_1([a {1 2 3}, b {2}, d {2}]) {2}
 CLOSEMPC right_join_public_join_1([a {1 2 3}, b {2}, d {2}]) {2} INTO right_join_closed_public_join_1([a {1 2 3}, b {2}, d {2}]) {1, 2, 3}
 CONCATCOLSMPC [left_join_closed_public_join_1([a {1 2 3}, b {1}, d {1}]) {1, 2, 3}, right_join_closed_public_join_1([a {1 2 3}, b {2}, d {2}]) {1, 2, 3}] AS joined([a {}, b {}, d {}]) {1, 2, 3}
 OPENMPC joined([a {}, b {}, d {}]) {1, 2, 3} INTO joined_open([a {1 2 3}, b {}, d {}]) {1}
