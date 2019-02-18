@@ -1,0 +1,28 @@
+CREATE RELATION left_diagnosis([8 {1 2 3}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+PROJECT [8, 16, 18] FROM (left_diagnosis([8 {1 2 3}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1}) AS left_diagnosis_proj([8 {1 2 3}, 16 {1}, 18 {1}]) {1}
+CREATE RELATION left_medication([0 {1 2 3}, 1 {1}, 2 {1}, 3 {1}, 4 {1}, 5 {1}, 6 {1}, 7 {1}]) {1} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+PROJECT [0, 4, 7] FROM (left_medication([0 {1 2 3}, 1 {1}, 2 {1}, 3 {1}, 4 {1}, 5 {1}, 6 {1}, 7 {1}]) {1}) AS left_medication_proj([0 {1 2 3}, 4 {1}, 7 {1}]) {1}
+left_medication([0 {1 2 3}, 1 {1}, 2 {1}, 3 {1}, 4 {1}, 5 {1}, 6 {1}, 7 {1}]) {1} UNION left_diagnosis([8 {1 2 3}, 9 {1}, 10 {1}, 11 {1}, 12 {1}, 13 {1}, 14 {1}, 15 {1}, 16 {1}, 17 {1}, 18 {1}, 19 {1}, 20 {1}]) {1} ON 0 0 AS left_pids([0 {1 2 3}]) {1}
+PUBINTERSECTServer left_pids([0 {1 2 3}]) {1} ON [0] AS a_left_shared_pids([0 {1 2 3}]) {1}
+FILTER_BY [0] FROM (left_medication_proj([0 {1 2 3}, 4 {1}, 7 {1}]) {1}) IN a_left_shared_pids([0 {1 2 3}]) {1} AS left_medication_shared([0 {}, 4 {1}, 7 {1}]) {1}
+FILTER_BY [8] FROM (left_diagnosis_proj([8 {1 2 3}, 16 {1}, 18 {1}]) {1}) IN a_left_shared_pids([0 {1 2 3}]) {1} AS left_diagnosis_shared([8 {1 2 3}, 16 {1}, 18 {1}]) {1}
+PUBJOINServer (left_medication_shared([0 {}, 4 {1}, 7 {1}]) {1}) left_diagnosis_shared([8 {1 2 3}, 16 {1}, 18 {1}]) {1} ON [0] AS left_join_public_join_1([0 {1 2 3}, 4 {1}, 7 {1}, 16 {1}, 18 {1}]) {1}
+CLOSEMPC left_join_public_join_1([0 {1 2 3}, 4 {1}, 7 {1}, 16 {1}, 18 {1}]) {1} INTO left_join_closed_public_join_1([0 {1 2 3}, 4 {1}, 7 {1}, 16 {1}, 18 {1}]) {1, 2, 3}
+PERSIST a_left_shared_pids([0 {1 2 3}]) {1} INTO a_left_shared_pids([0 {}]) {1}
+CREATE RELATION right_diagnosis([8 {1 2 3}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+PROJECT [8, 16, 18] FROM (right_diagnosis([8 {1 2 3}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2}) AS right_diagnosis_proj([8 {1 2 3}, 16 {2}, 18 {2}]) {2}
+CREATE RELATION right_medication([0 {1 2 3}, 1 {2}, 2 {2}, 3 {2}, 4 {2}, 5 {2}, 6 {2}, 7 {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER)
+PROJECT [0, 4, 7] FROM (right_medication([0 {1 2 3}, 1 {2}, 2 {2}, 3 {2}, 4 {2}, 5 {2}, 6 {2}, 7 {2}]) {2}) AS right_medication_proj([0 {1 2 3}, 4 {2}, 7 {2}]) {2}
+right_medication([0 {1 2 3}, 1 {2}, 2 {2}, 3 {2}, 4 {2}, 5 {2}, 6 {2}, 7 {2}]) {2} UNION right_diagnosis([8 {1 2 3}, 9 {2}, 10 {2}, 11 {2}, 12 {2}, 13 {2}, 14 {2}, 15 {2}, 16 {2}, 17 {2}, 18 {2}, 19 {2}, 20 {2}]) {2} ON 0 0 AS right_pids([0 {1 2 3}]) {2}
+PUBINTERSECTClient right_pids([0 {1 2 3}]) {2} ON [0] AS a_right_shared_pids([0 {1 2 3}]) {2}
+FILTER_BY [0] FROM (right_medication_proj([0 {1 2 3}, 4 {2}, 7 {2}]) {2}) IN a_right_shared_pids([0 {1 2 3}]) {2} AS right_medication_shared([0 {}, 4 {2}, 7 {2}]) {2}
+FILTER_BY [8] FROM (right_diagnosis_proj([8 {1 2 3}, 16 {2}, 18 {2}]) {2}) IN a_right_shared_pids([0 {1 2 3}]) {2} AS right_diagnosis_shared([8 {1 2 3}, 16 {2}, 18 {2}]) {2}
+PUBJOINClient (right_medication_shared([0 {}, 4 {2}, 7 {2}]) {2}) right_diagnosis_shared([8 {1 2 3}, 16 {2}, 18 {2}]) {2} ON [0] AS right_join_public_join_1([0 {1 2 3}, 4 {2}, 7 {2}, 16 {2}, 18 {2}]) {2}
+CLOSEMPC right_join_public_join_1([0 {1 2 3}, 4 {2}, 7 {2}, 16 {2}, 18 {2}]) {2} INTO right_join_closed_public_join_1([0 {1 2 3}, 4 {2}, 7 {2}, 16 {2}, 18 {2}]) {1, 2, 3}
+CONCATCOLSMPC [left_join_closed_public_join_1([0 {1 2 3}, 4 {1}, 7 {1}, 16 {1}, 18 {1}]) {1, 2, 3}, right_join_closed_public_join_1([0 {1 2 3}, 4 {2}, 7 {2}, 16 {2}, 18 {2}]) {1, 2, 3}] AS joined([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [18 {} < 7 {}] FROM (joined([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [4 {} == 1] FROM (cases([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+FILTERMPC [16 {} == 1] FROM (aspirin([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}
+DISTINCT_COUNTMPC [0] FROM (heart_patients([0 {}, 4 {}, 7 {}, 16 {}, 18 {}]) {1, 2, 3}) AS actual_mpc([0 {}]) {1, 2, 3}
+OPENMPC actual_mpc([0 {}]) {1, 2, 3} INTO actual_mpc_open([0 {}]) {1}
+PERSIST a_right_shared_pids([0 {1 2 3}]) {2} INTO a_right_shared_pids([0 {}]) {2}

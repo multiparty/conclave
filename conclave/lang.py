@@ -98,7 +98,7 @@ def aggregate_count(input_op_node: cc_dag.OpNode, output_name: str, group_col_na
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
-    agg_out_col = Column(output_name, agg_out_col_name, len(group_cols), "INTEGER", {})
+    agg_out_col = Column(output_name, agg_out_col_name, len(group_cols), "INTEGER", set())
     out_rel_cols = [copy.deepcopy(group_col) for group_col in group_cols]
     out_rel_cols.append(copy.deepcopy(agg_out_col))
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -410,7 +410,7 @@ def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, outpu
     """
 
     # Create output column and relation
-    out_col = Column(output_name, left_col_name, 0, "INTEGER", {})
+    out_col = Column(output_name, left_col_name, 0, "INTEGER", set())
     left_stored_with = left_input_node.out_rel.stored_with
     right_stored_with = right_input_node.out_rel.stored_with
     out_rel = rel.Relation(output_name, [out_col], left_stored_with.union(right_stored_with))
@@ -438,7 +438,7 @@ def _pub_intersect(input_node: cc_dag.OpNode,
     """
 
     # Create output column and relation
-    out_col = Column(output_name, col_name, 0, "INTEGER", {})
+    out_col = Column(output_name, col_name, 0, "INTEGER", set())
     left_stored_with = input_node.out_rel.stored_with
     out_rel = rel.Relation(output_name, [out_col], copy.copy(left_stored_with))
     out_rel.update_columns()

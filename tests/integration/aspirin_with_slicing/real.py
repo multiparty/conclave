@@ -71,14 +71,7 @@ def protocol_mpc():
     medication_shared = cc.concat([left_medication_shared, right_medication_shared], "medication_shared")
     diagnosis_shared = cc.concat([left_diagnosis_shared, right_diagnosis_shared], "diagnosis_shared")
 
-    # left_join = cc._pub_join(left_medication_shared, "left_join", pid_col_meds,
-    #                          other_op_node=left_diagnosis_shared)
-    # right_join = cc._pub_join(right_medication_shared, "right_join", pid_col_meds, is_server=False,
-    #                           other_op_node=right_diagnosis_shared)
     joined = cc.join(medication_shared, diagnosis_shared, "joined", [pid_col_meds], [pid_col_diags])
-    # joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
-
-    # do filters after the join
     cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
     aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
     heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)

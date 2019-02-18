@@ -624,6 +624,30 @@ class TrustSetPropDown(DagRewriter):
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
             out_col.trust_set = utils.merge_coll_sets(condition_trust_set, in_col.trust_set)
 
+    def _rewrite_filter_by(self, node: ccdag.FilterBy):
+        """
+        Push down trust sets for a FilterBy node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1), defCol("c", "INTEGER", 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> cols_in_keys = [defCol("k", "INTEGER", 1, 2, 3)]
+        >>> keys_op = cc.create("keys", cols_in_keys, {1})
+        >>> filt = cc.filter_by(in_op, "filt", "a", keys_op)
+        >>> TrustSetPropDown()._rewrite_filter_by(filt)
+        >>> filt.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        >>> filt.out_rel.columns[1].dbg_str()
+        'b {1}'
+        >>> filt.out_rel.columns[2].dbg_str()
+        'c {3}'
+        """
+
+        # To determine the result of a filter by, we need to know all columns used in the filter by condition
+        condition_trust_set = utils.trust_set_from_columns([node.filter_col, node.right_parent.out_rel.columns[0]])
+        out_rel_cols = node.out_rel.columns
+        for in_col, out_col in zip(node.get_left_in_rel().columns, out_rel_cols):
+            out_col.trust_set = utils.merge_coll_sets(condition_trust_set, in_col.trust_set)
+
     def _rewrite_multiply(self, node: ccdag.Multiply):
         """
         Push down trust sets for a Multiply node.
@@ -690,6 +714,38 @@ class TrustSetPropDown(DagRewriter):
                     node.out_rel.columns[abs_idx].trust_set = \
                         utils.merge_coll_sets(key_col_coll_sets, in_col.trust_set)
                 abs_idx += 1
+
+    def _rewrite_union(self, node: ccdag.Union):
+        """
+        Push down trust sets for a Union node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1)]
+        >>> cols_in_right = [defCol("c", "INTEGER", 1, 2, 3), defCol("d", "INTEGER", 2)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> right = cc.create("right", cols_in_right, {2})
+        >>> unioned = cc.union(left, right, "unioned", "a", "c")
+        >>> TrustSetPropDown()._rewrite_union(unioned)
+        >>> unioned.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        """
+        left_col = node.left_col
+        right_col = node.right_col
+        node.out_rel.columns[0].trust_set = utils.trust_set_from_columns([left_col, right_col])
+
+    def _rewrite_pub_intersect(self, node: ccdag.PubIntersect):
+        """
+        Push down trust sets for a PubIntersect node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> intersected = cc._pub_intersect(left, "intersected", "a")
+        >>> TrustSetPropDown()._rewrite_pub_intersect(intersected)
+        >>> intersected.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        """
+        # TODO make more robust by wrapping two sides of intersect into single operator
+        # This works because we can only run a PubIntersect on a public col
+        node.out_rel.columns[0].trust_set = copy.deepcopy(node.col.trust_set)
 
     def _rewrite_concat(self, node: ccdag.Concat):
         """

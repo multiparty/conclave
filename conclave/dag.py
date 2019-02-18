@@ -750,8 +750,8 @@ class Union(BinaryOpNode):
 
     def update_op_specific_cols(self):
         temp_cols = self.get_left_in_rel().columns
-        self.left_col = copy.copy(temp_cols[self.left_col.idx])
-        self.right_col = copy.copy(temp_cols[self.right_col.idx])
+        self.left_col = temp_cols[self.left_col.idx]
+        self.right_col = temp_cols[self.right_col.idx]
 
 
 class PubIntersect(UnaryOpNode):
@@ -773,7 +773,7 @@ class PubIntersect(UnaryOpNode):
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
-        self.col = copy.copy(temp_cols[self.col.idx])
+        self.col = temp_cols[self.col.idx]
 
 
 class JoinFlags(Join):
