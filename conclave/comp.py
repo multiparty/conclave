@@ -409,7 +409,7 @@ class MPCPushDown(DagRewriter):
 
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
 
-        self._rewrite_unary_default(node)
+        self._rewrite_default(node)
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
 
