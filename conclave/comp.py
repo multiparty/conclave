@@ -1382,7 +1382,6 @@ class EliminateSorts(DagRewriter):
         self.sorted_by = None
 
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
-        print("self.sorted_by", self.sorted_by)
         if node.is_mpc:
             if node.selected_col == self.sorted_by:
                 node.use_sort = False
