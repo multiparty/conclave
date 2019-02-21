@@ -8,43 +8,26 @@ from conclave.utils import defCol
 
 
 def protocol():
-    left_one_cols = [
-        defCol("a", "INTEGER", 1, 2, 3),
-        defCol("b", "INTEGER", 1)
+    input_columns_left = [
+        defCol("column_a", "INTEGER", [1]),
+        defCol("column_b", "INTEGER", [1])
     ]
-    left_one = cc.create("left_one", left_one_cols, {1})
-
-    right_one_cols = [
-        defCol("c", "INTEGER", 1, 2, 3),
-        defCol("d", "INTEGER", 1)
+    left = cc.create("left", input_columns_left, {1})
+    input_columns_right = [
+        defCol("column_a", "INTEGER", [2]),
+        defCol("column_b", "INTEGER", [2])
     ]
-    right_one = cc.create("right_one", right_one_cols, {1})
-
-    left_two_cols = [
-        defCol("a", "INTEGER", 1, 2, 3),
-        defCol("b", "INTEGER", 2)
-    ]
-    left_two = cc.create("left_two", left_two_cols, {2})
-
-    right_two_cols = [
-        defCol("c", "INTEGER", 1, 2, 3),
-        defCol("d", "INTEGER", 2)
-    ]
-    right_two = cc.create("right_two", right_two_cols, {2})
-
-    left = cc.concat([left_one, left_two], "left")
-    right = cc.concat([right_one, right_two], "right")
-
-    joined = cc.join(left, right, "actual", ["a"], ["c"])
-    cc.collect(joined, 1)
-
-    return {left_one, left_two, right_one, right_two}
+    right = cc.create("right", input_columns_right, {2})
+    rel = cc.concat([left, right], "rel")
+    actual = cc.distinct_count(rel, "actual", "column_a")
+    cc.collect(actual, 1)
+    return {left, right}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "real-pub-join-test-" + pid
+    workflow_name = "real-distinct-count-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1, 2, 3]

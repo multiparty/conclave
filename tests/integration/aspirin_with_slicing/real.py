@@ -19,16 +19,28 @@ def protocol_mpc():
     num_med_cols = 8
     num_diag_cols = 13
 
-    left_medication_cols = [defCol(str(i), "INTEGER", [1]) for i in range(num_med_cols)]
+    left_medication_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_med_cols)]
+    # public PID column
+    left_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
     left_medication = cc.create("left_medication", left_medication_cols, {1})
-    left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [1]) for i in range(num_diag_cols)]
-    left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
-    left_keys = cc.union(left_medication, left_diagnosis, "left_pids", pid_col_meds, pid_col_diags)
 
-    right_medication_cols = [defCol(str(i), "INTEGER", [2]) for i in range(num_med_cols)]
+    left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 1) for i in range(num_diag_cols)]
+    # public PID column
+    left_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
+    left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
+
+    right_medication_cols = [defCol(str(i), "INTEGER", 2) for i in range(num_med_cols)]
+    # public PID column
+    right_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
     right_medication = cc.create("right_medication", right_medication_cols, {2})
-    right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [2]) for i in range(num_diag_cols)]
+
+    right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 2) for i in range(num_diag_cols)]
+    # public PID column
+    right_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
+
+    # Manual slicing
+    left_keys = cc.union(left_medication, left_diagnosis, "left_pids", pid_col_meds, pid_col_diags)
     right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
 
     left_shared_pids = cc._pub_intersect(left_keys, "a_left_shared_pids", pid_col_meds)
@@ -55,18 +67,16 @@ def protocol_mpc():
     right_diagnosis_shared = cc.filter_by(right_diagnosis_proj, "right_diagnosis_shared", pid_col_diags,
                                           right_shared_pids)
 
-    left_join = cc._pub_join(left_medication_shared, "left_join", pid_col_meds,
-                             other_op_node=left_diagnosis_shared)
-    right_join = cc._pub_join(right_medication_shared, "right_join", pid_col_meds, is_server=False,
-                              other_op_node=right_diagnosis_shared)
-    joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
+    # Slicing done
+    medication_shared = cc.concat([left_medication_shared, right_medication_shared], "medication_shared")
+    diagnosis_shared = cc.concat([left_diagnosis_shared, right_diagnosis_shared], "diagnosis_shared")
 
-    # do filters after the join
+    joined = cc.join(medication_shared, diagnosis_shared, "joined", [pid_col_meds], [pid_col_diags])
     cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
     aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
     heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
 
-    cc.collect(cc.distinct_count(heart_patients, "actual_mpc", pid_col_meds, use_sort=False), 1)
+    cc.collect(cc.distinct_count(heart_patients, "actual_mpc", pid_col_meds), 1)
 
     return {
         left_medication,

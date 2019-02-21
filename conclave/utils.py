@@ -34,7 +34,6 @@ def merge_coll_sets(left: set, right: set):
     >>> actual == expected
     True
     """
-
     return left & right
 
 

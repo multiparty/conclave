@@ -318,6 +318,44 @@ class TestConclave(TestCase):
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
         self.check_workflow(actual, 'hybrid_join_leaky_party_two')
 
+    def test_public_join(self):
+        def protocol():
+            left_one_cols = [
+                defCol("a", "INTEGER", 1, 2, 3),
+                defCol("b", "INTEGER", 1)
+            ]
+            left_one = cc.create("left_one", left_one_cols, {1})
+
+            right_one_cols = [
+                defCol("c", "INTEGER", 1, 2, 3),
+                defCol("d", "INTEGER", 1)
+            ]
+            right_one = cc.create("right_one", right_one_cols, {1})
+
+            left_two_cols = [
+                defCol("a", "INTEGER", 1, 2, 3),
+                defCol("b", "INTEGER", 2)
+            ]
+            left_two = cc.create("left_two", left_two_cols, {2})
+
+            right_two_cols = [
+                defCol("c", "INTEGER", 1, 2, 3),
+                defCol("d", "INTEGER", 2)
+            ]
+            right_two = cc.create("right_two", right_two_cols, {2})
+
+            left = cc.concat([left_one, left_two], "left")
+            right = cc.concat([right_one, right_two], "right")
+
+            joined = cc.join(left, right, "joined", ["a"], ["c"])
+            cc.collect(joined, 1)
+
+            return {left_one, left_two, right_one, right_two}
+
+        dag = rewrite_dag(ccdag.OpDag(protocol()))
+        actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
+        self.check_workflow(actual, 'public_join')
+
     def test_ssn(self):
         def protocol():
             govreg_cols = [
@@ -351,7 +389,6 @@ class TestConclave(TestCase):
 
         dag = rewrite_dag(ccdag.OpDag(protocol()), use_leaky_ops=True)
         actual = ScotchCodeGen(CodeGenConfig(), dag)._generate(0, 0)
-        print(actual)
         self.check_workflow(actual, "ssn_leaky")
 
     def test_taxi(self):
@@ -441,7 +478,7 @@ class TestConclave(TestCase):
         actual = protocol()
         self.check_workflow(actual, 'agg_pushdown')
 
-    def test_aspirin(self):
+    def test_aspirin_no_slicing(self):
         @scotch
         @mpc
         def protocol():
@@ -456,14 +493,24 @@ class TestConclave(TestCase):
             num_med_cols = 8
             num_diag_cols = 13
 
-            left_medication_cols = [defCol(str(i), "INTEGER", [1]) for i in range(num_med_cols)]
+            left_medication_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_med_cols)]
+            # public PID column
+            left_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
             left_medication = cc.create("left_medication", left_medication_cols, {1})
-            left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [1]) for i in range(num_diag_cols)]
+
+            left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 1) for i in range(num_diag_cols)]
+            # public PID column
+            left_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
             left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
 
-            right_medication_cols = [defCol(str(i), "INTEGER", [2]) for i in range(num_med_cols)]
+            right_medication_cols = [defCol(str(i), "INTEGER", 2) for i in range(num_med_cols)]
+            # public PID column
+            right_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
             right_medication = cc.create("right_medication", right_medication_cols, {2})
-            right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", [2]) for i in range(num_diag_cols)]
+
+            right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 2) for i in range(num_diag_cols)]
+            # public PID column
+            right_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
             right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
 
             medication = cc.concat([left_medication, right_medication], "medication")
@@ -484,7 +531,92 @@ class TestConclave(TestCase):
             return {left_medication, left_diagnosis, right_medication, right_diagnosis}
 
         actual = protocol()
-        self.check_workflow(actual, "aspirin")
+        self.check_workflow(actual, "aspirin_no_slicing")
+
+    def test_aspirin_with_slicing(self):
+        @scotch
+        @mpc
+        def protocol():
+            pid_col_meds = "0"
+            med_col_meds = "4"
+            date_col_meds = "7"
+
+            pid_col_diags = "8"
+            diag_col_diags = "16"
+            date_col_diags = "18"
+
+            num_med_cols = 8
+            num_diag_cols = 13
+
+            left_medication_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_med_cols)]
+            # public PID column
+            left_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
+            left_medication = cc.create("left_medication", left_medication_cols, {1})
+
+            left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 1) for i in range(num_diag_cols)]
+            # public PID column
+            left_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
+            left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
+
+            right_medication_cols = [defCol(str(i), "INTEGER", 2) for i in range(num_med_cols)]
+            # public PID column
+            right_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
+            right_medication = cc.create("right_medication", right_medication_cols, {2})
+
+            right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 2) for i in range(num_diag_cols)]
+            # public PID column
+            right_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
+            right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
+
+            # Manual slicing
+            left_keys = cc.union(left_medication, left_diagnosis, "left_pids", pid_col_meds, pid_col_diags)
+            right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
+
+            left_shared_pids = cc._pub_intersect(left_keys, "a_left_shared_pids", pid_col_meds)
+            cc._persist(left_shared_pids, "a_left_shared_pids")
+            right_shared_pids = cc._pub_intersect(right_keys, "a_right_shared_pids", pid_col_meds, is_server=False)
+            cc._persist(right_shared_pids, "a_right_shared_pids")
+
+            left_medication_proj = cc.project(left_medication, "left_medication_proj",
+                                              [pid_col_meds, med_col_meds, date_col_meds])
+            left_medication_shared = cc.filter_by(left_medication_proj, "left_medication_shared", pid_col_meds,
+                                                  left_shared_pids)
+
+            left_diagnosis_proj = cc.project(left_diagnosis, "left_diagnosis_proj",
+                                             [pid_col_diags, diag_col_diags, date_col_diags])
+            left_diagnosis_shared = cc.filter_by(left_diagnosis_proj, "left_diagnosis_shared", pid_col_diags,
+                                                 left_shared_pids)
+
+            right_medication_proj = cc.project(right_medication, "right_medication_proj",
+                                               [pid_col_meds, med_col_meds, date_col_meds])
+            right_medication_shared = cc.filter_by(right_medication_proj, "right_medication_shared", pid_col_meds,
+                                                   right_shared_pids)
+
+            right_diagnosis_proj = cc.project(right_diagnosis, "right_diagnosis_proj",
+                                              [pid_col_diags, diag_col_diags, date_col_diags])
+            right_diagnosis_shared = cc.filter_by(right_diagnosis_proj, "right_diagnosis_shared", pid_col_diags,
+                                                  right_shared_pids)
+
+            # Slicing done
+            medication_shared = cc.concat([left_medication_shared, right_medication_shared], "medication_shared")
+            diagnosis_shared = cc.concat([left_diagnosis_shared, right_diagnosis_shared], "diagnosis_shared")
+
+            joined = cc.join(medication_shared, diagnosis_shared, "joined", [pid_col_meds], [pid_col_diags])
+            cases = cc.cc_filter(joined, "cases", date_col_diags, "<", other_col_name=date_col_meds)
+            aspirin = cc.cc_filter(cases, "aspirin", med_col_meds, "==", scalar=1)
+            heart_patients = cc.cc_filter(aspirin, "heart_patients", diag_col_diags, "==", scalar=1)
+
+            cc.collect(cc.distinct_count(heart_patients, "actual_mpc", pid_col_meds), 1)
+
+            return {
+                left_medication,
+                left_diagnosis,
+                right_medication,
+                right_diagnosis
+            }
+
+        actual = protocol()
+        self.check_workflow(actual, "aspirin_with_slicing")
 
     def test_comorb_full(self):
         @scotch

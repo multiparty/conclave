@@ -150,8 +150,8 @@ class DagRewriter:
                 self._rewrite_multiply(node)
             elif isinstance(node, ccdag.JoinFlags):
                 self._rewrite_join_flags(node)
-            elif isinstance(node, ccdag.RevealJoin):
-                self._rewrite_reveal_join(node)
+            elif isinstance(node, ccdag.PublicJoin):
+                self._rewrite_public_join(node)
             elif isinstance(node, ccdag.HybridJoin):
                 self._rewrite_hybrid_join(node)
             elif isinstance(node, ccdag.Join):
@@ -188,6 +188,12 @@ class DagRewriter:
                 self._rewrite_num_rows(node)
             elif isinstance(node, ccdag.Blackbox):
                 self._rewrite_blackbox(node)
+            elif isinstance(node, ccdag.Shuffle):
+                self._rewrite_shuffle(node)
+            elif isinstance(node, ccdag.Index):
+                self._rewrite_index(node)
+            elif isinstance(node, ccdag.CompNeighs):
+                self._rewrite_comp_neighs(node)
             else:
                 msg = "Unknown class " + type(node).__name__
                 raise Exception(msg)
@@ -213,7 +219,7 @@ class DagRewriter:
     def _rewrite_join_flags(self, node: ccdag.JoinFlags):
         pass
 
-    def _rewrite_reveal_join(self, node: ccdag.RevealJoin):
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
         pass
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
@@ -268,6 +274,15 @@ class DagRewriter:
         pass
 
     def _rewrite_blackbox(self, node: ccdag.Blackbox):
+        pass
+
+    def _rewrite_shuffle(self, node: ccdag.Shuffle):
+        pass
+
+    def _rewrite_index(self, node: ccdag.Index):
+        pass
+
+    def _rewrite_comp_neighs(self, node: ccdag.CompNeighs):
         pass
 
 
@@ -368,9 +383,9 @@ class MPCPushDown(DagRewriter):
 
         self._rewrite_unary_default(node)
 
-    def _rewrite_reveal_join(self, node: ccdag.RevealJoin):
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
 
-        raise Exception("RevealJoin encountered during MPCPushDown")
+        raise Exception("PublicJoin encountered during MPCPushDown")
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
@@ -394,7 +409,7 @@ class MPCPushDown(DagRewriter):
 
     def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
 
-        self._rewrite_unary_default(node)
+        self._rewrite_default(node)
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
 
@@ -459,9 +474,9 @@ class MPCPushUp(DagRewriter):
 
         self._rewrite_unary_default(node)
 
-    def _rewrite_reveal_join(self, node: ccdag.RevealJoin):
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
 
-        raise Exception("RevealJoin encountered during MPCPushUp")
+        raise Exception("PublicJoin encountered during MPCPushUp")
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
@@ -624,6 +639,30 @@ class TrustSetPropDown(DagRewriter):
         for in_col, out_col in zip(node.get_in_rel().columns, out_rel_cols):
             out_col.trust_set = utils.merge_coll_sets(condition_trust_set, in_col.trust_set)
 
+    def _rewrite_filter_by(self, node: ccdag.FilterBy):
+        """
+        Push down trust sets for a FilterBy node.
+
+        >>> cols_in = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1), defCol("c", "INTEGER", 3)]
+        >>> in_op = cc.create("rel", cols_in, {1})
+        >>> cols_in_keys = [defCol("k", "INTEGER", 1, 2, 3)]
+        >>> keys_op = cc.create("keys", cols_in_keys, {1})
+        >>> filt = cc.filter_by(in_op, "filt", "a", keys_op)
+        >>> TrustSetPropDown()._rewrite_filter_by(filt)
+        >>> filt.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        >>> filt.out_rel.columns[1].dbg_str()
+        'b {1}'
+        >>> filt.out_rel.columns[2].dbg_str()
+        'c {3}'
+        """
+
+        # To determine the result of a filter by, we need to know all columns used in the filter by condition
+        condition_trust_set = utils.trust_set_from_columns([node.filter_col, node.right_parent.out_rel.columns[0]])
+        out_rel_cols = node.out_rel.columns
+        for in_col, out_col in zip(node.get_left_in_rel().columns, out_rel_cols):
+            out_col.trust_set = utils.merge_coll_sets(condition_trust_set, in_col.trust_set)
+
     def _rewrite_multiply(self, node: ccdag.Multiply):
         """
         Push down trust sets for a Multiply node.
@@ -691,6 +730,38 @@ class TrustSetPropDown(DagRewriter):
                         utils.merge_coll_sets(key_col_coll_sets, in_col.trust_set)
                 abs_idx += 1
 
+    def _rewrite_union(self, node: ccdag.Union):
+        """
+        Push down trust sets for a Union node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1)]
+        >>> cols_in_right = [defCol("c", "INTEGER", 1, 2, 3), defCol("d", "INTEGER", 2)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> right = cc.create("right", cols_in_right, {2})
+        >>> unioned = cc.union(left, right, "unioned", "a", "c")
+        >>> TrustSetPropDown()._rewrite_union(unioned)
+        >>> unioned.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        """
+        left_col = node.left_col
+        right_col = node.right_col
+        node.out_rel.columns[0].trust_set = utils.trust_set_from_columns([left_col, right_col])
+
+    def _rewrite_pub_intersect(self, node: ccdag.PubIntersect):
+        """
+        Push down trust sets for a PubIntersect node.
+
+        >>> cols_in_left = [defCol("a", "INTEGER", 1, 2, 3), defCol("b", "INTEGER", 1)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> intersected = cc._pub_intersect(left, "intersected", "a")
+        >>> TrustSetPropDown()._rewrite_pub_intersect(intersected)
+        >>> intersected.out_rel.columns[0].dbg_str()
+        'a {1 2 3}'
+        """
+        # TODO make more robust by wrapping two sides of intersect into single operator
+        # This works because we can only run a PubIntersect on a public col
+        node.out_rel.columns[0].trust_set = copy.deepcopy(node.col.trust_set)
+
     def _rewrite_concat(self, node: ccdag.Concat):
         """
         Push down trust sets for a Concat node.
@@ -719,9 +790,10 @@ class TrustSetPropDown(DagRewriter):
 class HybridOperatorOpt(DagRewriter):
     """ DagRewriter subclass specific to hybrid operator optimization rewriting. """
 
-    def __init__(self):
+    def __init__(self, all_pids: set):
 
         super(HybridOperatorOpt, self).__init__()
+        self.all_pids = all_pids
 
     def _rewrite_aggregate(self, node: ccdag.Aggregate):
         """ Convert Aggregate node to HybridAggregate node. """
@@ -732,6 +804,7 @@ class HybridOperatorOpt(DagRewriter):
             group_col_idx = 0
             trust_set = out_rel.columns[group_col_idx].trust_set
             if trust_set:
+                # hybrid agg possible
                 # oversimplifying here. what if there are multiple STPs?
                 STP = sorted(trust_set)[0]
                 hybrid_agg_op = ccdag.HybridAggregate.from_aggregate(node, STP)
@@ -739,9 +812,9 @@ class HybridOperatorOpt(DagRewriter):
                 for par in parents:
                     par.replace_child(node, hybrid_agg_op)
 
-    def _rewrite_reveal_join(self, node: ccdag.RevealJoin):
-        # TODO
-        pass
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
+
+        raise Exception("PublicJoin encountered during HybridOperatorOpt")
 
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
@@ -760,12 +833,26 @@ class HybridOperatorOpt(DagRewriter):
             key_col_idx = 0
             trust_set = out_rel.columns[key_col_idx].trust_set
             if trust_set:
-                # oversimplifying here. what if there are multiple STPs?
-                STP = sorted(trust_set)[0]
-                hybrid_join_op = ccdag.HybridJoin.from_join(node, STP)
-                parents = hybrid_join_op.parents
-                for par in parents:
-                    par.replace_child(node, hybrid_join_op)
+                # for now only support 2-party public join
+                in_stored_with = node.get_left_in_rel().stored_with | node.get_right_in_rel().stored_with
+                if trust_set == self.all_pids and len(in_stored_with) == 2:
+                    # public join possible
+                    public_join_op = ccdag.PublicJoin.from_join(node)
+                    parents = public_join_op.parents
+                    for par in parents:
+                        par.replace_child(node, public_join_op)
+                        # the concat will happen after the public join, under MPC
+                        if isinstance(par, ccdag.Concat):
+                            par.is_mpc = False
+                            par.skip = True
+                else:
+                    # hybrid join possible
+                    # oversimplifying here. what if there are multiple STPs?
+                    STP = sorted(trust_set)[0]
+                    hybrid_join_op = ccdag.HybridJoin.from_join(node, STP)
+                    parents = hybrid_join_op.parents
+                    for par in parents:
+                        par.replace_child(node, hybrid_join_op)
 
 
 # TODO: this class is messy
@@ -837,6 +924,10 @@ class InsertOpenAndCloseOps(DagRewriter):
 
         self._rewrite_default_unary(node)
 
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
+
+        self._rewrite_join(node)
+
     def _rewrite_hybrid_join(self, node: ccdag.HybridJoin):
 
         self._rewrite_join(node)
@@ -875,19 +966,20 @@ class InsertOpenAndCloseOps(DagRewriter):
         """
         Insert a Close op above a Concat node if its parents' stored_with sets do not match its own.
         """
-        assert (not node.is_lower_boundary())
-        out_stored_with = node.out_rel.stored_with
-        ordered_pars = node.get_sorted_parents()
-        for parent in ordered_pars:
-            par_stored_with = parent.out_rel.stored_with
-            if par_stored_with != out_stored_with:
-                out_rel = copy.deepcopy(parent.out_rel)
-                out_rel.rename(out_rel.name + "_close")
-                out_rel.stored_with = copy.copy(out_stored_with)
-                # create and insert close node
-                store_op = ccdag.Close(out_rel, None)
-                store_op.is_mpc = True
-                ccdag.insert_between(parent, node, store_op)
+        if not node.skip:
+            assert (not node.is_lower_boundary())
+            out_stored_with = node.out_rel.stored_with
+            ordered_pars = node.get_sorted_parents()
+            for parent in ordered_pars:
+                par_stored_with = parent.out_rel.stored_with
+                if par_stored_with != out_stored_with:
+                    out_rel = copy.deepcopy(parent.out_rel)
+                    out_rel.rename(out_rel.name + "_close")
+                    out_rel.stored_with = copy.copy(out_stored_with)
+                    # create and insert close node
+                    store_op = ccdag.Close(out_rel, None)
+                    store_op.is_mpc = True
+                    ccdag.insert_between(parent, node, store_op)
 
     def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
         # TODO this is a mess...
@@ -927,7 +1019,16 @@ class ExpandCompositeOps(DagRewriter):
         super(ExpandCompositeOps, self).__init__()
         self.use_leaky_ops = use_leaky_ops
         self.join_counter = 0
+        self.public_join_counter = 0
         self.agg_counter = 0
+
+    def _create_unique_public_join_suffix(self):
+        """
+        Creates a unique string which will be appended to the end of each sub-relation created for each new public
+        join. This prevents relation name overlap in the case of multiple hybrid operators.
+        """
+        self.public_join_counter += 1
+        return "_public_join_" + str(self.public_join_counter)
 
     def _create_unique_join_suffix(self):
         """
@@ -1171,6 +1272,51 @@ class ExpandCompositeOps(DagRewriter):
         else:
             raise Exception("not implemented")
 
+    def _rewrite_public_join(self, node: ccdag.PublicJoin):
+
+        suffix = self._create_unique_public_join_suffix()
+
+        left_parent = node.left_parent
+        right_parent = node.right_parent
+
+        if isinstance(left_parent, ccdag.Concat):
+            left_one = next(op for op in left_parent.parents if op.out_rel.stored_with == {1})
+            left_two = next(op for op in left_parent.parents if op.out_rel.stored_with == {2})
+            left_one.children.remove(left_parent)
+            left_two.children.remove(left_parent)
+            left_parent.skip = True
+        else:
+            raise Exception("Not supported for now")
+
+        if isinstance(right_parent, ccdag.Concat):
+            right_one = next(op for op in right_parent.parents if op.out_rel.stored_with == {1})
+            right_two = next(op for op in right_parent.parents if op.out_rel.stored_with == {2})
+            right_one.children.remove(right_parent)
+            right_two.children.remove(right_parent)
+            right_parent.skip = True
+        else:
+            raise Exception("Not supported for now")
+
+        left_join = cc._pub_join(left_one, "left_join" + suffix, node.left_join_cols[0].name, other_op_node=right_one)
+        right_join = cc._pub_join(left_two, "right_join" + suffix, node.left_join_cols[0].name, is_server=False,
+                                  other_op_node=right_two)
+
+        node.left_parent.children.remove(node)
+        node.right_parent.children.remove(node)
+
+        left_join_closed = cc._close(left_join, "left_join_closed" + suffix, {1, 2, 3})
+        left_join_closed.is_mpc = True
+        right_join_closed = cc._close(right_join, "right_join_closed" + suffix, {1, 2, 3})
+        right_join_closed.is_mpc = True
+
+        joined = cc.concat_cols([left_join_closed, right_join_closed], node.out_rel.name, use_mult=True)
+        joined.is_mpc = True
+        # replace self with leaf of expanded subdag in each child node
+        for child in node.get_sorted_children():
+            child.replace_parent(node, joined)
+        # add former children to children of leaf
+        joined.children = node.children
+
 
 class StoredWithSimplifier(DagRewriter):
     """
@@ -1196,6 +1342,54 @@ class StoredWithSimplifier(DagRewriter):
                 node.out_rel.stored_with = self.all_parties
 
 
+class EliminateSorts(DagRewriter):
+    """
+    Eliminates redundant sorts when possible by tracking sorted columns throughout dag.
+    """
+
+    def __init__(self):
+        super(EliminateSorts, self).__init__()
+        self.sorted_by = None
+
+    def _rewrite_pub_join(self, node: ccdag.PubJoin):
+        # first col is key col
+        self.sorted_by = node.out_rel.columns[0]
+
+    def _rewrite_project(self, node: ccdag.Project):
+        # TODO only here for now to prevent dropped and re-ordered columns from breaking the propagation
+        self.sorted_by = None
+
+    def _order_preserving(self, node: ccdag.OpNode):
+        if self.sorted_by:
+            self.sorted_by = utils.find(node.out_rel.columns, self.sorted_by.name)
+
+    def _non_order_preserving(self):
+        self.sorted_by = None
+
+    def _rewrite_concat_cols(self, node: ccdag.ConcatCols):
+        self._order_preserving(node)
+
+    def _rewrite_filter(self, node: ccdag.Filter):
+        self._order_preserving(node)
+
+    def _rewrite_blackbox(self, node: ccdag.Blackbox):
+        self._non_order_preserving()
+
+    def _rewrite_sort_by(self, node: ccdag.SortBy):
+        self.sorted_by = utils.find(node.out_rel.columns, node.sort_by_col)
+
+    def _rewrite_shuffle(self, node: ccdag.Shuffle):
+        self.sorted_by = None
+
+    def _rewrite_distinct_count(self, node: ccdag.DistinctCount):
+        if node.is_mpc:
+            if node.selected_col == self.sorted_by:
+                node.use_sort = False
+            self.sorted_by = node.out_rel.columns[0]
+        else:
+            self.sorted_by = None
+
+
 def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = False):
     """ Combines and calls all rewrite operations. """
     if all_parties is None:
@@ -1204,10 +1398,11 @@ def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool 
     UpdateColumns().rewrite(dag)
     MPCPushUp().rewrite(dag)
     TrustSetPropDown().rewrite(dag)
-    HybridOperatorOpt().rewrite(dag)
+    HybridOperatorOpt(set(all_parties)).rewrite(dag)
     InsertOpenAndCloseOps().rewrite(dag)
     ExpandCompositeOps(use_leaky_ops).rewrite(dag)
     StoredWithSimplifier(set(all_parties)).rewrite(dag)
+    EliminateSorts().rewrite(dag)
     return dag
 
 

@@ -8,42 +8,24 @@ from conclave.utils import defCol
 
 
 def protocol():
-    left_one_cols = [
-        defCol("a", "INTEGER", 1),
-        defCol("b", "INTEGER", 1)
+    input_columns_left = [
+        defCol("column_a", "INTEGER", [1]),
+        defCol("column_b", "INTEGER", [1])
     ]
-    left_one = cc.create("left_one", left_one_cols, {1})
-
-    right_one_cols = [
-        defCol("c", "INTEGER", 1),
-        defCol("d", "INTEGER", 1)
+    left = cc.create("left", input_columns_left, {1})
+    input_columns_right = [
+        defCol("column_a", "INTEGER", [1]),
+        defCol("column_b", "INTEGER", [1])
     ]
-    right_one = cc.create("right_one", right_one_cols, {1})
-
-    left_two_cols = [
-        defCol("a", "INTEGER", 1),
-        defCol("b", "INTEGER", 1)
-    ]
-    left_two = cc.create("left_two", left_two_cols, {1})
-
-    right_two_cols = [
-        defCol("c", "INTEGER", 1),
-        defCol("d", "INTEGER", 1)
-    ]
-    right_two = cc.create("right_two", right_two_cols, {1})
-
-    left = cc.concat([left_one, left_two], "left")
-    right = cc.concat([right_one, right_two], "right")
-
-    cc.join(left, right, "expected", ["a"], ["c"])
-
-    return {left_one, left_two, right_one, right_two}
+    right = cc.create("right", input_columns_right, {1})
+    cc.distinct_count(cc.concat([left, right], "rel"), "expected", "column_a")
+    return {left, right}
 
 
 if __name__ == "__main__":
     pid = sys.argv[1]
     # define name for the workflow
-    workflow_name = "simple-oblivious-test-" + pid
+    workflow_name = "simple-distinct-count-test-" + pid
     # configure conclave
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.all_pids = [1]
