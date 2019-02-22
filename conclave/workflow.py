@@ -8,7 +8,6 @@ from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
 from conclave.config import SwiftConfig
-from conclave.config import DataverseConfig
 from conclave.config import JiffConfig
 from conclave.utils import *
 
@@ -72,13 +71,6 @@ def setup(conf: Dict):
         swift_config = SwiftConfig(cfg)
         conclave_config.with_swift_config(swift_config)
 
-    elif data_backend == "dataverse":
-        cfg = conf["dataverse"]
-        dv_conf = DataverseConfig(cfg)
-        conclave_config.with_dataverse_config(dv_conf)
-        # dataverse converts all csv uploads to tsv
-        conclave_config.delimiter = '\t'
-
     else:
         print("No remote data backend source listed. Using local storage.\n")
 
@@ -123,13 +115,6 @@ def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str
             protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
         post_swift_data(conclave_config)
-
-    elif conclave_config.data_backend == "dataverse":
-        download_dataverse_data(conclave_config)
-        generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
-        )
-        post_dataverse_data(conclave_config)
 
     else:
         raise Exception("Backend {} not recognized. Exiting computation.".format(conclave_config.data_backend))
