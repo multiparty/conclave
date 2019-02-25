@@ -6,9 +6,6 @@ TODO: Turn this into a dedicated module for working with collusion sets.
 import copy
 import os
 
-from conclave.swift import SwiftData
-from conclave.dataverse import DataverseData
-
 import functools
 import warnings
 
