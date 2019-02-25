@@ -6,7 +6,7 @@ python:
 # blacklist
 branches:
   except:
-  - auto-hybrid-join
+    -
 
 notifications:
   email: true
