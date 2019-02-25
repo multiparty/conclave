@@ -373,7 +373,7 @@ class MPCPushDown(DagRewriter):
 
     def _rewrite_filter(self, node: ccdag.Filter):
 
-        self._rewrite_unary_default(node)
+        self._rewrite_default(node)
 
     def _rewrite_multiply(self, node: ccdag.Multiply):
 
@@ -1376,7 +1376,7 @@ class EliminateSorts(DagRewriter):
         self._non_order_preserving()
 
     def _rewrite_sort_by(self, node: ccdag.SortBy):
-        self.sorted_by = utils.find(node.out_rel.columns, node.sort_by_col)
+        self.sorted_by = utils.find(node.out_rel.columns, node.sort_by_col.name)
 
     def _rewrite_shuffle(self, node: ccdag.Shuffle):
         self.sorted_by = None

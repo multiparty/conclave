@@ -664,7 +664,7 @@ class Filter(UnaryOpNode):
         self.scalar = scalar
         self.operator = operator
         self.filter_col = filter_col
-        self.is_local = True
+        self.is_local = False
 
     def is_reversible(self):
         return False
