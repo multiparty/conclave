@@ -51,7 +51,7 @@ def split_agg(node: ccdag.Aggregate):
     ... defCol("c", "INTEGER", 1),
     ... defCol("d", "INTEGER", 1)]
     >>> in_op = cc.create("rel", cols_in, {1})
-    >>> agged = cc.aggregate(in_op, "agged", ["d"], "c", "+", "total")
+    >>> agged = cc.aggregate(in_op, "agged", ["d"], "c", "sum", "total")
     >>> split_agg(agged)
     >>> agged.out_rel.dbg_str()
     'agged([d {1}, total {1}]) {1}'

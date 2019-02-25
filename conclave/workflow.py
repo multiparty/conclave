@@ -1,6 +1,6 @@
 import yaml
 import argparse
-from typing import Callable, Dict
+# from typing import Callable, Dict
 
 from conclave import generate_and_dispatch
 from conclave import CodeGenConfig
@@ -11,7 +11,7 @@ from conclave.config import SwiftConfig
 from conclave.swift import SwiftData
 
 
-def setup(conf: Dict):
+def setup(conf: dict):
 
     # GENERAL
     pid = conf["pid"]
@@ -98,7 +98,7 @@ def post_data(conclave_config):
     swift_data.close_connection()
 
 
-def run(protocol: Callable, mpc_framework: str="obliv-c", local_framework: str="python"):
+def run(protocol: callable, mpc_framework: str="obliv-c", local_framework: str="python"):
     """
     Load parameters from config, download data from Swift,
     dispatch computation, and push results back to Swift.

@@ -5,6 +5,7 @@ import pystache
 import conclave.dag as ccdag
 from conclave.codegen import CodeGen
 from conclave.job import PythonJob
+from conclave.rel import Column
 
 
 class PythonCodeGen(CodeGen):
@@ -69,15 +70,41 @@ class PythonCodeGen(CodeGen):
         else:
             raise Exception("Unknown aggregator {}".format(agg_op.aggregator))
 
+    @staticmethod
+    def _col_or_scalar(col):
+        return "row[{}]".format(col.idx) if isinstance(col, Column) else str(col)
+
     def _generate_multiply(self, mult_op: ccdag.Multiply):
         """ Generate code for Multiply operations. """
-        operands = [col.idx for col in mult_op.operands]
-        lambda_expr = "lambda row : " + " * ".join(["row[{}]".format(idx) for idx in operands])
+        operands = [self._col_or_scalar(col) for col in mult_op.operands]
+        lambda_expr = "lambda row : " + " * ".join([op for op in operands])
         return "{}{} = arithmetic_project({}, {}, {})\n".format(
             self.space,
             mult_op.out_rel.name,
             mult_op.get_in_rel().name,
             mult_op.target_col.idx,
+            lambda_expr
+        )
+
+    def _generate_divide(self, div_op: ccdag.Divide):
+        """
+        Generate code for Divide operations.
+        >>> from conclave.utils import defCol
+        >>> import conclave.lang as cc
+        >>> from conclave.dag import Dag
+        >>> cols_in_left = [defCol("a", "INTEGER", 1), defCol("b", "INTEGER", 1)]
+        >>> left = cc.create("left", cols_in_left, {1})
+        >>> div = cc.divide(left, "div", "a", ["a", 1, "b"])
+        >>> PythonCodeGen(None, Dag({}), "")._generate_divide(div)
+        'div = arithmetic_project(left, 0, lambda row : int(row[0] / 1 / row[1]))\\n'
+        """
+        operands = [self._col_or_scalar(col) for col in div_op.operands]
+        lambda_expr = "lambda row : int({})".format(" / ".join([op for op in operands]))
+        return "{}{} = arithmetic_project({}, {}, {})\n".format(
+            self.space,
+            div_op.out_rel.name,
+            div_op.get_in_rel().name,
+            div_op.target_col.idx,
             lambda_expr
         )
 

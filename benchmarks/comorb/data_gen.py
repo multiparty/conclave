@@ -54,7 +54,7 @@ def generate_diags_row(num_rows: int, diagnosis_range: int, convert: bool = True
 
 def generate_data(args, fn):
     chunk_size = 1000000
-    with open("/".join([output_data_dir, fn]), "w+") as out:
+    with open("/".join([output_data_dir, fn]), "w") as out:
         format_str = "generating diagnosis data for {} rows with {} distinct codes and seed {}"
         print(format_str.format(args.num_rows, args.diagnosis_range, args.seed))
         num_chunks = int(math.ceil(args.num_rows / chunk_size))  # might be unnecessary
