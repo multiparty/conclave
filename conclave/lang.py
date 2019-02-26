@@ -98,7 +98,7 @@ def aggregate_count(input_op_node: cc_dag.OpNode, output_name: str, group_col_na
     # aggregated. Note that we want copies as these are
     # copies on the output relation and changes to them
     # shouldn't affect the original columns
-    agg_out_col = Column(output_name, agg_out_col_name, len(group_cols), "INTEGER", {})
+    agg_out_col = Column(output_name, agg_out_col_name, len(group_cols), "INTEGER", set())
     out_rel_cols = [copy.deepcopy(group_col) for group_col in group_cols]
     out_rel_cols.append(copy.deepcopy(agg_out_col))
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -288,13 +288,14 @@ def distinct(input_op_node: cc_dag.OpNode, output_name: str, selected_col_names:
     return op
 
 
-def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str, use_sort: bool = False):
+def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_name: str):
     """
     Define DistinctCount operation.
 
     :param input_op_node: Parent node for the node returned by this method.
     :param output_name: Name of returned Distinct node.
-    :param selected_col_names: List of column names the the Distinct operation will key over.
+    :param selected_col_name: Column name the Distinct operation will key over.
+    :param use_sort: flag indicating if sort is necessary or not
     :return: Distinct OpNode.
     """
 
@@ -313,7 +314,7 @@ def distinct_count(input_op_node: cc_dag.OpNode, output_name: str, selected_col_
     out_rel.update_columns()
 
     # Create our operator node
-    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col, use_sort)
+    op = cc_dag.DistinctCount(out_rel, input_op_node, selected_col)
 
     # Add it as a child to input node
     input_op_node.children.add(op)
@@ -404,6 +405,27 @@ def filter_by(input_op_node: cc_dag.OpNode, output_name: str, filter_col_name: s
     return op
 
 
+def _indexes_to_flags(input_op_node: cc_dag.OpNode, lookup_op_node: cc_dag.OpNode, output_name: str, stage: int = 0):
+    # Get input relation from input node
+    in_rel = lookup_op_node.out_rel
+
+    # Get relevant columns and create copies
+    out_rel_cols = [copy.deepcopy(in_rel.columns[0])]
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    # Create our operator node
+    op = cc_dag.IndexesToFlags(out_rel, input_op_node, lookup_op_node, stage)
+
+    # Add it as a child to input nodes
+    input_op_node.children.add(op)
+    lookup_op_node.children.add(op)
+
+    return op
+
+
 def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, output_name: str, left_col_name: str,
           right_col_name: str):
     """
@@ -411,7 +433,7 @@ def union(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, outpu
     """
 
     # Create output column and relation
-    out_col = Column(output_name, left_col_name, 0, "INTEGER", {})
+    out_col = Column(output_name, left_col_name, 0, "INTEGER", set())
     left_stored_with = left_input_node.out_rel.stored_with
     right_stored_with = right_input_node.out_rel.stored_with
     out_rel = rel.Relation(output_name, [out_col], left_stored_with.union(right_stored_with))
@@ -439,7 +461,7 @@ def _pub_intersect(input_node: cc_dag.OpNode,
     """
 
     # Create output column and relation
-    out_col = Column(output_name, col_name, 0, "INTEGER", {})
+    out_col = Column(output_name, col_name, 0, "INTEGER", set())
     left_stored_with = input_node.out_rel.stored_with
     out_rel = rel.Relation(output_name, [out_col], copy.copy(left_stored_with))
     out_rel.update_columns()
@@ -558,7 +580,7 @@ def _pub_join(input_op_node: cc_dag.OpNode, output_name: str, key_col_name: str,
     # Get index of filter column
     key_col = utils.find(in_rel.columns, key_col_name)
     assert key_col.idx == 0
-    key_col.trust_set = set()
+    # key_col.trust_set = set()
 
     # Create output relation
     out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
@@ -754,6 +776,28 @@ def concat(input_op_nodes: list, output_name: str, column_names: [list, None] = 
     return op
 
 
+def blackbox(input_op_nodes: list, output_name: str, column_names: list, backend: str, code: str):
+    # Get input relations from input nodes
+    in_rels = [input_op_node.out_rel for input_op_node in input_op_nodes]
+
+    # Create output columns
+    out_columns = [Column(output_name, col_name, idx, "INTEGER", set()) for idx, col_name in enumerate(column_names)]
+
+    # Create out rel
+    in_stored_with = [in_rel.stored_with for in_rel in in_rels]
+    out_stored_with = set().union(*in_stored_with)
+    out_rel = rel.Relation(output_name, out_columns, out_stored_with)
+
+    # Create our operator node
+    op = cc_dag.Blackbox(out_rel, input_op_nodes, backend, code)
+
+    # Add it as a child to each input node
+    for input_op_node in input_op_nodes:
+        input_op_node.children.add(op)
+
+    return op
+
+
 def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "index"):
     """
     Define Index operation.
@@ -769,6 +813,7 @@ def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "i
     # Copy over columns from existing relation
     out_rel_cols = copy.deepcopy(in_rel.columns)
 
+    # TODO should be 0?
     index_col = rel.Column(
         output_name, idx_col_name, len(in_rel.columns), "INTEGER", set())
     out_rel_cols = [index_col] + out_rel_cols
@@ -782,6 +827,37 @@ def index(input_op_node: cc_dag.OpNode, output_name: str, idx_col_name: str = "i
     input_op_node.children.add(op)
 
     return op
+
+
+def num_rows(input_op_node: cc_dag.OpNode, output_name: str, col_name: str = "len"):
+    # TODO docs
+    in_rel = input_op_node.out_rel
+    # Copy over columns from existing relation
+    len_col = rel.Column(
+        output_name, col_name, len(in_rel.columns), "INTEGER", set())
+    out_rel_cols = [len_col]
+
+    # Create output relation
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    op = cc_dag.NumRows(out_rel, input_op_node, len_col)
+    # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
+
+def _unpermute(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: str, re_indexed_col_name: str):
+    """
+    Given indexes, re-indexes, and sorts by original indexes.
+    """
+    # TODO move this and other internal functions somewhere more appropriate
+    re_indexed = index(input_op_node, input_op_node.out_rel.name + "_reidx", re_indexed_col_name)
+    re_indexed.is_mpc = False
+    unpermuted = sort_by(re_indexed, output_name, sort_by_col_name)
+    re_indexed.is_mpc = False
+    return unpermuted
 
 
 def shuffle(input_op_node: cc_dag.OpNode, output_name: str):
@@ -967,13 +1043,11 @@ def _flag_join(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode, 
                left_col_names: list, right_col_names: list, join_flags_op_node: cc_dag.OpNode):
     """
     Define FlagJoin operation.
+    TODO rename
     """
-
-    join_op = join(left_input_node, right_input_node, output_name, left_col_names, right_col_names)
-    flag_join_op = cc_dag.FlagJoin.from_join(join_op, join_flags_op_node)
-
-    left_input_node.children.remove(join_op)
-    right_input_node.children.remove(join_op)
+    node_out_rel = left_input_node.out_rel
+    out_rel = rel.Relation(output_name, copy.deepcopy(node_out_rel.columns), copy.copy(node_out_rel.stored_with))
+    flag_join_op = cc_dag.FlagJoin(out_rel, left_input_node, right_input_node, [], [], join_flags_op_node)
 
     left_input_node.children.add(flag_join_op)
     right_input_node.children.add(flag_join_op)

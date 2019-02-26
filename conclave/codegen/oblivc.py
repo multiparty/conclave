@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pystache
 
@@ -28,6 +27,7 @@ class OblivcCodeGen(CodeGen):
 
         self.template_directory = template_directory
         self.pid = pid
+        self.in_path = None
 
     def generate(self, job_name: str, output_directory: str):
         """
@@ -125,18 +125,12 @@ class OblivcCodeGen(CodeGen):
 
         stored_with_set = copy.deepcopy(close_op.get_in_rel().stored_with)
 
-        assert(len(stored_with_set) > 0)
-
-        # name of struct that will be read from
-        parent_name = close_op.get_in_rel().name
-
         template = open(
              "{0}/close.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "RELNAME": close_op.out_rel.name,
-            "STORED_WITH": stored_with_set.pop(),
-            "PARENT": parent_name
+            "STORED_WITH": stored_with_set.pop()
          }
 
         return pystache.render(template, data)
@@ -425,8 +419,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for DistinctCount operations.
         """
 
-        template = open(
-            "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        if distinct_count_op.use_sort:
+            template = open(
+                "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/distinct_count_presorted.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "IN_REL": distinct_count_op.get_in_rel().name,
@@ -447,53 +445,34 @@ class OblivcCodeGen(CodeGen):
         data = {
             "OC_COMP_PATH": self.oc_config.oc_path,
             "IP_AND_PORT": self.oc_config.ip_and_port,
-            "PATH": self.config.code_path + job_name
+            "PATH": "{0}/{1}".format(self.config.code_path, job_name)
         }
 
         return pystache.render(template, data)
 
-    def _generate_header(self):
+    def _generate_header_json(self):
         """
         Generate header file that stores struct data.
         """
 
         nodes = self.dag.top_sort()
 
-        io_str = ""
+        in_path = ''
 
         for node in nodes:
             if isinstance(node, Create):
-                io_str += "\tIo {};\n".format(node.out_rel.name)
+                if int(self.pid) in node.out_rel.stored_with:
+                    in_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
 
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
-        structs_code = ''
-
-        for in_rel in self.create_params.keys():
-            structs_code += "\tIo {};\n".format(in_rel)
-
         data = {
-            "STRUCTS": structs_code,
-            "IO_STR": io_str,
+            "IN_PATH": in_path,
             "TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
-
-    def _add_to_struct_code(self, node):
-        """
-        Generates code to pass locally held data to MPC computation.
-        """
-
-        node_name = node.out_rel.name
-
-        path_str = "\tchar *{0}_src = \"{1}/{2}.csv\";\n".format(node_name, self.config.input_path, node_name)
-        cols_str = "\tio.{0}.cols = {1};\n".format(node_name, len(node.out_rel.columns))
-        rows_str = "\tio.{0}.rows = countRows({0}_src, io.{0}.cols);\n".format(node_name)
-        load_str = "\tloadData(&io.{0}.mat, {0}_src);\n".format(node_name)
-
-        return "".join([path_str, cols_str, rows_str, load_str])
 
     def _generate_controller(self):
         """
@@ -503,35 +482,28 @@ class OblivcCodeGen(CodeGen):
         nodes = self.dag.top_sort()
 
         out_path = ''
-        struct_code = ''
+        in_path = ''
         write_str = ''
-        mock_str = ''
 
         for node in nodes:
             if isinstance(node, Create):
                 if int(self.pid) in node.out_rel.stored_with:
-                    struct_code += self._add_to_struct_code(node)
-                else:
-                    load_str = "\tloadMockData(&io.{0});\n".format(node.out_rel.name)
-                    col_str = "\tio.{0}.cols = COLS;\n".format(node.out_rel.name)
-                    row_str = "\tio.{0}.rows = ROWS;\n".format(node.out_rel.name)
-                    mock_str += "".join([load_str, col_str, row_str])
+                    in_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
+                    self.in_path = in_path
 
             if isinstance(node, Open):
                 if int(self.pid) in node.out_rel.stored_with:
-                    out_path = node.out_rel.name
+                    out_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
                     write_str += 'writeData(&io);'
-
-        struct_code += mock_str
 
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "PID": self.pid,
-            "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid)),
+            "OUTPUT_PATH": out_path,
+            "INPUT_PATH": in_path,
             "WRITE_CODE": write_str,
-            "STRUCT_CODE": struct_code,
             "TYPE": 'g' if self.config.use_floats else 'i',
             "TYPE_CONV_STR": 'atof' if self.config.use_floats else 'atoi',
             "NUM_TYPE": 'float' if self.config.use_floats else 'int'
@@ -549,8 +521,8 @@ class OblivcCodeGen(CodeGen):
         oc_file = open("{}/{}/workflow.oc".format(self.config.code_path, job_name), 'w')
         oc_file.write(code)
 
-        header_code = self._generate_header()
-        header = open("{}/{}/workflow.h".format(self.config.code_path, job_name), 'w')
+        header_code = self._generate_header_json()
+        header = open("{}/{}/header_params.json".format(self.config.code_path, job_name), 'w')
         header.write(header_code)
 
         controller_code = self._generate_controller()

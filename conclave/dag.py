@@ -50,6 +50,7 @@ class OpNode(Node):
         # where this is not the case
         self.is_local = False
         self.is_mpc = False
+        self.skip = False
 
     def is_boundary(self):
         """ Returns whether this node is at an MPC boundary. """
@@ -396,6 +397,18 @@ class Concat(NaryOpNode):
         self.out_rel.update_columns()
 
 
+class Blackbox(NaryOpNode):
+    """ Blackbox operator for backend-specific functionality """
+
+    def __init__(self, out_rel: rel.Relation, parents: list, backend: str, code: str):
+        """ Initialize a Blackbox object. """
+        parent_set = set(parents)
+        super(Blackbox, self).__init__("blackbox", out_rel, parent_set)
+        self.ordered = parents
+        self.backend = backend
+        self.code = code
+
+
 class Aggregate(UnaryOpNode):
     """ Object to store an aggregation over data. """
 
@@ -492,6 +505,20 @@ class Index(UnaryOpNode):
 
     def is_reversible(self):
         """ Output is just the input with an index column appended to it. """
+        return True
+
+
+class NumRows(UnaryOpNode):
+    """ Output num rows of input to a relation. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, col_name: str):
+        """ Initialize NumRows object"""
+        super(NumRows, self).__init__("num_rows", out_rel, parent)
+        # Need to communicate size so can't be local
+        self.is_local = False
+        self.col_name = col_name
+
+    def is_reversible(self):
         return True
 
 
@@ -600,14 +627,15 @@ class DistinctCount(UnaryOpNode):
     Distinct count operator.
     """
 
-    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str, use_sort: bool):
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, selected_col: str):
         super(DistinctCount, self).__init__("distinct_count", out_rel, parent)
         self.selected_col = selected_col
         self.is_reversible = False
-        self.use_sort = use_sort
+        self.use_sort = True
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
+        # TODO shouldn't be a copy
         old_col = copy.copy(self.selected_col)
         self.selected_col = temp_cols[old_col.idx] if isinstance(old_col, rel.Column) else old_col
 
@@ -659,6 +687,7 @@ class Filter(UnaryOpNode):
             self.other_col = temp_cols[self.other_col.idx]
 
 
+# TODO rename
 class PubJoin(BinaryOpNode):
 
     def __init__(self, out_rel: rel.Relation, parent: OpNode, key_col: rel.Column, host: str, port: int,
@@ -684,9 +713,9 @@ class Join(BinaryOpNode):
 
     def update_op_specific_cols(self):
         self.left_join_cols = [self.get_left_in_rel().columns[left_join_col.idx]
-                               for left_join_col in copy.copy(self.left_join_cols)]
+                               for left_join_col in self.left_join_cols]
         self.right_join_cols = [self.get_right_in_rel().columns[right_join_col.idx]
-                                for right_join_col in copy.copy(self.right_join_cols)]
+                                for right_join_col in self.right_join_cols]
 
 
 class FilterBy(BinaryOpNode):
@@ -707,6 +736,19 @@ class FilterBy(BinaryOpNode):
         self.filter_col = temp_cols[self.filter_col.idx]
 
 
+class IndexesToFlags(BinaryOpNode):
+    """
+    TODO
+    """
+
+    def __init__(self, out_rel: rel.Relation, input_op_node: OpNode,
+                 lookup_op_node: OpNode, stage=0):
+        # if len(lookup_op_node.out_rel.columns) != 1:
+        #     raise Exception("lookup_op_node must have single column output relation")
+        super(IndexesToFlags, self).__init__("indexes_to_flags", out_rel, input_op_node, lookup_op_node)
+        self.stage = stage
+
+
 class Union(BinaryOpNode):
     """
     Operator for union of given columns.
@@ -720,8 +762,8 @@ class Union(BinaryOpNode):
 
     def update_op_specific_cols(self):
         temp_cols = self.get_left_in_rel().columns
-        self.left_col = copy.copy(temp_cols[self.left_col.idx])
-        self.right_col = copy.copy(temp_cols[self.right_col.idx])
+        self.left_col = temp_cols[self.left_col.idx]
+        self.right_col = temp_cols[self.right_col.idx]
 
 
 class PubIntersect(UnaryOpNode):
@@ -743,7 +785,7 @@ class PubIntersect(UnaryOpNode):
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
-        self.col = copy.copy(temp_cols[self.col.idx])
+        self.col = temp_cols[self.col.idx]
 
 
 class JoinFlags(Join):
@@ -813,34 +855,27 @@ class FlagJoin(Join):
                   join_op.left_join_cols, join_op.right_join_cols, join_flags_op)
         return obj
 
+    def update_op_specific_cols(self):
+        pass
 
-class RevealJoin(Join):
-    """Join Optimization
 
-    applies when the result of a join
-    and one of its inputs is known to the same party P. Instead
-    of performing a complete oblivious join, all the rows
-    of the other input relation can be revealed to party P,
-    provided that their key column a key in P's input.
-    """
+class PublicJoin(Join):
 
-    # TODO: (ben) recipient == pid (int) ?
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,
-                 left_join_cols: list, right_join_cols: list, revealed_in_rel: rel.Relation, recepient):
-        super(RevealJoin, self).__init__(out_rel, left_parent,
+                 left_join_cols: list, right_join_cols: list):
+        super(PublicJoin, self).__init__(out_rel, left_parent,
                                          right_parent, left_join_cols, right_join_cols)
-        self.name = "revealJoin"
-        self.revealed_in_rel = revealed_in_rel
-        self.recepient = recepient
-        self.is_mpc = True
+        self.name = "public_join"
 
     @classmethod
-    def from_join(cls, join_op: Join, revealed_in_rel: rel.Relation, recepient):
+    def from_join(cls, join_op: Join):
         obj = cls(join_op.out_rel, join_op.left_parent, join_op.right_parent,
-                  join_op.left_join_cols, join_op.right_join_cols, revealed_in_rel, recepient)
+                  join_op.left_join_cols, join_op.right_join_cols)
+        obj.children = join_op.children
+        for child in obj.children:
+            child.replace_parent(join_op, obj)
         return obj
 
-    # TODO: remove?
     def update_op_specific_cols(self):
         self.left_join_cols = [self.get_left_in_rel().columns[c.idx]
                                for c in self.left_join_cols]

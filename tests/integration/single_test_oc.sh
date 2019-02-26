@@ -11,7 +11,8 @@ kill_c_procs() {
 trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}/obliv-c/
+# export PYTHONPATH=${PYTHONPATH}:/${HOME}/Desktop/conclave
 
 # set up data
 mkdir -p ${DIR}/data
@@ -28,8 +29,16 @@ else
 	cp $DIR/input_data/*.csv $DIR/data/
 fi
 
-python3.5 ${DIR}/obliv-c/real.py --conf /home/ubuntu/cc-local/cfg-one.json
-python3.5 ${DIR}/obliv-c/real.py --conf /home/ubuntu/cc-local/cfg-two.json
+
+# run python workflow to generate expected results
+python3.5 ${DIR}/simple.py 1
+
+# run real workflow
+for i in 1 2 3;
+do
+    python3 ${DIR}/real.py ${i} &
+done
+wait
 
 # verify results
 python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv

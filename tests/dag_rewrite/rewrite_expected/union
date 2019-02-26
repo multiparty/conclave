@@ -1,3 +1,3 @@
 CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
 CREATE RELATION in_2([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-in_1([a {1}, b {1}]) {1} UNION in_2([a {1}, b {1}]) {1} ON a a AS rel([a {}]) {1}
+in_1([a {1}, b {1}]) {1} UNION in_2([a {1}, b {1}]) {1} ON a a AS rel([a {1}]) {1}

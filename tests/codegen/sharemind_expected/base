@@ -7,8 +7,10 @@ import matrix;
 import shared3p_join;
 import shared3p_random;
 import shared3p_sort;
+import oblivious;
 
 domain pd_shared3p shared3p;
+
 
 template <domain D : shared3p>
 D uint32[[2]] stretch(D uint32[[2]] rel, uint stretchBy) {
@@ -434,12 +436,7 @@ D uint32[[2]] flagJoin(D uint32[[2]] eqFlags, D uint32[[2]] left, uint leftJoinC
     uint nrowsRight = shape(right)[0];
     D uint32[[2]] leftStretched = stretch(left, nrowsRight);
     D uint32[[2]] rightDupped = duplicate(right, nrowsLeft);
-    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], 
-        leftStretched, 
-        leftJoinCol, 
-        rightDupped, 
-        rightJoinCol, 
-        true);
+    D uint32[[2]] res = joinFromEqFlags(eqFlags[:,0], leftStretched, leftJoinCol, rightDupped, rightJoinCol, true);
     return project(res, colsToKeep);
 }
 
@@ -447,10 +444,11 @@ template <domain D : shared3p>
 uint32[[2]] declassifyWrapper(D uint32[[2]] rows, bool filter) {
     if (filter) {
         uint ncols = shape(rows)[1];
+        D uint32[[2]] shuffled = shuffleRows(rows);
         return declassify(
             filterByKeepFlags(
-                rows[:,:ncols - 1],
-                declassify(rows[:,ncols - 1])
+                shuffled[:,:ncols - 1],
+                declassify(shuffled[:,ncols - 1])
             )
         );
     } else {
@@ -525,34 +523,160 @@ D uint32[[2]] distinctCount(D uint32[[2]] rows, uint keyCol, bool useSort) {
 
     D uint32 [[2]] sorted;
     if (useSort) {
+        input[:,0] = (input[:,0] * input[:,1]) + (1 - input[:,1]) * (-1);
         print("start sort");
         sorted = sortingNetworkSort(input, (uint) 0);
         print("done sort");
     } else {
         sorted = input;
+        for (uint r = 1; r < nrows; r+=1) {
+            D uint32 this = sorted[r, 0];
+            D uint32 prev = sorted[r - 1, 0];
+            sorted[r, 0] = sorted[r, 1] * (this - prev) + prev;
+        }
+        pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
+        pd_shared3p uint32[[1]] right = sorted[1:,0];
+
+        pd_shared3p uint32[[1]] eqFlags = 1 - (uint32)(left == right);
+        pd_shared3p uint32[[1]] eqFlagsPlusOne(nrows);
+        eqFlagsPlusOne[:nrows-1] = eqFlags;
+        eqFlagsPlusOne[nrows-1] = 1;
+        D uint32 [[1]] final = eqFlagsPlusOne;
+
+        D uint32 [[2]] res(1, 2);
+        // we are over by one if the first entries are dummies
+        // TODO account for case where we only have one distinct entry
+        D uint32 isFirstDummy = 1 - sorted[0, 1];
+        res[0,0] = sum(final) - isFirstDummy;
+        res[0,1] = 1;
+        print("done distinctCount");
+        return res;
     }
 
     pd_shared3p uint32[[1]] left = sorted[0:nrows-1,0];
     pd_shared3p uint32[[1]] right = sorted[1:,0];
 
-
-//    print(size(left));
-//    print(size(right));
     pd_shared3p uint32[[1]] eqFlags = 1 - (uint32)(left == right);
     pd_shared3p uint32[[1]] eqFlagsPlusOne(nrows);
     eqFlagsPlusOne[:nrows-1] = eqFlags;
     eqFlagsPlusOne[nrows-1] = 1;
-//    print(size(eqFlagsPlusOne));
-//    print(nrows);
-//    printVector(declassify(eqFlagsPlusOne));
-//    printVector(declassify(sorted[:,1]));
-    D uint32 [[1]] final = eqFlagsPlusOne * sorted[:,1];
-//    printVector(declassify(foo));
+    D uint32 [[1]] final = eqFlagsPlusOne;
 
     D uint32 [[2]] res(1, 2);
     res[0,0] = sum(final);
     res[0,1] = 1;
     print("done distinctCount");
     return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] _index(D uint32[[2]] values, D uint32[[1]] flags) {
+    uint nrows = shape(values)[0];
+    uint ncols = shape(values)[1];
+    D uint32[[2]] res(nrows, ncols + 2);
+    res[ : , 2 : ncols + 2] = values;
+    uint32[[1]] indexes(nrows);
+    for (uint idx = 0; idx < nrows; ++idx) {
+        indexes[idx] = (uint32) idx;
+    }
+    res[ : , 0] = (uint32) indexes;
+    res[ : , 1] = flags;
+    return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] _pad(D uint32[[2]] values, uint numPads) {
+    uint nrows = shape(values)[0];
+    uint ncols = shape(values)[1];
+    D uint32[[2]] res(nrows + numPads, ncols);
+    uint32[[2]] pads(numPads, ncols);
+    res[: nrows, :] = values;
+    res[nrows : , :] = (uint32) pads;
+    return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] oblIdxStepOne(string prefix, D uint32[[2]] input, D uint32[[2]] encodedWrapped, D uint32[[2]] numLookupsWrapped) {
+    uint numLookups = (uint) declassify(numLookupsWrapped[0 , 0]);
+    pd_shared3p uint32[[1]] encoded = encodedWrapped[ : , 0];
+    pd_shared3p uint32[[2]] indexed = _index(input, encoded);
+
+    pd_shared3p uint32[[2]] padded = _pad(indexed, numLookups);
+    //pd_shared3p uint32[[2]] shuffled = shuffleRows(padded);
+    pd_shared3p uint32[[2]] shuffled = padded;
+
+    uint numShuffledCols = shape(shuffled)[1];
+    pd_shared3p uint32[[2]] indexesAndFlags = shuffled[ : , 0 : 2];
+
+    persist("DS1", prefix + "_shuffled_shark", shuffled[ : , 1 : ]);
+    //publish(prefix + "_indexes_and_flags", declassify(indexesAndFlags));
+    return indexesAndFlags;
+}
+
+
+
+template <domain D : shared3p>
+D uint32[[2]] rearrangeByIndexes(D uint32[[2]] rel, uint32[[1]] indexes) {
+    uint nrows = shape(rel)[0];
+    uint ncols = shape(rel)[1];
+    uint nindexes = size(indexes);
+    pd_shared3p uint32 [[2]] res(nrows, ncols);
+    for (uint r = 0; r < nindexes; ++r) {
+        uint idx = (uint) indexes[r];
+        res[r , : ] = rel[idx , : ];
+    }
+    // remove excess dummy elements and lookup column
+    return res[ : nindexes, : ];
+}
+
+template <domain D : shared3p>
+D uint32[[2]] rearrangeByIndexesOther(D uint32[[2]] rel, uint32[[1]] indexes) {
+    uint nrows = shape(rel)[0];
+    uint ncols = shape(rel)[1];
+    uint nindexes = size(indexes);
+    pd_shared3p uint32 [[2]] res(nrows, ncols);
+    for (uint r = 0; r < nindexes; ++r) {
+        uint idx = (uint) indexes[r];
+        res[idx , : ] = rel[r , : ];
+    }
+    return res;
+}
+
+template <domain D : shared3p>
+D uint32[[2]] obliviousCopy(D uint32[[2]] rel, uint flagColumn) {
+    uint nrows = shape(rel)[0];
+    D bool[[1]] eqFlags = (bool) rel[ : , flagColumn]; // should be bool to begin with?
+    for (uint r = 0; r < nrows - 1; r+=1) {
+        D uint32[[1]] left = rel[r , : ];
+        D uint32[[1]] right = rel[r + 1 , :];
+        D bool eqFlag = eqFlags[r + 1];
+        rel[r + 1, : ] = choose(eqFlag, right, left);
+    }
+    return rel[ : , 1 : ];
+}
+
+template <domain D : shared3p>
+D uint32 [[2]] oblIdxStepTwo(string prefix, D uint32 [[2]] indexes_closed, D uint32 [[2]] original_ordering_closed) {
+    D uint32 [[2]] shuffled_shark = readFromDb("DS1", prefix + "_shuffled_shark");
+    //uint32 [[1]] shark_indexes = declassify(readFromDb("DS1", prefix + "_shark_indexes"))[ : , 0];
+    uint32 [[1]] shark_indexes = declassify(indexes_closed)[ : , 0];
+    //uint32 [[1]] original_ordering = declassify(readFromDb("DS1", prefix + "_original_ordering"))[ : , 0];
+    uint32 [[1]] original_ordering = declassify(original_ordering_closed)[ : , 0];
+    D uint32 [[2]] rearranged = rearrangeByIndexes(shuffled_shark, shark_indexes);
+    D uint32 [[2]] copied = obliviousCopy(rearranged, (uint) 0);
+    return rearrangeByIndexesOther(copied, original_ordering);
+}
+
+template <domain D : shared3p>
+D uint32 [[2]] combineJoinSides(D uint32 [[2]] left_side, D uint32 [[2]] right_side) {
+    assert(shape(left_side)[0] == shape(right_side)[0]);
+    assert(shape(left_side)[1] == shape(right_side)[1]);
+    uint nrows = shape(left_side)[0];
+    uint ncols = shape(left_side)[1];
+    D uint32 [[2]] shark_joined(nrows, 2 * ncols - 1);
+    shark_joined[ : , : ncols] = left_side[ : , : ];
+    shark_joined[ : , ncols: ] = right_side[ : , 1 : ]; // skip redundant key-column
+    D uint32 [[2]] joined_and_shuffled = shuffleRows(shark_joined);
+    return joined_and_shuffled;
 }
 

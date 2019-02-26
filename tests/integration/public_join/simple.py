@@ -8,21 +8,36 @@ from conclave.utils import defCol
 
 
 def protocol():
-    left_cols = [
-        defCol("a", "INTEGER", [1]),
-        defCol("b", "INTEGER", [1])
+    left_one_cols = [
+        defCol("a", "INTEGER", 1),
+        defCol("b", "INTEGER", 1)
     ]
-    left = cc.create("left", left_cols, {1})
+    left_one = cc.create("left_one", left_one_cols, {1})
 
-    right_cols = [
-        defCol("c", "INTEGER", [1]),
-        defCol("d", "INTEGER", [1])
+    right_one_cols = [
+        defCol("c", "INTEGER", 1),
+        defCol("d", "INTEGER", 1)
     ]
-    right = cc.create("right", right_cols, {1})
+    right_one = cc.create("right_one", right_one_cols, {1})
+
+    left_two_cols = [
+        defCol("a", "INTEGER", 1),
+        defCol("b", "INTEGER", 1)
+    ]
+    left_two = cc.create("left_two", left_two_cols, {1})
+
+    right_two_cols = [
+        defCol("c", "INTEGER", 1),
+        defCol("d", "INTEGER", 1)
+    ]
+    right_two = cc.create("right_two", right_two_cols, {1})
+
+    left = cc.concat([left_one, left_two], "left")
+    right = cc.concat([right_one, right_two], "right")
 
     cc.join(left, right, "expected", ["a"], ["c"])
 
-    return {left, right}
+    return {left_one, left_two, right_one, right_two}
 
 
 if __name__ == "__main__":

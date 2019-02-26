@@ -2,9 +2,9 @@ import os
 import sys
 
 import conclave.lang as cc
-from conclave import generate_code, dispatch_jobs, workflow
+from conclave import generate_code, dispatch_jobs
+from conclave.config import CodeGenConfig, OblivcConfig, SharemindCodeGenConfig
 from conclave.utils import defCol
-from conclave.config import CodeGenConfig, OblivcConfig
 
 
 def protocol_mpc():
@@ -31,11 +31,9 @@ def protocol_mpc():
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
     right_keys = cc.union(right_medication, right_diagnosis, "right_pids", pid_col_meds, pid_col_diags)
 
-    left_shared_pids = cc._pub_intersect(
-        left_keys, "a_left_shared_pids", pid_col_meds, host='10.10.10.17')
+    left_shared_pids = cc._pub_intersect(left_keys, "a_left_shared_pids", pid_col_meds)
     cc._persist(left_shared_pids, "a_left_shared_pids")
-    right_shared_pids = cc._pub_intersect(
-        right_keys, "a_right_shared_pids", pid_col_meds, is_server=False, host='10.10.10.17')
+    right_shared_pids = cc._pub_intersect(right_keys, "a_right_shared_pids", pid_col_meds, is_server=False)
     cc._persist(right_shared_pids, "a_right_shared_pids")
 
     left_medication_proj = cc.project(left_medication, "left_medication_proj",
@@ -58,9 +56,9 @@ def protocol_mpc():
                                           right_shared_pids)
 
     left_join = cc._pub_join(left_medication_shared, "left_join", pid_col_meds,
-                             other_op_node=left_diagnosis_shared, host='10.10.10.17')
+                             other_op_node=left_diagnosis_shared)
     right_join = cc._pub_join(right_medication_shared, "right_join", pid_col_meds, is_server=False,
-                              other_op_node=right_diagnosis_shared, host='10.10.10.17')
+                              other_op_node=right_diagnosis_shared)
     joined = cc.concat_cols([left_join, right_join], "joined", use_mult=True)
 
     # do filters after the join
@@ -148,15 +146,17 @@ def local_main():
         # configure conclave
         conclave_config = CodeGenConfig(workflow_name, int(pid))
         conclave_config.all_pids = [int(pid)]
-        oc_conf = OblivcConfig("/home/ubuntu/obliv-c/bin/oblivcc", "localhost:9000")
-        conclave_config.with_oc_config(oc_conf)
-
-        conclave_config.code_path = os.path.join("/tmp", workflow_name)
+        sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=False, use_hdfs=False)
+        conclave_config.with_sharemind_config(sharemind_conf)
+        # point conclave to the directory where the generated code should be stored/ read from
+        conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+        # point conclave to directory where data is to be read from...
         conclave_config.input_path = data_path
+        # and written to
         conclave_config.output_path = data_path
         suffix = "left" if pid == "1" else "right"
         # define this party's unique ID (in this demo there is only one party)
-        job_queue = generate_code(lambda: protocol_local(suffix, int(pid)), conclave_config, ["obliv-c"], ["python"],
+        job_queue = generate_code(lambda: protocol_local(suffix, int(pid)), conclave_config, ["sharemind"], ["python"],
                                   apply_optimizations=False)
         dispatch_jobs(job_queue, conclave_config)
 
@@ -170,10 +170,35 @@ def local_main():
     write_rel(data_path, "actual_open.csv", res, "1")
 
 
-if __name__ == "__main__":
-    workflow.run(protocol_mpc, mpc_framework="obliv-c", local_framework="python", apply_optimisations=True)
+def main_mpc(pid: str):
+    try:
+        use_leaky = sys.argv[2] == "-l"
+    except Exception:
+        use_leaky = False
 
+    # define name for the workflow
+    workflow_name = "real-aspirin-partitioned-" + pid
+    # configure conclave
+    conclave_config = CodeGenConfig(workflow_name, int(pid))
+    conclave_config.all_pids = [1, 2]
+    conclave_config.use_leaky_ops = use_leaky
+
+    oc_conf = OblivcConfig("/home/ubuntu/obliv-c/bin/oblivcc", "localhost:9000")
+    conclave_config.with_oc_config(oc_conf)
+
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    # point conclave to the directory where the generated code should be stored/ read from
+    conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+    # point conclave to directory where data is to be read from...
+    conclave_config.input_path = os.path.join(current_dir, "data")
+    # and written to
+    conclave_config.output_path = os.path.join(current_dir, "data")
+    job_queue = generate_code(protocol_mpc, conclave_config, ["obliv-c"], ["python"], apply_optimizations=True)
+    dispatch_jobs(job_queue, conclave_config)
+
+
+if __name__ == "__main__":
     top_pid = sys.argv[1]
+    main_mpc(top_pid)
     if top_pid == "1":
         local_main()
-

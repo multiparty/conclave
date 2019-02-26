@@ -20,8 +20,11 @@ int main(int argc, char **argv)
   	ProtocolDesc pd;
 	protocolIo io;
 	io.out = "{{{OUTPUT_PATH}}}";
+	char *inSrc = "{{{INPUT_PATH}}}";
+    io.in.cols = COLS;
+    io.in.rows = ROWS;
 
-{{{STRUCT_CODE}}}
+    loadData(&io.in.mat, inSrc);
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
@@ -78,48 +81,6 @@ void displayData(protocolIo *io)
     }
 }
 
-int countRows(char *src, int cols)
-{
-	char buffer[1024];
-  	char *record, *line;
-
-	FILE *fstream = fopen(src, "r");
-
-	if (fstream == NULL)
-	{
-	      printf("\n file opening failed ");
-	}
-
-	// skip header
-    fgets(buffer, sizeof(buffer), fstream);
-
-	int numRecords = 0;
-	while((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
-	{
-		record = strtok(line, ",");
-		while(record != NULL)
-		{
-			numRecords++;
-			record = strtok(NULL,",");
-		}
-	}
-
-	int numRows = numRecords / cols;
-
-	return numRows;
-}
-
-void loadMockData({{{NUM_TYPE}}} mat[ROWS][COLS])
-{
-    for (int i = 0; i < 1000; i++)
-    {
-        for (int j = 0; j < 50; j++)
-        {
-            mat[i][j] = 0;
-        }
-    }
-}
-
 void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src)
 {
   	char buffer[1024];
@@ -135,12 +96,12 @@ void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src)
 	// skip header
 	fgets(buffer, sizeof(buffer), fstream);
 
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < ROWS; i++)
 	{
 		if ((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
 		{
 			record = strtok(line, ",");
-			for (int j = 0; j < 50; j++)
+			for (int j = 0; j < COLS; j++)
 			{
 				if (record != NULL)
 				{
@@ -149,15 +110,8 @@ void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src)
 				}
 				else
 				{
-					mat[i][j] = 1;
+					printf("No record here.");
 				}
-			}
-		}
-		else
-		{
-			for (int j = 0; j < 50; j++)
-			{
-				mat[i][j] = 1;
 			}
 		}
 	}

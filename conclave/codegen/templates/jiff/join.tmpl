@@ -1,2 +1,4 @@
 
-    var {{{OUTREL}}} = join({{{LEFTREL}}}, {{{RIGHTREL}}}, {{{LEFT_JOINCOL}}}, {{{RIGHT_JOINCOL}}});
+        var {{{OUTREL}}}RESULT = join({{{LEFTREL}}}, {{{RIGHTREL}}}, {{{LEFTREL}}}KeepRows, {{{RIGHTREL}}}KeepRows, {{{LEFT_JOINCOL}}}, {{{RIGHT_JOINCOL}}});
+        var {{{OUTREL}}} = {{{OUTREL}}}RESULT[0];
+        var {{{OUTREL}}}KeepRows = {{{OUTREL}}}RESULT[1];

@@ -1,0 +1,49 @@
+CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
+CLOSEMPC in_1([a {1}, b {1}]) {1} INTO in_1_close([a {1}, b {1}]) {1, 2, 3}
+CREATE RELATION in_2([c {1 2}, d {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
+CLOSEMPC in_2([c {1 2}, d {2}]) {2} INTO in_2_close([c {1 2}, d {2}]) {1, 2, 3}
+SHUFFLEMPC (in_1_close([a {1}, b {1}]) {1, 2, 3}) AS left_shuffled_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}
+PERSISTMPC left_shuffled_hybrid_join_1([a {1}, b {1}]) {1, 2, 3} INTO left_persisted_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}
+PROJECTMPC [a] FROM (left_shuffled_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}) AS left_keys_closed_hybrid_join_1([a {}]) {1, 2, 3}
+OPENMPC left_keys_closed_hybrid_join_1([a {}]) {1, 2, 3} INTO left_keys_open_hybrid_join_1([a {}]) {1}
+INDEX (left_keys_open_hybrid_join_1([a {}]) {1}) AS left_indexed_hybrid_join_1([lidx {}, a {}]) {1}
+SHUFFLEMPC (in_2_close([c {1 2}, d {2}]) {1, 2, 3}) AS right_shuffled_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3}
+PERSISTMPC right_shuffled_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3} INTO right_persisted_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3}
+PROJECTMPC [c] FROM (right_shuffled_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3}) AS right_keys_closed_hybrid_join_1([c {}]) {1, 2, 3}
+OPENMPC right_keys_closed_hybrid_join_1([c {}]) {1, 2, 3} INTO right_keys_open_hybrid_join_1([c {}]) {1}
+INDEX (right_keys_open_hybrid_join_1([c {}]) {1}) AS right_indexed_hybrid_join_1([ridx {}, c {}]) {1}
+(left_indexed_hybrid_join_1([lidx {}, a {}]) {1}) JOIN (right_indexed_hybrid_join_1([ridx {}, c {}]) {1}) ON [a] AND [c] AS joined_indexes_hybrid_join_1([a {}, lidx {}, ridx {}]) {1}
+PROJECT [ridx] FROM (joined_indexes_hybrid_join_1([a {}, lidx {}, ridx {}]) {1}) AS indexes_right_hybrid_join_1([ridx {}]) {1}
+INDEX (indexes_right_hybrid_join_1([ridx {}]) {1}) AS indexes_right_hybrid_join_1_reidx([rr {}, ridx {}]) {1}
+PERSIST indexes_right_hybrid_join_1([ridx {}]) {1} INTO indexes_right_hybrid_join_1([ridx {}]) {1}
+PROJECT [lidx] FROM (joined_indexes_hybrid_join_1([a {}, lidx {}, ridx {}]) {1}) AS indexes_left_hybrid_join_1([lidx {}]) {1}
+NUM_ROWS indexes_left_hybrid_join_1([lidx {}]) {1} AS num_lookups_hybrid_join_1([len {}]) {1}
+CLOSEMPC num_lookups_hybrid_join_1([len {}]) {1} INTO num_lookups_closed_hybrid_join_1([len {}]) {1, 2, 3}
+INDEX (indexes_left_hybrid_join_1([lidx {}]) {1}) AS indexes_left_hybrid_join_1_reidx([ll {}, lidx {}]) {1}
+SORTBY lidx FROM (indexes_left_hybrid_join_1_reidx([ll {}, lidx {}]) {1}) AS left_unpermuted_hybrid_join_1([ll {}, lidx {}]) {1}
+PROJECT [lidx] FROM (left_unpermuted_hybrid_join_1([ll {}, lidx {}]) {1}) AS left_unpermuted_proj_hybrid_join_1([lidx {}]) {1}
+IDX_TO_FLAGS left_indexed_hybrid_join_1([lidx {}, a {}]) {1} left_unpermuted_proj_hybrid_join_1([lidx {}]) {1} AS left_encoded_hybrid_join_1([lidx {}]) {1}
+CLOSEMPC left_encoded_hybrid_join_1([lidx {}]) {1} INTO left_encoded_closed_hybrid_join_1([lidx {}]) {1, 2, 3}
+(left_persisted_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}) FLAGJOINMPC (left_encoded_closed_hybrid_join_1([lidx {}]) {1, 2, 3}) WITH FLAGS (num_lookups_closed_hybrid_join_1([len {}]) {1, 2, 3}) ON [] AND [] AS left_flags_and_indexes_closed_hybrid_join_1([a {1}, b {1}]) {1, 2, 3}
+OPENMPC left_flags_and_indexes_closed_hybrid_join_1([a {1}, b {1}]) {1, 2, 3} INTO left_flags_and_indexes_hybrid_join_1([a {1}, b {1}]) {1}
+PROJECT [ll] FROM (left_unpermuted_hybrid_join_1([ll {}, lidx {}]) {1}) AS left_unpermuted_idx_hybrid_join_1([ll {}]) {1}
+CLOSEMPC left_unpermuted_idx_hybrid_join_1([ll {}]) {1} INTO left_unpermuted_closed_hybrid_join_1([ll {}]) {1, 2, 3}
+PERSIST left_unpermuted_closed_hybrid_join_1([ll {}]) {1, 2, 3} INTO left_unpermuted_closed_hybrid_join_1([ll {}]) {1, 2, 3}
+PERSIST indexes_left_hybrid_join_1([lidx {}]) {1} INTO indexes_left_hybrid_join_1([lidx {}]) {1}
+IDX_TO_FLAGS indexes_left_hybrid_join_1([lidx {}]) {1} left_flags_and_indexes_hybrid_join_1([a {1}, b {1}]) {1} AS left_arranged_hybrid_join_1([a {1}]) {1}
+CLOSEMPC left_arranged_hybrid_join_1([a {1}]) {1} INTO left_arranged_closed_hybrid_join_1([a {1}]) {1, 2, 3}
+BLACKBOXMPC[sharemind] left_res_hybrid_join_1([a {}, b {}]) {1, 2, 3}
+SORTBY ridx FROM (indexes_right_hybrid_join_1_reidx([rr {}, ridx {}]) {1}) AS right_unpermuted_hybrid_join_1([rr {}, ridx {}]) {1}
+PROJECT [rr] FROM (right_unpermuted_hybrid_join_1([rr {}, ridx {}]) {1}) AS right_unpermuted_idx_hybrid_join_1([rr {}]) {1}
+CLOSEMPC right_unpermuted_idx_hybrid_join_1([rr {}]) {1} INTO right_unpermuted_closed_hybrid_join_1([rr {}]) {1, 2, 3}
+PERSIST right_unpermuted_closed_hybrid_join_1([rr {}]) {1, 2, 3} INTO right_unpermuted_closed_hybrid_join_1([rr {}]) {1, 2, 3}
+PROJECT [ridx] FROM (right_unpermuted_hybrid_join_1([rr {}, ridx {}]) {1}) AS right_unpermuted_proj_hybrid_join_1([ridx {}]) {1}
+IDX_TO_FLAGS right_indexed_hybrid_join_1([ridx {}, c {}]) {1} right_unpermuted_proj_hybrid_join_1([ridx {}]) {1} AS right_encoded_hybrid_join_1([ridx {}]) {1}
+CLOSEMPC right_encoded_hybrid_join_1([ridx {}]) {1} INTO right_encoded_closed_hybrid_join_1([ridx {}]) {1, 2, 3}
+(right_persisted_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3}) FLAGJOINMPC (right_encoded_closed_hybrid_join_1([ridx {}]) {1, 2, 3}) WITH FLAGS (num_lookups_closed_hybrid_join_1([len {}]) {1, 2, 3}) ON [] AND [] AS right_flags_and_indexes_closed_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3}
+OPENMPC right_flags_and_indexes_closed_hybrid_join_1([c {1 2}, d {2}]) {1, 2, 3} INTO right_flags_and_indexes_hybrid_join_1([c {1 2}, d {2}]) {1}
+IDX_TO_FLAGS indexes_right_hybrid_join_1([ridx {}]) {1} right_flags_and_indexes_hybrid_join_1([c {1 2}, d {2}]) {1} AS right_arranged_hybrid_join_1([c {1 2}]) {1}
+CLOSEMPC right_arranged_hybrid_join_1([c {1 2}]) {1} INTO right_arranged_closed_hybrid_join_1([c {1 2}]) {1, 2, 3}
+BLACKBOXMPC[sharemind] right_res_hybrid_join_1([c {}, d {}]) {1, 2, 3}
+BLACKBOXMPC[sharemind] result([a {}, b {}, d {}]) {1, 2, 3}
+OPENMPC result([a {}, b {}, d {}]) {1, 2, 3} INTO result_open([a {1}, b {1}, d {}]) {1}

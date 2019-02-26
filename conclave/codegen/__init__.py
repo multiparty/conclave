@@ -30,6 +30,9 @@ class CodeGen:
         # TODO: handle subclassing more gracefully
         # for each op
         for node in nodes:
+            if node.skip:
+                print("Skipping inactive node", node)
+                continue
             if isinstance(node, HybridAggregate):
                 op_code += self._generate_hybrid_aggregate(node)
             elif isinstance(node, LeakyIndexAggregate):
@@ -50,8 +53,8 @@ class CodeGen:
                 op_code += self._generate_flag_join(node)
             elif isinstance(node, IndexJoin):
                 op_code += self._generate_index_join(node)
-            elif isinstance(node, RevealJoin):
-                op_code += self._generate_reveal_join(node)
+            elif isinstance(node, PublicJoin):
+                op_code += self._generate_public_join(node)
             elif isinstance(node, HybridJoin):
                 op_code += self._generate_hybrid_join(node)
             elif isinstance(node, Join):
@@ -90,6 +93,12 @@ class CodeGen:
                 op_code += self._generate_union(node)
             elif isinstance(node, PubIntersect):
                 op_code += self._generate_pub_intersect(node)
+            elif isinstance(node, IndexesToFlags):
+                op_code += self._generate_indexes_to_flags(node)
+            elif isinstance(node, NumRows):
+                op_code += self._generate_num_rows(node)
+            elif isinstance(node, Blackbox):
+                op_code += self._generate_blackbox(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -98,5 +107,4 @@ class CodeGen:
 
     def _write_code(self, code, job_name):
         """ Overridden in subclasses. """
-
         pass

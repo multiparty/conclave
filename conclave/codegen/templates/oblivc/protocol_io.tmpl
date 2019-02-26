@@ -1,35 +1,4 @@
-#include <obliv.h>
-#include <obliv.oh>
-
-#define ROWS 1000
-#define COLS 50
-
-typedef struct
 {
-    {{{TYPE}}} mat[ROWS][COLS];
-    int rows;
-    int cols;
-} Io;
-
-typedef struct
-{
-	char *src;
-	char *out;
-{{{IO_STR}}}
-	int out_rows;
-	int out_cols;
-	{{{TYPE}}} **ret;
-
-} protocolIo;
-
-typedef struct
-{
-	int rows;
-	int cols;
-	obliv {{{TYPE}}} *keepRows;
-	obliv {{{TYPE}}} **mat;
-
-} intermediateMat;
-
-void protocol(void *args);
-
+    "TYPE": "{{{TYPE}}}",
+    "IN_PATH": "{{{IN_PATH}}}"
+}

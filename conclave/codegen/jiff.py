@@ -7,6 +7,15 @@ from conclave.dag import *
 from conclave.job import JiffJob
 
 
+'''
+TODO: 
+
+    - append output column row to output csv
+    - agg
+
+'''
+
+
 class JiffCodeGen(CodeGen):
 
     def __init__(self, config, dag: Dag, pid: int,
@@ -51,7 +60,12 @@ class JiffCodeGen(CodeGen):
                     out_node = node.out_rel.name
                     break
 
+        write = "false"
+        if out_node != '':
+            write = "true"
+
         data = {
+            "WRITE": write,
             "SERVER_IP_PORT": "{0}:{1}".format(self.jiff_config.server_ip, self.jiff_config.server_port),
             "OUTPUT_FILE": "{0}/{1}.csv".format(self.config.input_path, out_node)
         }
@@ -147,28 +161,36 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_aggregate(self, agg_op: Aggregate):
-        # TODO: implement in codegen
 
-        template = open(
-            "{0}/aggregate.tmpl".format(self.template_directory), 'r').read()
+        if agg_op.aggregator == 'sum':
+            template = open(
+                "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        else:
+            raise Exception("Unknown aggregator encountered: {}\n".format(agg_op.aggregator))
+
+        if len(agg_op.group_cols) != 1:
+            raise Exception("JIFF aggregation only supports a single Key Column.")
 
         data = {
-            # input values here
+            "INREL": agg_op.get_in_rel().name,
+            "OUTREL": agg_op.out_rel.name,
+            "KEY_COL": agg_op.group_cols[0].idx,
+            "AGG_COL": agg_op.agg_col.idx
         }
 
-        #return pystache.render(template, data)
-        return ''
+        return pystache.render(template, data)
 
     def _generate_concat(self, concat_op: Concat):
 
-        # in_rel_str = " + ".join([in_rel.name for in_rel in concat_op.get_in_rels()])
+        in_rels = [in_rel.name for in_rel in concat_op.get_in_rels()]
 
         template = open(
             "{0}/concat.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "OUTREL": concat_op.out_rel.name,
-            "INRELS": ", ".join(in_rel.name for in_rel in concat_op.get_in_rels())
+            "INRELS": ','.join(in_rels),
+            "INRELS_KEEPROWS_STR": ','.join(i + 'KeepRows' for i in in_rels)
         }
 
         return pystache.render(template, data)
@@ -189,7 +211,6 @@ class JiffCodeGen(CodeGen):
         return pystache.render(template, data)
 
     def _generate_open(self, open_op: Open):
-        # TODO: implement in codegen
 
         template = open(
             "{0}/open.tmpl".format(self.template_directory), 'r').read()
@@ -216,7 +237,6 @@ class JiffCodeGen(CodeGen):
 
     def _generate_multiply(self, mult_op: Multiply):
         """
-        NOTE: bug in "OPERANDS" -- can't c.idx for scalars
         """
 
         template = open(
@@ -242,7 +262,7 @@ class JiffCodeGen(CodeGen):
             "INREL": mult_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(c for c in operands) + ']',
+            "OPERANDS": '[' + ','.join(c for c in operands[1:]) + ']',
             "SCALAR": scalar
         }
 
@@ -273,19 +293,22 @@ class JiffCodeGen(CodeGen):
             "INREL": div_op.get_in_rel().name,
             "NEWCOL": new_col,
             "TARGETCOL": target_col,
-            "OPERANDS": '[' + ','.join(str(c.idx) for c in operands) + ']',
+            "OPERANDS": '[' + ','.join(c for c in operands[1:]) + ']',
             "SCALAR": scalar
         }
 
         return pystache.render(template, data)
 
     def _generate_sort_by(self, sort_op: SortBy):
-        # TODO: implement in codegen
 
         template = open(
-            "{0}/sort.tmpl".format(self.template_directory), 'r').read()
+            "{0}/bubbleSort.tmpl".format(self.template_directory), 'r').read()
 
-        data = {}
+        data = {
+            "INREL": sort_op.get_in_rel().name,
+            "OUTREL": sort_op.out_rel.name,
+            "KEY_COL": sort_op.sort_by_col.idx
+        }
 
         return pystache.render(template, data)
 

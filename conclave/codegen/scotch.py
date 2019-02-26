@@ -208,10 +208,10 @@ class ScotchCodeGen(CodeGen):
         )
 
     @staticmethod
-    def _generate_reveal_join(reveal_join_op: ccdag.RevealJoin):
-        """ Generate code for RevealJoin operations. """
+    def _generate_public_join(reveal_join_op: ccdag.PublicJoin):
+        """ Generate code for PublicJoin operations. """
 
-        return "({}) REVEALJOIN ({}) ON {} AND {} AS {}\n".format(
+        return "({}) PUBLICJOIN ({}) ON {} AND {} AS {}\n".format(
             reveal_join_op.get_left_in_rel().dbg_str(),
             reveal_join_op.get_right_in_rel().dbg_str(),
             ",".join([c.name for c in reveal_join_op.left_join_cols]),
@@ -260,8 +260,9 @@ class ScotchCodeGen(CodeGen):
         """ Generate code for Distinct Count operations. """
 
         selected_col_str = str(distinct_count_op.selected_col)
-        return "DISTINCT_COUNT{} [{}] FROM ({}) AS {}\n".format(
+        return "DISTINCT_COUNT{}{} [{}] FROM ({}) AS {}\n".format(
             "MPC" if distinct_count_op.is_mpc else "",
+            "NO_SORT" if not distinct_count_op.use_sort else "",
             selected_col_str,
             distinct_count_op.get_in_rel().dbg_str(),
             distinct_count_op.out_rel.dbg_str()
@@ -292,7 +293,6 @@ class ScotchCodeGen(CodeGen):
     @staticmethod
     def _generate_filter(filter_op: ccdag.Filter):
         """ Generate code for Filer operations. """
-
         filter_str = "{} {} {}".format(filter_op.filter_col.dbg_str(),
                                        filter_op.operator,
                                        filter_op.scalar if filter_op.is_scalar else filter_op.other_col.dbg_str())
@@ -314,6 +314,27 @@ class ScotchCodeGen(CodeGen):
             " NOT " if filter_by_op.use_not_in else " ",
             filter_by_op.get_right_in_rel().dbg_str(),
             filter_by_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_indexes_to_flags(indexes_to_flags_op: ccdag.IndexesToFlags):
+        """ Generate code for IndexesToFlags operations. """
+
+        return "IDX_TO_FLAGS{} {} {} AS {}\n".format(
+            "MPC" if indexes_to_flags_op.is_mpc else "",
+            indexes_to_flags_op.get_left_in_rel().dbg_str(),
+            indexes_to_flags_op.get_right_in_rel().dbg_str(),
+            indexes_to_flags_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_num_rows(num_rows_op: ccdag.NumRows):
+        """ Generate code for NumRows operations. """
+
+        return "NUM_ROWS{} {} AS {}\n".format(
+            "MPC" if num_rows_op.is_mpc else "",
+            num_rows_op.get_in_rel().dbg_str(),
+            num_rows_op.out_rel.dbg_str()
         )
 
     @staticmethod
@@ -377,4 +398,14 @@ class ScotchCodeGen(CodeGen):
             "MPC" if persist_op.is_mpc else "",
             persist_op.get_in_rel().dbg_str(),
             persist_op.out_rel.dbg_str()
+        )
+
+    @staticmethod
+    def _generate_blackbox(blackbox_op: ccdag.Blackbox):
+        """ Generate code for Blackbox operations. """
+
+        return "BLACKBOX{}[{}] {}\n".format(
+            "MPC" if blackbox_op.is_mpc else "",
+            blackbox_op.backend,
+            blackbox_op.out_rel.dbg_str()
         )

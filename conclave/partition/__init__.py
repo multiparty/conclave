@@ -1,7 +1,8 @@
-from conclave.dag import OpDag, Dag, Create, Open, Persist, OpNode
 from copy import copy, deepcopy
+
 from conclave.codegen.scotch import ScotchCodeGen
 from conclave.config import CodeGenConfig
+from conclave.dag import OpDag, Dag, Create, Open, Persist, OpNode
 
 
 def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
@@ -86,7 +87,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
 
         # need topological ordering
         ordered = current_dag.top_sort()
-        
+
         # roots of the next subdag, i.e., where the current subdag will end
         new_roots = []
 
@@ -97,7 +98,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
             elif (not node.parents) or (node.parents & available):
                 if node not in new_roots:
                     new_roots.append(node)
-        
+
         # roots of the next subdag
         return new_roots
 
@@ -122,7 +123,7 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
         for root in sorted(roots, key=lambda node: node.out_rel.name):
             holding_ps = get_stored_with(root)
             if can_partition(nextdag, holding_ps, available):
-                return holding_ps, root.is_mpc
+                return holding_ps, len(holding_ps) > 1
         raise Exception("Found no roots to partition on")
 
     def merge_neighbor_dags(mapping):
@@ -176,9 +177,9 @@ def heupart(dag: Dag, mpc_frameworks: list, local_frameworks: list):
         nextdag, available = next_partition(nextdag, available, holding_ps)
         # increment iteration count
         iterations += 1
-    
+
     for fmwk, subdag, stored_with in mapping:
-        print(ScotchCodeGen(CodeGenConfig(), subdag)._generate(0, 0))
+        print(fmwk, stored_with, ScotchCodeGen(CodeGenConfig(), subdag)._generate(0, 0))
 
     merged = merge_neighbor_dags(mapping)
     return merged
