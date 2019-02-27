@@ -120,9 +120,9 @@ class JiffCodeGen(CodeGen):
             elif isinstance(node, Concat):
                 op_code += self._generate_concat(node)
             elif isinstance(node, Close):
-                op_code += ''
+                op_code += self._generate_close(node)
             elif isinstance(node, Create):
-                op_code += self._generate_create(node)
+                pass
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
             elif isinstance(node, Open):
@@ -141,6 +141,22 @@ class JiffCodeGen(CodeGen):
                 print("encountered unknown operator type", repr(node))
 
         return self._generate_job(job_name, op_code)
+
+    def _generate_close(self, close_op: Close):
+
+        # node.parent.out_rel.stored_with
+        copied_set = copy.deepcopy(close_op.parent.out_rel.stored_with)
+        data_holder = copied_set.pop()
+
+        template = open(
+            "{0}/create.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "OUTREL": close_op.out_rel.name,
+            "ID": data_holder
+        }
+
+        return pystache.render(template, data)
 
     def _generate_create(self, create_op: Create):
 
