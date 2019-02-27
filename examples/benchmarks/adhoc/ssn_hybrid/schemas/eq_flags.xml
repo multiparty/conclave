@@ -1,7 +1,0 @@
-<table name="eq_flags" dataSource="DS1">
-    <column key="true" type="primitive">
-        <source name="column_a" type="uint32"/>
-        <target name="column_a" type="uint32"/>
-    </column>
-</table>
-<script name="import-script.sb"/>
