@@ -8,7 +8,7 @@ This framework allows users to define data analysis workflows in familiar fronte
 
 ## Dependencies
 
-Conclave requires a Python 3.x environment and was tested on Ubuntu (14.04+). See `requirements.txt` for other dependencies.
+Conclave requires a Python 3.5 environment and was tested on Ubuntu (14.04+). See `requirements.txt` for other dependencies.
 
 ## Setup
 
