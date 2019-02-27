@@ -1,19 +1,15 @@
-import json
 import argparse
-from typing import Callable, Dict
+import json
 
-from conclave import generate_and_dispatch
 from conclave import CodeGenConfig
-from conclave.config import SparkConfig
-from conclave.config import OblivcConfig
-from conclave.config import NetworkConfig
-from conclave.config import SwiftConfig
+from conclave import generate_and_dispatch
 from conclave.config import JiffConfig
-from conclave.utils import *
+from conclave.config import NetworkConfig
+from conclave.config import OblivcConfig
+from conclave.config import SparkConfig
 
 
-def setup(conf: Dict):
-
+def setup(conf: dict):
     # GENERAL
     pid = conf["user_config"]["pid"]
     workflow_name = conf["user_config"]["workflow_name"]
@@ -73,12 +69,11 @@ def setup(conf: Dict):
     return conclave_config
 
 
-def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=False):
+def run(protocol: callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=False):
     """
     Load parameters from config & dispatch computation.
     Downloads files if necessary from either Dataverse or Swift
     """
-
     parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
     parser.add_argument("--conf", metavar="/config/file.json", type=str,
                         help="path of the config file", default="conf.json", required=False)
@@ -92,5 +87,3 @@ def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str
     generate_and_dispatch(
         protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
     )
-
-

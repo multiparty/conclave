@@ -1,0 +1,54 @@
+# GENERAL
+pid: 2
+all_pids: [1,2]
+workflow_name: oc_test
+use_swift: False
+
+# TODO: these could be hardcoded to /tmp/<workflow_name>_in/,
+# /tmp/<workflow_name>_in/, and /tmp/<workflow_name>_code
+# for use on OS containers.
+input_path: /home/ubuntu/
+output_path: /home/ubuntu/
+code_path: /home/ubuntu/protocol/
+
+# SPARK
+spark:
+  master_url: local
+
+# OBLIV-C
+oblivc:
+  oc_path: /home/ubuntu/obliv-c/bin/oblivcc
+  ip_port: 10.10.10.9:30002
+
+# NET
+net:
+  parties:
+    - host: 10.10.10.9
+      port: 9001
+    - host: 10.10.10.29
+      port: 9002
+
+# SWIFT
+swift:
+  source:
+    AUTHORIZATION:
+      osAuthUrl: <str>
+      username: <str>
+      password: <str>
+    PROJECT:
+      osProjectDomain: <str>
+      osProjectName: <str>
+    DATA:
+      container_name: <str>
+      files: <list>
+  dest:
+    AUTHORIZATION:
+      osAuthUrl: <str>
+      username: <str>
+      password: <str>
+    PROJECT:
+      osProjectDomain: <str>
+      osProjectName: <str>
+    DATA:
+      container_name: <str>
+      files: <list>

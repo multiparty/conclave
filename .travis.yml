@@ -6,7 +6,7 @@ python:
 # blacklist
 branches:
   except:
-  - auto-hybrid-join
+    -
 
 notifications:
   email: true
@@ -20,5 +20,5 @@ before_script:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 script:
-  - nosetests
+  - nosetests --with-doctest
 

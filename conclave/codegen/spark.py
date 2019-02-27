@@ -1,7 +1,9 @@
-from conclave.job import SparkJob
-from conclave.codegen import CodeGen
-import os, pystache
+import os
+import pystache
+
 import conclave.dag as saldag
+from conclave.codegen import CodeGen
+from conclave.job import SparkJob
 
 
 def cache_var(op_node: saldag.OpNode):
@@ -27,9 +29,11 @@ class SparkCodeGen(CodeGen):
     """ Codegen subclass for generating Spark code. """
 
     def __init__(self, config, dag: saldag.Dag,
+                 header_flag=True,
                  template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
+        self.header_flag = header_flag
 
     def _generate_job(self, job_name: str, code_directory: str, op_code: str):
         """ Returns generated Spark code and Job object. """
@@ -152,7 +156,7 @@ class SparkCodeGen(CodeGen):
 
         all_rels = concat_op.get_in_rels()
         test = len(all_rels[0].columns)
-        assert(all(test == len(rel.columns) for rel in all_rels))
+        assert (all(test == len(rel.columns) for rel in all_rels))
 
         store_code = ''
         if concat_op.is_leaf():
@@ -181,7 +185,8 @@ class SparkCodeGen(CodeGen):
             'RELATION_NAME': create_op.out_rel.name,
             'SCHEMA': 'StructType([' + ','.join(schema) + '])',
             'INPUT_PATH': self.config.input_path + '/' + create_op.out_rel.name + '.csv',
-            'CACHE_VAR': cache_var(create_op)
+            'CACHE_VAR': cache_var(create_op),
+            'HEADER_FLAG': "True" if self.header_flag else "False"
         }
 
         return pystache.render(template, data)
@@ -197,7 +202,7 @@ class SparkCodeGen(CodeGen):
         # (pyspark's join function only takes 1 list of column names as an argument)
         left_names = [col.name for col in join_op.left_join_cols]
         right_names = [col.name for col in join_op.right_join_cols]
-        assert(sorted(left_names) == sorted(right_names))
+        assert (sorted(left_names) == sorted(right_names))
         join_cols = join_op.left_join_cols
 
         template = open(
@@ -291,6 +296,7 @@ class SparkCodeGen(CodeGen):
             'TARGET': div_op.target_col.name,
             'INREL': div_op.get_in_rel().name,
             'OUTREL': div_op.out_rel.name,
+            'TO_INT_CAST': ".cast('integer')" if div_op.target_col.type_str == "INTEGER" else "",
             'CACHE_VAR': cache_var(div_op)
         }
 

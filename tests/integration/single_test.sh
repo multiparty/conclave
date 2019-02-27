@@ -44,4 +44,4 @@ wait
 python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
 
 # clean up again
-#rm ${DIR}/data/*.csv
+rm ${DIR}/data/*.csv

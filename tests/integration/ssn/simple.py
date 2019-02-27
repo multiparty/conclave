@@ -12,7 +12,7 @@ def protocol():
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1])
     ]
-    govreg = cc.create("a_govreg", govreg_cols, {1})
+    govreg = cc.create("govreg", govreg_cols, {1})
     company0_cols = [
         defCol("c", "INTEGER", [1]),
         defCol("d", "INTEGER", [1])
