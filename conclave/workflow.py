@@ -49,7 +49,7 @@ def setup(conf: Dict):
         jiff_avail = conf["backends"]["jiff"]["available"]
         if jiff_avail:
             jiff_path = conf["backends"]["jiff"]["jiff_path"]
-            party_count = conf["backends"]["jiff"]["party_count"]
+            party_count = len(all_pids)
             server_ip = conf["backends"]["jiff"]["server_ip"]
             server_port = conf["backends"]["jiff"]["server_port"]
             jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port)
@@ -95,7 +95,7 @@ def setup(conf: Dict):
     return conclave_config
 
 
-def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=False):
+def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=True):
     """
     Load parameters from config & dispatch computation.
     Downloads files if necessary from either Dataverse or Swift
