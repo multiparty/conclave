@@ -28,7 +28,7 @@ in_1 = sp.read.csv(
 
 
 div = in_1 \
-    .withColumn('a', in_1.a/in_1.b/1) \
+    .withColumn('a', (in_1.a/in_1.b/1).cast('integer')) \
     
 
 
