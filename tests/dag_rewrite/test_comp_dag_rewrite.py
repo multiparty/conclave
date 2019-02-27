@@ -631,14 +631,14 @@ class TestConclave(TestCase):
             left_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 1) for i in range(num_diagnosis_cols)]
             left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
 
-            left_cohort = cc.create("left_cohort", [defCol("pid", "Integer", 1)], {1})
+            left_cohort = cc.create("left_cohort", [defCol("pid", "INTEGER", 1)], {1})
 
             left_selected = cc.filter_by(left_diagnosis, "left_selected", pid_col, left_cohort)
 
             right_diagnosis_cols = [defCol(str(i + cols_to_skip), "INTEGER", 2) for i in range(num_diagnosis_cols)]
             right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
 
-            right_cohort = cc.create("right_cohort", [defCol("pid", "Integer", 2)], {2})
+            right_cohort = cc.create("right_cohort", [defCol("pid", "INTEGER", 2)], {2})
 
             right_selected = cc.filter_by(right_diagnosis, "right_selected", pid_col, right_cohort)
 

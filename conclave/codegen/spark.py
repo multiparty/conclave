@@ -27,9 +27,11 @@ class SparkCodeGen(CodeGen):
     """ Codegen subclass for generating Spark code. """
 
     def __init__(self, config, dag: saldag.Dag,
+                 header_flag=True,
                  template_directory="{}/templates/spark".format(os.path.dirname(os.path.realpath(__file__)))):
         super(SparkCodeGen, self).__init__(config, dag)
         self.template_directory = template_directory
+        self.header_flag = header_flag
 
     def _generate_job(self, job_name: str, code_directory: str, op_code: str):
         """ Returns generated Spark code and Job object. """
@@ -181,7 +183,8 @@ class SparkCodeGen(CodeGen):
             'RELATION_NAME': create_op.out_rel.name,
             'SCHEMA': 'StructType([' + ','.join(schema) + '])',
             'INPUT_PATH': self.config.input_path + '/' + create_op.out_rel.name + '.csv',
-            'CACHE_VAR': cache_var(create_op)
+            'CACHE_VAR': cache_var(create_op),
+            'HEADER_FLAG': "True" if self.header_flag else "False"
         }
 
         return pystache.render(template, data)

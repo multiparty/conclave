@@ -4,6 +4,6 @@ schema = {{{SCHEMA}}}
 {{{RELATION_NAME}}} = sp.read.csv(
     '{{{INPUT_PATH}}}',
     schema=schema,
-    header=False) \
+    header={{{HEADER_FLAG}}}) \
     {{{CACHE_VAR}}}
 

@@ -11,4 +11,4 @@ find /mnt/shared/${DATA_ROOT_DIR} \
     -print0 | xargs -0 rm --;
 
 # run query
-time python3 ${DIR}/workload.py ${PARTY_ID} ${DATA_ROOT_DIR}
+time python3 ${DIR}/workload.py ${PARTY_ID} ${DATA_ROOT_DIR} python

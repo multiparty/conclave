@@ -15,16 +15,17 @@ class Column:
 
         :param rel_name: name of corresponding relation
         :param name: name of column
-        :param idx: index among other columns of relation
-        :param type_str: describes type of values in column
+        :param idx: integer index of the column in the relation
+        :param type_str: describes type of values in column (currently only "INTEGER" supported)
         :param trust_set: parties trusted to learn this column in the clear
         """
+        if type_str not in {"INTEGER"}:
+            raise Exception("Type not supported {}".format(type_str))
         self.rel_name = rel_name
         self.name = name
-        self.idx = idx  # Integer index of the column in the relation.
-        self.type_str = type_str  # Currently can only be "INTEGER".
-        self.trust_set = trust_set  # Record of all sets of parties that can collude together to recover values in
-        # this column.
+        self.idx = idx
+        self.type_str = type_str
+        self.trust_set = trust_set
 
     def get_name(self):
         """Return column name."""

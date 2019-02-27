@@ -3,7 +3,7 @@ import sys
 
 import conclave.lang as cc
 from conclave import CodeGenConfig, generate_and_dispatch
-from conclave.config import SharemindCodeGenConfig
+from conclave.config import SharemindCodeGenConfig, SparkConfig
 from conclave.utils import defCol
 
 
@@ -43,16 +43,38 @@ def protocol():
     return {in1, in2, in3}
 
 
-if __name__ == "__main__":
+def main():
     pid = sys.argv[1]
     data_root = sys.argv[2]
+    backend = sys.argv[3]
     workflow_name = "hhi-benchmark" + pid + "-" + data_root
-    conclave_config = CodeGenConfig(workflow_name, int(pid))
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
-    conclave_config.with_sharemind_config(sharemind_conf)
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
-    conclave_config.input_path = os.path.join("/mnt/shared", data_root)
-    conclave_config.output_path = os.path.join("/mnt/shared", data_root)
-    local_backend = "python"
-    generate_and_dispatch(protocol, conclave_config, ["sharemind"], [local_backend], apply_optimizations=True)
+    if backend == "python":
+        sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
+        conclave_config = CodeGenConfig(workflow_name, int(pid))
+        conclave_config.with_sharemind_config(sharemind_conf)
+        conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+        conclave_config.input_path = os.path.join("/mnt/shared", data_root)
+        conclave_config.output_path = os.path.join("/mnt/shared", data_root)
+        generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
+    elif backend == "spark":
+        sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=True)
+        conclave_config = CodeGenConfig(workflow_name, int(pid))
+        # TODO use network conf
+        spark_master_url = "spark://localhost:7077"
+        hdfs_namenode = "localhost:9000"
+        spark_config = SparkConfig(spark_master_url)
+
+        conclave_config \
+            .with_sharemind_config(sharemind_conf) \
+            .with_spark_config(spark_config)
+
+        conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
+        conclave_config.input_path = "hdfs://{}/{}".format(hdfs_namenode, data_root)
+        conclave_config.output_path = "hdfs://{}/{}".format(hdfs_namenode, data_root)
+        generate_and_dispatch(protocol, conclave_config, ["sharemind"], ["spark"], apply_optimizations=True)
+    else:
+        raise Exception("Unknown backend {}".format(backend))
+
+
+if __name__ == "__main__":
+    main()
