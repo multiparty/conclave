@@ -2,7 +2,7 @@
 
 PARTY_ID=$1
 SIZE=$2
-HDFS_ROOT_DIR=$3
+HDFS_ROOT_DIR=$3/${SIZE}
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${HDFS_ROOT_DIR} ]

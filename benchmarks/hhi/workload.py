@@ -47,7 +47,7 @@ def main():
     pid = sys.argv[1]
     data_root = sys.argv[2]
     backend = sys.argv[3]
-    workflow_name = "hhi-benchmark" + pid + "-" + data_root
+    workflow_name = "hhi-benchmark-" + pid
     if backend == "python":
         sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
         conclave_config = CodeGenConfig(workflow_name, int(pid))
@@ -59,9 +59,11 @@ def main():
     elif backend == "spark":
         sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=True)
         conclave_config = CodeGenConfig(workflow_name, int(pid))
-        # TODO use network conf
-        spark_master_url = "spark://localhost:7077"
-        hdfs_namenode = "localhost:9000"
+
+        host = conclave_config.network_config["parties"][int(pid)]["host"]
+        # Update this if your spark master and HDFS namenode are mapped to a different host than your Conclave node
+        spark_master_url = "spark://{}:7077".format(host)
+        hdfs_namenode = "{}:9000".format(host)
         spark_config = SparkConfig(spark_master_url)
 
         conclave_config \
