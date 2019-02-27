@@ -7,7 +7,6 @@ class NetworkConfig:
     """ Config object for network module. """
 
     def __init__(self, parties: list, pid: int = 1):
-
         self.inited = True
         self.pid = pid
         # List of HDFS master nodes. Mapping between party running the computation
@@ -18,9 +17,7 @@ class NetworkConfig:
     def set_network_config(self):
         """ Return network configuration dict. """
 
-        network_config = {}
-        network_config['pid'] = self.pid
-        network_config["parties"] = {}
+        network_config = {'pid': self.pid, "parties": {}}
         for i in range(len(self.parties)):
             network_config["parties"][i + 1] = {}
             network_config["parties"][i + 1]["host"] = self.parties[i]["host"]
@@ -35,7 +32,6 @@ class SwiftConfig:
     """
 
     def __init__(self, cfg):
-
         self.source = cfg['source']
         self.dest = cfg['dest']
 
@@ -44,7 +40,6 @@ class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
     def __init__(self, home_path='/tmp', use_docker=True, use_hdfs=True):
-
         self.home_path = home_path
         self.use_docker = use_docker
         self.use_hdfs = use_hdfs
@@ -54,7 +49,6 @@ class SparkConfig:
     """ Spark configuration."""
 
     def __init__(self, spark_master_url):
-
         self.spark_master_url = spark_master_url
 
 
@@ -64,7 +58,6 @@ class OblivcConfig:
     """
 
     def __init__(self, oc_path: str, ip_and_port: str):
-
         self.oc_path = oc_path
         self.ip_and_port = ip_and_port
 
@@ -206,5 +199,3 @@ class CodeGenConfig:
         ccfg.pid = cfg['pid']
 
         return ccfg
-
-

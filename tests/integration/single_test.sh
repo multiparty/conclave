@@ -30,17 +30,17 @@ fi
 
 
 # run python workflow to generate expected results
-python3 ${DIR}/simple.py 1
+python ${DIR}/simple.py 1
 
 # run real workflow
 for i in 1 2 3;
 do
-    python3 ${DIR}/real.py ${i} &
+    python ${DIR}/real.py ${i} &
 done
 wait
 
 # verify results
-python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
+python ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
 
 # clean up again
 rm ${DIR}/data/*.csv
