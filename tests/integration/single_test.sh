@@ -12,7 +12,6 @@ trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
-export PYTHONPATH=${PYTHONPATH}:/${HOME}/Desktop/conclave
 
 # set up data
 mkdir -p ${DIR}/data
