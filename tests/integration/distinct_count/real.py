@@ -28,12 +28,12 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
-    mpc_backend = sys.argv[2]
     # define name for the workflow
     workflow_name = "real-distinct-count-test-" + pid
     # configure conclave
-    conclave_config = CodeGenConfig(workflow_name, int(pid)).with_default_mpc_config(mpc_backend)
-
+    mpc_backend = sys.argv[2]
+    conclave_config = CodeGenConfig(workflow_name, int(pid)) \
+        .with_default_mpc_config(mpc_backend)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
