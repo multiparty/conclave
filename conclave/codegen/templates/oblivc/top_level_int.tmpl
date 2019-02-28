@@ -979,16 +979,23 @@ void _distinctCount
 {
 	obliv int retVal = 1;
 
-	for (int i = 0; i < numRows - 1; i++)
+    for (int i = 1; i < numRows - 1; i++)
 	{
-        obliv int tempKeep = keepRows[i] * keepRows[i + 1];
-        obliv int eqFlag = (array[i][0] == array[i + 1][0]);
-        retVal = retVal + (tempKeep * (1 - eqFlag));
+        obliv int curr = array[i][0];
+        obliv int prev = array[i - 1][0];
+        array[i][0] = keepRows[i] * (curr - prev) + prev;
+    }
+
+	for (int i = 1; i < numRows - 1; i++)
+	{
+        obliv int eqFlag = (array[i - 1][0] == array[i][0]);
+        retVal = retVal + (1 - eqFlag);
 	}
 
+    obliv int isFirstDummy = 1 - keepRows[0];
 	obliv int **retArray = malloc(sizeof(*retArray) * 1);
 	retArray[0] = malloc(sizeof(**retArray) * 1);
-	retArray[0][0] = retVal;
+	retArray[0][0] = retVal - isFirstDummy;
 
 	obliv int *keepRows = malloc(sizeof(obliv int) * 1);
 	keepRows[0] = 1;
@@ -1013,7 +1020,9 @@ void distinctCountPreSorted
 	for (int i = 0; i < numRows; i++)
 	{
 		array[i] = malloc(sizeof(**array) * 1);
-		array[i][0] = mat->mat[i][keyCol];
+		// assumes -1 not among inputs
+		array[i][0] = mat->keepRows[i] * (mat->mat[i][keyCol] + 1) - 1;
+		//array[i][0] = mat->mat[i][keyCol];
 
 		keepRows[i] = mat->keepRows[i];
 	}
