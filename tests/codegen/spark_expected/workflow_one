@@ -23,12 +23,12 @@ schema = StructType([StructField('a', IntegerType(), True),StructField('b', Inte
 in_1 = sp.read.csv(
     '/tmp/in_1.csv',
     schema=schema,
-    header=False) \
+    header=True) \
     
 
 
 div = in_1 \
-    .withColumn('a', in_1.a/in_1.b/1) \
+    .withColumn('a', (in_1.a/in_1.b/1).cast('integer')) \
     
 
 
@@ -37,7 +37,7 @@ schema = StructType([StructField('a', IntegerType(), True),StructField('b', Inte
 in_2 = sp.read.csv(
     '/tmp/in_2.csv',
     schema=schema,
-    header=False) \
+    header=True) \
     
 
 
@@ -64,7 +64,7 @@ agg = join \
 
 agg \
     .write \
-    .csv("/tmp/agg")
+    .csv("/tmp/agg.csv")
 
 
 

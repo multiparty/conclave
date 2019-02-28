@@ -23,7 +23,7 @@ schema = StructType([StructField('a', IntegerType(), True),StructField('b', Inte
 in_1 = sp.read.csv(
     '/tmp/in_1.csv',
     schema=schema,
-    header=False) \
+    header=True) \
     
 
 
@@ -32,7 +32,7 @@ schema = StructType([StructField('a', IntegerType(), True),StructField('b', Inte
 in_2 = sp.read.csv(
     '/tmp/in_2.csv',
     schema=schema,
-    header=False) \
+    header=True) \
     
 
 
@@ -43,7 +43,7 @@ join = in_1 \
 
 join \
     .write \
-    .csv("/tmp/join")
+    .csv("/tmp/join.csv")
 
 
 

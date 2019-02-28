@@ -71,7 +71,7 @@ class OblivCDispatcher:
 
         data = {
             "TYPE": params["TYPE"],
-            "ROWS": len(rows) - 1,
+            "ROWS": len(row_count) - 1,
             "COLS": cols
         }
 

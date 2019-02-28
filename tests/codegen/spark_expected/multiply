@@ -23,7 +23,7 @@ schema = StructType([StructField('a', IntegerType(), True),StructField('b', Inte
 in_1 = sp.read.csv(
     '/tmp/in_1.csv',
     schema=schema,
-    header=False) \
+    header=True) \
     
 
 
@@ -34,7 +34,7 @@ mult = in_1 \
 
 mult \
     .write \
-    .csv("/tmp/mult")
+    .csv("/tmp/mult.csv")
 
 
 

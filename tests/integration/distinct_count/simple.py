@@ -18,7 +18,10 @@ def protocol():
         defCol("column_b", "INTEGER", [1])
     ]
     right = cc.create("right", input_columns_right, {1})
-    cc.distinct_count(cc.concat([left, right], "rel"), "expected", "column_a")
+    rel = cc.concat([left, right], "rel")
+    filtered = cc.cc_filter(rel, "filtered", "column_b", "==", scalar=1)
+    in_order = cc.sort_by(filtered, "in_order", "column_a")
+    cc.distinct_count(in_order, "expected", "column_a")
     return {left, right}
 
 

@@ -1,14 +1,14 @@
-from unittest import TestCase
-import conclave.lang as sal
-from conclave.codegen.spark import SparkCodeGen
-from conclave import CodeGenConfig
-from conclave.utils import *
-from conclave.comp import dag_only
 import os
+from unittest import TestCase
+
+import conclave.lang as cc
+from conclave import CodeGenConfig
+from conclave.codegen.spark import SparkCodeGen
+from conclave.comp import dag_only
+from conclave.utils import *
 
 
 def setup():
-
     cols = [
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1]),
@@ -16,9 +16,9 @@ def setup():
         defCol("d", "INTEGER", [1])
     ]
 
-    in_1 = sal.create("in_1", cols, set([1]))
+    in_1 = cc.create("in_1", cols, {1})
 
-    in_2 = sal.create("in_2", cols, set([1]))
+    in_2 = cc.create("in_2", cols, {1})
 
     return [in_1, in_2]
 
@@ -40,174 +40,162 @@ class TestSpark(TestCase):
         self.assertEqual(expected, actual)
 
     def test_sort_by(self):
-
         @dag_only
         def protocol():
-
             inpts = setup()
             in_1 = inpts[0]
 
-            sorted = sal.sort_by(in_1, 'sorted1', 'a')
-            out = sal.collect(sorted, 1)
+            sorted = cc.sort_by(in_1, 'sorted1', 'a')
+            out = cc.collect(sorted, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'sort_by')
 
     def test_divide(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            div = sal.divide(in_1, "div", "a", ["a", "b"])
-            out = sal.collect(div, 1)
+            div = cc.divide(in_1, "div", "a", ["a", "b"])
+            out = cc.collect(div, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'divide')
 
     def test_multiply(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            mult = sal.multiply(in_1, "mult", "a", ["a", "b"])
-            out = sal.collect(mult, 1)
+            mult = cc.multiply(in_1, "mult", "a", ["a", "b"])
+            out = cc.collect(mult, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'multiply')
 
     def test_project(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            proj = sal.project(in_1, "proj", ["a", "b"])
-            out = sal.collect(proj, 1)
+            proj = cc.project(in_1, "proj", ["a", "b"])
+            out = cc.collect(proj, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'project')
 
     def test_join(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
 
-            join = sal.join(in_1, in_2, 'join', ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'])
-            out = sal.collect(join, 1)
+            join = cc.join(in_1, in_2, 'join', ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'])
+            out = cc.collect(join, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'join')
 
     def test_agg(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            agg = sal.aggregate(in_1, "agg", ["a", "b"], "c", "sum", "agg_1")
-            out = sal.collect(agg, 1)
+            agg = cc.aggregate(in_1, "agg", ["a", "b"], "c", "sum", "agg_1")
+            out = cc.collect(agg, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'agg')
 
     def test_concat(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
 
-            cc = sal.concat([in_1, in_2], "cc")
-            out = sal.collect(cc, 1)
+            rel = cc.concat([in_1, in_2], "cc")
+            out = cc.collect(rel, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'concat')
 
     def test_distinct(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            dist = sal.distinct(in_1, "dist", ["a", "b"])
-            out = sal.collect(dist, 1)
+            dist = cc.distinct(in_1, "dist", ["a", "b"])
+            out = cc.collect(dist, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'distinct')
 
     def test_index(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1 = inpts[0]
 
-            ind = sal.index(in_1, "index_1", "index")
-            out = sal.collect(ind, 1)
+            ind = cc.index(in_1, "index_1", "index")
+            out = cc.collect(ind, 1)
 
-            return set([in_1])
+            return {in_1}
 
         dag = protocol()
         self.check_workflow(dag, 'index')
 
     def test_workflow_one(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
 
-            div_1 = sal.divide(in_1, "div", "a", ["a", "b"])
-            mult_2 = sal.multiply(in_2, "mult", "a", ["a", "b"])
-            proj_1 = sal.project(div_1, "proj", ["a", "b"])
-            join = sal.join(proj_1, mult_2, "join", ["a", "b"], ["a", "b"])
-            agg = sal.aggregate(join, "agg", ["a", "b"], "c", "sum", "agg_1")
-            out = sal.collect(agg, 1)
+            div_1 = cc.divide(in_1, "div", "a", ["a", "b"])
+            mult_2 = cc.multiply(in_2, "mult", "a", ["a", "b"])
+            proj_1 = cc.project(div_1, "proj", ["a", "b"])
+            join = cc.join(proj_1, mult_2, "join", ["a", "b"], ["a", "b"])
+            agg = cc.aggregate(join, "agg", ["a", "b"], "c", "sum", "agg_1")
+            cc.collect(agg, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'workflow_one')
 
     def test_workflow_two(self):
-
         @dag_only
         def protocol():
             inpts = setup()
             in_1, in_2 = inpts[0], inpts[1]
 
-            cc = sal.concat([in_1, in_2], "cc")
+            rel = cc.concat([in_1, in_2], "cc")
 
-            dist = sal.distinct(cc, "dist", ["a", "b", "c"])
+            dist = cc.distinct(rel, "dist", ["a", "b", "c"])
 
-            out = sal.collect(dist, 1)
+            out = cc.collect(dist, 1)
 
-            return set([in_1, in_2])
+            return {in_1, in_2}
 
         dag = protocol()
         self.check_workflow(dag, 'workflow_two')

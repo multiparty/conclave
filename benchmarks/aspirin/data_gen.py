@@ -87,7 +87,7 @@ def generate_diags_row(pids_low: int, pids_high: int, ratio: int, convert: bool 
 
 def generate_data(args, gen, fn):
     chunk_size = 1000000
-    with open("/".join([output_data_dir, fn]), "w+") as out:
+    with open("/".join([output_data_dir, fn]), "w") as out:
         print("generating {} data for {} rows with {} distinct IDs, between {} and {} with {} ratio and seed {}".format(
             args.mode,
             args.num_rows,

@@ -12,26 +12,23 @@ def protocol():
         defCol("a", "INTEGER", [1]),
         defCol("b", "INTEGER", [1])
     ]
-    govreg = cc.create("a_govreg", govreg_cols, {1})
-    govreg_dummy = cc.project(govreg, "govreg_dummy", ["a", "b"])
+    govreg = cc.create("govreg", govreg_cols, {1})
 
     company0_cols = [
         defCol("c", "INTEGER", [1], [2]),
         defCol("d", "INTEGER", [2])
     ]
     company0 = cc.create("company0", company0_cols, {2})
-    company0_dummy = cc.project(company0, "company0_dummy", ["c", "d"])
 
     company1_cols = [
         defCol("c", "INTEGER", [1], [3]),
         defCol("d", "INTEGER", [3])
     ]
     company1 = cc.create("company1", company1_cols, {3})
-    company1_dummy = cc.project(company1, "company1_dummy", ["c", "d"])
 
-    companies = cc.concat([company0_dummy, company1_dummy], "companies")
+    companies = cc.concat([company0, company1], "companies")
 
-    joined = cc.join(govreg_dummy, companies, "joined", ["a"], ["c"])
+    joined = cc.join(govreg, companies, "joined", ["a"], ["c"])
     actual = cc.aggregate(joined, "actual", ["b"], "d", "sum", "total")
     cc.collect(actual, 1)
 

@@ -19,7 +19,9 @@ def protocol():
     ]
     right = cc.create("right", input_columns_right, {2})
     rel = cc.concat([left, right], "rel")
-    actual = cc.distinct_count(rel, "actual", "column_a")
+    filtered = cc.cc_filter(rel, "filtered", "column_b", "==", scalar=1)
+    in_order = cc.sort_by(filtered, "in_order", "column_a")
+    actual = cc.distinct_count(in_order, "actual", "column_a")
     cc.collect(actual, 1)
     return {left, right}
 

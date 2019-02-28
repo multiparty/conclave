@@ -330,8 +330,8 @@ def limit_agg_composition():
 
 if __name__ == "__main__":
 
-    # dag = agg()
-    # generate(dag, 'agg')
+    dag = agg()
+    generate(dag, 'agg')
     #
     # dag = agg()
     # generate_leaky(dag, 'aggLeaky')

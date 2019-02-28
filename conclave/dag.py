@@ -653,9 +653,9 @@ class Divide(UnaryOpNode):
 
     def update_op_specific_cols(self):
         temp_cols = self.get_in_rel().columns
+        # TODO shouldn't be a copy
         old_operands = copy.copy(self.operands)
-        self.operands = [temp_cols[col.idx] if isinstance(
-            col, rel.Column) else col for col in old_operands]
+        self.operands = [temp_cols[col.idx] if isinstance(col, rel.Column) else col for col in old_operands]
 
 
 class Filter(UnaryOpNode):
@@ -675,7 +675,7 @@ class Filter(UnaryOpNode):
         self.scalar = scalar
         self.operator = operator
         self.filter_col = filter_col
-        self.is_local = True
+        self.is_local = False
 
     def is_reversible(self):
         return False
