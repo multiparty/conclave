@@ -129,22 +129,7 @@ def run_mpc(pid: str, data_root: str, mpc_backend: str):
     conclave_config = CodeGenConfig(workflow_name, int(pid))
     conclave_config.use_leaky_ops = False
 
-    if mpc_backend == "sharemind":
-        sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
-        conclave_config.with_sharemind_config(sharemind_conf)
-    elif mpc_backend == "obliv-c":
-        conclave_config.all_pids = [1, 2]
-        net_conf = [
-            {"host": "ca-spark-node-0", "port": 8001},
-            {"host": "cb-spark-node-0", "port": 8002}
-        ]
-        net = NetworkConfig(net_conf, int(pid))
-        conclave_config.with_network_config(net)
 
-        oc_conf = OblivcConfig("/obliv-c/bin/oblivcc", "ca-spark-node-0:9000")
-        conclave_config.with_oc_config(oc_conf)
-    else:
-        raise Exception("Unknown MPC backend {}".format(mpc_backend))
 
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
     conclave_config.input_path = os.path.join("/mnt/shared", data_root)

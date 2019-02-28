@@ -3,7 +3,7 @@ import sys
 
 import conclave.lang as cc
 from conclave import generate_code, dispatch_jobs
-from conclave.config import CodeGenConfig, SharemindCodeGenConfig
+from conclave.config import CodeGenConfig
 from conclave.utils import defCol
 
 
@@ -28,15 +28,12 @@ def protocol():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    mpc_backend = sys.argv[2]
     # define name for the workflow
     workflow_name = "real-distinct-count-test-" + pid
     # configure conclave
-    conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.all_pids = [1, 2, 3]
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
-                                            use_hdfs=False)
-    conclave_config.with_sharemind_config(sharemind_conf)
+    conclave_config = CodeGenConfig(workflow_name, int(pid)).with_default_mpc_config(mpc_backend)
+
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
@@ -45,5 +42,5 @@ if __name__ == "__main__":
     # and written to
     conclave_config.output_path = os.path.join(current_dir, "data")
     # define this party's unique ID (in this demo there is only one party)
-    job_queue = generate_code(protocol, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
+    job_queue = generate_code(protocol, conclave_config, [mpc_backend], ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)

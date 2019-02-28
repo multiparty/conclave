@@ -12,6 +12,12 @@ trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
+BACKEND=$2
+
+if [ -z ${BACKEND} ]
+then
+    BACKEND=sharemind
+fi
 
 # set up data
 mkdir -p ${DIR}/data
@@ -35,7 +41,7 @@ python ${DIR}/simple.py 1
 # run real workflow
 for i in 1 2 3;
 do
-    python ${DIR}/real.py ${i} &
+    python ${DIR}/real.py ${i} ${BACKEND} &
 done
 wait
 

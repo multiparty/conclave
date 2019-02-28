@@ -106,6 +106,29 @@ class CodeGenConfig:
             }
         }
 
+    def with_default_mpc_config(self, mpc_backend: str):
+        """
+        Boiler plate code for configuring MPC backend.
+        """
+        if mpc_backend == "sharemind":
+            sharemind_conf = SharemindCodeGenConfig("/mnt/shared", use_docker=True, use_hdfs=False)
+            self.with_sharemind_config(sharemind_conf)
+            return self
+        elif mpc_backend == "obliv-c":
+            self.all_pids = [1, 2]
+            net_conf = [
+                {"host": "ca-spark-node-0", "port": 8001},
+                {"host": "cb-spark-node-0", "port": 8002}
+            ]
+            net = NetworkConfig(net_conf, self.pid)
+            self.with_network_config(net)
+
+            oc_conf = OblivcConfig("/obliv-c/bin/oblivcc", "ca-spark-node-0:9000")
+            self.with_oc_config(oc_conf)
+            return self
+        else:
+            raise Exception("Unknown MPC backend {}".format(mpc_backend))
+
     def with_pid(self, pid: int):
         """ Change pid of this party (default is 1). """
 
