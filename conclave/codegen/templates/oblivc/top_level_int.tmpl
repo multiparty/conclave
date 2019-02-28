@@ -1064,19 +1064,29 @@ void distinctCount
 			}
 		}
 
-		oddEvenSort(padded, keepRows, 0, 1, 0, numRows, true);
+        // TODO this is not necessary, optimize
+		for (int i = 0; i < paddedVal; i++)
+        {
+            // assumes -1 not among inputs
+            padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+        }
+
+		oddEvenSort(padded, keepRows, 0, 1, 0, paddedVal, false);
 		_distinctCount(ret, padded, keepRows, paddedVal);
 	}
 	else
 	{
-		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+	    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 		for (int i = 0; i < numRows; i++)
 		{
 			keepRows[i] = mat->keepRows[i];
+			// TODO this is not necessary, optimize
+			// assumes -1 not among inputs
+            array[i][0] = keepRows[i] * (array[i][0] + 1) - 1;
 		}
 
-		oddEvenSort(array, keepRows, 0, 1, 0, numRows, true);
+		oddEvenSort(array, keepRows, 0, 1, 0, numRows, false);
 		_distinctCount(ret, array, keepRows, numRows);
 	}
 }
