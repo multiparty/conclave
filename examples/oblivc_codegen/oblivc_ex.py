@@ -110,7 +110,10 @@ def agg():
 
     rel = sal.concat([cl1, cl2], "rel")
 
-    agg = sal.aggregate(rel, 'agg1', ['c'], 'a', '+', 'c_agg')
+    # def aggregate(input_op_node: cc_dag.OpNode, output_name: str, group_col_names: list,
+    #               over_col_name: str, aggregator: str, agg_out_col_name: str):
+
+    agg = sal.aggregate(rel, 'agg1', ['c'], 'a', 'sum', 'c_agg')
 
     opened = sal._open(agg, "opened", 1)
 
@@ -129,7 +132,7 @@ def agg_count():
 
     rel = sal.concat([cl1, cl2], "rel")
 
-    agg = sal.aggregate(rel, 'agg1', ['c'], '', 'count', 'c_agg')
+    agg = sal.aggregate(rel, 'agg1', ['c'], 'a', 'count', 'c_agg')
 
     opened = sal._open(agg, "opened", 1)
 
@@ -355,9 +358,9 @@ if __name__ == "__main__":
     #
     # dag = sort_by()
     # generate_leaky(dag, 'sort_by')
-
-    dag = project()
-    generate(dag, 'project')
+    #
+    # dag = project()
+    # generate(dag, 'project')
 
     # dag = distinct_count()
     # generate(dag, 'dis')
