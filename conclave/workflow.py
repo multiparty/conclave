@@ -51,8 +51,9 @@ def setup(conf: Dict):
             jiff_path = conf["backends"]["jiff"]["jiff_path"]
             party_count = len(all_pids)
             server_ip = conf["backends"]["jiff"]["server_ip"]
+            server_pid = conf["backends"]["jiff"]["server_pid"]
             server_port = conf["backends"]["jiff"]["server_port"]
-            jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port)
+            jiff_config = JiffConfig(jiff_path, party_count, server_ip, server_port, server_pid)
             conclave_config.with_jiff_config(jiff_config)
     except KeyError:
         pass
