@@ -35,11 +35,11 @@ class SwiftHandler:
         Returns a Swift connection object
         """
 
-        os_auth_url = cfg['AUTHORIZATION']['osAuthUrl']
-        username = cfg['AUTHORIZATION']['username']
-        password = cfg['AUTHORIZATION']['password']
-        os_project_domain = cfg['PROJECT']['osProjectDomain']
-        os_project_name = cfg['PROJECT']['osProjectName']
+        os_auth_url = cfg['auth']['osAuthUrl']
+        username = cfg['auth']['username']
+        password = cfg['auth']['password']
+        os_project_domain = cfg['project']['osProjectDomain']
+        os_project_name = cfg['project']['osProjectName']
 
         scoped_session = self.get_scoped_session(
             os_auth_url, username, password, os_project_domain, os_project_name)
