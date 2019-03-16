@@ -69,12 +69,12 @@ def setup(conf: Dict):
         pass
 
     elif data_backend == "swift":
-        cfg = conf["swift"]
+        cfg = conf["data"]["swift"]
         swift_config = SwiftConfig(cfg)
         conclave_config.with_swift_config(swift_config)
 
     elif data_backend == "dataverse":
-        cfg = conf["dataverse"]
+        cfg = conf["data"]["dataverse"]
         dv_conf = DataverseConfig(cfg)
         conclave_config.with_dataverse_config(dv_conf)
         # dataverse converts all csv uploads to tsv
