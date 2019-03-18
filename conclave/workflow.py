@@ -16,7 +16,7 @@ from conclave.utils import *
 def setup(conf: Dict):
 
     # GENERAL
-    pid = conf["user_config"]["pid"]
+    pid = int(conf["user_config"]["pid"])
     workflow_name = conf["user_config"]["workflow_name"]
     all_pids = conf["user_config"]['all_pids']
     use_leaky = conf["user_config"]["leaky_ops"]
