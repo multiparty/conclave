@@ -19,12 +19,12 @@ class NetworkConfig:
         """ Return network configuration dict. """
 
         network_config = dict()
-        network_config['pid'] = int(self.pid)
+        network_config['pid'] = self.pid
         network_config["parties"] = {}
         for i in range(len(self.parties)):
             network_config["parties"][i + 1] = {}
-            network_config["parties"][i + 1]["host"] = int(self.parties[i]["host"])
-            network_config["parties"][i + 1]["port"] = int(self.parties[i]["port"])
+            network_config["parties"][i + 1]["host"] = self.parties[i]["host"]
+            network_config["parties"][i + 1]["port"] = self.parties[i]["port"]
 
         return network_config
 
