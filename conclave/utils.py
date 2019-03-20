@@ -108,7 +108,7 @@ def defCol(name: str, typ: str, *coll_sets):
     return name, typ, trust_set
 
 
-def concatenate_data(data_dir, filename):
+def concatenate_data(data_dir, out_filename):
     """
     TODO: this is hacky as hell and does zero error checking, clean up after deadline
     """
@@ -125,7 +125,12 @@ def concatenate_data(data_dir, filename):
             f.close()
             os.remove(filename)
 
-    with open("{0}/{1}.csv".format(data_dir, filename), 'w') as out_file:
+    if out_filename.endswith(".csv"):
+        out_file = out_filename
+    else:
+        out_file = "{}.csv".format(out_filename)
+
+    with open("{0}/{1}.csv".format(data_dir, out_file), 'w') as out_file:
         # dummy header for codegen things
         cols = [str(i) for i in range(len(ret[0]))]
         out_file.write("\n".join(cols + ret))
