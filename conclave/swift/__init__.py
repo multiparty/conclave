@@ -91,6 +91,15 @@ class SwiftData:
 
         print("Wrote object {0} to {1}.".format(key, file_path))
 
+    def get_all_data(self, container_name, file_path):
+
+        if self.swift_connection is None:
+            print("Previous connection was closed. Reinitialize this object.")
+            return self
+
+        for data in self.swift_connection.get_container(container_name)[1]:
+            self.get_data(container_name, data['name'], file_path)
+
     def put_data(self, container_name, key, file_path):
         """
         Put data into an existing container.

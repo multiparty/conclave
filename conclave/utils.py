@@ -108,6 +108,29 @@ def defCol(name: str, typ: str, *coll_sets):
     return name, typ, trust_set
 
 
+def concatenate_data(data_dir, filename):
+    """
+    TODO: this is hacky as hell and does zero error checking, clean up after deadline
+    """
+
+    ret = []
+
+    for filename in os.listdir(data_dir):
+
+        if filename.endswith(".csv"):
+
+            f = open(filename)
+            lines = f.read().split("\n")
+            ret.extend(lines[1:])
+            f.close()
+            os.remove(filename)
+
+    with open("{0}/{1}.csv".format(data_dir, filename), 'w') as out_file:
+        # dummy header for codegen things
+        cols = [str(i) for i in range(len(ret[0]))]
+        out_file.write("\n".join(cols + ret))
+
+
 def download_swift_data(conclave_config):
     """
     Download data from Swift to local filesystem.
@@ -121,8 +144,12 @@ def download_swift_data(conclave_config):
     swift_data = SwiftData(swift_cfg)
 
     if files is not None:
-        for file in files:
-            swift_data.get_data(container, file, data_dir)
+        if files == "all":
+            swift_data.get_all_data(container, data_dir)
+            concatenate_data(data_dir, swift_cfg['data']['filename'])
+        else:
+            for file in files:
+                swift_data.get_data(container, file, data_dir)
 
     swift_data.close_connection()
 
@@ -147,7 +174,6 @@ def post_swift_data(conclave_config):
     # way to identify only final output files in the future
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
-            print(file)
             if file[0] != '.':
                 if file not in input_swift_data:
                     swift_data.put_data(container, file, data_dir)
