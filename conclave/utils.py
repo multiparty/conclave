@@ -125,12 +125,7 @@ def concatenate_data(data_dir, out_filename):
             f.close()
             os.remove("{0}/{1}".format(data_dir, filename))
 
-    if out_filename.endswith(".csv"):
-        out_file = out_filename
-    else:
-        out_file = "{}.csv".format(out_filename)
-
-    with open("{0}/{1}.csv".format(data_dir, out_file), 'w') as out_file:
+    with open("{0}/{1}.csv".format(data_dir, out_filename), 'w') as out_file:
         # dummy header for codegen things
         cols = [str(i) for i in range(len(ret[0]) - 1)]
         out_file.write("\n".join([",".join(cols)] + ret))
