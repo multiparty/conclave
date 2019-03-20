@@ -119,7 +119,7 @@ def concatenate_data(data_dir, out_filename):
 
         if filename.endswith(".csv"):
 
-            f = open(filename)
+            f = open("{0}/{1}".format(data_dir, filename))
             lines = f.read().split("\n")
             ret.extend(lines[1:])
             f.close()
