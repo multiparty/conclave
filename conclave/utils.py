@@ -149,7 +149,7 @@ def download_swift_data(conclave_config):
     swift_data = SwiftData(swift_cfg)
 
     if files is not None:
-        if files == "all":
+        if len(files) == 0:
             swift_data.get_all_data(container, data_dir)
             concatenate_data(data_dir, swift_cfg['data']['filename'])
         else:
