@@ -132,8 +132,8 @@ def concatenate_data(data_dir, out_filename):
 
     with open("{0}/{1}.csv".format(data_dir, out_file), 'w') as out_file:
         # dummy header for codegen things
-        cols = [str(i) for i in range(len(ret[0]))]
-        out_file.write("\n".join(cols + ret))
+        cols = [str(i) for i in range(len(ret[0]) - 1)]
+        out_file.write("\n".join([",".join(cols)] + ret))
 
 
 def download_swift_data(conclave_config):
