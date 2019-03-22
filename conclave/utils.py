@@ -157,11 +157,8 @@ def download_swift_data(conclave_config):
 def post_swift_data(conclave_config):
     """
     Store locally held data on Swift.
-
-    NOTE: if container_name doesn't exist, raises swiftclient.exceptions.ClientException
-
-    Should check to see if container exists in the future, and create it if it doesn't exist.
     """
+    
     input_swift_data = conclave_config.system_configs['swift'].source['data']['files']
 
     swift_cfg = conclave_config.system_configs['swift'].dest
