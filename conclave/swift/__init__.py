@@ -109,6 +109,13 @@ class SwiftData:
             print("Previous connection was closed. Reinitialize this object.")
             return self
 
+        # check if destination container exists, create it if not
+        response, containers = self.swift_connection.get_account()
+        if container_name in containers:
+            pass
+        else:
+            self.swift_connection.put_container(container_name)
+
         c = open("{0}/{1}".format(file_path, key), encoding='UTF-8').read()
 
         self.swift_connection.put_object(container_name, key, c, content_type='text/plain')
