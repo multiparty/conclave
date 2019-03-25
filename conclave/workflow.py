@@ -123,7 +123,10 @@ def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str
         generate_and_dispatch(
             protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
         )
-        post_swift_data(conclave_config)
+        # hack to only write input party 1's output data to swift
+        # TODO: generalize this in future to correspond with party who is getting data returned by collect()
+        if conclave_config.pid == 1:
+            post_swift_data(conclave_config)
 
     elif conclave_config.data_backend == "dataverse":
         download_dataverse_data(conclave_config)
