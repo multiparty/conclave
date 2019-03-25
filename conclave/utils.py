@@ -5,6 +5,7 @@ TODO: Turn this into a dedicated module for working with collusion sets.
 """
 import copy
 import os
+import operator
 
 from conclave.swift import SwiftData
 from conclave.dataverse import DataverseData
@@ -158,8 +159,6 @@ def post_swift_data(conclave_config):
     """
     Store locally held data on Swift.
     """
-    
-    input_swift_data = conclave_config.system_configs['swift'].source['data']['files']
 
     swift_cfg = conclave_config.system_configs['swift'].dest
     data_dir = conclave_config.input_path
@@ -167,13 +166,20 @@ def post_swift_data(conclave_config):
 
     swift_data = SwiftData(swift_cfg)
 
+    all_files = {}
+
     # this pushes all intermediate files to swift as well, will need some
     # way to identify only final output files in the future
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
             if file[0] != '.':
-                if file not in input_swift_data:
-                    swift_data.put_data(container, file, data_dir)
+                all_files[file] = os.path.getmtime("{0}/{1}".format(data_dir, file))
+
+    # this is a hack to avoid writing all intermittent files to swift
+    # it grabs the most recently modified file, which should be the output file,
+    # since it is written to last
+    output_file = max(all_files.items(), key=operator.itemgetter(1))[0]
+    swift_data.put_data(container, output_file, data_dir)
 
     swift_data.close_connection()
 
