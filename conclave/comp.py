@@ -303,6 +303,10 @@ class MPCPushDown(DagRewriter):
         if isinstance(top_op, ccdag.Aggregate):
             if isinstance(bottom_op, ccdag.Divide):
                 return True
+            elif top_op.aggregator == 'mean':
+                return True
+            elif top_op.aggregator == 'std_dev':
+                return True
             else:
                 return False
         else:
@@ -359,9 +363,12 @@ class MPCPushDown(DagRewriter):
         parent = next(iter(node.parents))
         if parent.is_mpc:
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
-                split_agg(node)
-                push_op_node_down(parent, node)
-                parent.update_out_rel_cols()
+                if node.aggregator != "mean" and node.aggregator != "std_dev":
+                    split_agg(node)
+                    push_op_node_down(parent, node)
+                    parent.update_out_rel_cols()
+                else:
+                    node.is_mpc = True
             else:
                 node.is_mpc = True
         else:
@@ -572,7 +579,7 @@ class TrustSetPropDown(DagRewriter):
         in_group_cols_ts = utils.trust_set_from_columns(in_group_cols)
         for i in range(len(out_group_cols)):
             out_group_cols[i].trust_set = copy.copy(in_group_cols_ts)
-        if node.aggregator == "sum":
+        if node.aggregator == "sum" or node.aggregator == "mean" or node.aggregator == "std_dev":
             in_agg_col_ts = copy.copy(node.agg_col.trust_set)
         elif node.aggregator == "count":
             # in case of a count, result over col has same trust set as group by cols
