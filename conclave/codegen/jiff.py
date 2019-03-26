@@ -181,6 +181,12 @@ class JiffCodeGen(CodeGen):
         if agg_op.aggregator == 'sum':
             template = open(
                 "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == 'mean':
+            template = open(
+                "{}/agg_mean.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == 'std_dev':
+            template = open(
+                "{}/agg_std_dev.tmpl".format(self.template_directory), 'r').read()
         else:
             raise Exception("Unknown aggregator encountered: {}\n".format(agg_op.aggregator))
 

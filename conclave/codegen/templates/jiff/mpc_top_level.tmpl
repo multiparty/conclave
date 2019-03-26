@@ -208,6 +208,115 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
     return [sortedData, sortedKeepRows];
   }
 
+const aggregateMean = function(inRel, keepRows, keyCol, aggCol, preSorted)
+{
+    var newRel = [];
+    var counts = [];
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      newRel.push([]);
+      newRel[i].push(inRel[i][keyCol]);
+      newRel[i].push(inRel[i][aggCol]);
+
+      counts.push(1);
+    }
+
+    if (!preSorted)
+    {
+      var sorted = bubbleSort(newRel, keepRows, 0);
+      var sortedData = sorted[0];
+      var sortedKeepRows = sorted[1];
+    }
+    else
+    {
+      var sortedData = newRel;
+      var sortedKeepRows = keepRows;
+    }
+
+    // total awful hack wow
+    var tmpInitVal = keepRows[0];
+    counts[0] = tmpInitVal.if_else(tmpInitVal, tmpInitVal.add(1));
+
+    for (var i = 0; i < sortedData.length - 1; i++)
+    {
+      var a = sortedData[i][0];
+      var b = sortedData[i+1][0];
+      var dataCmp = a.eq(b);
+
+      var temp = dataCmp.if_else(sortedData[i][1].add(sortedData[i+1][1]), sortedData[i+1][1]);
+      var bothKeep = sortedKeepRows[i].mult(sortedKeepRows[i+1]);
+      var dataKeepFlag = dataCmp.mult(bothKeep);
+      var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+      var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
+      var tempCount = dataKeepFlag.if_else(counts[i].add(1), 1);
+
+      sortedData[i+1][1] = tempResult;
+      sortedKeepRows[i] = tempKeep;
+      counts[i+1] = tempCount;
+
+    }
+
+    for (var i = 0; i < sortedData.length; i++)
+    {
+      var temp = sortedData[i][1].div(counts[i]);
+      sortedData[i][1] = temp;
+    }
+
+    return [sortedData, sortedKeepRows];
+}
+
+const stdDev = function(inRel, keepRows, keyCol, aggCol)
+{
+  var newRel = [];
+
+  for (var i = 0; i < inRel.length; i++)
+  {
+    newRel.push([]);
+    newRel[i].push(inRel[i][keyCol]);
+    newRel[i].push(inRel[i][aggCol]);
+  }
+
+  var sorted = bubbleSort(newRel, keepRows, 0);
+  var sortedData = sorted[0];
+  var sortedKeepRows = sorted[1];
+
+  var mean = aggregateMean(sortedData, sortedKeepRows, 0, 1, 1);
+  var meanData = mean[0];
+  var meanKeepRows = mean[1];
+
+  for (var i = 0; i < sortedData.length; i++)
+  {
+    var a = sortedData[i][0];
+
+    for (var j = 0; j < meanData.length; j++)
+    {
+      var b = meanData[j][0];
+      var dataCmp = a.eq(b);
+      var temp = dataCmp.if_else(meanData[j][1], 0);
+      var bothKeep = sortedKeepRows[i].mult(meanKeepRows[j]);
+      var subResult = temp.mult(bothKeep);
+
+      // if both rows are keepRows and they have the same key,
+      // then subtract the average from this row.
+      // this will effectively only subtract the actual average,
+      // and all other rows will be 0
+
+      sortedData[i][1] = sortedData[i][1].sub(subResult);
+    }
+
+    var temp = sortedData[i][1];
+    // square result
+    sortedData[i][1] = temp.mult(temp);
+  }
+
+  var ret = aggregateMean(sortedData, meanKeepRows, 0, 1, 1);
+  var retData = ret[0];
+  var retKeepRows = ret[1];
+
+  return [retData, retKeepRows];
+}
+
   const open = function(inRel, keepRows)
   {
     var results = saved_instance.open_2D_array(inRel);
