@@ -114,7 +114,7 @@ class SwiftData:
         if container_name in containers:
             pass
         else:
-            self.swift_connection.put_container(container_name)
+            self.create_container(container_name)
 
         c = open("{0}/{1}".format(file_path, key), encoding='UTF-8').read()
 
