@@ -22,8 +22,6 @@ var format_2d = function (array_2d){
     for (var i=0; i < array_2d.length; i++){
         for (var j=0; j < array_2d[i].length; j++){
             output += array_2d[i][j].toString() + ",";
-            console.log("Number: \n");
-            console.log(array_2d[i][j].toString(10));
         }
         //remove the last comma and replace it with a new line
         output = output.slice(0, -1) + '\n';
@@ -33,7 +31,7 @@ var format_2d = function (array_2d){
 }
 
 // JIFF options
-var options = { party_count: party_count, party_id: party_id, integer_digits: 2, decimal_digits: 1, Zp: 200003 };
+var options = { party_count: party_count, party_id: party_id, decimal_digits: 1, Zp: 2000003 };
 options.onConnect = function(jiff_instance) {
     mpc.compute(input).then(function(r){
 
