@@ -4,4 +4,4 @@ export NODE_PATH="{{{JIFF_PATH}}}/node_modules"
 
 cd {{{CODE_PATH}}}
 
-node party.js {{{INPUT_PATH}}} {{{PARTY_COUNT}}} default {{{PARTY_ID}}}
+node --max_old_space_size=4096 party.js {{{INPUT_PATH}}} {{{PARTY_COUNT}}} default {{{PARTY_ID}}}

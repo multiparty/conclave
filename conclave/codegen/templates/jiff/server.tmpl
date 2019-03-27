@@ -4,9 +4,13 @@ var app = express();
 var http = require('http').Server(app);
 var jiff_instance = require('{{{JIFF_PATH}}}/lib/jiff-server').make_jiff(http, { logs: true });
 
+var jiffBigNumberServer = require('{{{JIFF_PATH}}}/lib/ext/jiff-server-bignumber');
+jiff_instance.apply_extension(jiffBigNumberServer);
+
 app.use("{{{JIFF_PATH}}}/demos", express.static("demos"));
 app.use("{{{JIFF_PATH}}}/lib", express.static("lib"));
 app.use("{{{JIFF_PATH}}}/lib/ext", express.static("lib/ext"));
+app.use('{{{JIFF_PATH}}}/bignumber.js', express.static('node_modules/bignumber.js'));
 
 http.listen({{{PORT}}}, function() {
     console.log('listening on *:{{{PORT}}}');

@@ -8,9 +8,20 @@
     var opt = Object.assign({}, options);
 
     if(node)
-      jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+    {
+        jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+        jiff_bignumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-bignumber');
+        jiff_fixedpoint = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-fixedpoint');
+        jiff_negativeNumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-negativenumber');
+    }
 
+    opt.autoConnect = false;
     saved_instance = jiff.make_jiff(hostname, computation_id, opt);
+    saved_instance.apply_extension(jiff_bignumber, opt);
+    saved_instance.apply_extension(jiff_fixedpoint, opt);
+    saved_instance.apply_extension(jiff_negativeNumber, opt);
+    saved_instance.connect();
+
     return saved_instance;
   };
 
@@ -211,6 +222,7 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
 const aggregateMean = function(inRel, keepRows, keyCol, aggCol, preSorted)
 {
     var newRel = [];
+    var newKeepRows = [];
     var counts = [];
 
     for (var i = 0; i < inRel.length; i++)
@@ -219,23 +231,25 @@ const aggregateMean = function(inRel, keepRows, keyCol, aggCol, preSorted)
       newRel[i].push(inRel[i][keyCol]);
       newRel[i].push(inRel[i][aggCol]);
 
+      newKeepRows.push(keepRows[i]);
+
       counts.push(1);
     }
 
     if (!preSorted)
     {
-      var sorted = bubbleSort(newRel, keepRows, 0);
+      var sorted = bubbleSort(newRel, newKeepRows, 0);
       var sortedData = sorted[0];
       var sortedKeepRows = sorted[1];
     }
     else
     {
       var sortedData = newRel;
-      var sortedKeepRows = keepRows;
+      var sortedKeepRows = newKeepRows;
     }
 
     // total awful hack wow
-    var tmpInitVal = keepRows[0];
+    var tmpInitVal = newKeepRows[0];
     counts[0] = tmpInitVal.if_else(tmpInitVal, tmpInitVal.add(1));
 
     for (var i = 0; i < sortedData.length - 1; i++)
@@ -294,23 +308,19 @@ const stdDev = function(inRel, keepRows, keyCol, aggCol)
       var b = meanData[j][0];
       var dataCmp = a.eq(b);
       var temp = dataCmp.if_else(meanData[j][1], 0);
-      var bothKeep = sortedKeepRows[i].mult(meanKeepRows[j]);
-      var subResult = temp.mult(bothKeep);
-
-      // if both rows are keepRows and they have the same key,
-      // then subtract the average from this row.
-      // this will effectively only subtract the actual average,
-      // and all other rows will be 0
+      // TODO: fix code underneath this is a hack for memory stuff
+      // var bothKeep = sortedKeepRows[i].mult(meanKeepRows[j]);
+      var subResult = temp.mult(meanKeepRows[j]);
 
       sortedData[i][1] = sortedData[i][1].sub(subResult);
     }
 
-    var temp = sortedData[i][1];
+    var tempVal = sortedData[i][1];
     // square result
-    sortedData[i][1] = temp.mult(temp);
+    sortedData[i][1] = tempVal.mult(tempVal);
   }
 
-  var ret = aggregateMean(sortedData, meanKeepRows, 0, 1, 1);
+  var ret = aggregateMean(sortedData, sortedKeepRows, 0, 1, 1);
   var retData = ret[0];
   var retKeepRows = ret[1];
 
@@ -329,9 +339,9 @@ const stdDev = function(inRel, keepRows, keyCol, aggCol)
 
       for (var i = 0; i < openedRes.length; i++)
       {
-        if (openedKeep[i] === 1)
+        if (openedKeep[i].toNumber())
         {
-          ret.push(openedRes[i])
+          ret.push(openedRes[i]);
         }
       }
 
