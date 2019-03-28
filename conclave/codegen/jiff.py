@@ -183,7 +183,18 @@ class JiffCodeGen(CodeGen):
                 "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
         elif agg_op.aggregator == 'mean':
             template = open(
-                "{}/agg_mean.tmpl".format(self.template_directory), 'r').read()
+                "{}/agg_mean_with_count_col.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "INREL": agg_op.get_in_rel().name,
+                "OUTREL": agg_op.out_rel.name,
+                "KEY_COL": agg_op.group_cols[0].idx,
+                "AGG_COL": agg_op.agg_col.idx,
+                "COUNT_COL": 2
+            }
+
+            return pystache.render(template, data)
+
         elif agg_op.aggregator == 'std_dev':
             template = open(
                 "{}/agg_std_dev.tmpl".format(self.template_directory), 'r').read()

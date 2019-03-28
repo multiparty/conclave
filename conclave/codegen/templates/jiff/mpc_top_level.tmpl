@@ -280,6 +280,75 @@ const aggregateMean = function(inRel, keepRows, keyCol, aggCol, preSorted)
     return [sortedData, sortedKeepRows];
 }
 
+const aggregateMeanWithCountCol = function(inRel, keepRows, keyCol, aggCol, countCol, preSorted)
+{
+    var newRel = [];
+    var newKeepRows = [];
+    var counts = [];
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      newRel.push([]);
+      newRel[i].push(inRel[i][keyCol]);
+      newRel[i].push(inRel[i][aggCol]);
+      newRel[i].push(inRel[i][countCol]);
+
+      newKeepRows.push(keepRows[i]);
+    }
+
+    if (!preSorted)
+    {
+      var sorted = bubbleSort(newRel, newKeepRows, 0);
+      var sortedData = sorted[0];
+      var sortedKeepRows = sorted[1];
+    }
+    else
+    {
+      var sortedData = newRel;
+      var sortedKeepRows = newKeepRows;
+    }
+
+    for (var i = 0; i < sortedData.length - 1; i++)
+    {
+      var a = sortedData[i][0];
+      var b = sortedData[i+1][0];
+      var dataCmp = a.eq(b);
+
+      // if equal add together, else temp = value at i + 1
+      var temp = dataCmp.if_else(sortedData[i][1].add(sortedData[i+1][1]), sortedData[i+1][1]);
+
+      // equals 1 if both are 1 else 0
+      var bothKeep = sortedKeepRows[i].mult(sortedKeepRows[i+1]);
+
+      // multiply result by the keepFlag
+      var dataKeepFlag = dataCmp.mult(bothKeep);
+
+      // if bothKeep then equal to temp else dont touch i+1
+      var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+
+      // if equal then keepRows[i] == 0 else dont touch it
+      var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
+
+      // update counts entry at i+1
+      var tempCount = dataKeepFlag.if_else(sortedData[i][2].add(sortedData[i+1][2]), sortedData[i+1][2])
+
+      sortedData[i+1][1] = tempResult;
+      sortedKeepRows[i] = tempKeep;
+      sortedData[i+1][2] = tempCount;
+
+    }
+
+    var ret = []
+
+    for (var i = 0; i < sortedData.length; i++)
+    {
+      var temp = sortedData[i][1].div(sortedData[i][2]);
+      ret.push([sortedData[i][0], temp])
+    }
+
+    return [ret, sortedKeepRows];
+}
+
 const stdDev = function(inRel, keepRows, keyCol, aggCol)
 {
   var newRel = [];
