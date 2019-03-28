@@ -170,8 +170,6 @@ def post_swift_data(conclave_config):
 
     all_files = {}
 
-    # this pushes all intermediate files to swift as well, will need some
-    # way to identify only final output files in the future
     for subdir, dirs, files in os.walk(data_dir):
         for file in files:
             if file[0] != '.':
