@@ -31,7 +31,7 @@ var format_2d = function (array_2d){
 }
 
 // JIFF options
-var options = { party_count: party_count, party_id: party_id, decimal_digits: 1, Zp: 2000003 };
+var options = { party_count: party_count, party_id: party_id, integer_digits: 4, decimal_digits: 1, Zp: 2000003 };
 options.onConnect = function(jiff_instance) {
     mpc.compute(input).then(function(r){
 
