@@ -32,7 +32,7 @@ fi
 if [ "$(ls -A ${DIR}/prep.py)" ]; then
     python3 ${DIR}/prep.py ${DIR}/input_data ${DIR}/data
 else
-	cp $DIR/input_data/*.csv $DIR/data/
+	cp $DIR/input_data/*.csv ${DIR}/data/
 fi
 
 
