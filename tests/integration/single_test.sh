@@ -13,6 +13,7 @@ trap kill_c_procs INT
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
 BACKEND=$2
+KEEP_FILES=$3
 
 echo ${BACKEND}
 
@@ -56,4 +57,8 @@ wait
 python ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
 
 # clean up again
-rm ${DIR}/data/*.csv
+if [ -z ${KEEP_FILES} ]; then
+    rm ${DIR}/data/*.csv
+else
+    echo "Keeping Files"
+fi
