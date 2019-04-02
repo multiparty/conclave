@@ -1,9 +1,9 @@
 import asyncio
-import time
 import json
-import pystache
-
+import time
 from subprocess import call
+
+import pystache
 
 
 class OblivCDispatcher:
@@ -60,10 +60,10 @@ class OblivCDispatcher:
         with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
             params = json.load(conf)
 
+        row_count = 0
         with open(params["IN_PATH"], 'r') as input_data:
             file_data = input_data.read()
             rows = file_data.split("\n")
-            row_count = 0
             for r in rows:
                 if r != '':
                     row_count += 1
@@ -71,7 +71,7 @@ class OblivCDispatcher:
 
         data = {
             "TYPE": params["TYPE"],
-            "ROWS": len(rows) - 1,
+            "ROWS": row_count - 1,
             "COLS": cols
         }
 

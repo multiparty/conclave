@@ -18,7 +18,8 @@ def protocol():
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
 
     cohort = cc.concat([left_diagnosis, right_diagnosis], "cohort")
-    counts = cc.aggregate_count(cohort, "counts", [diagnosis_col], "total")
+    counts = cc.aggregate_count(cohort, "actual", [diagnosis_col], "total")
+    # cc.collect(counts, 1)
     cc.collect(cc.sort_by(counts, "actual", "total"), 1)
 
     return {left_diagnosis, right_diagnosis}

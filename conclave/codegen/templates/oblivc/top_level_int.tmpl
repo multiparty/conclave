@@ -6,6 +6,26 @@
 
 #include "workflow.h"
 
+void debugPrint(intermediateMat *mat) {
+    int numRows = mat->rows;
+	int numCols = mat->cols;
+	printf("[ ");
+	for (int i = 0; i < numRows; i++)
+	{
+	    printf("[");
+	    for (int j = 0; j < numCols; j++) {
+            int opened;
+		    revealOblivInt(&opened, (mat->mat[i][j]), 0);
+		    printf("%i ", opened);
+	    }
+	    int opened;
+        revealOblivInt(&opened, (mat->keepRows[i]), 0);
+        printf("%i", opened);
+	    printf("] ");
+	}
+	printf("]\n");
+}
+
 int checkInputCols
 	(
 	int colsOne,
@@ -696,22 +716,17 @@ void shiftAgg
 	)
 {
 
-	for (int i = 0; i < numRows - 1; i++)
+	for (int i = 1; i < numRows - 1; i++)
 	{
-		obliv int eqFlag = (arr[i][0] == arr[i + 1][0]);
-		obliv int keepFlag = keepRows[i] * keepRows[i + 1];
+		// compare keys of current row and previous
+		obliv int eqFlag = (arr[i - 1][0] == arr[i][0]);
 
-		// only touch data if both rows are keepRows
-		// TODO check if doing oblivious selects instead of oblivious if statement is faster
-		obliv if (keepFlag * eqFlag)
-		{
-			obliv int temp1 = arr[i][1] * (1 - eqFlag);
-			obliv int temp2 = arr[i + 1][1] + (arr[i][1] * eqFlag);
-			arr[i][1] = temp1;
-			arr[i + 1][1] = temp2;
+		// aggregate previous into current if keys equal
+        arr[i][1] = arr[i][1] + (arr[i - 1][1] * eqFlag);
 
-			keepRows[i] = 0;
-		}
+        // only keep if this is last entry in group (i.e., not equal to next)
+        // and it's not a dummy element (i.e., keep flag is not 0)
+        keepRows[i - 1] = keepRows[i - 1] * (1 - eqFlag);
 	}
 }
 
@@ -723,8 +738,7 @@ void _agg
 		int numRows
 	)
 {
-
-		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true);
+        oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, false);
 		shiftAgg(array, ret->keepRows, numRows);
 
         obliv int **retArray = malloc(sizeof(*retArray) * numRows);
@@ -739,6 +753,8 @@ void _agg
 		ret->mat = retArray;
 		ret->rows = numRows;
 		ret->cols = numCols;
+		//debugPrint(ret);
+
 }
 
 void _aggLeaky
@@ -792,7 +808,7 @@ void agg
 	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
 	int numRows = mat->rows;
 	int numCols = 2;
-
+    //debugPrint(mat);
 	obliv int **array = malloc(sizeof(*array) * numRows);
 
 	for (int i = 0; i < numRows; i++)
@@ -804,6 +820,7 @@ void agg
 
 	if (!isPowerOfTwo(numRows))
 	{
+	    printf("Not power of 2, will pad\n");
 		int paddedVal = nextPowerOf2(numRows);
 		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
 
@@ -828,11 +845,18 @@ void agg
         }
         else
         {
+            // TODO this is not necessary, optimize
+            for (int i = 0; i < paddedVal; i++)
+            {
+                // assumes -1 not among inputs
+                padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+            }
 		    _agg(ret, padded, numCols, paddedVal);
 		}
 	}
 	else
 	{
+	    printf("Power of 2\n");
 		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 		for (int i = 0; i < numRows; i++)
@@ -861,7 +885,9 @@ void aggCount
 		bool leaky
 	)
 {
-	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
+	// TODO: change this to append column of 1s and call agg to re-use more code
+	printf("Agg count not supported yet\n");
+	exit(1);
 	int numRows = mat->rows;
 	int numCols = 2;
 
@@ -942,7 +968,7 @@ void revealResult
 		revealOblivInt(&keepFlags[i], mat->keepRows[i], 0);
 		if (keepFlags[i] == 1)
 		{
-			outRows++;
+		    outRows++;
 		}
 	}
 

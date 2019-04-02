@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     io.in.rows = ROWS;
 
     loadData(&io.in.mat, inSrc);
+    displayData(&io);
 
 	printf("Connecting to %s on port %s ...\n", remote_host, port);
     if("{{{PID}}}" == "1")
