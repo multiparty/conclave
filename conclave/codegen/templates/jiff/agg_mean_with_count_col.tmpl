@@ -1,4 +1,4 @@
 
-        var {{{OUTREL}}}RESULT = aggregateMeanWithCountCol({{{INREL}}}, {{{INREL}}}KeepRows, {{{KEY_COL}}}, {{{AGG_COL}}}, {{{COUNT_COL}}}, 0);
+        var {{{OUTREL}}}RESULT = await aggregateMeanWithCountCol({{{INREL}}}, {{{INREL}}}KeepRows, {{{KEY_COL}}}, {{{AGG_COL}}}, {{{COUNT_COL}}}, 0, jiff_instance);
         var {{{OUTREL}}} = {{{OUTREL}}}RESULT[0];
         var {{{OUTREL}}}KeepRows = {{{OUTREL}}}RESULT[1];
