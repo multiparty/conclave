@@ -7,7 +7,7 @@ from conclave.config import CodeGenConfig, SharemindCodeGenConfig
 from conclave.utils import defCol
 
 
-def protocol_mpc():
+def protocol_mpc(all_pids: list):
     pid_col_meds = "0"
     med_col_meds = "4"
     date_col_meds = "7"
@@ -21,22 +21,22 @@ def protocol_mpc():
 
     left_medication_cols = [defCol(str(i), "INTEGER", 1) for i in range(num_med_cols)]
     # public PID column
-    left_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
+    left_medication_cols[0] = defCol(pid_col_meds, "INTEGER", all_pids)
     left_medication = cc.create("left_medication", left_medication_cols, {1})
 
     left_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 1) for i in range(num_diag_cols)]
     # public PID column
-    left_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
+    left_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", all_pids)
     left_diagnosis = cc.create("left_diagnosis", left_diagnosis_cols, {1})
 
     right_medication_cols = [defCol(str(i), "INTEGER", 2) for i in range(num_med_cols)]
     # public PID column
-    right_medication_cols[0] = defCol(pid_col_meds, "INTEGER", 1, 2, 3)
+    right_medication_cols[0] = defCol(pid_col_meds, "INTEGER", all_pids)
     right_medication = cc.create("right_medication", right_medication_cols, {2})
 
     right_diagnosis_cols = [defCol(str(i + num_med_cols), "INTEGER", 2) for i in range(num_diag_cols)]
     # public PID column
-    right_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", 1, 2, 3)
+    right_diagnosis_cols[0] = defCol(pid_col_diags, "INTEGER", all_pids)
     right_diagnosis = cc.create("right_diagnosis", right_diagnosis_cols, {2})
 
     # Manual slicing
@@ -180,21 +180,13 @@ def local_main():
     write_rel(data_path, "actual_open.csv", res, "1")
 
 
-def main_mpc(pid: str):
-    try:
-        use_leaky = sys.argv[2] == "-l"
-    except Exception:
-        use_leaky = False
+def main_mpc(pid: str, mpc_backend: str):
     # define name for the workflow
     workflow_name = "real-aspirin-partitioned-" + pid
     # configure conclave
-    conclave_config = CodeGenConfig(workflow_name, int(pid))
-    conclave_config.all_pids = [1, 2, 3]
-    conclave_config.use_leaky_ops = use_leaky
-    sharemind_conf = SharemindCodeGenConfig("/mnt/shared",
-                                            use_docker=True,
-                                            use_hdfs=False)
-    conclave_config.with_sharemind_config(sharemind_conf)
+    mpc_backend = sys.argv[2]
+    conclave_config = CodeGenConfig(workflow_name, int(pid)) \
+        .with_default_mpc_config(mpc_backend)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     # point conclave to the directory where the generated code should be stored/ read from
     conclave_config.code_path = os.path.join("/mnt/shared", workflow_name)
@@ -202,12 +194,18 @@ def main_mpc(pid: str):
     conclave_config.input_path = os.path.join(current_dir, "data")
     # and written to
     conclave_config.output_path = os.path.join(current_dir, "data")
-    job_queue = generate_code(protocol_mpc, conclave_config, ["sharemind"], ["python"], apply_optimizations=True)
+    job_queue = generate_code(lambda: protocol_mpc(conclave_config.all_pids), conclave_config, [mpc_backend],
+                              ["python"], apply_optimizations=True)
     dispatch_jobs(job_queue, conclave_config)
 
 
-if __name__ == "__main__":
+def main():
     top_pid = sys.argv[1]
-    main_mpc(top_pid)
+    mpc_backend = sys.argv[2]
+    main_mpc(top_pid, mpc_backend)
     if top_pid == "1":
         local_main()
+
+
+if __name__ == "__main__":
+    main()

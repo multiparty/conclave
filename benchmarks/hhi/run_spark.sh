@@ -15,4 +15,4 @@ hadoop fs -rm -r ${HDFS_ROOT_DIR}/scaled_down*
 hadoop fs -rm -r ${HDFS_ROOT_DIR}/hhi_open*
 
 # run query
-time python3 ${DIR}/workload.py ${PARTY_ID} ${HDFS_ROOT_DIR} spark
+time python ${DIR}/workload.py ${PARTY_ID} ${HDFS_ROOT_DIR} spark

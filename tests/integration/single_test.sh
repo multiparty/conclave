@@ -12,7 +12,14 @@ trap kill_c_procs INT
 
 TEST_SUB_DIR=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/${TEST_SUB_DIR}
-export PYTHONPATH=${PYTHONPATH}:/${HOME}/Desktop/conclave
+BACKEND=$2
+KEEP_FILES=$3
+
+echo ${BACKEND}
+
+if [ -z ${BACKEND} ]; then
+    BACKEND=sharemind
+fi
 
 # set up data
 mkdir -p ${DIR}/data
@@ -26,22 +33,32 @@ fi
 if [ "$(ls -A ${DIR}/prep.py)" ]; then
     python3 ${DIR}/prep.py ${DIR}/input_data ${DIR}/data
 else
-	cp $DIR/input_data/*.csv $DIR/data/
+	cp $DIR/input_data/*.csv ${DIR}/data/
 fi
 
 
 # run python workflow to generate expected results
-python3 ${DIR}/simple.py 1
+python ${DIR}/simple.py 1
+
+if [ ${BACKEND} == "sharemind" ]; then
+    declare -a PARTIES=(1 2 3)
+else
+    declare -a PARTIES=(1 2)
+fi
 
 # run real workflow
-for i in 1 2 3;
+for i in "${PARTIES[@]}";
 do
-    python3 ${DIR}/real.py ${i} &
+    python ${DIR}/real.py ${i} ${BACKEND} &
 done
 wait
 
 # verify results
-python3 ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
+python ${DIR}/check.py ${DIR}/data/expected.csv ${DIR}/data/actual_open.csv
 
 # clean up again
-rm ${DIR}/data/*.csv
+if [ -z ${KEEP_FILES} ]; then
+    rm ${DIR}/data/*.csv
+else
+    echo "Keeping Files"
+fi

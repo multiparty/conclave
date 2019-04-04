@@ -1,6 +1,4 @@
 import os
-import sys
-import csv
 
 import pystache
 
@@ -19,9 +17,8 @@ class OblivcCodeGen(CodeGen):
                  "{}/templates/oblivc"
                  .format(os.path.dirname(os.path.realpath(__file__)))):
 
-        if not "oblivc" in config.system_configs:
-            print("Missing OblivC configuration in CodeGenConfig.\n")
-            sys.exit(1)
+        if "oblivc" not in config.system_configs:
+            raise Exception("Missing OblivC configuration in CodeGenConfig.\n")
 
         self.oc_config = config.system_configs['oblivc']
         self.create_params = {}
@@ -30,6 +27,7 @@ class OblivcCodeGen(CodeGen):
 
         self.template_directory = template_directory
         self.pid = pid
+        self.in_path = None
 
     def generate(self, job_name: str, output_directory: str):
         """
@@ -74,6 +72,14 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_sort_by(node)
             elif isinstance(node, Open):
                 op_code += self._generate_open(node)
+            elif isinstance(node, DistinctCount):
+                op_code += self._generate_distinct_count(node)
+            elif isinstance(node, Filter):
+                op_code += self._generate_filter(node)
+            elif isinstance(node, ConcatCols):
+                op_code += self._generate_concat_cols(node)
+            elif isinstance(node, Limit):
+                op_code += self._generate_limit(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
@@ -85,8 +91,12 @@ class OblivcCodeGen(CodeGen):
         Returns generated Spark code and Job object.
         """
 
-        template = open(
-            "{}/top_level.tmpl".format(self.template_directory), 'r').read()
+        if self.config.use_floats:
+            template = open(
+                "{}/top_level_float.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/top_level_int.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             'OP_CODE': op_code
@@ -115,21 +125,99 @@ class OblivcCodeGen(CodeGen):
 
         stored_with_set = copy.deepcopy(close_op.get_in_rel().stored_with)
 
-        assert(len(stored_with_set) > 0)
-
-        # name of struct that will be read from
-        parent_name = close_op.get_in_rel().name
-
         template = open(
              "{0}/close.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "RELNAME": close_op.out_rel.name,
-            "STORED_WITH": stored_with_set.pop(),
-            "PARENT": parent_name
+            "STORED_WITH": stored_with_set.pop()
          }
 
         return pystache.render(template, data)
+
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
+
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+
+        if concat_cols_op.use_mult:
+
+            template = open(
+                "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+        else:
+
+            template = open(
+                "{0}/concat_cols.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUT_REL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+    def _generate_limit(self, limit_op: Limit):
+        """
+        Generate code for limit operation.
+        """
+
+        if self.config.use_leaky_ops:
+            template = open(
+                "{0}/limit_leaky.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/limit.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": limit_op.get_in_rel().name,
+            "OUT_REL": limit_op.out_rel.name,
+            "NUM": limit_op.num
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_filter(self, filter_op: Filter):
+        """
+        Generate code for different filter operations.
+        """
+
+        if filter_op.is_scalar:
+
+            template = open(
+                "{0}/filter_eq_by_constant.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "CONSTANT": filter_op.scalar
+            }
+
+            return pystache.render(template, data)
+
+        else:
+
+            template = open(
+                "{0}/filter_lt_by_column.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "IN_REL": filter_op.get_in_rel().name,
+                "OUT_REL": filter_op.out_rel.name,
+                "KEY_COL": filter_op.filter_col.idx,
+                "COMP_COL": filter_op.other_col.idx
+            }
+
+            return pystache.render(template, data)
 
     # TODO: generalize, oc code is limited to 2 input relations
     def _generate_concat(self, concat_op: Concat):
@@ -156,8 +244,12 @@ class OblivcCodeGen(CodeGen):
         Generate code for Join operations.
         """
 
-        template = open(
-            "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        if not self.config.use_leaky_ops:
+            template = open(
+                "{0}/join.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{0}/join_leaky.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "JOINCOL_ONE": join_op.left_join_cols[0].idx,
@@ -295,19 +387,49 @@ class OblivcCodeGen(CodeGen):
         Generate code for Aggregate operations.
         """
 
-        # TODO: codegen assumes '+' aggregator, generalize
-
-        template = open(
-            "{}/agg.tmpl".format(self.template_directory), 'r').read()
+        if agg_op.aggregator == 'sum':
+            template = open(
+                "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == "count":
+            template = open(
+                "{}/agg_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            raise Exception("Unknown aggregator encountered: {}".format(agg_op.aggregator))
 
         # TODO: generalize codegen to handle multiple group_cols
         assert(len(agg_op.group_cols) == 1)
+
+        if self.config.use_leaky_ops:
+            leaky = 1
+        else:
+            leaky = 0
 
         data = {
             "IN_REL": agg_op.get_in_rel().name,
             "OUT_REL": agg_op.out_rel.name,
             "KEY_COL": agg_op.group_cols[0].idx,
-            "AGG_COL": agg_op.agg_col.idx
+            "AGG_COL": agg_op.agg_col.idx,
+            "USE_LEAKY": leaky
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_distinct_count(self, distinct_count_op: DistinctCount):
+        """
+        Generate code for DistinctCount operations.
+        """
+
+        if distinct_count_op.use_sort:
+            template = open(
+                "{}/distinct_count.tmpl".format(self.template_directory), 'r').read()
+        else:
+            template = open(
+                "{}/distinct_count_presorted.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "IN_REL": distinct_count_op.get_in_rel().name,
+            "OUT_REL": distinct_count_op.out_rel.name,
+            "KEY_COL": distinct_count_op.selected_col.idx
         }
 
         return pystache.render(template, data)
@@ -323,43 +445,34 @@ class OblivcCodeGen(CodeGen):
         data = {
             "OC_COMP_PATH": self.oc_config.oc_path,
             "IP_AND_PORT": self.oc_config.ip_and_port,
-            "PATH": self.config.code_path + job_name
+            "PATH": "{0}/{1}".format(self.config.code_path, job_name)
         }
 
         return pystache.render(template, data)
 
-    def _generate_header(self):
+    def _generate_header_json(self):
         """
         Generate header file that stores struct data.
         """
 
+        nodes = self.dag.top_sort()
+
+        in_path = ''
+
+        for node in nodes:
+            if isinstance(node, Create):
+                if int(self.pid) in node.out_rel.stored_with:
+                    in_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
+
         template = open(
             "{0}/protocol_io.tmpl".format(self.template_directory), 'r').read()
 
-        structs_code = ''
-
-        for in_rel in self.create_params.keys():
-            structs_code += "\tIo {};\n".format(in_rel)
-
         data = {
-            "STRUCTS": structs_code
+            "IN_PATH": in_path,
+            "TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
-
-    def _add_to_struct_code(self, node):
-        """
-        Generates code to pass locally held data to MPC computation.
-        """
-
-        node_name = node.out_rel.name
-
-        path_str = "\tchar *{0}_src = \"{1}/{2}.csv\";\n".format(node_name, self.config.input_path, node_name)
-        cols_str = "\tio.{0}.cols = {1};\n".format(node_name, len(node.out_rel.columns))
-        rows_str = "\tio.{0}.rows = countRows({0}_src, io.{0}.cols);\n".format(node_name)
-        load_str = "\tloadData(&io.{0}.mat, {0}_src);\n".format(node_name)
-
-        return "".join([path_str, cols_str, rows_str, load_str])
 
     def _generate_controller(self):
         """
@@ -369,35 +482,31 @@ class OblivcCodeGen(CodeGen):
         nodes = self.dag.top_sort()
 
         out_path = ''
-        struct_code = ''
+        in_path = ''
         write_str = ''
-        mock_str = ''
 
         for node in nodes:
             if isinstance(node, Create):
                 if int(self.pid) in node.out_rel.stored_with:
-                    struct_code += self._add_to_struct_code(node)
-                else:
-                    load_str = "\tloadMockData(&io.{0});\n".format(node.out_rel.name)
-                    col_str = "\tio.{0}.cols = COLS;\n".format(node.out_rel.name)
-                    row_str = "\tio.{0}.rows = ROWS;\n".format(node.out_rel.name)
-                    mock_str += "".join([load_str, col_str, row_str])
+                    in_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
+                    self.in_path = in_path
 
             if isinstance(node, Open):
                 if int(self.pid) in node.out_rel.stored_with:
-                    out_path = node.out_rel.name
+                    out_path = "{0}/{1}.csv".format(self.config.input_path, node.out_rel.name)
                     write_str += 'writeData(&io);'
-
-        struct_code += mock_str
 
         template = open(
             "{0}/c_controller.tmpl".format(self.template_directory), 'r').read()
 
         data = {
             "PID": self.pid,
-            "OUTPUT_PATH": "{0}/{1}_{2}.csv".format(self.config.input_path, out_path, str(self.pid)),
+            "OUTPUT_PATH": out_path,
+            "INPUT_PATH": in_path,
             "WRITE_CODE": write_str,
-            "STRUCT_CODE": struct_code
+            "TYPE": 'g' if self.config.use_floats else 'i',
+            "TYPE_CONV_STR": 'atof' if self.config.use_floats else 'atoi',
+            "NUM_TYPE": 'float' if self.config.use_floats else 'int'
         }
 
         return pystache.render(template, data)
@@ -412,8 +521,8 @@ class OblivcCodeGen(CodeGen):
         oc_file = open("{}/{}/workflow.oc".format(self.config.code_path, job_name), 'w')
         oc_file.write(code)
 
-        header_code = self._generate_header()
-        header = open("{}/{}/workflow.h".format(self.config.code_path, job_name), 'w')
+        header_code = self._generate_header_json()
+        header = open("{}/{}/header_params.json".format(self.config.code_path, job_name), 'w')
         header.write(header_code)
 
         controller_code = self._generate_controller()

@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import pickle
-import sys
+
 
 class IAMMsg:
     """ Message identifying peer. """
