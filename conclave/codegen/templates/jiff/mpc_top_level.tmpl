@@ -148,6 +148,7 @@
 
 const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
 {
+  console.log("\n\nIN SORT\n\n");
   var numCols = inRel[0].length;
 
   for (var i = 0; i < inRel.length; i++)
@@ -237,7 +238,7 @@ const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
     }
     await jiff_instance.end_barrier(outerLoop);
   }
-
+  console.log("\n\nLEAVING SORT\n\n");
   return [inRel, keepRows];
 }
 
@@ -349,6 +350,7 @@ const aggregateMean = async function(inRel, keepRows, keyCol, aggCol, preSorted,
 
 const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol, countCol, preSorted, jiff_instance)
 {
+    console.log("\n\nIN AGG\n\n");
     var newRel = [];
     var newKeepRows = [];
     var counts = [];
@@ -365,6 +367,7 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
 
     if (!preSorted)
     {
+      console.log("\n\nENTERING SORT\n\n");
       var sorted = await bubbleSort(newRel, newKeepRows, 0, jiff_instance);
       var sortedData = sorted[0];
       var sortedKeepRows = sorted[1];
@@ -485,7 +488,7 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
       }
       await jiff_instance.end_barrier(noChunkBarrier);
     }
-
+    console.log("\n\nLEAVING AGG\n\n");
     return [ret, sortedKeepRows];
 }
 
