@@ -406,7 +406,7 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
       }
       // finish last bit
       var secondLoop = jiff_instance.start_barrier();
-      for (var j = k; j < totalRows; j++)
+      for (var j = k + 10; j < totalRows; j++)
       {
         var a = sortedData[j][0];
         var b = sortedData[j+1][0];
@@ -448,12 +448,42 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
       await jiff_instance.end_barrier(smallLoop);
     }
 
-    var ret = []
+    var ret = [];
+    var totalRows = sortedData.length;
+    var chunks = Math.floor(totalRows/10);
+    var k = 0;
 
-    for (var i = 0; i < sortedData.length; i++)
+    if (chunks > 0)
     {
-      var temp = sortedData[i][1].div(sortedData[i][2]);
-      ret.push([sortedData[i][0], temp])
+      for (var cc = 0; cc < chunks; cc++)
+      {
+        k = 10*cc;
+        var divLoop = jiff_instance.start_barrier();
+        for (var i = 0; i < 10; i++)
+        {
+          var temp = sortedData[i+k][1].div(sortedData[i+k][2]);
+          ret.push([sortedData[i+k][0], temp]);
+        }
+        await jiff_instance.end_barrier(divLoop);
+      }
+      // finish last bit
+      var divLastBit = jiff_instance.start_barrier();
+      for (var j = k + 10; j < totalRows; j++)
+      {
+        var temp = sortedData[j][1].div(sortedData[j][2]);
+        ret.push([sortedData[j][0], temp]);
+      }
+      await jiff_instance.end_barrier(divLastBit);
+    }
+    else
+    {
+      var noChunkBarrier = jiff_instance.start_barrier();
+      for (var i = 0; i < sortedData.length; i++)
+      {
+        var temp = sortedData[i][1].div(sortedData[i][2]);
+        ret.push([sortedData[i][0], temp]);
+      }
+      await jiff_instance.end_barrier(noChunkBarrier);
     }
 
     return [ret, sortedKeepRows];
