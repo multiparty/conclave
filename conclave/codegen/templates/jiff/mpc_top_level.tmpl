@@ -170,7 +170,7 @@ const _bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance, numCo
     keepRows[i] = keepOne;
     keepRows[i+1] = keepTwo;
   }
-  jiff_instance.end_barrier(loop);
+  await jiff_instance.end_barrier(loop);
 }
 
 const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
@@ -192,6 +192,7 @@ const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
     {
       for (var jj = 0; jj < chunks; jj++)
       {
+        console.log(jj);
         minVal = 10 * jj;
         maxVal = minVal + 10;
         await _bubbleSort(inRel, keepRows, keyCol, jiff_instance, numCols, minVal, maxVal);
