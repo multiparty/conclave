@@ -4,4 +4,4 @@ export NODE_PATH="{{{JIFF_PATH}}}/node_modules"
 
 cd {{{CODE_PATH}}}
 
-node server.js
+node --max-old-space-size=8192 server.js
