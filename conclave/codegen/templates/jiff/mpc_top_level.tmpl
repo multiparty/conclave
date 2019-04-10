@@ -164,11 +164,11 @@ const _bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance, numCo
       inRel[i+1][j] = tempTwo;
     }
 
-    var keepOne = cmp.if_else(keepRows[i], keepRows[i+1]);
-    var keepTwo = cmp.if_else(keepRows[i+1], keepRows[i]);
+    // var keepOne = cmp.if_else(keepRows[i], keepRows[i+1]);
+    // var keepTwo = cmp.if_else(keepRows[i+1], keepRows[i]);
 
-    keepRows[i] = keepOne;
-    keepRows[i+1] = keepTwo;
+    // keepRows[i] = keepOne;
+    // keepRows[i+1] = keepTwo;
   }
   await jiff_instance.end_barrier(loop);
 }
@@ -185,14 +185,14 @@ const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
     var maxVal;
 
     var totalRows = inRel.length - i - 1;
-    var chunks = Math.floor(totalRows/10);
+    var chunks = Math.floor(totalRows/20);
     if (chunks > 0)
     {
       for (var j = 0; j < chunks; j++)
       {
         console.log(j);
-        minVal = 10 * j;
-        maxVal = minVal + 10;
+        minVal = 20 * j;
+        maxVal = minVal + 20;
         await _bubbleSort(inRel, keepRows, keyCol, jiff_instance, numCols, minVal, maxVal);
       }
       // finish last bit
@@ -378,14 +378,14 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
     }
 
     var totalRows = sortedData.length - 1;
-    var chunks = Math.floor(totalRows/10);
+    var chunks = Math.floor(totalRows/20);
 
     if (chunks > 0)
     {
       for (var cc = 0; cc < chunks; cc++)
       {
-        minVal = cc * 10;
-        maxVal = minVal + 10;
+        minVal = cc * 20;
+        maxVal = minVal + 20;
         await _aggregateMeanWithCountCol(sortedData, sortedKeepRows, jiff_instance, minVal, maxVal);
       }
       // finish last bit
@@ -398,14 +398,14 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
 
     var ret = [];
     var totalRows = sortedData.length;
-    var chunks = Math.floor(totalRows/10);
+    var chunks = Math.floor(totalRows/20);
 
     if (chunks > 0)
     {
       for (var cc = 0; cc < chunks; cc++)
       {
-        minVal = 10 * cc;
-        maxVal = minVal + 10;
+        minVal = 20 * cc;
+        maxVal = minVal + 20;
         await _aggDivHelper(sortedData, ret, jiff_instance, minVal, maxVal);
       }
       // finish last bit
