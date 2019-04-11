@@ -146,6 +146,114 @@
     return [ret, keepRowsResult];
   };
 
+const nextPowerOfTwo = function(n)
+{
+  var p = 1;
+  if (n && !(n & (n-1)))
+  {
+    return n;
+  }
+
+  while (p < n)
+  {
+    p <<=1;
+  }
+
+  return p;
+}
+
+const compareExchange = function(inRel, keepRows, keyCol, numCols, i, j)
+{
+  if (j >= inRel.length || i >= inRel.length)
+  {
+    return;
+  }
+
+  var x = inRel[i][keyCol];
+  var y = inRel[j][keyCol];
+
+  var cmp = x.lt(y);
+
+  for (var k = 0; k < numCols; k++)
+  {
+    var tempOne = cmp.if_else(inRel[i][k], inRel[j][k]);
+    var tempTwo = cmp.if_else(inRel[j][k], inRel[i][k]);
+
+    inRel[i][k] = tempOne;
+    inRel[j][k] = tempTwo;
+  }
+
+  var tempKeepOne = cmp.if_else(keepRows[i], keepRows[j]);
+  var tempKeepTwo = cmp.if_else(keepRows[j], keepRows[i]);
+
+  keepRows[i] = tempKeepOne;
+  keepRows[j] = tempKeepTwo;
+}
+
+const compareExchangeBatched = async function(inRel, keepRows, jiff_instance, keyCol, numCols, minVal, maxVal, m, r)
+{
+  var loop = jiff_instance.start_barrier();
+  for (var i = minVal; i < maxVal; i+=m)
+  {
+    compareExchange(inRel, keepRows, keyCol, numCols, i, i+r);
+  }
+  await jiff_instance.end_barrier(loop);
+}
+
+const oddEvenMerge = async function(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, r)
+{
+  var m = r * 2;
+  if (m < n)
+  {
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, m);
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo+r, n, m);
+
+    var start = lo+r;
+    var end = lo+n-r;
+    var steps = Math.floor((end-start)/m);
+
+    var chunks = Math.floor(steps/20);
+
+    if (chunks > 0)
+    {
+      for (var i = 0; i < chunks; i++)
+      {
+        minVal = start + (i*20)*m;
+        maxVal = minVal + (20*m);
+        await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, minVal, maxVal, m, r);
+      }
+      // finish last bit
+      await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, maxVal, end, m, r);
+    }
+    else
+    {
+      await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, start, end, m ,r);
+    }
+  }
+  else
+  {
+    compareExchange(inRel, keepRows, keyCol, numCols, lo, lo+r);
+  }
+}
+
+const _oddEvenSort = async function(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n)
+{
+  if (n > 1)
+  {
+    var m = Math.floor(n/2);
+    await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, lo, m);
+    await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, lo+m, m);
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, 1);
+  }
+}
+
+const oddEvenSort = async function(inRel, keepRows, jiff_instance, keyCol)
+{
+  var numCols = inRel[0].length;
+  var nextPowTwo = nextPowerOfTwo(inRel.length);
+  await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, 0, nextPowTwo);
+}
+
 const _bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance, numCols, minVal, maxVal)
 {
   var loop = jiff_instance.start_barrier();
@@ -164,11 +272,11 @@ const _bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance, numCo
       inRel[i+1][j] = tempTwo;
     }
 
-    // var keepOne = cmp.if_else(keepRows[i], keepRows[i+1]);
-    // var keepTwo = cmp.if_else(keepRows[i+1], keepRows[i]);
+    var keepOne = cmp.if_else(keepRows[i], keepRows[i+1]);
+    var keepTwo = cmp.if_else(keepRows[i+1], keepRows[i]);
 
-    // keepRows[i] = keepOne;
-    // keepRows[i+1] = keepTwo;
+    keepRows[i] = keepOne;
+    keepRows[i+1] = keepTwo;
   }
   await jiff_instance.end_barrier(loop);
 }
@@ -367,15 +475,11 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
 
     if (!preSorted)
     {
-      var sorted = await bubbleSort(newRel, newKeepRows, 0, jiff_instance);
-      var sortedData = sorted[0];
-      var sortedKeepRows = sorted[1];
+      await oddEvenSort(newRel, newKeepRows, jiff_instance, 0);
     }
-    else
-    {
-      var sortedData = newRel;
-      var sortedKeepRows = newKeepRows;
-    }
+
+    var sortedData = newRel;
+    var sortedKeepRows = newKeepRows;
 
     var totalRows = sortedData.length - 1;
     var chunks = Math.floor(totalRows/20);
