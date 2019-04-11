@@ -475,7 +475,9 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
 
     if (!preSorted)
     {
+      console.log("SORTING");
       await oddEvenSort(newRel, newKeepRows, jiff_instance, 0);
+      console.log("SORTING DONE");
     }
 
     var sortedData = newRel;
@@ -483,13 +485,14 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
 
     var totalRows = sortedData.length - 1;
     var chunks = Math.floor(totalRows/20);
-
+    console.log("AGG: ");
     if (chunks > 0)
     {
       for (var cc = 0; cc < chunks; cc++)
       {
         minVal = cc * 20;
         maxVal = minVal + 20;
+        console.log(cc);
         await _aggregateMeanWithCountCol(sortedData, sortedKeepRows, jiff_instance, minVal, maxVal);
       }
       // finish last bit
@@ -504,10 +507,12 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
     var totalRows = sortedData.length;
     var chunks = Math.floor(totalRows/20);
 
+    console.log("DIV: ");
     if (chunks > 0)
     {
       for (var cc = 0; cc < chunks; cc++)
       {
+        console.log(cc);
         minVal = 20 * cc;
         maxVal = minVal + 20;
         await _aggDivHelper(sortedData, ret, jiff_instance, minVal, maxVal);
@@ -519,7 +524,6 @@ const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol
     {
       await _aggDivHelper(sortedData, ret, jiff_instance, 0, totalRows);
     }
-    console.log("\n\nLEAVING AGG\n\n");
 
     return [ret, sortedKeepRows];
 }
