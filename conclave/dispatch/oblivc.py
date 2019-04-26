@@ -101,6 +101,9 @@ class OblivCDispatcher:
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
+        if self.peer.pid == 2:
+            time.sleep(60)
+
         self._dispatch(job)
 
         self.peer.dispatcher = None
