@@ -7,7 +7,10 @@ class JiffDispatcher:
 
         self.peer = peer
         self.config = config
-        self.server_pid = config.system_configs["jiff"].server_pid
+        try:
+            self.server_pid = config.system_configs["jiff"].server_pid
+        except KeyError:
+            print("Missing Jiff config \n")
         self.loop = peer.loop
         self.to_wait_on = {}
         self.early = set()
