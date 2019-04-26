@@ -31,14 +31,22 @@ int main(int argc, char **argv)
     {
       if(protocolAcceptTcp2P(&pd,port)!=0)
       {
-        exit(1);
+        if(protocolConnectTcp2P(&pd,remote_host,port)!=0)
+        {
+            printf("Exiting computation");
+            exit(1);
+        }
       }
     }
     else
     {
       if(protocolConnectTcp2P(&pd,remote_host,port)!=0)
       {
-        exit(1);
+        if(protocolAcceptTcp2P(&pd,port)!=0)
+        {
+            printf("Exiting computation");
+            exit(1);
+        }
       }
     }
 
