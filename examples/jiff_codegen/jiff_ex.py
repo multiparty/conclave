@@ -19,7 +19,7 @@ def generate(dag_one, name):
     code_path = sys.argv[2]
 
     # jiff_path: str, party_count: str, server_pid: int, server_ip: str, server_port: int
-    jiff_conf = config.JiffConfig(sys.argv[3], 2, "localhost", 9000)
+    jiff_conf = config.JiffConfig(sys.argv[3], 2, "localhost", 9000, 1)
 
     cfg = config.CodeGenConfig(name)
     cfg.input_path = input_path

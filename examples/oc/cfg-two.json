@@ -3,13 +3,13 @@
   {
     "pid": 2,
     "all_pids": [1,2],
-    "workflow_name": "jiff-test",
+    "workflow_name": "oc-test",
     "leaky_ops": 0,
     "paths":
     {
-      "input_path": "/Users/ben/Desktop/jiff_input/",
-      "output_path": "/Users/ben/Desktop/jiff_input/",
-      "code_path": "/Users/ben/Desktop/jiff_code_testing/code-two/"
+      "input_path": "/Users/ben/Desktop/oc-in/",
+      "output_path": "/Users/ben/Desktop/oc-in/",
+      "code_path": "/Users/ben/Desktop/oc-code/code-two/"
     }
   },
   "net":
@@ -34,15 +34,9 @@
     },
     "oblivc":
     {
-      "available": 0
-    },
-    "jiff":
-    {
       "available": 1,
-      "jiff_path": "/Users/ben/Desktop/dev/jiff/",
-      "server_ip": "localhost",
-      "server_port": 9000,
-      "server_pid": 1
+      "oc_path": "/Users/ben/Desktop/dev/obliv-c/bin/oblivcc",
+      "ip_port": "localhost:9000"
     }
   },
   "data":

@@ -45,7 +45,8 @@
       "available": 1,
       "jiff_path": "/Users/ben/Desktop/dev/jiff/",
       "server_ip": "localhost",
-      "server_port": 9000
+      "server_port": 9000,
+      "server_pid": 1
     }
   },
   "data":
