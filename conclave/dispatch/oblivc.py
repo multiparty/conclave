@@ -112,7 +112,7 @@ class OblivCDispatcher:
         self.loop.run_until_complete(asyncio.gather(*futures))
 
         # hack
-        time.sleep(5)
+        time.sleep(30)
 
         self._dispatch(job)
 
