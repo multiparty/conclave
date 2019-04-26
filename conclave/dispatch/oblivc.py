@@ -96,39 +96,12 @@ class OblivCDispatcher:
         except Exception as e:
             print(e)
 
-    def party_one_dispatch(self, job):
-
-        self.peer.send_done_msg(2, job.name + ".party_one")
-
-        self._dispatch(job)
-
-    def party_two_dispatch(self, job):
-
-        for input_party in job.input_parties:
-            if input_party != self.peer.pid and input_party not in self.early:
-                self.to_wait_on[input_party] = asyncio.Future()
-
-        futures = self.to_wait_on.values()
-        self.loop.run_until_complete(asyncio.gather(*futures))
-
-        # hack
-        time.sleep(30)
-
-        self._dispatch(job)
-
     def dispatch(self, job):
 
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
-        if int(self.peer.pid) == 1:
-            self.party_one_dispatch(job)
-
-        elif int(self.peer.pid) == 2:
-            self.party_two_dispatch(job)
-
-        else:
-            raise Exception("Party ID {0} out of bounds (must be 1 or 2)".format(self.peer.pid))
+        self._dispatch(job)
 
         self.peer.dispatcher = None
         self.to_wait_on = {}
