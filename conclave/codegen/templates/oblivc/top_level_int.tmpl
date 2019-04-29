@@ -642,6 +642,7 @@ void sortBy
 {
 	int numRows = mat->rows;
 	int numCols = mat->cols;
+	int nextPowerOfTwo = nextPowerOf2(numRows);
 
 	obliv int **array = malloc(sizeof(*array) * numRows);
 
@@ -661,7 +662,7 @@ void sortBy
 		keepRows[i] = mat->keepRows[i];
 	}
 
-	oddEvenSort(array, keepRows, keyCol, numCols, 0, numRows, true, numRows);
+	oddEvenSort(array, keepRows, keyCol, numCols, 0, nextPowerOfTwo, true, numRows);
 
 	ret->mat = array;
 	ret->keepRows = keepRows;
@@ -704,25 +705,26 @@ void _agg
 		int numRows
 	)
 {
+	int nextPowerOfTwo = nextPowerOf2(numRows);
 
-		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true, numRows);
-		shiftAgg(array, ret->keepRows, numRows);
+	oddEvenSort(array, ret->keepRows, 0, numCols, 0, nextPowerOfTwo, true, numRows);
+	shiftAgg(array, ret->keepRows, numRows);
 
-		// TODO: move shuffle into it's own function.
-		oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false, numRows);
+	// TODO: move shuffle into it's own function.
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-		obliv int **retArray = malloc(sizeof(*retArray) * numRows);
+	obliv int **retArray = malloc(sizeof(*retArray) * numRows);
 
-		for (int i = 0; i < numRows; i++)
-		{
-			retArray[i] = malloc(sizeof(**retArray) * numCols);
-			retArray[i][0] = array[i][0];
-			retArray[i][1] = array[i][1];
-		}
+	for (int i = 0; i < numRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1];
+	}
 
-		ret->mat = retArray;
-		ret->rows = numRows;
-		ret->cols = numCols;
+	ret->mat = retArray;
+	ret->rows = numRows;
+	ret->cols = numCols;
 }
 
 void _aggLeaky
@@ -733,35 +735,36 @@ void _aggLeaky
 		int numRows
 	)
 {
+	int nextPowerOfTwo = nextPowerOf2(numRows);
 
-		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true, numRows);
-		shiftAgg(array, ret->keepRows, numRows);
+	oddEvenSort(array, ret->keepRows, 0, numCols, 0, nextPowerOfTwo, true, numRows);
+	shiftAgg(array, ret->keepRows, numRows);
 
-		// TODO: move shuffle into it's own function.
-		oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false, numRows);
+	// TODO: move shuffle into it's own function.
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-		obliv int outRows = 0;
+	obliv int outRows = 0;
 
-		for (int i = 0; i < numRows; i++)
-		{
-			outRows = outRows + ret->keepRows[i];
-		}
+	for (int i = 0; i < numRows; i++)
+	{
+		outRows = outRows + ret->keepRows[i];
+	}
 
-		int numOutRows;
-		revealOblivInt(&numOutRows, outRows, 0);
+	int numOutRows;
+	revealOblivInt(&numOutRows, outRows, 0);
 
-		obliv int **retArray = malloc(sizeof(*retArray) * numOutRows);
+	obliv int **retArray = malloc(sizeof(*retArray) * numOutRows);
 
-		for (int i = 0; i < numOutRows; i++)
-		{
-			retArray[i] = malloc(sizeof(**retArray) * numCols);
-			retArray[i][0] = array[i][0];
-			retArray[i][1] = array[i][1];
-		}
+	for (int i = 0; i < numOutRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1];
+	}
 
-		ret->mat = retArray;
-		ret->rows = numOutRows;
-		ret->cols = numCols;
+	ret->mat = retArray;
+	ret->rows = numOutRows;
+	ret->cols = numCols;
 }
 
 void agg
@@ -881,10 +884,11 @@ void _aggMeanWithCountCol
 	(
 		intermediateMat *ret,
 		obliv int **array,
-		int numRows
+		int numRows,
+		int nextPowTwo
 	)
 {
-	oddEvenSort(array, ret->keepRows, 0, 3, 0, numRows, true, numRows);
+	oddEvenSort(array, ret->keepRows, 0, 3, 0, nextPowTwo, true, numRows);
 	shiftAggMeanCountCol(array, ret->keepRows, numRows);
 }
 
@@ -900,6 +904,8 @@ void aggMeanWithCountCol
 
 	int numRows = mat->rows;
 	int numCols = 3;
+
+	int nextPowerOfTwo = nextPowerOf2(numRows);
 
 	obliv int **array = malloc(sizeof(*array) * numRows);
 
@@ -920,9 +926,8 @@ void aggMeanWithCountCol
 
 	ret->keepRows = keepRows;
 
-	_aggMeanWithCountCol(ret, array, numRows);
-
-	oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false, numRows);
+	_aggMeanWithCountCol(ret, array, numRows, nextPowerOfTwo);
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
 	obliv int **retArray = malloc(sizeof(*retArray) * numRows);
 
