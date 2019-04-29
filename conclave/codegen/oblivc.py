@@ -393,6 +393,9 @@ class OblivcCodeGen(CodeGen):
         elif agg_op.aggregator == "count":
             template = open(
                 "{}/agg_count.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == 'mean':
+            template = open(
+                "{}/agg_mean_with_count_col.tmpl".format(self.template_directory), 'r').read()
         else:
             raise Exception("Unknown aggregator encountered: {}".format(agg_op.aggregator))
 
@@ -409,7 +412,8 @@ class OblivcCodeGen(CodeGen):
             "OUT_REL": agg_op.out_rel.name,
             "KEY_COL": agg_op.group_cols[0].idx,
             "AGG_COL": agg_op.agg_col.idx,
-            "USE_LEAKY": leaky
+            "USE_LEAKY": leaky,
+            "COUNT_COL": 2
         }
 
         return pystache.render(template, data)
