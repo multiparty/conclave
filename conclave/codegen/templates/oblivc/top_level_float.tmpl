@@ -877,6 +877,109 @@ void aggCount
 	}
 }
 
+void shiftAggMeanCountCol
+	(
+		obliv float **arr,
+		obliv float *keepRows,
+		int numRows
+	)
+{
+
+	for (int i = 0; i < numRows - 1; i++)
+	{
+		obliv float eqFlag;
+
+		obliv if (arr[i][0] == arr[i + 1][0])
+		{
+			eqFlag = 1;
+		}
+		else
+		{
+			eqFlag = 0;
+		}
+
+		obliv if (keepRows[i] * keepRows[i + 1] * eqFlag != 0)
+		{
+			obliv float temp1 = arr[i][1] * (1 - eqFlag);
+			obliv float temp2 = arr[i + 1][1] + (arr[i][1] * eqFlag);
+
+			obliv float tempCount1 = arr[i][2] * (1 - eqFlag);
+			obliv float tempCount2 = arr[i + 1][2] + (arr[i][2] * eqFlag);
+
+			arr[i][1] = temp1;
+			arr[i + 1][1] = temp2;
+
+			arr[i][2] = tempCount1;
+			arr[i + 1][2] = tempCount2;
+
+			keepRows[i] = 0;
+		}
+	}
+}
+
+void _aggMeanWithCountCol
+	(
+		intermediateMat *ret,
+		obliv float **array,
+		int numRows,
+		int nextPowTwo
+	)
+{
+	oddEvenSort(array, ret->keepRows, 0, 3, 0, nextPowTwo, true, numRows);
+	shiftAggMeanCountCol(array, ret->keepRows, numRows);
+}
+
+void aggMeanWithCountCol
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol,
+		int countCol
+	)
+{
+
+	int numRows = mat->rows;
+	int numCols = 3;
+
+	int nextPowerOfTwo = nextPowerOf2(numRows);
+
+	obliv float **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+		array[i][2] = mat->mat[i][countCol];
+	}
+
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	ret->keepRows = keepRows;
+
+	_aggMeanWithCountCol(ret, array, numRows, nextPowerOfTwo);
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
+
+	obliv float **retArray = malloc(sizeof(*retArray) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1] / array[i][2];
+	}
+
+	ret->mat = retArray;
+	ret->rows = numRows;
+	ret->cols = 2;
+}
+
 void revealResult
 	(
 	intermediateMat *mat,
