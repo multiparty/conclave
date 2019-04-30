@@ -366,8 +366,8 @@ void limitLeaky
         numRows = numInRows;
     }
 
-    obliv int **array = malloc(sizeof(*array) * numRows);
-    obliv int *keepRows = malloc(sizeof(obliv float) * numRows);
+    obliv float **array = malloc(sizeof(*array) * numRows);
+    obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
     for (int i = 0; i < numRows; i++)
     {
@@ -407,8 +407,8 @@ void limit
         numRows = numInRows;
     }
 
-    obliv int **array = malloc(sizeof(*array) * numInRows);
-    obliv int *keepRows = malloc(sizeof(obliv float) * numRows);
+    obliv float **array = malloc(sizeof(*array) * numInRows);
+    obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
     for (int i = 0; i < numInRows; i++)
     {
@@ -538,9 +538,14 @@ void compareExchange
 		int numCols,
 		int i,
 		int j,
-		bool ascending
+		bool ascending,
+		int numRows
 	)
 {
+	if (i >= numRows || j >= numRows) {
+		return;
+	}
+
 	obliv float x = array[i][keyCol];
 	obliv float y = array[j][keyCol];
 
@@ -605,21 +610,22 @@ void oddEvenMerge
 		int lo,
 		int n,
 		int r,
-		bool ascending
+		bool ascending,
+		int numRows
 	)
 {
 	int m = r * 2;
 	if (m < n)
 	{
-		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, m, ascending);
-		oddEvenMerge(array, keepRows, keyCol, numCols, lo + r, n, m, ascending);
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, m, ascending, numRows);
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo + r, n, m, ascending, numRows);
 
 		for (int i = lo + r; (i + r) < (lo + n); i += m)
 		{
-			compareExchange(array, keepRows, keyCol, numCols, i, i + r, ascending);
+			compareExchange(array, keepRows, keyCol, numCols, i, i + r, ascending, numRows);
 		}
 	} else {
-		compareExchange(array, keepRows, keyCol, numCols, lo, lo + r, ascending);
+		compareExchange(array, keepRows, keyCol, numCols, lo, lo + r, ascending, numRows);
 	}
 }
 
@@ -631,15 +637,16 @@ void oddEvenSort
 		int numCols,
 		int lo,
 		int n,
-		bool ascending
+		bool ascending,
+		int numRows
 	)
 {
 	if (n > 1)
 	{
 		int m = n / 2;
-		oddEvenSort(array, keepRows, keyCol, numCols, lo, m, ascending);
-		oddEvenSort(array, keepRows, keyCol, numCols, lo + m, m, ascending);
-		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, 1, ascending);
+		oddEvenSort(array, keepRows, keyCol, numCols, lo, m, ascending, numRows);
+		oddEvenSort(array, keepRows, keyCol, numCols, lo + m, m, ascending, numRows);
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, 1, ascending, numRows);
 	}
 }
 
@@ -652,6 +659,7 @@ void sortBy
 {
 	int numRows = mat->rows;
 	int numCols = mat->cols;
+	int nextPowerOfTwo = nextPowerOf2(numRows);
 
 	obliv float **array = malloc(sizeof(*array) * numRows);
 
@@ -664,44 +672,17 @@ void sortBy
 		}
 	}
 
-	if (!isPowerOfTwo(numRows))
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
 	{
-		int paddedVal = nextPowerOf2(numRows);
-		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
-		obliv float *keepRows = malloc(sizeof(obliv float) * paddedVal);
-
-		for (int i = 0; i < paddedVal; i++)
-		{
-			if (i < numRows)
-			{
-				keepRows[i] = mat->keepRows[i];
-			}
-			else
-			{
-				keepRows[i] = 0;
-			}
-		}
-
-		oddEvenSort(padded, keepRows, keyCol, numCols, 0, numRows, true);
-
-		ret->mat = padded;
-		ret->keepRows = keepRows;
-	}
-	else
-	{
-		obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
-
-		for (int i = 0; i < numRows; i++)
-		{
-			keepRows[i] = mat->keepRows[i];
-		}
-
-		oddEvenSort(array, keepRows, keyCol, numCols, 0, numRows, true);
-
-		ret->mat = array;
-		ret->keepRows = keepRows;
+		keepRows[i] = mat->keepRows[i];
 	}
 
+	oddEvenSort(array, keepRows, keyCol, numCols, 0, nextPowerOfTwo, true, numRows);
+
+	ret->mat = array;
+	ret->keepRows = keepRows;
 	ret->rows = numRows;
 	ret->cols = numCols;
 }
@@ -744,75 +725,75 @@ void _agg
 	(
 		intermediateMat *ret,
 		obliv float **array,
-		int keyCol,
-		int aggCol,
 		int numCols,
 		int numRows
 	)
 {
 
-		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true);
-		shiftAgg(array, ret->keepRows, numRows);
+    int nextPowerOfTwo = nextPowerOf2(numRows);
 
-		// TODO: move shuffle into it's own function.
-		oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false);
+	oddEvenSort(array, ret->keepRows, 0, numCols, 0, nextPowerOfTwo, true, numRows);
+	shiftAgg(array, ret->keepRows, numRows);
 
-		obliv float **retArray = malloc(sizeof(*retArray) * numRows);
+	// TODO: move shuffle into it's own function.
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-		for (int i = 0; i < numRows; i++)
-		{
-			retArray[i] = malloc(sizeof(**retArray) * numCols);
-			retArray[i][0] = array[i][0];
-			retArray[i][1] = array[i][1];
-		}
+	obliv float **retArray = malloc(sizeof(*retArray) * numRows);
 
-		ret->mat = retArray;
-		ret->rows = numRows;
-		ret->cols = numCols;
+	for (int i = 0; i < numRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1];
+	}
+
+	ret->mat = retArray;
+	ret->rows = numRows;
+	ret->cols = numCols;
 }
 
 void _aggLeaky
 	(
 		intermediateMat *ret,
 		obliv float **array,
-		int keyCol,
-		int aggCol,
 		int numCols,
 		int numRows
 	)
 {
 
-		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true);
-		shiftAgg(array, ret->keepRows, numRows);
+    int nextPowerOfTwo = nextPowerOf2(numRows);
 
-		// TODO: move shuffle into it's own function.
-		oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false);
+	oddEvenSort(array, ret->keepRows, 0, numCols, 0, nextPowerOfTwo, true, numRows);
+	shiftAgg(array, ret->keepRows, numRows);
 
-		obliv int outRows = 0;
+	// TODO: move shuffle into it's own function.
+	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-		for (int i = 0; i < numRows; i++)
+	obliv int outRows = 0;
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv if (ret->keepRows[i] != 0)
 		{
-			obliv if (ret->keepRows[i] != 0)
-			{
-				outRows++;
-			}
+			outRows++;
 		}
+	}
 
-		int numOutRows;
-		revealOblivInt(&numOutRows, outRows, 0);
+	int numOutRows;
+	revealOblivInt(&numOutRows, outRows, 0);
 
-		obliv float **retArray = malloc(sizeof(*retArray) * numOutRows);
+	obliv float **retArray = malloc(sizeof(*retArray) * numOutRows);
 
-		for (int i = 0; i < numOutRows; i++)
-		{
-			retArray[i] = malloc(sizeof(**retArray) * numCols);
-			retArray[i][0] = array[i][0];
-			retArray[i][1] = array[i][1];
-		}
+	for (int i = 0; i < numOutRows; i++)
+	{
+		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i][0] = array[i][0];
+		retArray[i][1] = array[i][1];
+	}
 
-		ret->mat = retArray;
-		ret->rows = numOutRows;
-		ret->cols = numCols;
+	ret->mat = retArray;
+	ret->rows = numOutRows;
+	ret->cols = numCols;
 }
 
 void agg
@@ -837,55 +818,23 @@ void agg
 		array[i][1] = mat->mat[i][aggCol];
 	}
 
-	if (!isPowerOfTwo(numRows))
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
 	{
-		int paddedVal = nextPowerOf2(numRows);
-		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
-
-		obliv float *keepRows = malloc(sizeof(obliv float) * paddedVal);
-		for (int i = 0; i < paddedVal; i++)
-		{
-			if (i < numRows)
-			{
-				keepRows[i] = mat->keepRows[i];
-			}
-			else
-			{
-				keepRows[i] = 0;
-			}
-		}
-
-		ret->keepRows = keepRows;
-
-        if (leaky)
-        {
-            _aggLeaky(ret, padded, keyCol, aggCol, numCols, paddedVal);
-        }
-        else
-        {
-		    _agg(ret, padded, keyCol, aggCol, numCols, paddedVal);
-		}
+		keepRows[i] = mat->keepRows[i];
 	}
-	else
-	{
-		obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
-		for (int i = 0; i < numRows; i++)
-		{
-			keepRows[i] = mat->keepRows[i];
-		}
+	ret->keepRows = keepRows;
 
-		ret->keepRows = keepRows;
-
-        if (leaky)
-        {
-            _aggLeaky(ret, array, keyCol, aggCol, numCols, numRows);
-        }
-        else
-        {
-		    _agg(ret, array, keyCol, aggCol, numCols, numRows);
-		}
-	}
+    if (leaky)
+    {
+        _aggLeaky(ret, array, numCols, numRows);
+    }
+    else
+    {
+         _agg(ret, array, numCols, numRows);
+    }
 }
 
 void aggCount
@@ -909,55 +858,22 @@ void aggCount
 		array[i][1] = 1;
 	}
 
-	if (!isPowerOfTwo(numRows))
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
 	{
-		int paddedVal = nextPowerOf2(numRows);
-		obliv float **padded = padInput(array, numCols, numRows, paddedVal);
+		keepRows[i] = mat->keepRows[i];
+	}
 
-		obliv float *keepRows = malloc(sizeof(obliv float) * paddedVal);
-		for (int i = 0; i < paddedVal; i++)
-		{
-			if (i < numRows)
-			{
-				keepRows[i] = mat->keepRows[i];
-			}
-			else
-			{
-				keepRows[i] = 0;
-			}
-		}
+	ret->keepRows = keepRows;
 
-		ret->keepRows = keepRows;
-
-		if (leaky)
-		{
-			_aggLeaky(ret, padded, numCols, paddedVal);
-		}
-		else
-		{
-			_agg(ret, padded, numCols, paddedVal);
-		}
-
+    if (leaky)
+	{
+		_aggLeaky(ret, array, numCols, numRows);
 	}
 	else
 	{
-		obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
-
-		for (int i = 0; i < numRows; i++)
-		{
-			keepRows[i] = mat->keepRows[i];
-		}
-
-		ret->keepRows = keepRows;
-
-        if (leaky)
-		{
-			_aggLeaky(ret, array, numCols, numRows);
-		}
-		else
-		{
-			_agg(ret, array, numCols, numRows);
-		}
+		_agg(ret, array, numCols, numRows);
 	}
 }
 
@@ -1065,6 +981,8 @@ void distinctCount
 	)
 {
 	int numRows = mat->rows;
+	int nextPowerOfTwo = nextPowerOf2(numRows);
+
 	obliv float **array = malloc(sizeof(*array) * numRows);
 
 	for (int i = 0; i < numRows; i++)
@@ -1073,39 +991,15 @@ void distinctCount
 		array[i][0] = mat->mat[i][keyCol];
 	}
 
-	if (!isPowerOfTwo(numRows))
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
 	{
-		int paddedVal = nextPowerOf2(numRows);
-		obliv float **padded = padInput(array, 1, numRows, paddedVal);
-		obliv float *keepRows = malloc(sizeof(obliv float) * paddedVal);
-
-		for (int i = 0; i < paddedVal; i++)
-		{
-			if (i < numRows)
-			{
-				keepRows[i] = mat->keepRows[i];
-			}
-			else
-			{
-				keepRows[i] = 0;
-			}
-		}
-
-		oddEvenSort(padded, keepRows, 0, 1, 0, numRows, true);
-		_distinctCount(ret, padded, keepRows, paddedVal);
+		keepRows[i] = mat->keepRows[i];
 	}
-	else
-	{
-		obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
-		for (int i = 0; i < numRows; i++)
-		{
-			keepRows[i] = mat->keepRows[i];
-		}
-
-		oddEvenSort(array, keepRows, 0, 1, 0, numRows, true);
-		_distinctCount(ret, array, keepRows, numRows);
-	}
+	oddEvenSort(array, keepRows, 0, 1, 0, nextPowerOfTwo, true, numRows);
+	_distinctCount(ret, array, keepRows, numRows);
 }
 
 
