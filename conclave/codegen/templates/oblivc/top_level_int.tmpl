@@ -876,7 +876,8 @@ void shiftAggMeanCountCol
 		arr[i][2] = tempCount1;
 		arr[i + 1][2] = tempCount2;
 
-		keepRows[i] = keepRows[i] * (1 - touchFlag);
+		obliv int tempKeep = keepRows[i];
+		keepRows[i] = tempKeep * (1 - touchFlag);
 	}
 }
 
