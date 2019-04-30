@@ -1044,6 +1044,8 @@ void distinctCount
 	)
 {
 	int numRows = mat->rows;
+	int nextPowerOfTwo = nextPowerOf2(numRows);
+
 	obliv int **array = malloc(sizeof(*array) * numRows);
 
 	for (int i = 0; i < numRows; i++)
@@ -1059,7 +1061,7 @@ void distinctCount
 		keepRows[i] = mat->keepRows[i];
 	}
 
-	oddEvenSort(array, keepRows, 0, 1, 0, numRows, true, numRows);
+	oddEvenSort(array, keepRows, 0, 1, 0, nextPowerOfTwo, true, numRows);
 	_distinctCount(ret, array, keepRows, numRows);
 }
 
