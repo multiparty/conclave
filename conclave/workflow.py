@@ -20,6 +20,7 @@ def setup(conf: Dict):
     workflow_name = conf["user_config"]["workflow_name"]
     all_pids = conf["user_config"]['all_pids']
     use_leaky = conf["user_config"]["leaky_ops"]
+    use_floats = conf["user_config"]["use_floats"]
 
     conclave_config = CodeGenConfig(workflow_name)
 
@@ -88,6 +89,7 @@ def setup(conf: Dict):
     conclave_config.name = workflow_name
     conclave_config.data_backend = data_backend
     conclave_config.use_leaky_ops = use_leaky
+    conclave_config.use_floats = use_floats
 
     conclave_config.code_path = conf["user_config"]["paths"]["code_path"]
     conclave_config.output_path = conf["user_config"]["paths"]["output_path"]
