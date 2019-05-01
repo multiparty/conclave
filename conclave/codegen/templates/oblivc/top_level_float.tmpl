@@ -99,6 +99,8 @@ void matToObliv
 	ret->cols = numCols;
 	ret->mat = array;
 	ret->keepRows = keepRows;
+
+	printf("matToObliv DONE \n");
 }
 
 void concat
@@ -142,6 +144,8 @@ void concat
 	ret->cols = numCols;
 	ret->mat = array;
 	ret->keepRows = keepRows;
+
+	printf("concat DONE \n");
 }
 
 void addRow
@@ -965,6 +969,7 @@ void aggMeanWithCountCol
 
 	_aggMeanWithCountCol(ret, array, numRows, nextPowerOfTwo);
 	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
+	printf("oddEvenSort DONE \n");
 
 	obliv float **retArray = malloc(sizeof(obliv float *) * numRows);
 
@@ -978,6 +983,8 @@ void aggMeanWithCountCol
 	ret->mat = retArray;
 	ret->rows = numRows;
 	ret->cols = 2;
+
+	printf("aggMeanWithCountCol DONE \n");
 }
 
 void revealResult
