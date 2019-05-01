@@ -44,11 +44,11 @@ obliv float** padInput
     )
 {
 
-    obliv float **ret = malloc(sizeof(*ret) * nextVal);
+    obliv float **ret = malloc(sizeof(obliv float *) * nextVal);
 
     for (int i = 0; i < numRows; i++)
     {
-        ret[i] = malloc(sizeof(**ret) * numCols);
+        ret[i] = malloc(sizeof(obliv float) * numCols);
         for (int j = 0; j < numCols; j++)
         {
             ret[i][j] = arr[i][j];
@@ -57,7 +57,7 @@ obliv float** padInput
 
     for (int i = numRows; i < nextVal; i++)
     {
-        ret[i] = malloc(sizeof(**ret) * numCols);
+        ret[i] = malloc(sizeof(obliv float) * numCols);
         for (int j = 0; j < numCols; j++)
         {
             ret[i][j] = 0;
@@ -82,12 +82,12 @@ void matToObliv
 	int numRows = ocBroadcastInt(io->rows, party);
 	int numCols = ocBroadcastInt(io->cols, party);
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		keepRows[i] = 1;
 		for (int j = 0; j < numCols; j++)
 		{
@@ -112,13 +112,13 @@ void concat
 	int numRows = matOne->rows + matTwo->rows;
 
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < matOne->rows; i++)
 	{
 		keepRows[i] = matOne->keepRows[i];
 
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			array[i][j] = matOne->mat[i][j];
@@ -130,7 +130,7 @@ void concat
 	{
 		keepRows[i] = matTwo->keepRows[m];
 
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			array[i][j] = matTwo->mat[m][j];
@@ -189,7 +189,7 @@ void join
 	int numOutCols = numColsOne + numColsTwo - 1;
 	int maxOutRows = numRowsOne * numRowsTwo;
 
-	obliv float **array = malloc(sizeof(*array) * maxOutRows);
+	obliv float **array = malloc(sizeof(obliv float *) * maxOutRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * maxOutRows);
 
 	int currentRow = 0;
@@ -198,7 +198,7 @@ void join
 	{
 		for (int j = 0; j < numRowsTwo; j++)
 		{
-			array[currentRow] = calloc(numOutCols, sizeof(**array));
+			array[currentRow] = calloc(numOutCols, sizeof(obliv float));
 			addRow(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
 
 			// check keepRow flags for both rows
@@ -270,7 +270,7 @@ void joinLeaky
 	int numOutCols = numColsOne + numColsTwo;
 	int maxOutRows = numRowsOne * numRowsTwo;
 
-	obliv float **array = malloc(sizeof(*array) * maxOutRows);
+	obliv float **array = malloc(sizeof(obliv float *) * maxOutRows);
 
 	int currentRow = 0;
 	obliv int matchRows = 0;
@@ -279,7 +279,7 @@ void joinLeaky
 	{
 		for (int j = 0; j < numRowsTwo; j++)
 		{
-			array[currentRow] = calloc(numOutCols, sizeof(**array));
+			array[currentRow] = calloc(numOutCols, sizeof(obliv float));
 			obliv if (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo])
 			{
 				addRowLeaky(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
@@ -292,7 +292,7 @@ void joinLeaky
 	int outRows;
 	revealOblivInt(&outRows, matchRows, 0);
 
-	obliv float **outArray = malloc(sizeof(*outArray) * outRows);
+	obliv float **outArray = malloc(sizeof(obliv float *) * outRows);
 
 	int currentRow = 0;
 	for (int i = 0; i < maxOutRows; i++)
@@ -301,7 +301,7 @@ void joinLeaky
 		revealOblivFloat(&matchReveal, array[i][0], 0);
 		if (matchReveal == 1)
 		{
-			outArray[currentRow] = malloc(sizeof(**outArray) * (numOutCols - 1));
+			outArray[currentRow] = malloc(sizeof(obliv float) * (numOutCols - 1));
 			for (int j = 0; j < numOutCols - 1; j++)
 			{
 				outArray[currentRow][j] = array[i][j + 1];
@@ -326,14 +326,14 @@ void project
 	int numRows = mat->rows;
 	int numCols = ret->cols;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = mat->keepRows[i];
 
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			int idx = projCols[j];
@@ -366,14 +366,14 @@ void limitLeaky
         numRows = numInRows;
     }
 
-    obliv float **array = malloc(sizeof(*array) * numRows);
+    obliv float **array = malloc(sizeof(obliv float *) * numRows);
     obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
     for (int i = 0; i < numRows; i++)
     {
         keepRows[i] = mat->keepRows[i];
 
-        array[i] = malloc(sizeof(**array) * numCols);
+        array[i] = malloc(sizeof(obliv float) * numCols);
         for (int j = 0; j < numCols; j++)
         {
             array[i][j] = mat->mat[i][j];
@@ -407,14 +407,14 @@ void limit
         numRows = numInRows;
     }
 
-    obliv float **array = malloc(sizeof(*array) * numInRows);
+    obliv float **array = malloc(sizeof(obliv float *) * numInRows);
     obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
     for (int i = 0; i < numInRows; i++)
     {
         keepRows[i] = mat->keepRows[i];
 
-        array[i] = malloc(sizeof(**array) * numCols);
+        array[i] = malloc(sizeof(obliv float) * numCols);
         for (int j = 0; j < numCols; j++)
         {
             array[i][j] = mat->mat[i][j];
@@ -445,13 +445,13 @@ void multiply
 		numCols++;
 	}
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = mat->keepRows[i];
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			if (j != opColIdx)
@@ -497,13 +497,13 @@ void divide
 		numCols++;
 	}
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = mat->keepRows[i];
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			if (j != opColIdx)
@@ -661,11 +661,11 @@ void sortBy
 	int numCols = mat->cols;
 	int nextPowerOfTwo = nextPowerOf2(numRows);
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			array[i][j] = mat->mat[i][j];
@@ -738,11 +738,11 @@ void _agg
 	// TODO: move shuffle into it's own function.
 	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-	obliv float **retArray = malloc(sizeof(*retArray) * numRows);
+	obliv float **retArray = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i] = malloc(sizeof(obliv float) * numCols);
 		retArray[i][0] = array[i][0];
 		retArray[i][1] = array[i][1];
 	}
@@ -782,11 +782,11 @@ void _aggLeaky
 	int numOutRows;
 	revealOblivInt(&numOutRows, outRows, 0);
 
-	obliv float **retArray = malloc(sizeof(*retArray) * numOutRows);
+	obliv float **retArray = malloc(sizeof(obliv float *) * numOutRows);
 
 	for (int i = 0; i < numOutRows; i++)
 	{
-		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i] = malloc(sizeof(obliv float) * numCols);
 		retArray[i][0] = array[i][0];
 		retArray[i][1] = array[i][1];
 	}
@@ -809,11 +809,11 @@ void agg
 	int numRows = mat->rows;
 	int numCols = 2;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		array[i][0] = mat->mat[i][keyCol];
 		array[i][1] = mat->mat[i][aggCol];
 	}
@@ -849,11 +849,11 @@ void aggCount
 	int numRows = mat->rows;
 	int numCols = 2;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		array[i][0] = mat->mat[i][keyCol];
 		array[i][1] = 1;
 	}
@@ -944,11 +944,11 @@ void aggMeanWithCountCol
 
 	int nextPowerOfTwo = nextPowerOf2(numRows);
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		array[i][0] = mat->mat[i][keyCol];
 		array[i][1] = mat->mat[i][aggCol];
 		array[i][2] = mat->mat[i][countCol];
@@ -966,11 +966,11 @@ void aggMeanWithCountCol
 	_aggMeanWithCountCol(ret, array, numRows, nextPowerOfTwo);
 	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
-	obliv float **retArray = malloc(sizeof(*retArray) * numRows);
+	obliv float **retArray = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		retArray[i] = malloc(sizeof(**retArray) * numCols);
+		retArray[i] = malloc(sizeof(obliv float) * numCols);
 		retArray[i][0] = array[i][0];
 		retArray[i][1] = array[i][1] / array[i][2];
 	}
@@ -1000,14 +1000,14 @@ void revealResult
 		}
 	}
 
-	float **array = malloc(sizeof(*array) * outRows);
+	float **array = malloc(sizeof(float *) * outRows);
 
 	int currentRetIdx = 0;
 	for (int i = 0; i < mat->rows; i++)
 	{
 		if (keepFlags[i] == 1)
 		{
-			array[currentRetIdx] = malloc(sizeof(**array) * mat->cols);
+			array[currentRetIdx] = malloc(sizeof(float) * mat->cols);
 			for (int j = 0; j < mat->cols; j++)
 			{
 				revealOblivFloat(&array[currentRetIdx][j], mat->mat[i][j], party);
@@ -1041,8 +1041,8 @@ void _distinctCount
 		}
 	}
 
-	obliv float **retArray = malloc(sizeof(*retArray) * 1);
-	retArray[0] = malloc(sizeof(**retArray) * 1);
+	obliv float **retArray = malloc(sizeof(obliv float *) * 1);
+	retArray[0] = malloc(sizeof(obliv float) * 1);
 	retArray[0][0] = retVal;
 
 	obliv float *keepRows = malloc(sizeof(obliv float) * 1);
@@ -1062,12 +1062,12 @@ void distinctCountPreSorted
 	)
 {
 	int numRows = mat->rows;
-	obliv float **array = malloc(sizeof(*array) * numRows);
-	obliv float *keepRows = malloc(sizeof(obliv int) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * 1);
+		array[i] = malloc(sizeof(obliv float) * 1);
 		array[i][0] = mat->mat[i][keyCol];
 
 		keepRows[i] = mat->keepRows[i];
@@ -1086,11 +1086,11 @@ void distinctCount
 	int numRows = mat->rows;
 	int nextPowerOfTwo = nextPowerOf2(numRows);
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * 1);
+		array[i] = malloc(sizeof(obliv float) * 1);
 		array[i][0] = mat->mat[i][keyCol];
 	}
 
@@ -1117,12 +1117,12 @@ void filterEqByConstant
 	int numRows = mat->rows;
 	int numCols = mat->cols;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 
 		for (int j = 0; j < numCols; j++)
 		{
@@ -1170,14 +1170,14 @@ void multiplyMatrices
 	int numRows = matOne->rows;
 	int numCols = matOne->cols;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
-	obliv float *keepRows = malloc(sizeof(obliv int) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
 
-		array[i] = malloc(sizeof(**array) * numCols);
+		array[i] = malloc(sizeof(obliv float) * numCols);
 		for (int j = 0; j < numCols; j++)
 		{
 			array[i][j] = matOne->mat[i][j] * matTwo->mat[i][j];
@@ -1209,14 +1209,14 @@ void concatCols
 	int numColsTwo = matTwo->cols;
 	int totalCols = numColsOne + numColsTwo;
 
-	obliv float **array = malloc(sizeof(*array) * numRows);
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
 	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
 
-		array[i] = malloc(sizeof(**array) * totalCols);
+		array[i] = malloc(sizeof(obliv float) * totalCols);
 		for (int j = 0; j < totalCols; j++)
 		{
 			if (j < numColsOne)
