@@ -25,7 +25,7 @@ class OblivCDispatcher:
             
             typedef struct
             {
-                {{{TYPE}}} mat[2500][COLS];
+                {{{TYPE}}} mat[10000][COLS];
                 int rows;
                 int cols;
             } Io;
