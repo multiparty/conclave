@@ -396,6 +396,9 @@ class OblivcCodeGen(CodeGen):
         elif agg_op.aggregator == 'mean':
             template = open(
                 "{}/agg_mean_with_count_col.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == "std_dev":
+            template = open(
+                "{}/std_dev.tmpl".format(self.template_directory), 'r').read()
         else:
             raise Exception("Unknown aggregator encountered: {}".format(agg_op.aggregator))
 
