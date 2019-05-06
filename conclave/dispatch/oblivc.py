@@ -25,7 +25,7 @@ class OblivCDispatcher:
             
             typedef struct
             {
-                {{{TYPE}}} mat[ROWS][COLS];
+                {{{TYPE}}} mat[2000][COLS];
                 int rows;
                 int cols;
             } Io;
@@ -102,7 +102,7 @@ class OblivCDispatcher:
         self.peer.register_dispatcher(self)
 
         if self.peer.pid == 2:
-            time.sleep(60)
+            time.sleep(30)
 
         self._dispatch(job)
 
