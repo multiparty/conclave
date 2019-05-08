@@ -26,7 +26,7 @@
   };
 
 
- const project = function(inRel, keepRows, projCols)
+const project = function(inRel, keepRows, projCols)
   {
 
     var ret = [];
@@ -44,7 +44,7 @@
     return [ret, keepRowsResult];
   };
 
-  const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
+const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
   {
 
     var ret = [];
@@ -73,7 +73,7 @@
     return [ret, keepRowsResult];
   };
 
-  const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
+const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
     var ret = [];
     var keepRowsResult = [];
@@ -101,7 +101,7 @@
     return [ret, keepRowsResult];
   }
 
-  const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
+const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
     var ret = [];
     var keepRowsResult = [];
@@ -129,7 +129,7 @@
     return [ret, keepRowsResult];
   }
 
-  const concatenate = function(inRels, keepRows)
+const concatenate = function(inRels, keepRows)
   {
     var ret = [];
     var keepRowsResult = [];
