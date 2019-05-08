@@ -946,6 +946,102 @@ void aggMeanWithCountCol
 	ret->cols = 2;
 }
 
+void aggMean
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 3;
+
+	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv int) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+		array[i][2] = 1;
+	}
+
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	intermediateMat aggMeanIntermediate;
+
+	aggMeanIntermediate.mat = array;
+	aggMeanIntermediate.keepRows = keepRows;
+	aggMeanIntermediate.rows = numRows;
+	aggMeanIntermediate.cols = numCols;
+
+	intermediateMat aggMeanRet;
+
+	aggMeanWithCountCol(&aggMeanIntermediate, &aggMeanRet, 0, 1, 2);
+
+	ret->mat = aggMeanRet.mat;
+	ret->keepRows = aggMeanRet.keepRows;
+	ret->rows = aggMeanRet.rows;
+	ret->cols = aggMeanRet.cols;
+
+	free(array);
+	free(keepRows);
+	printf("AGGMEAN DONE \n");
+}
+
+void stdDev
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv int) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+	}
+
+	intermediateMat aggMeanOut;
+	aggMean(mat, &aggMeanOut, keyCol, aggCol);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		for (int j = 0; j < aggMeanOut.rows; j++)
+		{
+			obliv int eqFlag = (array[i][0] == aggMeanOut.mat[j][0]);
+			obliv int keepFlag = mat->keepRows[i] * aggMeanOut.keepRows[j];
+
+			obliv int temp = array[i][1] 0 (aggMeanOut.mat[j][1] * eqFlag * keepFlag);
+			array[i][1] = temp;
+		}
+		obliv int tempVal = array[i][1] * array[i][1];
+		array[i][1] = tempVal;
+	}
+
+	intermediateMat stdDevOut;
+
+	stdDevOut.mat = array;
+	stdDevOut.keepRows = mat->keepRows;
+	stdDevOut.rows = numRows;
+	stdDevOut.cols = 2;
+
+	aggMean(&stdDevOut, ret, 0, 1);
+}
+
 void revealResult
 	(
 	intermediateMat *mat,
