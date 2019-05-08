@@ -1025,7 +1025,7 @@ void stdDev
 			obliv int eqFlag = (array[i][0] == aggMeanOut.mat[j][0]);
 			obliv int keepFlag = mat->keepRows[i] * aggMeanOut.keepRows[j];
 
-			obliv int temp = array[i][1] 0 (aggMeanOut.mat[j][1] * eqFlag * keepFlag);
+			obliv int temp = array[i][1] - (aggMeanOut.mat[j][1] * eqFlag * keepFlag);
 			array[i][1] = temp;
 		}
 		obliv int tempVal = array[i][1] * array[i][1];
