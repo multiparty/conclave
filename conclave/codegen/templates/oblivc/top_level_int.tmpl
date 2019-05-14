@@ -670,6 +670,96 @@ void sortBy
 	ret->cols = numCols;
 }
 
+void compareExchangeByKeepRows
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int numCols,
+		int i,
+		int j,
+		int numRows
+	)
+{
+	if (i >= numRows || j >= numRows)
+	{
+		return;
+	}
+
+	obliv int x = keepRows[i];
+	obliv int y = keepRows[j];
+
+	obliv int c = x > y;
+	obliv int d = 1 - c;
+
+	obliv int keepRowsI = (c * keepRows[i]) + (d * keepRows[j]);
+	obliv int keepRowsJ = (d * keepRows[i]) + (c * keepRows[j]);
+
+	obliv int *temp1 = malloc(sizeof(obliv int) * numCols);
+	obliv int *temp2 = malloc(sizeof(obliv int) * numCols);
+
+	for (int k = 0; k < numCols; k++)
+	{
+		obliv int a = array[i][k];
+		obliv int b = array[j][k];
+
+		temp1[k] = (c * a) + (d * b);
+		temp2[k] = (d * a) + (c * b);
+	}
+
+	array[i] = temp1;
+	array[j] = temp2;
+
+	keepRows[i] = keepRowsI;
+	keepRows[j] = keepRowsJ;
+}
+
+void oddEvenMergeByKeepRows
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int numCols,
+		int lo,
+		int n,
+		int r,
+		int numRows
+	)
+{
+	int m = r * 2;
+	if (m < n)
+	{
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo, n, m, numRows);
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo + r, n, m, numRows);
+
+		for (int i = lo + r; (i + r) < (lo + n); i += m)
+		{
+			compareExchangeByKeepRows(array, keepRows, numCols, i, i + r, numRows);
+		}
+	}
+	else
+	{
+		compareExchangeByKeepRows(array, keepRows, numCols, lo, lo + r, numRows);
+	}
+}
+
+void oddEvenSortByKeepRows
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int numCols,
+		int lo,
+		int n,
+		int numRows
+	)
+{
+	if (n > 1)
+	{
+		int m = n / 2;
+		oddEvenSortByKeepRows(array, keepRows, numCols, lo, m, numRows);
+		oddEvenSortByKeepRows(array, keepRows, numCols, lo + m, m, numRows);
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo, n, 1, numRows);
+	}
+}
+
 void shiftAgg
 	(
 		obliv int **arr,
@@ -928,8 +1018,7 @@ void aggMeanWithCountCol
 	ret->keepRows = keepRows;
 
 	_aggMeanWithCountCol(ret, array, numRows, nextPowerOfTwo);
-	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
-
+	oddEvenSortByKeepRows(array, ret->keepRows, numCols, 0, nextPowerOfTwo, numRows);
 	obliv int **retArray = malloc(sizeof(obliv int *) * numRows);
 
 	for (int i = 0; i < numRows; i++)
@@ -992,7 +1081,78 @@ void aggMean
 
 	free(array);
 	free(keepRows);
-	printf("AGGMEAN DONE \n");
+}
+
+void aggMeanLeaky
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 3;
+
+	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv int) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+		array[i][2] = 1;
+	}
+
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	intermediateMat aggMeanIntermediate;
+
+	aggMeanIntermediate.mat = array;
+	aggMeanIntermediate.keepRows = keepRows;
+	aggMeanIntermediate.rows = numRows;
+	aggMeanIntermediate.cols = numCols;
+
+	intermediateMat aggMeanIntermediateTwo;
+	aggMeanWithCountCol(&aggMeanIntermediate, &aggMeanIntermediateTwo, 0, 1, 2);
+
+	free(aggMeanIntermediate.mat);
+	free(aggMeanIntermediate.keepRows);
+
+	obliv int outRows = 0;
+
+	for (int i = 0; i < aggMeanIntermediateTwo.rows; i++)
+	{
+		outRows = outRows + aggMeanIntermediateTwo.keepRows[i];
+	}
+
+	int numOutRows;
+	revealOblivInt(&numOutRows, outRows, 0);
+
+	obliv int **retArray = malloc(sizeof(obliv int *) * numOutRows);
+	obliv int *retKeepRows = malloc(sizeof(obliv int) * numOutRows);
+
+	for (int i = 0; i < numOutRows; i++)
+	{
+		retArray[i] = malloc(sizeof(obliv int) * 2);
+		retArray[i][0] = aggMeanIntermediateTwo.mat[i][0];
+		retArray[i][1] = aggMeanIntermediateTwo.mat[i][1];
+
+		retKeepRows[i] = aggMeanIntermediateTwo.keepRows[i];
+	}
+
+	free(aggMeanIntermediateTwo.mat);
+	free(aggMeanIntermediateTwo.keepRows);
+
+	ret->mat = retArray;
+	ret->rows = numOutRows;
+	ret->cols = 2;
+	ret->keepRows = retKeepRows;
 }
 
 void stdDev
