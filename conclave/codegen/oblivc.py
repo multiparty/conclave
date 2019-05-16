@@ -416,7 +416,8 @@ class OblivcCodeGen(CodeGen):
             "KEY_COL": agg_op.group_cols[0].idx,
             "AGG_COL": agg_op.agg_col.idx,
             "USE_LEAKY": leaky,
-            "COUNT_COL": 2
+            "COUNT_COL": 2,
+            "LEAKY": "Leaky" if leaky else ""
         }
 
         return pystache.render(template, data)
