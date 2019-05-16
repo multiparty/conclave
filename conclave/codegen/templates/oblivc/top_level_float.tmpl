@@ -691,6 +691,106 @@ void sortBy
 	ret->cols = numCols;
 }
 
+void compareExchangeByKeepRows
+	(
+		obliv float **array,
+		obliv float *keepRows,
+		int numCols,
+		int i,
+		int j,
+		int numRows
+	)
+{
+	if (i >= numRows || j >= numRows) {
+		return;
+	}
+
+	obliv float x = keepRows[i];
+	obliv float y = keepRows[j];
+
+	obliv float c;
+	obliv float d;
+
+	obliv if (x < y)
+	{
+		c = 1;
+		d = 0;
+	}
+	else
+	{
+		c = 0;
+		d = 1;
+	}
+
+	obliv float keepRowsI = (c * keepRows[i]) + (d * keepRows[j]);
+	obliv float keepRowsJ = (d * keepRows[i]) + (c * keepRows[j]);
+
+	obliv float *temp1 = malloc(sizeof(obliv float) * numCols);
+	obliv float *temp2 = malloc(sizeof(obliv float) * numCols);
+
+	for (int k = 0; k < numCols; k++)
+	{
+		obliv float a = array[i][k];
+		obliv float b = array[j][k];
+
+		temp1[k] = (c * a) + (d * b);
+		temp2[k] = (d * a) + (c * b);
+	}
+
+	array[i] = temp1;
+	array[j] = temp2;
+
+	keepRows[i] = keepRowsI;
+	keepRows[j] = keepRowsJ;
+}
+
+void oddEvenMergeByKeepRows
+	(
+		obliv float **array,
+		obliv float *keepRows,
+		int numCols,
+		int lo,
+		int n,
+		int r,
+		int numRows
+	)
+{
+	int m = r * 2;
+	if (m < n)
+	{
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo, n, m, numRows);
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo + r, n, m, numRows);
+
+		for (int i = lo + r; (i + r) < (lo + n); i += m)
+		{
+			compareExchangeByKeepRows(array, keepRows, numCols, i, i + r, numRows);
+		}
+	}
+	else
+	{
+		compareExchangeByKeepRows(array, keepRows, numCols, lo, lo + r, numRows);
+	}
+}
+
+void oddEvenSortByKeepRows
+	(
+		obliv float **array,
+		obliv float *keepRows,
+		int numCols,
+		int lo,
+		int n,
+		int numRows
+	)
+{
+	if (n > 1)
+	{
+		int m = n / 2;
+		oddEvenSortByKeepRows(array, keepRows, numCols, lo, m, numRows);
+		oddEvenSortByKeepRows(array, keepRows, numCols, lo + m, m, numRows);
+		oddEvenMergeByKeepRows(array, keepRows, numCols, lo, n, 1, numRows);
+	}
+}
+
 void shiftAgg
 	(
 		obliv float **arr,
@@ -1036,6 +1136,78 @@ void aggMean
 	printf("AGGMEAN DONE \n");
 }
 
+void aggMeanLeaky
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 3;
+
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv float) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+		array[i][2] = 1;
+	}
+
+	obliv float *keepRows = malloc(sizeof(obliv float) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	intermediateMat aggMeanIntermediate;
+
+	aggMeanIntermediate.mat = array;
+	aggMeanIntermediate.keepRows = keepRows;
+	aggMeanIntermediate.rows = numRows;
+	aggMeanIntermediate.cols = numCols;
+
+	intermediateMat aggMeanIntermediateTwo;
+	aggMeanWithCountCol(&aggMeanIntermediate, &aggMeanIntermediateTwo, 0, 1, 2);
+
+	free(aggMeanIntermediate.mat);
+	free(aggMeanIntermediate.keepRows);
+
+	obliv float outRows = 0;
+
+	for (int i = 0; i < aggMeanIntermediateTwo.rows; i++)
+	{
+		outRows = outRows + aggMeanIntermediateTwo.keepRows[i];
+	}
+
+	float numOutRows;
+	revealOblivFloat(&numOutRows, outRows, 0);
+
+	obliv float **retArray = malloc(sizeof(obliv float *) * numOutRows);
+	obliv float *retKeepRows = malloc(sizeof(obliv float) * numOutRows);
+
+	for (int i = 0; i < numOutRows; i++)
+	{
+		retArray[i] = malloc(sizeof(obliv float) * 2);
+		retArray[i][0] = aggMeanIntermediateTwo.mat[i][0];
+		retArray[i][1] = aggMeanIntermediateTwo.mat[i][1];
+
+		retKeepRows[i] = aggMeanIntermediateTwo.keepRows[i];
+	}
+
+	free(aggMeanIntermediateTwo.mat);
+	free(aggMeanIntermediateTwo.keepRows);
+
+	ret->mat = retArray;
+	ret->rows = numOutRows;
+	ret->cols = 2;
+	ret->keepRows = retKeepRows;
+}
+
 void stdDev
 	(
 		intermediateMat *mat,
@@ -1085,6 +1257,93 @@ void stdDev
 	stdDevOut.cols = 2;
 
 	aggMean(&stdDevOut, ret, 0, 1);
+}
+
+obliv float binarySearchHelper
+	(
+		obliv float **array,
+		obliv float element,
+		int numRows,
+		int numCols,
+		int keyCol,
+		int retCol
+	)
+{
+	if (numRows == 1)
+	{
+		return array[0][retCol];
+	}
+
+	int mid = floor(numRows / 2);
+	int midNumIdx = mid;
+	if ((mid * 2) < numRows)
+	{
+		midNumIdx++;
+	}
+
+	obliv float **retArray = malloc(sizeof(obliv float *) * midNumIdx);
+
+	for (int i = 0; i < midNumIdx; i++)
+	{
+		retArray[i] = malloc(sizeof(obliv float) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			obliv float temp;
+			obliv if (element < array[mid][keyCol])
+			{
+				temp = array[i][j];
+			}
+			else
+			{
+				temp = array[i + mid][j];
+			}
+			retArray[i][j] = temp;
+		}
+	}
+
+	return binarySearchHelper(retArray, element, midNumIdx, numCols, keyCol, retCol);
+}
+
+void stdDevLeaky
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv float **array = malloc(sizeof(obliv float *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv float) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+	}
+
+	intermediateMat aggMeanOut;
+	aggMeanLeaky(mat, &aggMeanOut, keyCol, aggCol);
+	intermediateMat sortedAggMeanOut;
+	sortBy(&aggMeanOut, &sortedAggMeanOut, 0);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv float subVal = binarySearchHelper(sortedAggMeanOut.mat, array[i][0], sortedAggMeanOut.rows, 2, 0, 1);
+		obliv float temp = array[i][1] - subVal;
+		array[i][1] = temp * temp;
+	}
+
+	intermediateMat stdDevOut;
+
+	stdDevOut.mat = array;
+	stdDevOut.keepRows = mat->keepRows;
+	stdDevOut.rows = numRows;
+	stdDevOut.cols = 2;
+
+	aggMeanLeaky(&stdDevOut, ret, 0, 1);
 }
 
 void revealResult
