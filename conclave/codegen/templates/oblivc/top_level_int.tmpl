@@ -1202,6 +1202,85 @@ void stdDev
 	aggMean(&stdDevOut, ret, 0, 1);
 }
 
+obliv int binarySearchHelper
+	(
+		obliv int **array,
+		obliv int element,
+		int numRows,
+		int numCols,
+		int keyCol,
+		int retCol
+	)
+{
+	if (numRows == 1)
+	{
+		return array[0][retCol];
+	}
+
+	int mid = floor(numRows / 2);
+	int midNumIdx = mid;
+	if ((mid * 2) < numRows)
+	{
+		midNumIdx++;
+	}
+
+	obliv int **retArray = malloc(sizeof(obliv int *) * midNumIdx);
+	obliv int dataCmp = (element < array[mid][keyCol]);
+
+	for (int i = 0; i < midNumIdx; i++)
+	{
+		retArray[i] = malloc(sizeof(obliv int) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			retArray[i][j] = (dataCmp * array[i][j]) + ((1 - dataCmp) * array[i + mid][j]);
+		}
+	}
+
+	return binarySearchHelper(retArray, element, midNumIdx, numCols, keyCol, retCol);
+}
+
+void stdDevLeaky
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(obliv int) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+	}
+
+	intermediateMat aggMeanOut;
+	aggMeanLeaky(mat, &aggMeanOut, keyCol, aggCol);
+	intermediateMat sortedAggMeanOut;
+	sortBy(&aggMeanOut, &sortedAggMeanOut, 0);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv int subVal = binarySearchHelper(sortedAggMeanOut.mat, array[i][0], sortedAggMeanOut.rows, 2, 0, 1);
+		obliv int temp = array[i][1] - subVal;
+		array[i][1] = temp * temp;
+	}
+
+	intermediateMat stdDevOut;
+
+	stdDevOut.mat = array;
+	stdDevOut.keepRows = mat->keepRows;
+	stdDevOut.rows = numRows;
+	stdDevOut.cols = 2;
+
+	aggMeanLeaky(&stdDevOut, ret, 0, 1);
+}
+
 void revealResult
 	(
 	intermediateMat *mat,
