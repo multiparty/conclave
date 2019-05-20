@@ -29,27 +29,6 @@ class NetworkConfig:
         return network_config
 
 
-class SwiftConfig:
-    """
-    Configuration for accessing data from Swift.
-    """
-
-    def __init__(self, cfg):
-
-        self.source = cfg['source']
-        self.dest = cfg['dest']
-
-
-class DataverseConfig:
-    """
-    Configuration for accessing data from Dataverse
-    """
-
-    def __init__(self, cfg):
-
-        self.cfg = cfg
-
-
 class SharemindCodeGenConfig:
     """ Sharemind configuration. """
 
@@ -153,23 +132,6 @@ class CodeGenConfig:
 
         return self
 
-    def with_swift_config(self, cfg: SwiftConfig):
-
-        if not self.inited:
-            self.__init__()
-
-        self.system_configs["swift"] = cfg
-
-        return self
-
-    def with_dataverse_config(self, cfg: DataverseConfig):
-
-        if not self.inited:
-            self.__init__()
-
-        self.system_configs["dataverse"] = cfg
-
-        return self
 
     def with_spark_config(self, cfg: SparkConfig):
         """ Add SparkConfig object to this object. """

@@ -7,10 +7,7 @@ from conclave import CodeGenConfig
 from conclave.config import SparkConfig
 from conclave.config import OblivcConfig
 from conclave.config import NetworkConfig
-from conclave.config import SwiftConfig
-from conclave.config import DataverseConfig
 from conclave.config import JiffConfig
-from conclave.utils import *
 
 
 def setup(conf: Dict):
@@ -64,30 +61,9 @@ def setup(conf: Dict):
     net_config = NetworkConfig(hosts, pid)
     conclave_config.with_network_config(net_config)
 
-    data_backend = conf["data"]["data_backend"]
-
-    if data_backend == "local":
-        pass
-
-    elif data_backend == "swift":
-        cfg = conf["data"]["swift"]
-        swift_config = SwiftConfig(cfg)
-        conclave_config.with_swift_config(swift_config)
-
-    elif data_backend == "dataverse":
-        cfg = conf["data"]["dataverse"]
-        dv_conf = DataverseConfig(cfg)
-        conclave_config.with_dataverse_config(dv_conf)
-        # dataverse converts all csv uploads to tsv
-        conclave_config.delimiter = '\t'
-
-    else:
-        print("No remote data backend source listed. Using local storage.\n")
-
     conclave_config.pid = pid
     conclave_config.all_pids = all_pids
     conclave_config.name = workflow_name
-    conclave_config.data_backend = data_backend
     conclave_config.use_leaky_ops = use_leaky
     conclave_config.use_floats = use_floats
 
@@ -115,27 +91,6 @@ def run(protocol: Callable, mpc_framework: str = "obliv-c", local_framework: str
 
     conclave_config = setup(conf)
 
-    if conclave_config.data_backend == "local":
-        generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
-        )
-
-    elif conclave_config.data_backend == "swift":
-        download_swift_data(conclave_config)
-        generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
-        )
-        # hack to only write input party 1's output data to swift
-        # TODO: generalize this in future to correspond with party who is getting data returned by collect()
-        if conclave_config.pid == 1:
-            post_swift_data(conclave_config)
-
-    elif conclave_config.data_backend == "dataverse":
-        download_dataverse_data(conclave_config)
-        generate_and_dispatch(
-            protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
-        )
-        post_dataverse_data(conclave_config)
-
-    else:
-        raise Exception("Backend {} not recognized. Exiting computation.".format(conclave_config.data_backend))
+    generate_and_dispatch(
+        protocol, conclave_config, [mpc_framework], [local_framework], apply_optimizations=apply_optimisations
+    )
