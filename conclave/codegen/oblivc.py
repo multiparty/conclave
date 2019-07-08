@@ -70,8 +70,6 @@ class OblivcCodeGen(CodeGen):
                 op_code += self._generate_divide(node)
             elif isinstance(node, SortBy):
                 op_code += self._generate_sort_by(node)
-            elif isinstance(node, Open):
-                op_code += self._generate_open(node)
             elif isinstance(node, DistinctCount):
                 op_code += self._generate_distinct_count(node)
             elif isinstance(node, Filter):
