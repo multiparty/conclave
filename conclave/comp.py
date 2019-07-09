@@ -1312,9 +1312,16 @@ class ExpandCompositeOps(DagRewriter):
         else:
             raise Exception("Not supported for now")
 
-        left_join = cc._pub_join(left_one, "left_join" + suffix, node.left_join_cols[0].name, other_op_node=right_one)
+        # TODO: host/port take from conf.net.parties[0] (only need host for local work, just take P1 by default)
+
+        op_host = self.conclave_config.network_config["parties"][1]["host"]
+        op_port = self.conclave_config.network_config["parties"][1]["port"]
+
+        left_join = \
+            cc._pub_join(left_one, "left_join" + suffix, node.left_join_cols[0].name,
+                         other_op_node=right_one, host=op_host, port=op_port)
         right_join = cc._pub_join(left_two, "right_join" + suffix, node.left_join_cols[0].name, is_server=False,
-                                  other_op_node=right_two)
+                                  other_op_node=right_two, host=op_host, port=op_port)
 
         node.left_parent.children.remove(node)
         node.right_parent.children.remove(node)
