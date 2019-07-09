@@ -15,7 +15,17 @@
   },
   "net":
   {
-    "parties": ""
+    "parties":
+    [
+      {
+        "host": "localhost",
+        "port": 8000
+      },
+      {
+        "host": "localhost",
+        "port": 8001
+      }
+    ]
   },
   "backends":
   {
