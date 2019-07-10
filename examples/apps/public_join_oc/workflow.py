@@ -39,4 +39,4 @@ def protocol():
 
 if __name__ == "__main__":
 
-    workflow.run(protocol)
+    workflow.run(protocol, mpc_framework="jiff")

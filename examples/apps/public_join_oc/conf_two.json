@@ -10,7 +10,7 @@
     {
       "input_path": "/Users/ben/Desktop/pub-data/",
       "output_path": "/Users/ben/Desktop/pub-data/",
-      "code_path": "/tmp/code-two/"
+      "code_path": "/Users/ben/Desktop/pub-code/code-two/"
     }
   },
   "net":
@@ -31,9 +31,17 @@
   {
     "oblivc":
     {
-      "available": 1,
+      "available": 0,
       "oc_path": "/Users/ben/Desktop/dev/obliv-c/bin/oblivcc",
       "ip_port": "localhost:9000"
+    },
+    "jiff":
+    {
+      "available": 1,
+      "jiff_path": "/Users/ben/Desktop/dev/jiff/",
+      "server_ip": "localhost",
+      "server_port": 9000,
+      "server_pid": 1
     }
   }
 }
