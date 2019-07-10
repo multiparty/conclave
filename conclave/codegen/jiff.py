@@ -126,6 +126,8 @@ class JiffCodeGen(CodeGen):
                 op_code += self._generate_divide(node)
             elif isinstance(node, SortBy):
                 op_code += self._generate_sort_by(node)
+            elif isinstance(node, ConcatCols):
+                op_code += self._generate_concat_cols(node)
             elif isinstance(node, Open):
                 op_code += self._generate_open(node)
             else:
@@ -148,6 +150,28 @@ class JiffCodeGen(CodeGen):
         }
 
         return pystache.render(template, data)
+
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
+
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+
+        if concat_cols_op.use_mult:
+
+            template = open(
+                "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUTREL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+        else:
+            # TODO: implement this
+            return ""
 
     def _generate_create(self, create_op: Create):
 

@@ -99,7 +99,28 @@ const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
     }
 
     return [ret, keepRowsResult];
-  }
+  };
+
+const multiplyMatrices = function(leftRel, rightRel, leftKeepRows, rightKeepRows)
+  {
+    var ret = [];
+    var keepRowsResult = [];
+
+    for (var i = 0; i < leftRel.length; i++)
+    {
+        keepRowsResult.push(leftKeepRows[i].smult(rightKeepRows[i]));
+        tempArray = [];
+
+        for (var j = 0; j < leftRel[i].length; j++)
+        {
+            tempArray.push(leftRel[i][j].smult(rightRel[i][j]))
+        }
+        ret.push(tempArray);
+    }
+
+    return [ret, keepRowsResult];
+
+  };
 
 const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
@@ -341,12 +362,16 @@ const aggregate = async function(inRel, keepRows, keyCol, aggCol, jiff_instance)
       // if both keyCols are equal, add the aggCols together
       // Else, don't touch aggCol at i+1
       var temp = dataCmp.if_else(sortedData[i][1].sadd(sortedData[i+1][1]), sortedData[i+1][1]);
+
       // indicates whether both keepRows equal 1
       var bothKeep = sortedKeepRows[i].smult(sortedKeepRows[i+1]);
+
       // indicates whether both keyCols are equal AND both keepRows == 1
       var dataKeepFlag = dataCmp.smult(bothKeep);
+
       // if both keepRows are 1, then store the added values in sortedData[i+1][1]
       var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+
       // if both rows have matching keyCols AND both keepRows == 1, make keepRows[i] == 0
       // Else, don't touch it
       var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
