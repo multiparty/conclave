@@ -1030,6 +1030,7 @@ class ExpandCompositeOps(DagRewriter):
         self.join_counter = 0
         self.public_join_counter = 0
         self.agg_counter = 0
+        self.public_agg_counter = 0
 
     def _create_unique_public_join_suffix(self):
         """
@@ -1046,6 +1047,14 @@ class ExpandCompositeOps(DagRewriter):
         """
         self.join_counter += 1
         return "_hybrid_join_" + str(self.join_counter)
+
+    def _create_unique_public_agg_suffix(self):
+        """
+        Creates a unique string which will be appended to the end of each sub-relation created for each new public
+        aggregation. This prevents relation name overlap in the case of multiple hybrid operators.
+        """
+        self.public_agg_counter += 1
+        return "_public_agg_" + str(self.public_agg_counter)
 
     def _create_unique_agg_suffix(self):
         """
@@ -1311,8 +1320,6 @@ class ExpandCompositeOps(DagRewriter):
             right_parent.skip = True
         else:
             raise Exception("Not supported for now")
-
-        # TODO: host/port take from conf.net.parties[0] (only need host for local work, just take P1 by default)
 
         op_host = self.conclave_config.network_config["parties"][1]["host"]
         op_port = self.conclave_config.network_config["parties"][1]["port"]
