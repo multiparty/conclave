@@ -96,15 +96,30 @@ class OblivCDispatcher:
         except Exception as e:
             print(e)
 
+    def dispatch_as_evaluator(self, job):
+        """
+        Wait until submit party is ready.
+        """
+
+        if job.submit_party not in self.early:
+            self.to_wait_on[job.submit_party] = asyncio.Future()
+
+        future = self.to_wait_on.values()
+        self.loop.run_until_complete(asyncio.gather(*future))
+        self._dispatch(job)
+
     def dispatch(self, job):
 
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
-        if self.peer.pid == 2:
-            time.sleep(30)
-
-        self._dispatch(job)
+        if int(self.peer.pid) == int(job.submit_party):
+            self.peer.send_done_msg(job.evaluator_party, job.name + '.submit')
+            self._dispatch(job)
+        elif int(self.peer.pid) == int(job.evaluator_party):
+            self.dispatch_as_evaluator(job)
+        else:
+            print("Weird PID: {}".format(self.peer.pid))
 
         self.peer.dispatcher = None
         self.to_wait_on = {}
