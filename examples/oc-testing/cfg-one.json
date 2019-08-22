@@ -18,7 +18,7 @@
     "parties":
     [
       {
-        "host": "128.31.27.222",
+        "host": "0.0.0.0",
         "port": 8000
       },
       {
@@ -33,7 +33,7 @@
     {
       "available": 1,
       "oc_path": "/home/ubuntu/dev/obliv-c/bin/oblivcc",
-      "ip_port": "128.31.27.222:9000"
+      "ip_port": "0.0.0.0:9000"
     },
     "jiff":
     {
