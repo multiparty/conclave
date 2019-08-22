@@ -1,9 +1,9 @@
 import asyncio
-import time
 import json
-import pystache
-
+import time
 from subprocess import call
+
+import pystache
 
 
 class OblivCDispatcher:

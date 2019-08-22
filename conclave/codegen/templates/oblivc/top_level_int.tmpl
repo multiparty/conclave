@@ -6,6 +6,26 @@
 
 #include "workflow.h"
 
+void debugPrint(intermediateMat *mat) {
+    int numRows = mat->rows;
+	int numCols = mat->cols;
+	printf("[ ");
+	for (int i = 0; i < numRows; i++)
+	{
+	    printf("[");
+	    for (int j = 0; j < numCols; j++) {
+            int opened;
+		    revealOblivInt(&opened, (mat->mat[i][j]), 0);
+		    printf("%i ", opened);
+	    }
+	    int opened;
+        revealOblivInt(&opened, (mat->keepRows[i]), 0);
+        printf("%i", opened);
+	    printf("] ");
+	}
+	printf("]\n");
+}
+
 int checkInputCols
 	(
 	int colsOne,
@@ -768,11 +788,12 @@ void shiftAgg
 	)
 {
 
-	for (int i = 0; i < numRows - 1; i++)
+	for (int i = 1; i < numRows - 1; i++)
 	{
-		obliv int eqFlag = (arr[i][0] == arr[i + 1][0]);
-		obliv int keepFlag = keepRows[i] * keepRows[i + 1];
+		// compare keys of current row and previous
+		obliv int eqFlag = (arr[i - 1][0] == arr[i][0]);
 
+<<<<<<< HEAD
 		obliv int touchFlag = eqFlag * keepFlag;
 
 		obliv int temp1 = arr[i][1] * (1 - touchFlag);
@@ -784,6 +805,14 @@ void shiftAgg
 		obliv int tempKeep = keepRows[i];
 
 		keepRows[i] = tempKeep * (1 - touchFlag);
+=======
+		// aggregate previous into current if keys equal
+        arr[i][1] = arr[i][1] + (arr[i - 1][1] * eqFlag);
+
+        // only keep if this is last entry in group (i.e., not equal to next)
+        // and it's not a dummy element (i.e., keep flag is not 0)
+        keepRows[i - 1] = keepRows[i - 1] * (1 - eqFlag);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 	}
 }
 
@@ -795,6 +824,7 @@ void _agg
 		int numRows
 	)
 {
+<<<<<<< HEAD
 	int nextPowerOfTwo = nextPowerOf2(numRows);
 
 	oddEvenSort(array, ret->keepRows, 0, numCols, 0, nextPowerOfTwo, true, numRows);
@@ -804,6 +834,12 @@ void _agg
 	oddEvenSort(array, ret->keepRows, 1, numCols, 0, nextPowerOfTwo, false, numRows);
 
 	obliv int **retArray = malloc(sizeof(obliv int *) * numRows);
+=======
+        oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, false);
+		shiftAgg(array, ret->keepRows, numRows);
+
+        obliv int **retArray = malloc(sizeof(*retArray) * numRows);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 	for (int i = 0; i < numRows; i++)
 	{
@@ -812,9 +848,17 @@ void _agg
 		retArray[i][1] = array[i][1];
 	}
 
+<<<<<<< HEAD
 	ret->mat = retArray;
 	ret->rows = numRows;
 	ret->cols = numCols;
+=======
+		ret->mat = retArray;
+		ret->rows = numRows;
+		ret->cols = numCols;
+		//debugPrint(ret);
+
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 }
 
 void _aggLeaky
@@ -869,8 +913,13 @@ void agg
 	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
 	int numRows = mat->rows;
 	int numCols = 2;
+<<<<<<< HEAD
 
 	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+=======
+    //debugPrint(mat);
+	obliv int **array = malloc(sizeof(*array) * numRows);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 	for (int i = 0; i < numRows; i++)
 	{
@@ -883,8 +932,14 @@ void agg
 
 	for (int i = 0; i < numRows; i++)
 	{
+<<<<<<< HEAD
 		keepRows[i] = mat->keepRows[i];
 	}
+=======
+	    printf("Not power of 2, will pad\n");
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 	ret->keepRows = keepRows;
 
@@ -898,6 +953,7 @@ void agg
 	}
 }
 
+<<<<<<< HEAD
 void aggCount
 	(
 		intermediateMat *mat,
@@ -950,6 +1006,27 @@ void shiftAggMeanCountCol
 	{
 		obliv int eqFlag = (arr[i][0] == arr[i + 1][0]);
 		obliv int keepFlag = keepRows[i] * keepRows[i + 1];
+=======
+        if (leaky)
+        {
+            _aggLeaky(ret, padded, numCols, paddedVal);
+        }
+        else
+        {
+            // TODO this is not necessary, optimize
+            for (int i = 0; i < paddedVal; i++)
+            {
+                // assumes -1 not among inputs
+                padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+            }
+		    _agg(ret, padded, numCols, paddedVal);
+		}
+	}
+	else
+	{
+	    printf("Power of 2\n");
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 		// only modify data if both rows are keepRows and the keyCols are equal
 		obliv int touchFlag = eqFlag * keepFlag;
@@ -992,7 +1069,13 @@ void aggMeanWithCountCol
 		int countCol
 	)
 {
+<<<<<<< HEAD
 
+=======
+	// TODO: change this to append column of 1s and call agg to re-use more code
+	printf("Agg count not supported yet\n");
+	exit(1);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 	int numRows = mat->rows;
 	int numCols = 3;
 
@@ -1297,7 +1380,7 @@ void revealResult
 		revealOblivInt(&keepFlags[i], mat->keepRows[i], 0);
 		if (keepFlags[i] == 1)
 		{
-			outRows++;
+		    outRows++;
 		}
 	}
 
@@ -1332,16 +1415,29 @@ void _distinctCount
 {
 	obliv int retVal = 1;
 
-	for (int i = 0; i < numRows - 1; i++)
+    for (int i = 1; i < numRows; i++)
 	{
-        obliv int tempKeep = keepRows[i] * keepRows[i + 1];
-        obliv int eqFlag = (array[i][0] == array[i + 1][0]);
-        retVal = retVal + (tempKeep * (1 - eqFlag));
+        obliv int curr = array[i][0];
+        obliv int prev = array[i - 1][0];
+        array[i][0] = keepRows[i] * (curr - prev) + prev;
+    }
+
+	for (int i = 1; i < numRows; i++)
+	{
+        obliv int eqFlag = (array[i - 1][0] == array[i][0]);
+        retVal = retVal + (1 - eqFlag);
 	}
 
+<<<<<<< HEAD
 	obliv int **retArray = malloc(sizeof(obliv int *) * 1);
 	retArray[0] = malloc(sizeof(obliv int) * 1);
 	retArray[0][0] = retVal;
+=======
+    obliv int isFirstDummy = 1 - keepRows[0];
+	obliv int **retArray = malloc(sizeof(*retArray) * 1);
+	retArray[0] = malloc(sizeof(**retArray) * 1);
+	retArray[0][0] = retVal - isFirstDummy;
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 	obliv int *keepRows = malloc(sizeof(obliv int) * 1);
 	keepRows[0] = 1;
@@ -1359,14 +1455,26 @@ void distinctCountPreSorted
 		int keyCol
 	)
 {
+<<<<<<< HEAD
 	int numRows = mat->rows;
 	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+=======
+    int numRows = mat->rows;
+	obliv int **array = malloc(sizeof(*array) * numRows);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
 	{
+<<<<<<< HEAD
 		array[i] = malloc(sizeof(obliv int) * 1);
 		array[i][0] = mat->mat[i][keyCol];
+=======
+		array[i] = malloc(sizeof(**array) * 1);
+		// assumes -1 not among inputs
+		array[i][0] = mat->keepRows[i] * (mat->mat[i][keyCol] + 1) - 1;
+		//array[i][0] = mat->mat[i][keyCol];
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 
 		keepRows[i] = mat->keepRows[i];
 	}
@@ -1394,9 +1502,36 @@ void distinctCount
 
 	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
+<<<<<<< HEAD
 	for (int i = 0; i < numRows; i++)
 	{
 		keepRows[i] = mat->keepRows[i];
+=======
+        // TODO this is not necessary, optimize
+		for (int i = 0; i < paddedVal; i++)
+        {
+            // assumes -1 not among inputs
+            padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+        }
+
+		oddEvenSort(padded, keepRows, 0, 1, 0, paddedVal, false);
+		_distinctCount(ret, padded, keepRows, paddedVal);
+	}
+	else
+	{
+	    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+			// TODO this is not necessary, optimize
+			// assumes -1 not among inputs
+            array[i][0] = keepRows[i] * (array[i][0] + 1) - 1;
+		}
+
+		oddEvenSort(array, keepRows, 0, 1, 0, numRows, false);
+		_distinctCount(ret, array, keepRows, numRows);
+>>>>>>> 2117af86d7762272733574c792e4b060cc75f76d
 	}
 
 	oddEvenSort(array, keepRows, 0, 1, 0, nextPowerOfTwo, true, numRows);

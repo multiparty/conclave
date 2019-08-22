@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    sort_by = sort_by(in_1, 0)
-    write_rel('/tmp', 'sort_by.csv', sort_by, '"a","b","c","d"')
-
-    print("done python")

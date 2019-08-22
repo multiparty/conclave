@@ -1,9 +1,0 @@
-CREATE RELATION in_1([a {1}, b {1}, c {1}]) {1} WITH COLUMNS (INTEGER, INTEGER, INTEGER)
-CREATE RELATION in_2([a {2}, b {2}, c {2}]) {2} WITH COLUMNS (INTEGER, INTEGER, INTEGER)
-PROJECT [c, b] FROM (in_1([a {1}, b {1}, c {1}]) {1}) AS projected_0([c {1}, b {1}]) {1}
-CLOSEMPC projected_0([c {1}, b {1}]) {1} INTO projected_0_close([c {1}, b {1}]) {1, 2, 3}
-PROJECT [c, b] FROM (in_2([a {2}, b {2}, c {2}]) {2}) AS projected_1([c {2}, b {2}]) {2}
-CLOSEMPC projected_1([c {2}, b {2}]) {2} INTO projected_1_close([c {2}, b {2}]) {1, 2, 3}
-CONCATMPC [projected_0_close([c {1}, b {1}]) {1, 2, 3}, projected_1_close([c {2}, b {2}]) {1, 2, 3}] AS rel([c {}, b {}]) {1, 2, 3}
-FILTERMPC [c {} == b {}] FROM (rel([c {}, b {}]) {1, 2, 3}) AS filtered([c {}, b {}]) {1, 2, 3}
-OPENMPC filtered([c {}, b {}]) {1, 2, 3} INTO filtered_open([c {}, b {}]) {1}
