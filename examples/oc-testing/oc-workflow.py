@@ -19,7 +19,7 @@ def protocol():
     two = cc.create("two", party_two, {2})
 
     rel = cc.concat([one, two], "rel")
-    agg = cc.aggregate(rel, 'agg1', ['b'], 'a', 'sum', 'c_agg')
+    agg = cc.aggregate(rel, 'agg1', ['a'], 'b', 'sum', 'c_agg')
 
     cc.collect(agg, 1)
 

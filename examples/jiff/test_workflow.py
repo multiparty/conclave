@@ -36,7 +36,7 @@ def protocol():
 
     cc1 = cc.concat([in1, in2, in3], 'cc1', ['a', 'b', 'c'])
 
-    agg1 = cc.aggregate(cc1, "agg1", ['a'], "b", "mean", "b")
+    agg1 = cc.aggregate(cc1, "agg1", ['a'], "b", "sum", "b")
 
     cc.collect(agg1, 1)
 

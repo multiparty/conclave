@@ -5,6 +5,7 @@
     "all_pids": [1,2,3],
     "workflow_name": "jiff-test",
     "leaky_ops": 0,
+    "use_floats": 0,
     "paths":
     {
       "input_path": "/Users/ben/Desktop/jiff_input/",
