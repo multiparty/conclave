@@ -1,0 +1,47 @@
+{
+  "user_config":
+  {
+    "pid": 1,
+    "all_pids": [1, 2],
+    "leaky_ops": 0,
+    "workflow_name": "oc-test",
+    "use_floats": 0,
+    "paths":
+    {
+      "input_path": "/home/ubuntu/oc-data/",
+      "output_path": "/home/ubuntu/oc-data/",
+      "code_path": "/home/ubuntu/code-party-one/"
+    }
+  },
+  "net":
+  {
+    "parties":
+    [
+      {
+        "host": "128.31.27.222",
+        "port": 8000
+      },
+      {
+        "host": "128.31.27.222",
+        "port": 8001
+      }
+    ]
+  },
+  "backends":
+  {
+    "oblivc":
+    {
+      "available": 1,
+      "oc_path": "/home/ubuntu/dev/obliv-c/bin/oblivcc",
+      "ip_port": "128.31.27.222:9000"
+    },
+    "jiff":
+    {
+      "available": 1,
+      "jiff_path": "",
+      "server_ip": "localhost",
+      "server_port": 9000,
+      "server_pid": 1
+    }
+  }
+}
