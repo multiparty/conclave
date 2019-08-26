@@ -106,6 +106,8 @@ class OblivCDispatcher:
 
         future = self.to_wait_on.values()
         self.loop.run_until_complete(asyncio.gather(*future))
+
+        time.sleep(10)
         self._dispatch(job)
 
     def dispatch(self, job):
