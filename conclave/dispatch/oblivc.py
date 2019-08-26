@@ -114,9 +114,11 @@ class OblivCDispatcher:
         self.peer.register_dispatcher(self)
 
         if int(self.peer.pid) == int(job.submit_party):
+            print("Dispatching as Garbler.\n")
             self.peer.send_done_msg(job.evaluator_party, job.name + '.submit')
             self._dispatch(job)
         elif int(self.peer.pid) == int(job.evaluator_party):
+            print("Dispatching as Evaluator.\n")
             self.dispatch_as_evaluator(job)
         else:
             print("Weird PID: {}".format(self.peer.pid))
@@ -130,6 +132,7 @@ class OblivCDispatcher:
 
         done_peer = msg.pid
         if done_peer in self.to_wait_on:
+            print("Obliv-C DoneMsg received.\n")
             self.to_wait_on[done_peer].set_result(True)
         else:
             self.early.add(done_peer)

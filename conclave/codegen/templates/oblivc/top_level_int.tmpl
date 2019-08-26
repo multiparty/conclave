@@ -102,7 +102,7 @@ void matToObliv
 	int numRows = ocBroadcastInt(io->rows, party);
 	int numCols = ocBroadcastInt(io->cols, party);
 
-	obliv int **array = malloc(sizeof(obliv int *) * numRows);
+	obliv int **array = malloc(sizeof(*array) * numRows);
 	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
 
 	for (int i = 0; i < numRows; i++)
