@@ -1,6 +1,3 @@
-import argparse
-import json
-
 from conclave import CodeGenConfig
 from conclave import generate_and_dispatch
 from conclave.config import JiffConfig
@@ -72,20 +69,12 @@ def setup(conf: dict):
     return conclave_config
 
 
-def run(protocol: callable, mpc_framework: str = "obliv-c", local_framework: str = "python", apply_optimisations=False):
+def run(protocol: callable, conf, mpc_framework: str = "obliv-c",
+        local_framework: str = "python", apply_optimisations=False):
     """
     Load parameters from config & dispatch computation.
     Downloads files if necessary from either Dataverse or Swift
     """
-
-    parser = argparse.ArgumentParser(description="Run new workflow for Conclave.")
-    parser.add_argument("--conf", metavar="/config/file.json", type=str,
-                        help="path of the config file", default="conf.json", required=False)
-
-    args = parser.parse_args()
-
-    with open(args.conf) as fp:
-        conf = json.load(fp)
 
     conclave_config = setup(conf)
 
