@@ -7,15 +7,6 @@ from conclave.dag import *
 from conclave.job import JiffJob
 
 
-'''
-TODO: 
-
-    - append output column row to output csv
-    - agg
-
-'''
-
-
 class JiffCodeGen(CodeGen):
 
     def __init__(self, config, dag: Dag, pid: int,
