@@ -1,12 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name             = 'conclave',
     version          = '0.0.0.1',
-    packages         = ['conclave'],
-    install_requires = ['pystache', 'python-swiftclient', 'python-keystoneclient'],
+    packages         = find_packages(),
     license          = 'MIT',
-    url              = 'https://github.com/multiparty/conclave',
+    url              = 'https://github.com/cici-conclave/conclave',
     description      = 'Infrastructure for defining and running large data workflows against multiple backends.',
     long_description = open('README.rst').read(),
     test_suite       = 'nose.collector',

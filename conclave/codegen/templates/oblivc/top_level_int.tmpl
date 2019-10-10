@@ -1,0 +1,1282 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <obliv.oh>
+#include <math.h>
+
+#include "workflow.h"
+
+void debugPrint(intermediateMat *mat) {
+    int numRows = mat->rows;
+	int numCols = mat->cols;
+	printf("[ ");
+	for (int i = 0; i < numRows; i++)
+	{
+	    printf("[");
+	    for (int j = 0; j < numCols; j++) {
+            int opened;
+		    revealOblivInt(&opened, (mat->mat[i][j]), 0);
+		    printf("%i ", opened);
+	    }
+	    int opened;
+        revealOblivInt(&opened, (mat->keepRows[i]), 0);
+        printf("%i", opened);
+	    printf("] ");
+	}
+	printf("]\n");
+}
+
+int checkInputCols
+	(
+	int colsOne,
+	int colsTwo
+	)
+{
+	if (colsOne != colsTwo)
+	{
+		printf("Unequal number of cols.");
+		exit(1);
+	}
+	else
+	{
+	    return colsOne;
+	}
+}
+
+int nextPowerOf2(int n)
+{
+    int p = 1;
+    if (n && !(n & (n - 1)))
+        return n;
+
+    while (p < n)
+        p <<= 1;
+
+    return p;
+}
+
+obliv int** padInput
+    (
+    obliv int **arr,
+    int numCols,
+    int numRows,
+    int nextVal
+    )
+{
+
+    obliv int **ret = malloc(sizeof(*ret) * nextVal);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        ret[i] = malloc(sizeof(**ret) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            ret[i][j] = arr[i][j];
+        }
+    }
+
+    for (int i = numRows; i < nextVal; i++)
+    {
+        ret[i] = malloc(sizeof(**ret) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            ret[i][j] = 0;
+        }
+    }
+
+    return ret;
+}
+
+bool isPowerOfTwo(int n)
+{
+   return (ceil(log2(n)) == floor(log2(n)));
+}
+
+void matToObliv
+	(
+	Io *io,
+	int party,
+	intermediateMat *ret
+	)
+{
+	int numRows = ocBroadcastInt(io->rows, party);
+	int numCols = ocBroadcastInt(io->cols, party);
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		keepRows[i] = 1;
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = feedOblivInt(io->mat[i][j], party);
+		}
+	}
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void concat
+	(
+	intermediateMat *matOne,
+	intermediateMat *matTwo,
+	intermediateMat *ret
+	)
+{
+	int numCols = checkInputCols(matOne->cols, matTwo->cols);
+	int numRows = matOne->rows + matTwo->rows;
+
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < matOne->rows; i++)
+	{
+		keepRows[i] = matOne->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = matOne->mat[i][j];
+		}
+	}
+
+	int m = 0;
+	for (int i = matOne->rows; i < numRows; i++)
+	{
+		keepRows[i] = matTwo->keepRows[m];
+
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = matTwo->mat[m][j];
+		}
+		m++;
+	}
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void addRow
+	(
+		obliv int *srcOne,
+		obliv int *srcTwo,
+		obliv int *dest,
+		int colsInOne,
+		int colsInTwo,
+		int joinColTwo
+	)
+{
+	for (int i = 0; i < colsInOne; i++)
+	{
+		dest[i] = srcOne[i];
+	}
+
+	int m = colsInOne;
+	for (int i = 0; i < colsInTwo; i++)
+	{
+		if (i != joinColTwo)
+		{
+			dest[m] = srcTwo[i];
+			m++;
+		}
+	}
+}
+
+void join
+	(
+	intermediateMat *matOne,
+	intermediateMat *matTwo,
+	intermediateMat *ret,
+	int joinColOne,
+	int joinColTwo
+	)
+{
+
+	int numColsOne = matOne->cols;
+	int numColsTwo = matTwo->cols;
+
+	int numRowsOne = matOne->rows;
+	int numRowsTwo = matTwo->rows;
+
+	int numOutCols = numColsOne + numColsTwo - 1;
+	int maxOutRows = numRowsOne * numRowsTwo;
+
+	obliv int **array = malloc(sizeof(*array) * maxOutRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * maxOutRows);
+
+	int currentRow = 0;
+
+	for (int i = 0; i < numRowsOne; i++)
+	{
+		for (int j = 0; j < numRowsTwo; j++)
+		{
+			array[currentRow] = calloc(numOutCols, sizeof(**array));
+			addRow(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
+
+			obliv int keepThisRow = matOne->keepRows[i] * matTwo->keepRows[j];
+			obliv int eqFlag = (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo]);
+			keepRows[currentRow] = keepThisRow * eqFlag;
+
+			currentRow++;
+		}
+	}
+
+	ret->rows = maxOutRows;
+	ret->cols = numOutCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void addRowLeaky
+	(
+	obliv int *srcOne,
+	obliv int *srcTwo,
+	obliv int *dest,
+	int colsInOne,
+	int colsInTwo,
+	int joinColTwo
+	) obliv
+{
+
+	obliv int a = 1;
+	dest[0] = a;
+	for (int i = 1; i < colsInOne + 1; i++)
+	{
+		dest[i] = srcOne[i - 1];
+	}
+
+	int m = colsInOne + 1;
+	for (int i = 0; i < colsInTwo; i++)
+	{
+		if (i != joinColTwo)
+		{
+			dest[m] = srcTwo[i];
+			m++;
+		}
+	}
+}
+
+void joinLeaky
+	(
+	intermediateMat *matOne,
+	intermediateMat *matTwo,
+	intermediateMat *ret,
+	int joinColOne,
+	int joinColTwo
+	)
+{
+
+	int numColsOne = matOne->cols;
+	int numColsTwo = matTwo->cols;
+
+	int numRowsOne = matOne->rows;
+	int numRowsTwo = matTwo->rows;
+
+	int numOutCols = numColsOne + numColsTwo;
+	int maxOutRows = numRowsOne * numRowsTwo;
+
+	obliv int **array = malloc(sizeof(*array) * maxOutRows);
+
+	int currentRow = 0;
+	obliv int matchRows = 0;
+
+	for (int i = 0; i < numRowsOne; i++)
+	{
+		for (int j = 0; j < numRowsTwo; j++)
+		{
+			array[currentRow] = calloc(numOutCols, sizeof(**array));
+			obliv if (matOne->mat[i][joinColOne] == matTwo->mat[j][joinColTwo])
+			{
+				addRowLeaky(matOne->mat[i], matTwo->mat[j], array[currentRow], numColsOne, numColsTwo, joinColTwo);
+				matchRows++;
+			}
+			currentRow++;
+		}
+	}
+
+	int outRows;
+	revealOblivInt(&outRows, matchRows, 0);
+
+	obliv int **outArray = malloc(sizeof(*outArray) * outRows);
+
+	int currentRow = 0;
+	for (int i = 0; i < maxOutRows; i++)
+	{
+		int matchReveal;
+		revealOblivInt(&matchReveal, array[i][0], 0);
+		if (matchReveal == 1)
+		{
+			outArray[currentRow] = malloc(sizeof(**outArray) * (numOutCols - 1));
+			for (int j = 0; j < numOutCols - 1; j++)
+			{
+				outArray[currentRow][j] = array[i][j + 1];
+			}
+			currentRow++;
+		}
+		free(array[i]);
+	}
+
+	ret->rows = outRows;
+	ret->cols = numOutCols - 1;
+	ret->mat = outArray;
+}
+
+void project
+	(
+	intermediateMat *mat,
+	intermediateMat *ret,
+	int *projCols
+	)
+{
+	int numRows = mat->rows;
+	int numCols = ret->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			int idx = projCols[j];
+			array[i][j] = mat->mat[i][idx];
+		}
+	}
+
+	ret->rows = numRows;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void limitLeaky
+    (
+    intermediateMat *mat,
+    intermediateMat *ret,
+    int num
+    )
+{
+    int numInRows = mat->rows;
+    int numCols = mat->cols;
+    int numRows;
+
+    if (num < numInRows)
+    {
+        numRows = num;
+    }
+    else
+    {
+        numRows = numInRows;
+    }
+
+    obliv int **array = malloc(sizeof(*array) * numRows);
+    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        keepRows[i] = mat->keepRows[i];
+
+        array[i] = malloc(sizeof(**array) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            array[i][j] = mat->mat[i][j];
+        }
+    }
+
+    ret->rows = numRows;
+    ret->mat = array;
+    ret->keepRows = keepRows;
+}
+
+void limit
+    (
+    intermediateMat *mat,
+    intermediateMat *ret,
+    int num
+    )
+{
+
+    int numInRows = mat->rows;
+    int numCols = mat->cols;
+    int numRows;
+
+    if (num < numInRows)
+    {
+        numRows = num;
+    }
+    else
+    {
+        numRows = numInRows;
+    }
+
+    obliv int limitCounter = 0;
+
+    obliv int **array = malloc(sizeof(*array) * numInRows);
+    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+    for (int i = 0; i < numInRows; i++)
+    {
+        limitCounter += mat->keepRows[i];
+        obliv int limitFlag = (limitCounter <= numRows);
+        keepRows[i] = (mat->keepRows[i] * limitFlag);
+
+        array[i] = malloc(sizeof(**array) * numCols);
+        for (int j = 0; j < numCols; j++)
+        {
+            array[i][j] = mat->mat[i][j];
+        }
+    }
+
+    ret->rows = numRows;
+    ret->cols = numCols;
+    ret->mat = array;
+    ret->keepRows = keepRows;
+}
+
+void multiply
+	(
+	intermediateMat *mat,
+	intermediateMat *ret,
+	int *operands,
+	int numOperands,
+	int scalar,
+	int opColIdx,
+	bool newCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	if (newCol)
+	{
+		numCols++;
+	}
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			if (j != opColIdx)
+			{
+				array[i][j] = mat->mat[i][j];
+			}
+			else
+			{
+				obliv int temp = 1;
+				temp = temp * scalar;
+				for (int k = 0; k < numOperands; k++)
+				{
+					int colIdx = operands[k];
+					temp = temp * mat->mat[i][colIdx];
+				}
+				array[i][j] = temp;
+			}
+		}
+	}
+
+	ret->cols = numCols;
+	ret->rows = numRows;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void divide
+	(
+	intermediateMat *mat,
+	intermediateMat *ret,
+	int *operands,
+	int numOperands,
+	int scalar,
+	int opColIdx,
+	bool newCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	if (newCol)
+	{
+		numCols++;
+	}
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = mat->keepRows[i];
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			if (j != opColIdx)
+			{
+				array[i][j] = mat->mat[i][j];
+			}
+			else
+			{
+				int initCol = operands[0];
+				obliv int temp = mat->mat[i][initCol] / scalar;
+				for (int k = 1; k < numOperands; k++)
+				{
+					int colIdx = operands[k];
+					temp = temp / mat->mat[i][colIdx];
+				}
+				array[i][j] = temp;
+			}
+		}
+	}
+
+	ret->cols = numCols;
+	ret->rows = numRows;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void compareExchange
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int keyCol,
+		int numCols,
+		int i,
+		int j,
+		bool ascending
+	)
+{
+	obliv int x = array[i][keyCol];
+	obliv int y = array[j][keyCol];
+
+	obliv int c;
+	obliv int d;
+
+	if (ascending)
+	{
+
+		c = x < y;
+		d = 1 - c;
+	}
+	else
+	{
+		c = x > y;
+		d = 1 - c;
+	}
+
+	obliv int keepRowsI = (c * keepRows[i]) + (d * keepRows[j]);
+	obliv int keepRowsJ = (d * keepRows[i]) + (c * keepRows[j]);
+
+	obliv int *temp1 = malloc(sizeof(obliv int) * numCols);
+	obliv int *temp2 = malloc(sizeof(obliv int) * numCols);
+
+	for (int k = 0; k < numCols; k++)
+	{
+		obliv int a = array[i][k];
+		obliv int b = array[j][k];
+
+		temp1[k] = (c * a) + (d * b);
+		temp2[k] = (d * a) + (c * b);
+	}
+
+	array[i] = temp1;
+	array[j] = temp2;
+
+	keepRows[i] = keepRowsI;
+	keepRows[j] = keepRowsJ;
+}
+
+void oddEvenMerge
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int keyCol,
+		int numCols,
+		int lo,
+		int n,
+		int r,
+		bool ascending
+	)
+{
+	int m = r * 2;
+	if (m < n)
+	{
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, m, ascending);
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo + r, n, m, ascending);
+
+		for (int i = lo + r; (i + r) < (lo + n); i += m)
+		{
+			compareExchange(array, keepRows, keyCol, numCols, i, i + r, ascending);
+		}
+	} else {
+		compareExchange(array, keepRows, keyCol, numCols, lo, lo + r, ascending);
+	}
+}
+
+void oddEvenSort
+	(
+		obliv int **array,
+		obliv int *keepRows,
+		int keyCol,
+		int numCols,
+		int lo,
+		int n,
+		bool ascending
+	)
+{
+	if (n > 1)
+	{
+		int m = n / 2;
+		oddEvenSort(array, keepRows, keyCol, numCols, lo, m, ascending);
+		oddEvenSort(array, keepRows, keyCol, numCols, lo + m, m, ascending);
+		oddEvenMerge(array, keepRows, keyCol, numCols, lo, n, 1, ascending);
+	}
+}
+
+void sortBy
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		oddEvenSort(padded, keepRows, keyCol, numCols, 0, numRows, true);
+
+		ret->mat = padded;
+		ret->keepRows = keepRows;
+	}
+	else
+	{
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		oddEvenSort(array, keepRows, keyCol, numCols, 0, numRows, true);
+
+		ret->mat = array;
+		ret->keepRows = keepRows;
+	}
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+}
+
+void shiftAgg
+	(
+		obliv int **arr,
+		obliv int *keepRows,
+		int numRows
+	)
+{
+
+	for (int i = 1; i < numRows - 1; i++)
+	{
+		// compare keys of current row and previous
+		obliv int eqFlag = (arr[i - 1][0] == arr[i][0]);
+
+		// aggregate previous into current if keys equal
+        arr[i][1] = arr[i][1] + (arr[i - 1][1] * eqFlag);
+
+        // only keep if this is last entry in group (i.e., not equal to next)
+        // and it's not a dummy element (i.e., keep flag is not 0)
+        keepRows[i - 1] = keepRows[i - 1] * (1 - eqFlag);
+	}
+}
+
+void _agg
+	(
+		intermediateMat *ret,
+		obliv int **array,
+		int numCols,
+		int numRows
+	)
+{
+        oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, false);
+		shiftAgg(array, ret->keepRows, numRows);
+
+        obliv int **retArray = malloc(sizeof(*retArray) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			retArray[i] = malloc(sizeof(**retArray) * numCols);
+			retArray[i][0] = array[i][0];
+			retArray[i][1] = array[i][1];
+		}
+
+		ret->mat = retArray;
+		ret->rows = numRows;
+		ret->cols = numCols;
+		//debugPrint(ret);
+
+}
+
+void _aggLeaky
+	(
+		intermediateMat *ret,
+		obliv int **array,
+		int numCols,
+		int numRows
+	)
+{
+
+		oddEvenSort(array, ret->keepRows, 0, numCols, 0, numRows, true);
+		shiftAgg(array, ret->keepRows, numRows);
+
+		// TODO: move shuffle into it's own function.
+		oddEvenSort(array, ret->keepRows, 1, numCols, 0, numRows, false);
+
+		obliv int outRows = 0;
+
+		for (int i = 0; i < numRows; i++)
+		{
+			outRows = outRows + ret->keepRows[i];
+		}
+
+		int numOutRows;
+		revealOblivInt(&numOutRows, outRows, 0);
+
+		obliv int **retArray = malloc(sizeof(*retArray) * numOutRows);
+
+		for (int i = 0; i < numOutRows; i++)
+		{
+			retArray[i] = malloc(sizeof(**retArray) * numCols);
+			retArray[i][0] = array[i][0];
+			retArray[i][1] = array[i][1];
+		}
+
+		ret->mat = retArray;
+		ret->rows = numOutRows;
+		ret->cols = numCols;
+}
+
+void agg
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int aggCol,
+		bool leaky
+	)
+{
+	// TODO: numCols hardcoded as 2, generalize for multiple aggCols
+	int numRows = mat->rows;
+	int numCols = 2;
+    //debugPrint(mat);
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = mat->mat[i][aggCol];
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+	    printf("Not power of 2, will pad\n");
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
+
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		ret->keepRows = keepRows;
+
+        if (leaky)
+        {
+            _aggLeaky(ret, padded, numCols, paddedVal);
+        }
+        else
+        {
+            // TODO this is not necessary, optimize
+            for (int i = 0; i < paddedVal; i++)
+            {
+                // assumes -1 not among inputs
+                padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+            }
+		    _agg(ret, padded, numCols, paddedVal);
+		}
+	}
+	else
+	{
+	    printf("Power of 2\n");
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		ret->keepRows = keepRows;
+
+        if (leaky)
+        {
+            _aggLeaky(ret, array, numCols, numRows);
+        }
+        else
+        {
+		    _agg(ret, array, numCols, numRows);
+		}
+	}
+}
+
+void aggCount
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		bool leaky
+	)
+{
+	// TODO: change this to append column of 1s and call agg to re-use more code
+	printf("Agg count not supported yet\n");
+	exit(1);
+	int numRows = mat->rows;
+	int numCols = 2;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * numCols);
+		array[i][0] = mat->mat[i][keyCol];
+		array[i][1] = 1;
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, numCols, numRows, paddedVal);
+
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+		ret->keepRows = keepRows;
+
+		if (leaky)
+		{
+			_aggLeaky(ret, padded, numCols, paddedVal);
+		}
+		else
+		{
+			_agg(ret, padded, numCols, paddedVal);
+		}
+
+	}
+	else
+	{
+		obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+		}
+
+		ret->keepRows = keepRows;
+
+        if (leaky)
+		{
+			_aggLeaky(ret, array, numCols, numRows);
+		}
+		else
+		{
+			_agg(ret, array, numCols, numRows);
+		}
+	}
+}
+
+void revealResult
+	(
+	intermediateMat *mat,
+	int party,
+	protocolIo *io
+	)
+{
+
+	int *keepFlags = malloc(sizeof(int) * mat->rows);
+	int outRows = 0;
+
+	for (int i = 0; i < mat->rows; i++)
+	{
+		revealOblivInt(&keepFlags[i], mat->keepRows[i], 0);
+		if (keepFlags[i] == 1)
+		{
+		    outRows++;
+		}
+	}
+
+	int **array = malloc(sizeof(*array) * outRows);
+
+	int currentRetIdx = 0;
+	for (int i = 0; i < mat->rows; i++)
+	{
+		if (keepFlags[i] == 1)
+		{
+			array[currentRetIdx] = malloc(sizeof(**array) * mat->cols);
+			for (int j = 0; j < mat->cols; j++)
+			{
+				revealOblivInt(&array[currentRetIdx][j], mat->mat[i][j], party);
+			}
+			currentRetIdx++;
+		}
+	}
+
+	io->ret = array;
+	io->out_rows = outRows;
+	io->out_cols = mat->cols;
+}
+
+void _distinctCount
+	(
+		intermediateMat *ret,
+		obliv int **array,
+		obliv int *keepRows,
+		int numRows
+	)
+{
+	obliv int retVal = 1;
+
+    for (int i = 1; i < numRows; i++)
+	{
+        obliv int curr = array[i][0];
+        obliv int prev = array[i - 1][0];
+        array[i][0] = keepRows[i] * (curr - prev) + prev;
+    }
+
+	for (int i = 1; i < numRows; i++)
+	{
+        obliv int eqFlag = (array[i - 1][0] == array[i][0]);
+        retVal = retVal + (1 - eqFlag);
+	}
+
+    obliv int isFirstDummy = 1 - keepRows[0];
+	obliv int **retArray = malloc(sizeof(*retArray) * 1);
+	retArray[0] = malloc(sizeof(**retArray) * 1);
+	retArray[0][0] = retVal - isFirstDummy;
+
+	obliv int *keepRows = malloc(sizeof(obliv int) * 1);
+	keepRows[0] = 1;
+
+	ret->mat = retArray;
+	ret->keepRows = keepRows;
+	ret->rows = 1;
+	ret->cols = 1;
+}
+
+void distinctCountPreSorted
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol
+	)
+{
+    int numRows = mat->rows;
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * 1);
+		// assumes -1 not among inputs
+		array[i][0] = mat->keepRows[i] * (mat->mat[i][keyCol] + 1) - 1;
+		//array[i][0] = mat->mat[i][keyCol];
+
+		keepRows[i] = mat->keepRows[i];
+	}
+
+	_distinctCount(ret, array, keepRows, numRows);
+}
+
+void distinctCount
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol
+	)
+{
+	int numRows = mat->rows;
+	obliv int **array = malloc(sizeof(*array) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		array[i] = malloc(sizeof(**array) * 1);
+		array[i][0] = mat->mat[i][keyCol];
+	}
+
+	if (!isPowerOfTwo(numRows))
+	{
+		int paddedVal = nextPowerOf2(numRows);
+		obliv int **padded = padInput(array, 1, numRows, paddedVal);
+		obliv int *keepRows = malloc(sizeof(obliv int) * paddedVal);
+
+		for (int i = 0; i < paddedVal; i++)
+		{
+			if (i < numRows)
+			{
+				keepRows[i] = mat->keepRows[i];
+			}
+			else
+			{
+				keepRows[i] = 0;
+			}
+		}
+
+        // TODO this is not necessary, optimize
+		for (int i = 0; i < paddedVal; i++)
+        {
+            // assumes -1 not among inputs
+            padded[i][0] = keepRows[i] * (padded[i][0] + 1) - 1;
+        }
+
+		oddEvenSort(padded, keepRows, 0, 1, 0, paddedVal, false);
+		_distinctCount(ret, padded, keepRows, paddedVal);
+	}
+	else
+	{
+	    obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+		for (int i = 0; i < numRows; i++)
+		{
+			keepRows[i] = mat->keepRows[i];
+			// TODO this is not necessary, optimize
+			// assumes -1 not among inputs
+            array[i][0] = keepRows[i] * (array[i][0] + 1) - 1;
+		}
+
+		oddEvenSort(array, keepRows, 0, 1, 0, numRows, false);
+		_distinctCount(ret, array, keepRows, numRows);
+	}
+}
+
+void filterEqByConstant
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int constant
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv int eqFlag;
+		eqFlag = (mat->mat[i][keyCol] == constant);
+
+		array[i] = malloc(sizeof(**array) * numCols);
+
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+
+		keepRows[i] = mat->keepRows[i] * eqFlag;
+
+	}
+
+	ret->mat = array;
+	ret-> keepRows = keepRows;
+	ret->cols = numCols;
+	ret->rows = numRows;
+}
+
+void filterLtByColumn
+	(
+		intermediateMat *mat,
+		intermediateMat *ret,
+		int keyCol,
+		int compCol
+	)
+{
+	int numRows = mat->rows;
+	int numCols = mat->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		obliv int ltFlag;
+		ltFlag = (mat->mat[i][keyCol] < mat->mat[i][compCol]);
+
+		array[i] = malloc(sizeof(**array) * numCols);
+
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = mat->mat[i][j];
+		}
+
+		keepRows[i] = mat->keepRows[i] * ltFlag;
+	}
+
+	ret->mat = array;
+	ret-> keepRows = keepRows;
+	ret->cols = numCols;
+	ret->rows = numRows;
+}
+
+void multiplyMatrices
+	(
+		intermediateMat *matOne,
+		intermediateMat *matTwo,
+		intermediateMat *ret
+	)
+{
+	if (matOne->rows != matTwo->rows)
+	{
+		printf("Unequal number of rows for multiplyMatrices operator.");
+		exit(1);
+	}
+	if (matOne->cols != matTwo->cols)
+	{
+		printf("Unequal number of columns for multiplyMatrices operator.");
+		exit(1);
+	}
+
+	int numRows = matOne->rows;
+	int numCols = matOne->cols;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * numCols);
+		for (int j = 0; j < numCols; j++)
+		{
+			array[i][j] = matOne->mat[i][j] * matTwo->mat[i][j];
+		}
+	}
+
+	ret->rows = numRows;
+	ret->cols = numCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void concatCols
+	(
+		intermediateMat *matOne,
+		intermediateMat *matTwo,
+		intermediateMat *ret
+	)
+{
+	if (matOne->rows != matTwo->rows)
+	{
+		printf("Unequal number of rows for concatCols operator.");
+		exit(1);
+	}
+
+	int numRows = matOne->rows;
+
+	int numColsOne = matOne->cols;
+	int numColsTwo = matTwo->cols;
+	int totalCols = numColsOne + numColsTwo;
+
+	obliv int **array = malloc(sizeof(*array) * numRows);
+	obliv int *keepRows = malloc(sizeof(obliv int) * numRows);
+
+	for (int i = 0; i < numRows; i++)
+	{
+		keepRows[i] = matOne->keepRows[i] * matTwo->keepRows[i];
+
+		array[i] = malloc(sizeof(**array) * totalCols);
+		for (int j = 0; j < totalCols; j++)
+		{
+			if (j < numColsOne)
+			{
+				array[i][j] = matOne->mat[i][j];
+			}
+			else
+			{
+				array[i][j] = matTwo->mat[i][j - numColsOne];
+			}
+		}
+	}
+
+	ret->rows = numRows;
+	ret->cols = totalCols;
+	ret->mat = array;
+	ret->keepRows = keepRows;
+}
+
+void protocol(void *args)
+{
+
+    protocolIo *io = (protocolIo*) args;
+{{{OP_CODE}}}
+
+}

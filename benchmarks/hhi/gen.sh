@@ -9,7 +9,7 @@ mkdir -p ${OUT}
 
 FN="in$PARTY.csv"
 
-python3 data_gen.py --num_rows ${SIZE} --party ${PARTY} --output ${OUT} --file_name ${FN} --seed ${PARTY}
+python data_gen.py --num_rows ${SIZE} --party ${PARTY} --output ${OUT} --file_name ${FN} --seed ${PARTY}
 
 # also persist to HDFS if user specified an HDFS dir
 if [ ! -z ${HDFS_ROOT} ]

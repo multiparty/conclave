@@ -10,6 +10,8 @@ This framework allows users to define data analysis workflows in familiar fronte
 
 Conclave requires a Python 3.5 environment and was tested on Ubuntu (14.04+). See `requirements.txt` for other dependencies.
 
+Consider using pyenv (https://github.com/pyenv/pyenv) to avoid changing `python` to `python3` in a bunch of places.
+
 ## Setup
 
 Run `pip install -r requirements.txt`.

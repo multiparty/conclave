@@ -1,5 +1,5 @@
 import conclave.job
-from . import sharemind, spark, python, oblivc
+from . import sharemind, spark, python, oblivc, single_party, jiff
 
 
 def _synchronize(networked_peer):
@@ -25,7 +25,10 @@ def dispatch_all(conclave_config, networked_peer, job_queue: list):
                 conclave_config.system_configs["spark"].spark_master_url)
             if "spark" in conclave_config.system_configs else None,
         conclave.job.PythonJob: python.PythonDispatcher(),
-        conclave.job.OblivCJob: oblivc.OblivCDispatcher(networked_peer) if networked_peer else None
+        conclave.job.OblivCJob: oblivc.OblivCDispatcher(
+            networked_peer, conclave_config) if networked_peer else None,
+        conclave.job.SinglePartyJob: single_party.SinglePartyDispatcher(networked_peer) if networked_peer else None,
+        conclave.job.JiffJob: jiff.JiffDispatcher(networked_peer) if networked_peer else None
     }
 
     # dispatch each job

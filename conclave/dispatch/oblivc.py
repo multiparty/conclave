@@ -1,21 +1,92 @@
 import asyncio
-from subprocess import call
+import json
 import time
+from subprocess import call
+
+import pystache
 
 
 class OblivCDispatcher:
 
-    def __init__(self, peer):
+    def __init__(self, peer, config):
 
         self.peer = peer
+        self.config = config
         self.loop = peer.loop
         self.to_wait_on = {}
         self.early = set()
+        self.header_template = \
+            """
+            #include <obliv.h>
+            #include <obliv.oh>
+            
+            #define ROWS {{{ROWS}}}
+            #define COLS {{{COLS}}}
+            
+            typedef struct
+            {
+                {{{TYPE}}} mat[ROWS][COLS];
+                int rows;
+                int cols;
+            } Io;
+            
+            typedef struct
+            {
+                char *src;
+                char *out;
+                Io in;
+                int out_rows;
+                int out_cols;
+                {{{TYPE}}} **ret;
+            
+            } protocolIo;
+            
+            typedef struct
+            {
+                int rows;
+                int cols;
+                obliv {{{TYPE}}} *keepRows;
+                obliv {{{TYPE}}} **mat;
+            
+            } intermediateMat;
+            
+            void protocol(void *args);
+            """
+
+    def generate_header(self, job):
+
+        print(job.code_dir)
+
+        with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
+            params = json.load(conf)
+
+        row_count = 0
+        with open(params["IN_PATH"], 'r') as input_data:
+            file_data = input_data.read()
+            rows = file_data.split("\n")
+            for r in rows:
+                if r != '':
+                    row_count += 1
+            cols = len(rows[0].split(","))
+
+        data = {
+            "TYPE": params["TYPE"],
+            "ROWS": row_count - 1,
+            "COLS": cols
+        }
+
+        header_file = pystache.render(self.header_template, data)
+
+        print("***\n\nWriting header file here {}\n\n***".format(job.code_dir))
+        header = open("{}/workflow.h".format(job.code_dir), 'w')
+        header.write(header_file)
 
     def _dispatch(self, job):
         """
         Dispatch Obliv-C job.
         """
+
+        self.generate_header(job)
 
         cmd = "{}/bash.sh".format(job.code_dir)
 
@@ -43,7 +114,7 @@ class OblivCDispatcher:
         self.loop.run_until_complete(asyncio.gather(*futures))
 
         # hack
-        time.sleep(15)
+        time.sleep(5)
 
         self._dispatch(job)
 

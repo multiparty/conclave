@@ -560,6 +560,17 @@ class Multiply(UnaryOpNode):
             col, rel.Column) else col for col in old_operands]
 
 
+class Limit(UnaryOpNode):
+    """ Object to store the limiting of resulting rows from a relation. """
+
+    def __init__(self, out_rel: rel.Relation, parent: OpNode, num: int):
+        super(Limit, self).__init__("limit", out_rel, parent)
+        self.num = num
+
+    def is_reversible(self):
+        return False
+
+
 class SortBy(UnaryOpNode):
     """ Object to store the sorting of a relation over a particular column. """
 

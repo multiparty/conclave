@@ -13,4 +13,4 @@ fi
 DIST_KEYS=$((10 * SIZE / 100))
 
 OUT=/mnt/shared/comorb_data/conclave/${SIZE}/
-python3 data_gen.py -n ${SIZE} -d ${DIST_KEYS} -s ${PARTY} -o ${OUT} -f "${PREFIX}_diagnosis.csv"
+python data_gen.py -n ${SIZE} -d ${DIST_KEYS} -s ${PARTY} -o ${OUT} -f "${PREFIX}_diagnosis.csv"

@@ -150,6 +150,7 @@ def _leaky_index_aggregate(input_op_node: cc_dag.OpNode, output_name: str, group
     """
     Define IndexAggregateLeaky operation.
     """
+
     agg_op = aggregate(input_op_node, output_name, group_col_names, over_col_name, aggregator, agg_out_col_name)
     idx_agg_op = cc_dag.LeakyIndexAggregate.from_aggregate(agg_op, dist_keys_op, keys_to_idx_map)
 
@@ -194,6 +195,28 @@ def sort_by(input_op_node: cc_dag.OpNode, output_name: str, sort_by_col_name: st
     op = cc_dag.SortBy(out_rel, input_op_node, sort_by_col)
 
     # Add it as a child to input node
+    input_op_node.children.add(op)
+
+    return op
+
+
+def limit(input_op_node: cc_dag.OpNode, output_name: str, num: int):
+    """
+    Define Limit operation.
+    """
+
+    in_rel = input_op_node.out_rel
+
+    out_rel_cols = copy.deepcopy(in_rel.columns)
+
+    for col in out_rel_cols:
+        col.coll_sets = set()
+
+    out_rel = rel.Relation(output_name, out_rel_cols, copy.copy(in_rel.stored_with))
+    out_rel.update_columns()
+
+    op = cc_dag.Limit(out_rel, input_op_node, num)
+
     input_op_node.children.add(op)
 
     return op
@@ -998,6 +1021,7 @@ def _join_flags(left_input_node: cc_dag.OpNode, right_input_node: cc_dag.OpNode,
     """
     Define JoinFlags operation.
     """
+
     join_op = join(left_input_node, right_input_node,
                    output_name, left_col_names, right_col_names)
     join_flags_op = cc_dag.JoinFlags.from_join(join_op)
