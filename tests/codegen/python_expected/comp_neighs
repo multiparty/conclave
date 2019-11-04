@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    comp_neighs = comp_neighs(in_1, 1)
-    write_rel('/tmp', 'comp_neighs.csv', comp_neighs, '"b"')
-
-    print("done python")

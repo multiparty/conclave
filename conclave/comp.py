@@ -4,6 +4,7 @@ Workflow graph optimizations and transformations.
 import copy
 import warnings
 
+import conclave.config as cc_conf
 import conclave.dag as ccdag
 import conclave.lang as cc
 import conclave.utils as utils
@@ -123,8 +124,9 @@ def fork_node(node: ccdag.Concat):
 class DagRewriter:
     """ Top level DAG rewrite class. Traverses DAG, reorders nodes, and applies optimizations to certain nodes. """
 
-    def __init__(self):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
 
+        self.conclave_config = conclave_config
         # If true we visit topological ordering of condag in reverse
         self.reverse = False
 
@@ -289,10 +291,10 @@ class DagRewriter:
 class MPCPushDown(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundaries down in workflows. """
 
-    def __init__(self):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
         """ Initialize MPCPushDown object. """
 
-        super(MPCPushDown, self).__init__()
+        super(MPCPushDown, self).__init__(conclave_config)
 
     @staticmethod
     def _do_commute(top_op: ccdag.OpNode, bottom_op: ccdag.OpNode):
@@ -302,6 +304,10 @@ class MPCPushDown(DagRewriter):
 
         if isinstance(top_op, ccdag.Aggregate):
             if isinstance(bottom_op, ccdag.Divide):
+                return True
+            elif top_op.aggregator == 'mean':
+                return True
+            elif top_op.aggregator == 'std_dev':
                 return True
             else:
                 return False
@@ -359,9 +365,12 @@ class MPCPushDown(DagRewriter):
         parent = next(iter(node.parents))
         if parent.is_mpc:
             if isinstance(parent, ccdag.Concat) and parent.is_boundary():
-                split_agg(node)
-                push_op_node_down(parent, node)
-                parent.update_out_rel_cols()
+                if node.aggregator != "mean" and node.aggregator != "std_dev":
+                    split_agg(node)
+                    push_op_node_down(parent, node)
+                    parent.update_out_rel_cols()
+                else:
+                    node.is_mpc = True
             else:
                 node.is_mpc = True
         else:
@@ -443,10 +452,10 @@ class MPCPushDown(DagRewriter):
 class MPCPushUp(DagRewriter):
     """ DagRewriter subclass for pushing MPC boundary up in workflows. """
 
-    def __init__(self):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
         """ Initialize MPCPushUp object. """
 
-        super(MPCPushUp, self).__init__()
+        super(MPCPushUp, self).__init__(conclave_config)
         self.reverse = True
 
     @staticmethod
@@ -514,8 +523,8 @@ class UpdateColumns(DagRewriter):
     Updates all operator specific columns after the pushdown pass.
     """
 
-    def __init__(self):
-        super(UpdateColumns, self).__init__()
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
+        super(UpdateColumns, self).__init__(conclave_config)
 
     def rewrite(self, dag: ccdag.OpDag):
         ordered = dag.top_sort()
@@ -531,9 +540,9 @@ class TrustSetPropDown(DagRewriter):
     Trust sets are column-specific and thus more granular than stored_with sets, which are defined over whole relations.
     """
 
-    def __init__(self):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
 
-        super(TrustSetPropDown, self).__init__()
+        super(TrustSetPropDown, self).__init__(conclave_config)
 
     @staticmethod
     def _rewrite_linear_op(node: [ccdag.Divide, ccdag.Multiply]):
@@ -572,7 +581,7 @@ class TrustSetPropDown(DagRewriter):
         in_group_cols_ts = utils.trust_set_from_columns(in_group_cols)
         for i in range(len(out_group_cols)):
             out_group_cols[i].trust_set = copy.copy(in_group_cols_ts)
-        if node.aggregator == "sum":
+        if node.aggregator == "sum" or node.aggregator == "mean" or node.aggregator == "std_dev":
             in_agg_col_ts = copy.copy(node.agg_col.trust_set)
         elif node.aggregator == "count":
             # in case of a count, result over col has same trust set as group by cols
@@ -790,10 +799,9 @@ class TrustSetPropDown(DagRewriter):
 class HybridOperatorOpt(DagRewriter):
     """ DagRewriter subclass specific to hybrid operator optimization rewriting. """
 
-    def __init__(self, all_pids: set):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
 
-        super(HybridOperatorOpt, self).__init__()
-        self.all_pids = all_pids
+        super(HybridOperatorOpt, self).__init__(conclave_config)
 
     def _rewrite_aggregate(self, node: ccdag.Aggregate):
         """ Convert Aggregate node to HybridAggregate node. """
@@ -835,7 +843,7 @@ class HybridOperatorOpt(DagRewriter):
             if trust_set:
                 # for now only support 2-party public join
                 in_stored_with = node.get_left_in_rel().stored_with | node.get_right_in_rel().stored_with
-                if trust_set == self.all_pids and len(in_stored_with) == 2:
+                if trust_set == set(self.conclave_config.all_pids) and len(in_stored_with) == 2:
                     # public join possible
                     public_join_op = ccdag.PublicJoin.from_join(node)
                     parents = public_join_op.parents
@@ -862,9 +870,9 @@ class InsertOpenAndCloseOps(DagRewriter):
     MPC and non-MPC boundaries into the DAG.
     """
 
-    def __init__(self):
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
 
-        super(InsertOpenAndCloseOps, self).__init__()
+        super(InsertOpenAndCloseOps, self).__init__(conclave_config)
 
     @staticmethod
     def _rewrite_default_unary(node: ccdag.UnaryOpNode):
@@ -1015,12 +1023,14 @@ class ExpandCompositeOps(DagRewriter):
     (for example hybrid joins) into subdags of primitive operators.
     """
 
-    def __init__(self, use_leaky_ops: bool = True):
-        super(ExpandCompositeOps, self).__init__()
-        self.use_leaky_ops = use_leaky_ops
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
+        super(ExpandCompositeOps, self).__init__(conclave_config)
+
+        self.use_leaky_ops = conclave_config.use_leaky_ops
         self.join_counter = 0
         self.public_join_counter = 0
         self.agg_counter = 0
+        self.public_agg_counter = 0
 
     def _create_unique_public_join_suffix(self):
         """
@@ -1037,6 +1047,14 @@ class ExpandCompositeOps(DagRewriter):
         """
         self.join_counter += 1
         return "_hybrid_join_" + str(self.join_counter)
+
+    def _create_unique_public_agg_suffix(self):
+        """
+        Creates a unique string which will be appended to the end of each sub-relation created for each new public
+        aggregation. This prevents relation name overlap in the case of multiple hybrid operators.
+        """
+        self.public_agg_counter += 1
+        return "_public_agg_" + str(self.public_agg_counter)
 
     def _create_unique_agg_suffix(self):
         """
@@ -1177,19 +1195,23 @@ class ExpandCompositeOps(DagRewriter):
                                              "right_encoded" + suffix)
         right_encoded.is_mpc = False
 
-        num_lookups_closed = cc._close(num_lookups, "num_lookups_closed" + suffix, {1, 2, 3})
+        num_lookups_closed = cc._close(num_lookups, "num_lookups_closed" + suffix, set(self.conclave_config.all_pids))
         num_lookups_closed.is_mpc = True
 
-        left_unpermuted_closed = cc._close(left_unpermuted_idx, "left_unpermuted_closed" + suffix, {1, 2, 3})
+        left_unpermuted_closed = \
+            cc._close(left_unpermuted_idx, "left_unpermuted_closed" + suffix, set(self.conclave_config.all_pids))
         left_unpermuted_closed.is_mpc = True
         left_unpermuted_pers = cc._persist(left_unpermuted_closed, "left_unpermuted_closed" + suffix)
-        right_unpermuted_closed = cc._close(right_unpermuted_idx, "right_unpermuted_closed" + suffix, {1, 2, 3})
+        right_unpermuted_closed = \
+            cc._close(right_unpermuted_idx, "right_unpermuted_closed" + suffix, set(self.conclave_config.all_pids))
         right_unpermuted_closed.is_mpc = True
         right_unpermuted_pers = cc._persist(right_unpermuted_closed, "right_unpermuted_closed" + suffix)
 
-        left_encoded_closed = cc._close(left_encoded, "left_encoded_closed" + suffix, {1, 2, 3})
+        left_encoded_closed = \
+            cc._close(left_encoded, "left_encoded_closed" + suffix, set(self.conclave_config.all_pids))
         left_encoded_closed.is_mpc = True
-        right_encoded_closed = cc._close(right_encoded, "right_encoded_closed" + suffix, {1, 2, 3})
+        right_encoded_closed = \
+            cc._close(right_encoded, "right_encoded_closed" + suffix, set(self.conclave_config.all_pids))
         right_encoded_closed.is_mpc = True
 
         # TODO update operator name and arguments
@@ -1222,10 +1244,12 @@ class ExpandCompositeOps(DagRewriter):
                                               stage=1)
         right_arranged.is_mpc = False
 
-        left_arranged_closed = cc._close(left_arranged, "left_arranged_closed" + suffix, {1, 2, 3})
+        left_arranged_closed = \
+            cc._close(left_arranged, "left_arranged_closed" + suffix, set(self.conclave_config.all_pids))
         left_arranged_closed.is_mpc = True
 
-        right_arranged_closed = cc._close(right_arranged, "right_arranged_closed" + suffix, {1, 2, 3})
+        right_arranged_closed = \
+            cc._close(right_arranged, "right_arranged_closed" + suffix, set(self.conclave_config.all_pids))
         right_arranged_closed.is_mpc = True
 
         # Final MPC step
@@ -1297,16 +1321,21 @@ class ExpandCompositeOps(DagRewriter):
         else:
             raise Exception("Not supported for now")
 
-        left_join = cc._pub_join(left_one, "left_join" + suffix, node.left_join_cols[0].name, other_op_node=right_one)
+        op_host = self.conclave_config.network_config["parties"][1]["host"]
+        op_port = self.conclave_config.network_config["parties"][1]["port"]
+
+        left_join = \
+            cc._pub_join(left_one, "left_join" + suffix, node.left_join_cols[0].name,
+                         other_op_node=right_one, host=op_host, port=op_port)
         right_join = cc._pub_join(left_two, "right_join" + suffix, node.left_join_cols[0].name, is_server=False,
-                                  other_op_node=right_two)
+                                  other_op_node=right_two, host=op_host, port=op_port)
 
         node.left_parent.children.remove(node)
         node.right_parent.children.remove(node)
 
-        left_join_closed = cc._close(left_join, "left_join_closed" + suffix, {1, 2, 3})
+        left_join_closed = cc._close(left_join, "left_join_closed" + suffix, set(self.conclave_config.all_pids))
         left_join_closed.is_mpc = True
-        right_join_closed = cc._close(right_join, "right_join_closed" + suffix, {1, 2, 3})
+        right_join_closed = cc._close(right_join, "right_join_closed" + suffix, set(self.conclave_config.all_pids))
         right_join_closed.is_mpc = True
 
         joined = cc.concat_cols([left_join_closed, right_join_closed], node.out_rel.name, use_mult=True)
@@ -1324,11 +1353,8 @@ class StoredWithSimplifier(DagRewriter):
     TODO this is a pre-deadline hack
     """
 
-    def __init__(self, all_parties: set = None):
-        super(StoredWithSimplifier, self).__init__()
-        if all_parties is None:
-            all_parties = {1, 2, 3}
-        self.all_parties = all_parties
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
+        super(StoredWithSimplifier, self).__init__(conclave_config)
 
     def rewrite(self, dag: ccdag.OpDag):
         """ Traverse topologically sorted DAG, inspect each node. """
@@ -1339,7 +1365,7 @@ class StoredWithSimplifier(DagRewriter):
         for node in ordered:
             print(type(self).__name__, "rewriting", node.out_rel.name)
             if len(node.out_rel.stored_with) > 1:
-                node.out_rel.stored_with = self.all_parties
+                node.out_rel.stored_with = set(self.conclave_config.all_pids)
 
 
 class EliminateSorts(DagRewriter):
@@ -1347,8 +1373,8 @@ class EliminateSorts(DagRewriter):
     Eliminates redundant sorts when possible by tracking sorted columns throughout dag.
     """
 
-    def __init__(self):
-        super(EliminateSorts, self).__init__()
+    def __init__(self, conclave_config: cc_conf.CodeGenConfig):
+        super(EliminateSorts, self).__init__(conclave_config)
         self.sorted_by = None
 
     def _rewrite_pub_join(self, node: ccdag.PubJoin):
@@ -1390,19 +1416,17 @@ class EliminateSorts(DagRewriter):
             self.sorted_by = None
 
 
-def rewrite_dag(dag: ccdag.OpDag, all_parties: list = None, use_leaky_ops: bool = False):
+def rewrite_dag(dag: ccdag.OpDag, conclave_config: cc_conf.CodeGenConfig):
     """ Combines and calls all rewrite operations. """
-    if all_parties is None:
-        all_parties = [1, 2, 3]
-    MPCPushDown().rewrite(dag)
-    UpdateColumns().rewrite(dag)
-    MPCPushUp().rewrite(dag)
-    TrustSetPropDown().rewrite(dag)
-    HybridOperatorOpt(set(all_parties)).rewrite(dag)
-    InsertOpenAndCloseOps().rewrite(dag)
-    ExpandCompositeOps(use_leaky_ops).rewrite(dag)
-    StoredWithSimplifier(set(all_parties)).rewrite(dag)
-    EliminateSorts().rewrite(dag)
+    MPCPushDown(conclave_config).rewrite(dag)
+    UpdateColumns(conclave_config).rewrite(dag)
+    MPCPushUp(conclave_config).rewrite(dag)
+    TrustSetPropDown(conclave_config).rewrite(dag)
+    HybridOperatorOpt(conclave_config).rewrite(dag)
+    InsertOpenAndCloseOps(conclave_config).rewrite(dag)
+    ExpandCompositeOps(conclave_config).rewrite(dag)
+    StoredWithSimplifier(conclave_config).rewrite(dag)
+    EliminateSorts(conclave_config).rewrite(dag)
     return dag
 
 

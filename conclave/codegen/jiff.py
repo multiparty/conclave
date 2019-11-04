@@ -7,15 +7,6 @@ from conclave.dag import *
 from conclave.job import JiffJob
 
 
-'''
-TODO: 
-
-    - append output column row to output csv
-    - agg
-
-'''
-
-
 class JiffCodeGen(CodeGen):
 
     def __init__(self, config, dag: Dag, pid: int,
@@ -120,9 +111,9 @@ class JiffCodeGen(CodeGen):
             elif isinstance(node, Concat):
                 op_code += self._generate_concat(node)
             elif isinstance(node, Close):
-                op_code += ''
+                op_code += self._generate_close(node)
             elif isinstance(node, Create):
-                op_code += self._generate_create(node)
+                pass
             elif isinstance(node, Join):
                 op_code += self._generate_join(node)
             elif isinstance(node, Open):
@@ -135,12 +126,52 @@ class JiffCodeGen(CodeGen):
                 op_code += self._generate_divide(node)
             elif isinstance(node, SortBy):
                 op_code += self._generate_sort_by(node)
+            elif isinstance(node, ConcatCols):
+                op_code += self._generate_concat_cols(node)
             elif isinstance(node, Open):
                 op_code += self._generate_open(node)
             else:
                 print("encountered unknown operator type", repr(node))
 
         return self._generate_job(job_name, op_code)
+
+    def _generate_close(self, close_op: Close):
+
+        # node.parent.out_rel.stored_with
+        copied_set = copy.deepcopy(close_op.parent.out_rel.stored_with)
+        data_holder = copied_set.pop()
+
+        template = open(
+            "{0}/create.tmpl".format(self.template_directory), 'r').read()
+
+        data = {
+            "OUTREL": close_op.out_rel.name,
+            "ID": data_holder
+        }
+
+        return pystache.render(template, data)
+
+    def _generate_concat_cols(self, concat_cols_op: ConcatCols):
+
+        if len(concat_cols_op.get_in_rels()) != 2:
+            raise NotImplementedError("Only support concat cols of two relations")
+
+        if concat_cols_op.use_mult:
+
+            template = open(
+                "{0}/matrix_mult.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "LEFT_REL": concat_cols_op.get_in_rels()[0].name,
+                'RIGHT_REL': concat_cols_op.get_in_rels()[1].name,
+                "OUTREL": concat_cols_op.out_rel.name
+            }
+
+            return pystache.render(template, data)
+
+        else:
+            # TODO: implement this
+            return ""
 
     def _generate_create(self, create_op: Create):
 
@@ -165,6 +196,23 @@ class JiffCodeGen(CodeGen):
         if agg_op.aggregator == 'sum':
             template = open(
                 "{}/agg_sum.tmpl".format(self.template_directory), 'r').read()
+        elif agg_op.aggregator == 'mean':
+            template = open(
+                "{}/agg_mean_with_count_col.tmpl".format(self.template_directory), 'r').read()
+
+            data = {
+                "INREL": agg_op.get_in_rel().name,
+                "OUTREL": agg_op.out_rel.name,
+                "KEY_COL": agg_op.group_cols[0].idx,
+                "AGG_COL": agg_op.agg_col.idx,
+                "COUNT_COL": 2
+            }
+
+            return pystache.render(template, data)
+
+        elif agg_op.aggregator == 'std_dev':
+            template = open(
+                "{}/agg_std_dev.tmpl".format(self.template_directory), 'r').read()
         else:
             raise Exception("Unknown aggregator encountered: {}\n".format(agg_op.aggregator))
 

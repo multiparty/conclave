@@ -415,7 +415,7 @@ class Aggregate(UnaryOpNode):
     def __init__(self, out_rel: rel.Relation, parent: OpNode,
                  group_cols: list, agg_col: [rel.Column, None], aggregator: str):
         """ Initialize Aggregate object. """
-        if aggregator not in {"sum", "count"}:
+        if aggregator not in {"sum", "count", "mean", "std_dev"}:
             raise Exception("Unsupported aggregator {}".format(aggregator))
         super(Aggregate, self).__init__("aggregation", out_rel, parent)
         self.group_cols = group_cols

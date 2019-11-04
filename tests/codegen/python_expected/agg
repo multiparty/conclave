@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    agg = aggregate(in_1, 0, 2, 'sum')
-    write_rel('/tmp', 'agg.csv', agg, '"a","b","agg_1"')
-
-    print("done python")

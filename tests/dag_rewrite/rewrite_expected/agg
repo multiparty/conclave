@@ -1,9 +1,0 @@
-CREATE RELATION in_1([a {1}, b {1}]) {1} WITH COLUMNS (INTEGER, INTEGER)
-AGG [b, sum] FROM (in_1([a {1}, b {1}]) {1}) GROUP BY [a] AS agg_0([a {1}, total_b {1}]) {1}
-CLOSEMPC agg_0([a {1}, total_b {1}]) {1} INTO agg_0_close([a {1}, total_b {1}]) {1, 2, 3}
-CREATE RELATION in_2([a {2}, b {2}]) {2} WITH COLUMNS (INTEGER, INTEGER)
-AGG [b, sum] FROM (in_2([a {2}, b {2}]) {2}) GROUP BY [a] AS agg_1([a {2}, total_b {2}]) {2}
-CLOSEMPC agg_1([a {2}, total_b {2}]) {2} INTO agg_1_close([a {2}, total_b {2}]) {1, 2, 3}
-CONCATMPC [agg_0_close([a {1}, total_b {1}]) {1, 2, 3}, agg_1_close([a {2}, total_b {2}]) {1, 2, 3}] AS rel([a {}, total_b {}]) {1, 2, 3}
-AGGMPC [total_b, sum] FROM (rel([a {}, total_b {}]) {1, 2, 3}) GROUP BY [a] AS agg_obl([a {}, total_b {}]) {1, 2, 3}
-OPENMPC agg_obl([a {}, total_b {}]) {1, 2, 3} INTO agg_obl_open([a {}, total_b {}]) {1}

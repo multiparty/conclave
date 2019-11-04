@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    dist = distinct(in_1, [0, 1])
-    write_rel('/tmp', 'dist.csv', dist, '"a","b"')
-
-    print("done python")

@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    mult = arithmetic_project(in_1, 0, lambda row : row[0] * row[1])
-    write_rel('/tmp', 'mult.csv', mult, '"a","b","c","d"')
-
-    print("done python")

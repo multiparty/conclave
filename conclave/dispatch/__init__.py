@@ -28,7 +28,7 @@ def dispatch_all(conclave_config, networked_peer, job_queue: list):
         conclave.job.OblivCJob: oblivc.OblivCDispatcher(
             networked_peer, conclave_config) if networked_peer else None,
         conclave.job.SinglePartyJob: single_party.SinglePartyDispatcher(networked_peer) if networked_peer else None,
-        conclave.job.JiffJob: jiff.JiffDispatcher(networked_peer) if networked_peer else None
+        conclave.job.JiffJob: jiff.JiffDispatcher(networked_peer, conclave_config) if networked_peer else None
     }
 
     # dispatch each job

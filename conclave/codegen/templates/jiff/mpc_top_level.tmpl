@@ -8,14 +8,25 @@
     var opt = Object.assign({}, options);
 
     if(node)
-      jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+    {
+        jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+        jiff_bignumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-bignumber');
+        jiff_fixedpoint = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-fixedpoint');
+        jiff_negativeNumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-negativenumber');
+    }
 
+    opt.autoConnect = false;
     saved_instance = jiff.make_jiff(hostname, computation_id, opt);
+    saved_instance.apply_extension(jiff_bignumber, opt);
+    saved_instance.apply_extension(jiff_fixedpoint, opt);
+    saved_instance.apply_extension(jiff_negativeNumber, opt);
+    saved_instance.connect();
+
     return saved_instance;
   };
 
 
- const project = function(inRel, keepRows, projCols)
+const project = function(inRel, keepRows, projCols)
   {
 
     var ret = [];
@@ -33,7 +44,7 @@
     return [ret, keepRowsResult];
   };
 
-  const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
+const join = function(leftRel, rightRel, leftKeepRows, rightKeepRows, leftJoinColIdx, rightJoinColIdx)
   {
 
     var ret = [];
@@ -62,7 +73,7 @@
     return [ret, keepRowsResult];
   };
 
-  const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
+const multiply = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
     var ret = [];
     var keepRowsResult = [];
@@ -88,9 +99,30 @@
     }
 
     return [ret, keepRowsResult];
-  }
+  };
 
-  const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
+const multiplyMatrices = function(leftRel, rightRel, leftKeepRows, rightKeepRows)
+  {
+    var ret = [];
+    var keepRowsResult = [];
+
+    for (var i = 0; i < leftRel.length; i++)
+    {
+        keepRowsResult.push(leftKeepRows[i].smult(rightKeepRows[i]));
+        tempArray = [];
+
+        for (var j = 0; j < leftRel[i].length; j++)
+        {
+            tempArray.push(leftRel[i][j].smult(rightRel[i][j]))
+        }
+        ret.push(tempArray);
+    }
+
+    return [ret, keepRowsResult];
+
+  };
+
+const divide = function(inRel, keepRows, newCol, targetCol, operands, scalar)
   {
     var ret = [];
     var keepRowsResult = [];
@@ -118,7 +150,7 @@
     return [ret, keepRowsResult];
   }
 
-  const concatenate = function(inRels, keepRows)
+const concatenate = function(inRels, keepRows)
   {
     var ret = [];
     var keepRowsResult = [];
@@ -135,39 +167,176 @@
     return [ret, keepRowsResult];
   };
 
-  const bubbleSort = function(inRel, keepRows, keyCol)
+const nextPowerOfTwo = function(n)
+{
+  var p = 1;
+  if (n && !(n & (n-1)))
   {
-
-    var numCols = inRel[0].length;
-
-    for (var i = 0; i < inRel.length; i++) {
-      for (var j = 0; j < (inRel.length - i - 1); j++) {
-        var a = inRel[j][keyCol];
-        var b = inRel[j+1][keyCol];
-        var cmp = a.slt(b);
-
-        for (var k = 0; k < numCols; k++)
-        {
-
-          var tempOne = cmp.if_else(inRel[j][k], inRel[j+1][k]);
-          var tempTwo = cmp.if_else(inRel[j+1][k], inRel[j][k]);
-
-          inRel[j][k] = tempOne;
-          inRel[j+1][k] = tempTwo;
-        }
-
-        var keepOne = cmp.if_else(keepRows[j], keepRows[j+1]);
-        var keepTwo = cmp.if_else(keepRows[j+1], keepRows[j]);
-
-        keepRows[j] = keepOne;
-        keepRows[j+1] = keepTwo;
-      }
-    }
-
-    return [inRel, keepRows];
+    return n;
   }
 
-const aggregate = function(inRel, keepRows, keyCol, aggCol)
+  while (p < n)
+  {
+    p <<=1;
+  }
+
+  return p;
+}
+
+const compareExchange = function(inRel, keepRows, keyCol, numCols, i, j)
+{
+  if (j >= inRel.length || i >= inRel.length)
+  {
+    return;
+  }
+
+  var x = inRel[i][keyCol];
+  var y = inRel[j][keyCol];
+
+  var cmp = x.lt(y);
+
+  for (var k = 0; k < numCols; k++)
+  {
+    var tempOne = cmp.if_else(inRel[i][k], inRel[j][k]);
+    var tempTwo = cmp.if_else(inRel[j][k], inRel[i][k]);
+
+    inRel[i][k] = tempOne;
+    inRel[j][k] = tempTwo;
+  }
+
+  var tempKeepOne = cmp.if_else(keepRows[i], keepRows[j]);
+  var tempKeepTwo = cmp.if_else(keepRows[j], keepRows[i]);
+
+  keepRows[i] = tempKeepOne;
+  keepRows[j] = tempKeepTwo;
+}
+
+const compareExchangeBatched = async function(inRel, keepRows, jiff_instance, keyCol, numCols, minVal, maxVal, m, r)
+{
+  var loop = jiff_instance.start_barrier();
+  for (var i = minVal; i < maxVal; i+=m)
+  {
+    compareExchange(inRel, keepRows, keyCol, numCols, i, i+r);
+  }
+  await jiff_instance.end_barrier(loop);
+}
+
+const oddEvenMerge = async function(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, r)
+{
+  var m = r * 2;
+  if (m < n)
+  {
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, m);
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo+r, n, m);
+
+    var start = lo+r;
+    var end = lo+n-r;
+    var steps = Math.floor((end-start)/m);
+
+    var chunks = Math.floor(steps/20);
+
+    if (chunks > 0)
+    {
+      for (var i = 0; i < chunks; i++)
+      {
+        minVal = start + (i*20)*m;
+        maxVal = minVal + (20*m);
+        await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, minVal, maxVal, m, r);
+      }
+      // finish last bit
+      await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, maxVal, end, m, r);
+    }
+    else
+    {
+      await compareExchangeBatched(inRel, keepRows, jiff_instance, keyCol, numCols, start, end, m ,r);
+    }
+  }
+  else
+  {
+    compareExchange(inRel, keepRows, keyCol, numCols, lo, lo+r);
+  }
+}
+
+const _oddEvenSort = async function(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n)
+{
+  if (n > 1)
+  {
+    var m = Math.floor(n/2);
+    await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, lo, m);
+    await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, lo+m, m);
+    await oddEvenMerge(inRel, keepRows, jiff_instance, keyCol, numCols, lo, n, 1);
+  }
+}
+
+const oddEvenSort = async function(inRel, keepRows, jiff_instance, keyCol)
+{
+  var numCols = inRel[0].length;
+  var nextPowTwo = nextPowerOfTwo(inRel.length);
+  await _oddEvenSort(inRel, keepRows, jiff_instance, keyCol, numCols, 0, nextPowTwo);
+}
+
+const _bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance, numCols, minVal, maxVal)
+{
+  var loop = jiff_instance.start_barrier();
+  for (var i = minVal; i < maxVal; i++)
+  {
+    var a = inRel[i][keyCol];
+    var b = inRel[i+1][keyCol];
+    var cmp = a.slt(b);
+
+    for (var j = 0; j < numCols; j++)
+    {
+      var tempOne = cmp.if_else(inRel[i][j], inRel[i+1][j]);
+      var tempTwo = cmp.if_else(inRel[i+1][j], inRel[i][j]);
+
+      inRel[i][j] = tempOne;
+      inRel[i+1][j] = tempTwo;
+    }
+
+    var keepOne = cmp.if_else(keepRows[i], keepRows[i+1]);
+    var keepTwo = cmp.if_else(keepRows[i+1], keepRows[i]);
+
+    keepRows[i] = keepOne;
+    keepRows[i+1] = keepTwo;
+  }
+  await jiff_instance.end_barrier(loop);
+}
+
+const bubbleSort = async function(inRel, keepRows, keyCol, jiff_instance)
+{
+  console.log("\n\nIN SORT\n\n");
+  var numCols = inRel[0].length;
+
+  for (var i = 0; i < inRel.length; i++)
+  {
+    console.log(i);
+    var minVal;
+    var maxVal;
+
+    var totalRows = inRel.length - i - 1;
+    var chunks = Math.floor(totalRows/20);
+    if (chunks > 0)
+    {
+      for (var j = 0; j < chunks; j++)
+      {
+        console.log(j);
+        minVal = 20 * j;
+        maxVal = minVal + 20;
+        await _bubbleSort(inRel, keepRows, keyCol, jiff_instance, numCols, minVal, maxVal);
+      }
+      // finish last bit
+      await _bubbleSort(inRel, keepRows, keyCol, jiff_instance, numCols, maxVal, totalRows);
+    }
+    else
+    {
+      await _bubbleSort(inRel, keepRows, keyCol, jiff_instance, numCols, 0, totalRows);
+    }
+  }
+  console.log("\n\nLEAVING SORT\n\n");
+  return [inRel, keepRows];
+}
+
+const aggregate = async function(inRel, keepRows, keyCol, aggCol, jiff_instance)
   {
     var newRel = []
 
@@ -178,12 +347,14 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
       newRel[i].push(inRel[i][aggCol]);
     }
 
-    var sorted = bubbleSort(newRel, keepRows, 0);
+    var sorted = await bubbleSort(newRel, keepRows, 0, jiff_instance);
     var sortedData = sorted[0];
     var sortedKeepRows = sorted[1];
 
     for (var i = 0; i < sortedData.length - 1; i++)
     {
+      jiff_instance.start_barrier();
+
       var a = sortedData[i][0];
       var b = sortedData[i+1][0];
       var dataCmp = a.eq(b);
@@ -191,22 +362,243 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
       // if both keyCols are equal, add the aggCols together
       // Else, don't touch aggCol at i+1
       var temp = dataCmp.if_else(sortedData[i][1].sadd(sortedData[i+1][1]), sortedData[i+1][1]);
+
       // indicates whether both keepRows equal 1
       var bothKeep = sortedKeepRows[i].smult(sortedKeepRows[i+1]);
+
       // indicates whether both keyCols are equal AND both keepRows == 1
       var dataKeepFlag = dataCmp.smult(bothKeep);
+
       // if both keepRows are 1, then store the added values in sortedData[i+1][1]
       var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+
       // if both rows have matching keyCols AND both keepRows == 1, make keepRows[i] == 0
       // Else, don't touch it
       var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
 
       sortedData[i+1][1] = tempResult;
       sortedKeepRows[i] = tempKeep;
+
+      await jiff_instance.end_barrier();
     }
 
     return [sortedData, sortedKeepRows];
   }
+
+const aggregateMean = async function(inRel, keepRows, keyCol, aggCol, preSorted, jiff_instance)
+{
+    var newRel = [];
+    var newKeepRows = [];
+    var counts = [];
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      newRel.push([]);
+      newRel[i].push(inRel[i][keyCol]);
+      newRel[i].push(inRel[i][aggCol]);
+
+      newKeepRows.push(keepRows[i]);
+
+      counts.push(1);
+    }
+
+    if (!preSorted)
+    {
+      var sorted = await bubbleSort(newRel, newKeepRows, 0, jiff_instance);
+      var sortedData = sorted[0];
+      var sortedKeepRows = sorted[1];
+    }
+    else
+    {
+      var sortedData = newRel;
+      var sortedKeepRows = newKeepRows;
+    }
+
+    // total awful hack wow
+    var tmpInitVal = newKeepRows[0];
+    counts[0] = tmpInitVal.if_else(tmpInitVal, tmpInitVal.add(1));
+
+    for (var i = 0; i < sortedData.length - 1; i++)
+    {
+      var a = sortedData[i][0];
+      var b = sortedData[i+1][0];
+      var dataCmp = a.eq(b);
+
+      var temp = dataCmp.if_else(sortedData[i][1].add(sortedData[i+1][1]), sortedData[i+1][1]);
+      var bothKeep = sortedKeepRows[i].mult(sortedKeepRows[i+1]);
+      var dataKeepFlag = dataCmp.mult(bothKeep);
+      var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+      var tempKeep = dataKeepFlag.if_else(0, keepRows[i]);
+      var tempCount = dataKeepFlag.if_else(counts[i].add(1), 1);
+
+      sortedData[i+1][1] = tempResult;
+      sortedKeepRows[i] = tempKeep;
+      counts[i+1] = tempCount;
+
+    }
+
+    for (var i = 0; i < sortedData.length; i++)
+    {
+      var temp = sortedData[i][1].div(counts[i]);
+      sortedData[i][1] = temp;
+    }
+
+    return [sortedData, sortedKeepRows];
+}
+
+const _aggregateMeanWithCountCol = async function(sortedData, sortedKeepRows, jiff_instance, minVal, maxVal)
+{
+  var loop = jiff_instance.start_barrier();
+  for (var i = minVal; i < maxVal; i++)
+  {
+    var a = sortedData[i][0];
+    var b = sortedData[i+1][0];
+    var dataCmp = a.eq(b);
+
+    var temp = dataCmp.if_else(sortedData[i][1].add(sortedData[i+1][1]), sortedData[i+1][1]);
+    var bothKeep = sortedKeepRows[i].mult(sortedKeepRows[i+1]);
+    var dataKeepFlag = dataCmp.mult(bothKeep);
+    var tempResult = bothKeep.if_else(temp, sortedData[i+1][1]);
+    var tempKeep = dataKeepFlag.if_else(0, sortedKeepRows[i]);
+    var tempCount = dataKeepFlag.if_else(sortedData[i][2].add(sortedData[i+1][2]), sortedData[i+1][2]);
+
+    sortedData[i+1][1] = tempResult;
+    sortedKeepRows[i] = tempKeep;
+    sortedData[i+1][2] = tempCount;
+  }
+  await jiff_instance.end_barrier(loop);
+}
+
+const _aggDivHelper = async function(sortedData, ret, jiff_instance, minVal, maxVal)
+{
+  var loop = jiff_instance.start_barrier();
+  for (var i = minVal; i < maxVal; i++)
+  {
+    var temp = sortedData[i][1].div(sortedData[i][2]);
+    ret.push([sortedData[i][0], temp]);
+  }
+  await jiff_instance.end_barrier(loop);
+}
+
+const aggregateMeanWithCountCol = async function(inRel, keepRows, keyCol, aggCol, countCol, preSorted, jiff_instance)
+{
+    var newRel = [];
+    var newKeepRows = [];
+    var counts = [];
+    var minVal;
+    var maxVal;
+
+    for (var i = 0; i < inRel.length; i++)
+    {
+      newRel.push([]);
+      newRel[i].push(inRel[i][keyCol]);
+      newRel[i].push(inRel[i][aggCol]);
+      newRel[i].push(inRel[i][countCol]);
+
+      newKeepRows.push(keepRows[i]);
+    }
+
+    if (!preSorted)
+    {
+      console.log("SORTING");
+      await oddEvenSort(newRel, newKeepRows, jiff_instance, 0);
+      console.log("SORTING DONE");
+    }
+
+    var sortedData = newRel;
+    var sortedKeepRows = newKeepRows;
+
+    var totalRows = sortedData.length - 1;
+    var chunks = Math.floor(totalRows/20);
+    console.log("AGG: ");
+    if (chunks > 0)
+    {
+      for (var cc = 0; cc < chunks; cc++)
+      {
+        minVal = cc * 20;
+        maxVal = minVal + 20;
+        console.log(cc);
+        await _aggregateMeanWithCountCol(sortedData, sortedKeepRows, jiff_instance, minVal, maxVal);
+      }
+      // finish last bit
+      await _aggregateMeanWithCountCol(sortedData, sortedKeepRows, jiff_instance, maxVal, totalRows);
+    }
+    else
+    {
+      await _aggregateMeanWithCountCol(sortedData, sortedKeepRows, jiff_instance, 0, totalRows);
+    }
+
+    var ret = [];
+    var totalRows = sortedData.length;
+    var chunks = Math.floor(totalRows/20);
+
+    console.log("DIV: ");
+    if (chunks > 0)
+    {
+      for (var cc = 0; cc < chunks; cc++)
+      {
+        console.log(cc);
+        minVal = 20 * cc;
+        maxVal = minVal + 20;
+        await _aggDivHelper(sortedData, ret, jiff_instance, minVal, maxVal);
+      }
+      // finish last bit
+      await _aggDivHelper(sortedData, ret, jiff_instance, maxVal, totalRows);
+    }
+    else
+    {
+      await _aggDivHelper(sortedData, ret, jiff_instance, 0, totalRows);
+    }
+
+    return [ret, sortedKeepRows];
+}
+
+const stdDev = async function(inRel, keepRows, keyCol, aggCol, jiff_instance)
+{
+  var newRel = [];
+
+  for (var i = 0; i < inRel.length; i++)
+  {
+    newRel.push([]);
+    newRel[i].push(inRel[i][keyCol]);
+    newRel[i].push(inRel[i][aggCol]);
+  }
+
+  var sorted = await bubbleSort(newRel, keepRows, 0, jiff_instance);
+  var sortedData = sorted[0];
+  var sortedKeepRows = sorted[1];
+
+  var mean = aggregateMean(sortedData, sortedKeepRows, 0, 1, 1);
+  var meanData = mean[0];
+  var meanKeepRows = mean[1];
+
+  for (var i = 0; i < sortedData.length; i++)
+  {
+    var a = sortedData[i][0];
+
+    for (var j = 0; j < meanData.length; j++)
+    {
+      var b = meanData[j][0];
+      var dataCmp = a.eq(b);
+      var temp = dataCmp.if_else(meanData[j][1], 0);
+      // TODO: fix code underneath this is a hack for memory stuff
+      // var bothKeep = sortedKeepRows[i].mult(meanKeepRows[j]);
+      var subResult = temp.mult(meanKeepRows[j]);
+
+      sortedData[i][1] = sortedData[i][1].sub(subResult);
+    }
+
+    var tempVal = sortedData[i][1];
+    // square result
+    sortedData[i][1] = tempVal.mult(tempVal);
+  }
+
+  var ret = aggregateMean(sortedData, sortedKeepRows, 0, 1, 1);
+  var retData = ret[0];
+  var retKeepRows = ret[1];
+
+  return [retData, retKeepRows];
+}
 
   const open = function(inRel, keepRows)
   {
@@ -220,9 +612,9 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
 
       for (var i = 0; i < openedRes.length; i++)
       {
-        if (openedKeep[i] === 1)
+        if (openedKeep[i].toNumber())
         {
-          ret.push(openedRes[i])
+          ret.push(openedRes[i]);
         }
       }
 
@@ -256,7 +648,7 @@ const aggregate = function(inRel, keepRows, keyCol, aggCol)
     var dataShares = jiff_instance.share_2D_array(inputData);
     var keepRowShares = jiff_instance.share_array(keepRows);
 
-    var computation = Promise.all([dataShares, keepRowShares]).then(function(arr) {
+    var computation = Promise.all([dataShares, keepRowShares]).then(async function(arr) {
         {{{OP_CODE}}}
     });
 

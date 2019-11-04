@@ -17,6 +17,9 @@ class NetworkConfig:
     def set_network_config(self):
         """ Return network configuration dict. """
 
+        network_config = dict()
+        network_config['pid'] = self.pid
+        network_config["parties"] = {}
         network_config = {'pid': self.pid, "parties": {}}
         for i in range(len(self.parties)):
             network_config["parties"][i + 1] = {}
@@ -65,12 +68,12 @@ class OblivcConfig:
 class JiffConfig:
     """ Jiff configuration. """
 
-    def __init__(self, jiff_path: str, party_count: int, server_ip: str, server_port: int):
+    def __init__(self, jiff_path: str, party_count: int, server_ip: str, server_port: int, server_pid: int):
         self.jiff_path = jiff_path
         self.party_count = party_count
         self.server_ip = server_ip
         self.server_port = server_port
-        self.server_pid = 1
+        self.server_pid = server_pid
         self.use_openshift = False
 
 

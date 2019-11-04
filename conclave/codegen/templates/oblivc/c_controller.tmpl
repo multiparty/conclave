@@ -32,6 +32,7 @@ int main(int argc, char **argv)
     {
       if(protocolAcceptTcp2P(&pd,port)!=0)
       {
+        printf("Exiting computation \n");
         exit(1);
       }
     }
@@ -39,6 +40,7 @@ int main(int argc, char **argv)
     {
       if(protocolConnectTcp2P(&pd,remote_host,port)!=0)
       {
+        printf("Exiting computation \n");
         exit(1);
       }
     }

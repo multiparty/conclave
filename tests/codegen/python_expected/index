@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    print("start python")
-    in_1 = read_rel('/tmp/in_1.csv')
-    ind = project_indeces(in_1)
-    write_rel('/tmp', 'ind.csv', ind, '"index","a","b","c","d"')
-
-    print("done python")

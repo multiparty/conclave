@@ -55,8 +55,6 @@ class OblivCDispatcher:
 
     def generate_header(self, job):
 
-        print(job.code_dir)
-
         with open("{0}/header_params.json".format(job.code_dir), 'r') as conf:
             params = json.load(conf)
 
@@ -98,24 +96,18 @@ class OblivCDispatcher:
         except Exception as e:
             print(e)
 
-    def party_one_dispatch(self, job):
+    def dispatch_as_evaluator(self, job):
+        """
+        Wait until submit party is ready.
+        """
 
-        self.peer.send_done_msg(2, job.name + ".party_one")
+        if job.submit_party not in self.early:
+            self.to_wait_on[job.submit_party] = asyncio.Future()
 
-        self._dispatch(job)
+        future = self.to_wait_on.values()
+        self.loop.run_until_complete(asyncio.gather(*future))
 
-    def party_two_dispatch(self, job):
-
-        for input_party in job.input_parties:
-            if input_party != self.peer.pid and input_party not in self.early:
-                self.to_wait_on[input_party] = asyncio.Future()
-
-        futures = self.to_wait_on.values()
-        self.loop.run_until_complete(asyncio.gather(*futures))
-
-        # hack
-        time.sleep(5)
-
+        time.sleep(10)
         self._dispatch(job)
 
     def dispatch(self, job):
@@ -123,14 +115,15 @@ class OblivCDispatcher:
         # register self as current dispatcher with peer
         self.peer.register_dispatcher(self)
 
-        if int(self.peer.pid) == 1:
-            self.party_one_dispatch(job)
-
-        elif int(self.peer.pid) == 2:
-            self.party_two_dispatch(job)
-
+        if int(self.peer.pid) == int(job.submit_party):
+            print("Dispatching as Garbler.\n")
+            self.peer.send_done_msg(job.evaluator_party, job.name + '.submit')
+            self._dispatch(job)
+        elif int(self.peer.pid) == int(job.evaluator_party):
+            print("Dispatching as Evaluator.\n")
+            self.dispatch_as_evaluator(job)
         else:
-            raise Exception("Party ID {0} out of bounds (must be 1 or 2)".format(self.peer.pid))
+            print("Weird PID: {}".format(self.peer.pid))
 
         self.peer.dispatcher = None
         self.to_wait_on = {}
@@ -141,6 +134,7 @@ class OblivCDispatcher:
 
         done_peer = msg.pid
         if done_peer in self.to_wait_on:
+            print("Obliv-C DoneMsg received.\n")
             self.to_wait_on[done_peer].set_result(True)
         else:
             self.early.add(done_peer)
