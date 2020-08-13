@@ -62,9 +62,9 @@ def setup(conf: dict):
     conclave_config.use_leaky_ops = use_leaky
     conclave_config.use_floats = use_floats
 
-    conclave_config.code_path = conf["user_config"]["paths"]["code_path"]
-    conclave_config.output_path = conf["user_config"]["paths"]["output_path"]
     conclave_config.input_path = conf["user_config"]["paths"]["input_path"]
+    conclave_config.code_path = conf["user_config"]["paths"]["input_path"]
+    conclave_config.output_path = conf["user_config"]["paths"]["input_path"]
 
     return conclave_config
 
