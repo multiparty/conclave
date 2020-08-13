@@ -837,8 +837,8 @@ class IndexJoin(Join):
 
 class FlagJoin(Join):
     """
-    Operator node which computes the result of a join given two input relations and equality flags computed via a
-    JoinFlags operation.
+    Operator node which computes the result of a join given two input relations
+    and equality flags computed via a JoinFlags operation.
     """
 
     def __init__(self, out_rel: rel.Relation, left_parent: OpNode, right_parent: OpNode,

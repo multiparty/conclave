@@ -6,20 +6,21 @@
    */
   exports.connect = function (hostname, computation_id, options) {
     var opt = Object.assign({}, options);
+    opt.crypto_provider = true;
 
     if(node)
     {
-        jiff = require('{{{JIFF_PATH}}}/lib/jiff-client');
+        JIFFClient = require('{{{JIFF_PATH}}}/lib/jiff-client');
         jiff_bignumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-bignumber');
-        jiff_fixedpoint = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-fixedpoint');
-        jiff_negativeNumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-negativenumber');
+        //jiff_fixedpoint = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-fixedpoint');
+        //jiff_negativeNumber = require('{{{JIFF_PATH}}}/lib/ext/jiff-client-negativenumber');
     }
 
     opt.autoConnect = false;
-    saved_instance = jiff.make_jiff(hostname, computation_id, opt);
+    saved_instance = new JIFFClient(hostname, computation_id, opt);
     saved_instance.apply_extension(jiff_bignumber, opt);
-    saved_instance.apply_extension(jiff_fixedpoint, opt);
-    saved_instance.apply_extension(jiff_negativeNumber, opt);
+    //saved_instance.apply_extension(jiff_fixedpoint, opt);
+    //saved_instance.apply_extension(jiff_negativeNumber, opt);
     saved_instance.connect();
 
     return saved_instance;
@@ -159,6 +160,7 @@ const concatenate = function(inRels, keepRows)
     {
       for (var j = 0; j < inRels[i].length; j++)
       {
+        console.log(inRels[i][j]);
         ret.push(inRels[i][j]);
         keepRowsResult.push(keepRows[i][j]);
       }
@@ -602,7 +604,7 @@ const stdDev = async function(inRel, keepRows, keyCol, aggCol, jiff_instance)
 
   const open = function(inRel, keepRows)
   {
-    var results = saved_instance.open_2D_array(inRel);
+    var results = saved_instance.open_ND_array(inRel);
     var keepRowsResults = saved_instance.open_array(keepRows);
 
     return Promise.all([results, keepRowsResults]).then(function(arr){

@@ -31,7 +31,7 @@ var format_2d = function (array_2d){
 }
 
 // JIFF options
-var options = { party_count: party_count, party_id: party_id };
+var options = { party_count: party_count, party_id: party_id, cypto_provider: true };
 options.onConnect = function(jiff_instance) {
     mpc.compute(input).then(function(r){
 
