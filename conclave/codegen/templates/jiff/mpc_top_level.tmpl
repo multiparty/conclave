@@ -647,7 +647,7 @@ const stdDev = async function(inRel, keepRows, keyCol, aggCol, jiff_instance)
       keepRows.push(1);
     }
 
-    var dataShares = jiff_instance.share_2D_array(inputData);
+    var dataShares = jiff_instance.share_ND_array(inputData);
     var keepRowShares = jiff_instance.share_array(keepRows);
 
     var computation = Promise.all([dataShares, keepRowShares]).then(async function(arr) {

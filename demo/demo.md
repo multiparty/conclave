@@ -3,8 +3,7 @@
 Begin by downloading and following install instructions for the JIFF library: https://github.com/multiparty/jiff
 Next, you should use a virtualenv running Python3.5: https://virtualenv.pypa.io/en/latest/installation.html
 
-Conclave can be run by submitting a protocol. 
-For example, a heatmap protocol would look like the following:
+Conclave can be run by submitting a protocol like the following:
 
 ### protocol.py
 ```python
@@ -50,12 +49,20 @@ if __name__ == "__main__":
 	workflow.run(protocol, c, mpc_framework="jiff", apply_optimisations=True)
 ```
 
-Further documentation on the different function available to conclave workflows 
+*Note that each input file name must correspond to the name in the call to create(). 
+So the input files for the example above would be called in1.csv, in2.csv, in3.csv. I've
+included example input files at demo/data/ that were tested on this workflow.
+
+In the above example, data from 3 parties is concatenated and then aggregated over the 
+"location" column. The output is a simple count of cars per location value. Further 
+documentation on conclave workflows can be found here: 
+https://github.com/CCD-MPC/chamberlain/wiki/Workflows
+
+Further documentation on the different queries available to conclave workflows 
 is available here: https://github.com/CCD-MPC/chamberlain/wiki/Queries
 
-In the above example, there are 3 input parties. Each party needs to submit it's 
-own config file (which corresponds to sys.argv[1] in the above code). That config
-file should look like the following:
+Each party needs to submit it's own config file (which corresponds to sys.argv[1] 
+in the above code). That config file should look like the following:
 
 
 ### config_one.json
