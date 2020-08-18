@@ -53,6 +53,11 @@ if __name__ == "__main__":
 So the input files for the example above would be called in1.csv, in2.csv, in3.csv. I've
 included example input files at demo/data/ that were tested on this workflow.
 
+In order to run the protocol, you'll need to add conclave to your PYTHONPATH as follows:
+```shell script
+export PYTHONPATH=$PYTHONPATH:<path to conclave on your machine>
+```
+
 In the above example, data from 3 parties is concatenated and then aggregated over the 
 "location" column. The output is a simple count of cars per location value. Further 
 documentation on conclave workflows can be found here: 
